@@ -47,13 +47,28 @@
     return null;
   }
 
+  var nextId = 1;
+  function uid(prefix) { return (prefix || 'n') + '-' + (nextId++) + '-' + Date.now().toString(36); }
+
   function factory(_propsSig, ctx) {
     var root = ui.h('div', 'gde-cs-tree');
 
+    // ── Header: title + filter input + add button ──────────────────
     var header = ui.h('div', 'gde-cs-tree-header');
     var titleEl = ui.h('span', 'gde-cs-tree-title', { text: '(no cardStyle selected)' });
     header.appendChild(titleEl);
     root.appendChild(header);
+
+    var bar = ui.h('div', 'gde-cs-tree-bar');
+    var filterSig = EF.signal('');
+    var search = ui.input({ value: filterSig, placeholder: 'Filter…' });
+    search.style.cssText = 'flex:1 1 auto;min-width:0;';
+    var addBtn = ui.iconButton({
+      icon: 'plus', kind: 'primary', size: 'sm', title: 'Add component',
+      onClick: function (ev) { showAddMenu(ev); },
+    });
+    bar.appendChild(search); bar.appendChild(addBtn);
+    root.appendChild(bar);
 
     var empty = ui.h('div', 'gde-cs-tree-empty', {
       text: 'Select a cardStyle on the left, or drag a component into the editor.',
@@ -67,6 +82,8 @@
       items:    itemsSig,
       selected: selectedSig,
       expanded: expandedSig,
+      search:   filterSig,
+      searchBehavior: 'filter',
       multi:    true,
       defaultExpanded: 'all',
       onSelect: function (ids) {
@@ -169,6 +186,80 @@
       }
       walk(root, 0);
       return ids.slice().sort(function (a, b) { return (depths[b]||0) - (depths[a]||0); });
+    }
+
+    // Build an add-component menu listing every registered component
+    // grouped by category. Picking one inserts a fresh node under the
+    // currently selected node (if it's a container or its parent if not),
+    // or as a root if the cardStyle is empty.
+    var ADD_CATS = ['layout', 'display', 'base', 'form', 'editor'];
+    function showAddMenu(ev) {
+      var key = State.activeCardStyle.peek();
+      if (!key) { State.log('warn', 'Pick a cardStyle first.'); return; }
+      var rect = ev.target.getBoundingClientRect();
+      var groups = {};
+      EF.listComponents().forEach(function (c) {
+        if (!c.category || ADD_CATS.indexOf(c.category) < 0) return;
+        (groups[c.category] = groups[c.category] || []).push(c);
+      });
+      var items = [];
+      ADD_CATS.forEach(function (cat) {
+        var entries = (groups[cat] || []).sort(function (a, b) {
+          return (a.label || a.name).localeCompare(b.label || b.name);
+        });
+        if (!entries.length) return;
+        items.push({ type: 'header', label: cat });
+        entries.forEach(function (spec) {
+          items.push({
+            label: spec.label || spec.name,
+            icon:  spec.icon  || 'square',
+            onSelect: function () { addComponent(spec.name); },
+          });
+        });
+      });
+      ui.contextMenu({ x: rect.right, y: rect.bottom + 4 }, items);
+    }
+    function addComponent(name) {
+      var key = State.activeCardStyle.peek();
+      if (!key) return;
+      var spec = EF.resolveComponent(name);
+      var newNode = {
+        id:        uid(name),
+        type:      name,
+        props:     Object.assign({}, spec.defaultProps || {}),
+        bindings:  {},
+        children:  [],
+        layout:    { anchor: 'tl', x: 8, y: 8, w: 80, h: 24, unit: 'px' },
+      };
+      var cs = State.projectCardStyles()[key];
+      var clone = JSON.parse(JSON.stringify(cs || { name: key, root: null }));
+      // Empty cardStyle → new node becomes the root.
+      if (!clone.root) {
+        delete newNode.layout;
+        clone.root = newNode;
+        State.upsertCardStyle(key, clone);
+        State.setSelection({ kind: 'card_component', styleKey: key, nodeIds: [newNode.id] });
+        return;
+      }
+      // Otherwise: insert under the current selection if it's a container,
+      // else as the next sibling of the selection, else as a child of the
+      // root.
+      var selIds = selectedSig.peek() || [];
+      var anchorId = selIds[selIds.length - 1] || clone.root.id;
+      var hit = findNode(clone.root, anchorId, null, -1);
+      var anchorSpec = null;
+      try { anchorSpec = hit && EF.resolveComponent(hit.node.type); } catch (_) {}
+      if (hit && anchorSpec && anchorSpec.acceptsChildren) {
+        hit.node.children = hit.node.children || [];
+        hit.node.children.push(newNode);
+      } else if (hit && hit.parent) {
+        hit.parent.children.splice(hit.index + 1, 0, newNode);
+      } else {
+        clone.root.children = clone.root.children || [];
+        clone.root.children.push(newNode);
+      }
+      State.upsertCardStyle(key, clone);
+      State.setSelection({ kind: 'card_component', styleKey: key, nodeIds: [newNode.id] });
     }
 
     function deleteNode(id) {

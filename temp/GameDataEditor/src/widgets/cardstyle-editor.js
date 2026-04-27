@@ -57,19 +57,15 @@
     var sizeEl = ui.h('div', 'gde-cs-editor-size', { text: '' });
     bar.appendChild(nameEl); bar.appendChild(sizeEl);
 
-    // Preview source dropdown — pick a table whose first row will populate
-    // bindings during preview. Keeps the widget honest about field-name
-    // resolution against real data shapes.
-    var previewSrc = EF.signal('');
-    var srcSel = ui.select({ value: previewSrc, options: previewOptions() });
-    srcSel.style.marginLeft = 'auto';
-    bar.appendChild(srcSel);
-    function previewOptions() {
-      var opts = [{ value: '', label: '(no source)' }];
-      var tm = State.tableMap();
-      Object.keys(tm).forEach(function (pk) { opts.push({ value: pk, label: pk }); });
-      return opts;
-    }
+    // Zoom — applied to canvas via CSS transform. Range chosen wide enough
+    // to peek at small text + back out to layout overview without becoming
+    // a scrubbable axis (numberInput is a deliberate two-click affair).
+    var zoom = EF.signal(100);
+    var zoomEl = ui.numberInput({ value: zoom, min: 25, max: 400, step: 25, precision: 0 });
+    var zoomWrap = ui.h('div', 'gde-cs-editor-zoom');
+    zoomWrap.appendChild(ui.h('span', 'gde-cs-editor-zoom-label', { text: 'Zoom %' }));
+    zoomWrap.appendChild(zoomEl);
+    bar.appendChild(zoomWrap);
 
     root.appendChild(bar);
 
@@ -78,17 +74,29 @@
 
     var canvas = ui.h('div', 'gde-cs-canvas');
     stage.appendChild(canvas);
-
-    // Sample-row signal driven by previewSrc.
-    var sampleSig = EF.signal({ id: '#sample' });
     EF.effect(function () {
-      var pk = previewSrc();
-      if (!pk) { sampleSig.set({ id: '#sample' }); return; }
+      var z = Math.max(25, Math.min(400, Number(zoom()) || 100)) / 100;
+      canvas.style.transform = 'scale(' + z + ')';
+      canvas.style.transformOrigin = 'center';
+    });
+
+    // Sample-row signal — uses the first table's first entity if any
+    // exists, otherwise just '#sample' so bindings resolve to undefined
+    // (and the renderer paints blanks). The cardstyle is meant to work
+    // against any compatible struct; the editor doesn't bind to a
+    // specific table.
+    var sampleSig = EF.derived(function () {
       var tm = State.tableMap();
-      var entry = tm[pk]; if (!entry || !entry.id || !entry.id.length) return;
-      var firstId = entry.id[0];
-      var data = State.gameData();
-      sampleSig.set(Object.assign({ id: firstId }, data[firstId] || {}));
+      var keys = Object.keys(tm);
+      for (var i = 0; i < keys.length; i++) {
+        var t = tm[keys[i]];
+        if (t && t.id && t.id.length) {
+          var firstId = t.id[0];
+          var data = State.gameData();
+          return Object.assign({ id: firstId }, data[firstId] || {});
+        }
+      }
+      return { id: '#sample' };
     });
 
     function rerender() {

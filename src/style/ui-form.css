@@ -919,6 +919,12 @@
 .ef-ui-array-input-cell { min-width: 0; }
 .ef-ui-struct-input-cell > *,
 .ef-ui-array-input-cell > * { width: 100%; max-width: 100%; box-sizing: border-box; }
+/* propertyPanel wraps each editor in a .ef-ui-slot (mixed indicator) — the
+   editor inside the slot also needs to fill width or every numberInput /
+   colorInput / etc collapses to its intrinsic size while text inputs take
+   the remaining space, producing ragged-right rows. */
+.ef-ui-slot > *,
+.ef-ui-struct-input-cell > .ef-ui-slot > * { width: 100%; max-width: 100%; box-sizing: border-box; }
 .ef-ui-array-input-rows { display: flex; flex-direction: column; gap: 2px; }
 .ef-ui-array-input-add { align-self: flex-start; margin-top: var(--ef-space-1); }
 
