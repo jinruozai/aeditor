@@ -1,6 +1,6 @@
 // Log panel widget — built entirely from EF.ui.* primitives.
 //
-// Subscribes to EF.logs and renders one ef-ui-card per entry inside a
+// Subscribes to EF.log and renders one ef-ui-card per entry inside a
 // ef-ui-scrollarea. Click a card to dismiss. Newest on top. A segmented
 // level filter (All / Error / Warn / Info / Debug) controls the visible
 // subset. This is a built-in `registered panel widget` (§ 4.7) — users put
@@ -20,19 +20,19 @@
     { value: 'debug', label: 'Debug' },
   ]
 
-  function create(props, ctx) {
+  function factory(propsSig, ctx) {
     const root = ui.h('div', 'ef-ui-errlog')
 
     // Filter bar — dropdown select on the left, spacer, copy + clear on the
     // right. Select (not segmented) keeps the toolbar compact when the log
     // panel is narrow.
-    const filter = EF.signal((props && props.level) || 'all')
+    const filter = EF.signal(((propsSig.peek() || {}).level) || 'all')
     const bar = ui.h('div', 'ef-ui-errlog-bar')
     bar.appendChild(ui.select({ value: filter, options: LEVEL_OPTS }))
     bar.appendChild(ui.h('div', 'ef-ui-errlog-spacer'))
     const copyBtn = ui.button({ text: 'Copy', kind: 'ghost', size: 'sm' })
     copyBtn.addEventListener('click', function () {
-      const list = EF.logs()
+      const list = EF.log()
       const lvl = filter()
       const visible = lvl === 'all' ? list : list.filter(function (e) { return e.level === lvl })
       const text = visible.map(function (e) {
@@ -47,7 +47,7 @@
     })
     bar.appendChild(copyBtn)
     const clearBtn = ui.button({ text: 'Clear', kind: 'ghost', size: 'sm' })
-    clearBtn.addEventListener('click', function () { EF.clearLogs() })
+    clearBtn.addEventListener('click', function () { EF.log.clear() })
     bar.appendChild(clearBtn)
     root.appendChild(bar)
 
@@ -59,7 +59,7 @@
     root.appendChild(scroll)
 
     ctx.onCleanup(EF.effect(function () {
-      const list = EF.logs()
+      const list = EF.log()
       const lvl = filter()
       const visible = lvl === 'all' ? list : list.filter(function (e) { return e.level === lvl })
       scroll.replaceChildren()
@@ -84,7 +84,7 @@
     // Stack trace lives in the entry data (and console.error fallback) but is
     // not rendered — the log panel is a one-line scan, not a debugger.
     row.title = entry.stack ? entry.message + '\n\n' + entry.stack : entry.message
-    row.addEventListener('click', function () { EF.dismissLog(entry.id) })
+    row.addEventListener('click', function () { EF.log.dismiss(entry.id) })
     return row
   }
 
@@ -98,8 +98,11 @@
     return parts.join(' · ')
   }
 
-  EF.registerWidget('log', {
+  EF.registerComponent('log', {
+    label:    'Log',
+    icon:     'list',
+    category: 'panel',
     defaults: function () { return { title: 'Log', icon: '📋', props: { level: 'all' } } },
-    create: create,
+    factory:  factory,
   })
 })(window.EF = window.EF || {})

@@ -109,6 +109,30 @@
   flex-shrink: 0;
 }
 
+/* ── dialogs (alert / confirm / prompt) ─────────────────────────── */
+.ef-ui-dialog-body {
+  min-width: 320px;
+  max-width: 460px;
+  font: var(--ef-fs-md) var(--ef-font-ui);
+  color: var(--ef-fg-1);
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+.ef-ui-dialog-body-prompt {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ef-space-2);
+}
+.ef-ui-dialog-msg {
+  font: var(--ef-fs-sm) var(--ef-font-ui);
+  color: var(--ef-fg-2);
+}
+.ef-ui-dialog-foot {
+  display: flex;
+  gap: var(--ef-space-2);
+  justify-content: flex-end;
+}
+
 /* ── drawer ─────────────────────────────────────────────────────── */
 .ef-ui-drawer-backdrop {
   position: fixed;
@@ -172,8 +196,8 @@
   flex: 1 1 auto;
 }
 
-/* ── alert (inline banner) ──────────────────────────────────────── */
-.ef-ui-alert {
+/* ── banner (inline status) ─────────────────────────────────────── */
+.ef-ui-banner {
   display: flex;
   align-items: flex-start;
   gap: var(--ef-space-2);
@@ -183,28 +207,28 @@
   background: var(--ef-bg-2);
   color: var(--ef-fg-1);
   font: var(--ef-fs-sm) var(--ef-font-ui);
-  animation: ef-alert-in var(--ef-dur-med) var(--ef-ease) both;
+  animation: ef-banner-in var(--ef-dur-med) var(--ef-ease) both;
 }
-@keyframes ef-alert-in {
+@keyframes ef-banner-in {
   from { opacity: 0; transform: translateY(-4px); }
   to   { opacity: 1; transform: translateY(0); }
 }
 @media (prefers-reduced-motion: reduce) {
-  .ef-ui-modal-backdrop, .ef-ui-modal, .ef-ui-alert, .ef-ui-toast { animation: none; }
+  .ef-ui-modal-backdrop, .ef-ui-modal, .ef-ui-banner, .ef-ui-toast { animation: none; }
 }
-.ef-ui-alert-icon {
+.ef-ui-banner-icon {
   font-size: 14px;
   line-height: 1.3;
   flex-shrink: 0;
 }
-.ef-ui-alert-body { flex: 1 1 auto; }
-.ef-ui-alert-title {
+.ef-ui-banner-body { flex: 1 1 auto; }
+.ef-ui-banner-title {
   font-weight: 600;
   color: var(--ef-fg-0);
   margin-bottom: 2px;
 }
-.ef-ui-alert-msg { color: var(--ef-fg-1); white-space: pre-wrap; }
-.ef-ui-alert-close {
+.ef-ui-banner-msg { color: var(--ef-fg-1); white-space: pre-wrap; }
+.ef-ui-banner-close {
   background: transparent;
   border: 0;
   width: 20px;
@@ -216,20 +240,20 @@
   cursor: pointer;
   flex-shrink: 0;
 }
-.ef-ui-alert-close:hover { background: var(--ef-hover); color: var(--ef-fg-0); }
+.ef-ui-banner-close:hover { background: var(--ef-hover); color: var(--ef-fg-0); }
 
-.ef-ui-alert-info    { border-color: var(--ef-info);    background: var(--ef-info-bg); }
-.ef-ui-alert-info    .ef-ui-alert-icon { color: var(--ef-info); }
-.ef-ui-alert-info    .ef-ui-alert-icon::before { content: var(--ef-icon-info); }
-.ef-ui-alert-success { border-color: var(--ef-success); background: var(--ef-success-bg); }
-.ef-ui-alert-success .ef-ui-alert-icon { color: var(--ef-success); }
-.ef-ui-alert-success .ef-ui-alert-icon::before { content: var(--ef-icon-success); }
-.ef-ui-alert-warn    { border-color: var(--ef-warn);    background: var(--ef-warn-bg); }
-.ef-ui-alert-warn    .ef-ui-alert-icon { color: var(--ef-warn); }
-.ef-ui-alert-warn    .ef-ui-alert-icon::before { content: var(--ef-icon-warn); }
-.ef-ui-alert-error   { border-color: var(--ef-error);   background: var(--ef-error-bg); }
-.ef-ui-alert-error   .ef-ui-alert-icon { color: var(--ef-error); }
-.ef-ui-alert-error   .ef-ui-alert-icon::before { content: var(--ef-icon-error); }
+.ef-ui-banner-info    { border-color: var(--ef-info);    background: var(--ef-info-bg); }
+.ef-ui-banner-info    .ef-ui-banner-icon { color: var(--ef-info); }
+.ef-ui-banner-info    .ef-ui-banner-icon::before { content: var(--ef-icon-info); }
+.ef-ui-banner-success { border-color: var(--ef-success); background: var(--ef-success-bg); }
+.ef-ui-banner-success .ef-ui-banner-icon { color: var(--ef-success); }
+.ef-ui-banner-success .ef-ui-banner-icon::before { content: var(--ef-icon-success); }
+.ef-ui-banner-warn    { border-color: var(--ef-warn);    background: var(--ef-warn-bg); }
+.ef-ui-banner-warn    .ef-ui-banner-icon { color: var(--ef-warn); }
+.ef-ui-banner-warn    .ef-ui-banner-icon::before { content: var(--ef-icon-warn); }
+.ef-ui-banner-error   { border-color: var(--ef-error);   background: var(--ef-error-bg); }
+.ef-ui-banner-error   .ef-ui-banner-icon { color: var(--ef-error); }
+.ef-ui-banner-error   .ef-ui-banner-icon::before { content: var(--ef-icon-error); }
 
 /* ── toast (top-right stack) ────────────────────────────────────── */
 .ef-ui-toast-stack {

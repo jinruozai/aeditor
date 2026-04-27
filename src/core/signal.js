@@ -37,7 +37,7 @@
 
   // Drop every dep edge and run+clear every onCleanup callback. Shared by the
   // re-run path (run) and the final dispose path, so the two can't drift.
-  // Cleanup failures go to console.error, not EF.errors — § 4.7: signal.js is
+  // Cleanup failures go to console.error, not EF.log — § 4.7: signal.js is
   // the zero-dep bottom, so a cleanup throw is fail-loud, not panel-scoped.
   function teardown(eff) {
     eff.deps.forEach(function (s) { s.delete(eff) })

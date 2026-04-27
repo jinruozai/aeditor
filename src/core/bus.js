@@ -5,7 +5,7 @@
 //   EF.bus.emit(topic, payload)
 //
 // Handlers fire synchronously. Each handler is wrapped individually so a
-// throw in one subscriber routes to EF.errors but does NOT abort the rest of
+// throw in one subscriber routes to EF.log but does NOT abort the rest of
 // the emit (§ 4.15 — error isolation across mutually distrustful widgets).
 //
 // Auto-unsubscribe is NOT done here; it lives in widgets/context.js where

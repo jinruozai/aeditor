@@ -28,7 +28,8 @@
 
   var ui = EF.ui;
 
-  function createPanel(props, ctx) {
+  function createPanel(propsSig, ctx) {
+    var props = propsSig.peek() || {};
     var root = document.createElement('div');
     root.className = 'gde-tables';
     root.style.cssText = 'display:flex;flex-direction:column;height:100%;min-height:0;';
@@ -99,12 +100,11 @@
     // on an invisible row.
     //
     // New model: `selectedSig` is a plain signal that IS the tree's
-    // selection. An effect syncs it *from* State. handleSelect drives
+    // selection (array per ui.tree contract; this widget is single-select
+    // so length ≤ 1). An effect syncs it *from* State. handleSelect drives
     // State mutations (which then flow back through this same effect —
-    // Object.is dedupes trivial updates). Clicking a table clears any
-    // card_data selection so the new scope wins, matching the natural
-    // UX expectation ("I'm now looking at a different table").
-    var selectedSig = EF.signal(null);
+    // structural dedupe keeps it stable).
+    var selectedSig = EF.signal([]);
     EF.effect(function () {
       var sel = State.selection();
       var active = State.activeTable();
@@ -113,7 +113,7 @@
       else if (sel && sel.kind === 'table_meta' && sel.pathKey)  want = 't:' + sel.pathKey;
       else if (active)                                            want = 't:' + active;
       else                                                        want = null;
-      selectedSig.set(want);
+      selectedSig.set(want ? [want] : []);
     });
 
     // ── Expand/collapse-all toolbar state ──────────────────────────
@@ -168,10 +168,12 @@
     }
 
     // ── Click dispatch ─────────────────────────────────────────────
-    // Writer signature: `(id | null)` because tree.multi is false. We
-    // defer the actual state mutation to State.* so derivedSelected
-    // reflects the result automatically.
-    function handleSelect(id) {
+    // Writer signature: `(ids[])` per ui.tree contract; this widget is
+    // single-select (multi:false → array length ≤ 1). We defer the actual
+    // state mutation to State.* so derivedSelected reflects the result
+    // automatically.
+    function handleSelect(ids) {
+      var id = ids && ids[0];
       if (!id) return;
       var n = findNode(id);
       if (!n) return;
@@ -196,7 +198,7 @@
     // entry point stays here — it's a sidebar-level action, not tied
     // to any specific row.
     function handleAddTable() {
-      UIX.prompt({
+      EF.ui.prompt({
         title:       t('tablemap.new_table_prompt'),
         default:     'new_table', placeholder: 'data/my_table',
         okLabel:     t('common.ok'), cancelLabel: t('common.cancel'),
@@ -223,6 +225,7 @@
     var tree = ui.tree({
       items:    itemsSig,
       selected: selectedSig,
+      multi:    false,
       expanded: expandedSig,
       search:   searchSig,
       searchBehavior: 'filter',
@@ -272,8 +275,8 @@
     return root;
   }
 
-  EF.registerWidget('gde-tables', {
-    create:   createPanel,
+  EF.registerComponent('gde-tables', {
+    factory: createPanel,
     defaults: function () { return { title: 'Tables', icon: 'table', props: {} }; },
   });
 })();

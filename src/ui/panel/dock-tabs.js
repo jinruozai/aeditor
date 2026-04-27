@@ -18,9 +18,7 @@
 ;(function (EF) {
   'use strict'
 
-  function buildDockTabs(props, ctx) {
-    const p = props || {}
-
+  function buildDockTabs(p, ctx) {
     const el = EF.ui.tab({
       items:        ctx.dock.panels,     // derived signal<PanelData[]>
       active:       ctx.dock.activeId,   // derived signal<string|null>
@@ -36,8 +34,6 @@
         if (p.collapsible && ctx.dock.canCollapse()) ctx.dock.setCollapsed(false)
       },
       onReactivate: function () {
-        // Click on already-active tab toggles dock collapse (for
-        // collapsible/sidebar presets). Safe no-op otherwise.
         if (p.collapsible && ctx.dock.canCollapse()) {
           ctx.dock.setCollapsed(!ctx.dock.collapsed())
         }
@@ -46,13 +42,11 @@
         ctx.dock.removePanel(id)
       },
       onAdd: function () {
-        // Clone the active panel's widget type (§ 4.1-ish — same as old
-        // tab-add behavior). Use widgetDefaults so we don't carry state.
         const panels = ctx.dock.panels()
         const curId  = ctx.dock.activeId()
         const active = panels.find(function (pp) { return pp.id === curId })
         if (!active) return
-        const defaults = EF.widgetDefaults(active.widget)
+        const defaults = EF.componentDefaults(active.widget)
         ctx.dock.addPanel(Object.assign({}, defaults, { widget: active.widget }))
       },
       onDragStart: function (ev, panelId) {
@@ -60,38 +54,36 @@
         if (fn) fn(ev, panelId, ctx.dock.id(), ctx._layout)
       },
     })
-
-    // Marker class for interactions.js hit-testing. Kept as an additional
-    // class (not a replacement) so the same root still picks up all the
-    // `.ef-ui-tab*` styling.
     el.classList.add('ef-dock-tabs')
     return el
   }
 
+  // Preset-bound factory — props are static for the lifetime of the toolbar
+  // item, so .peek() once at construction is sufficient.
   function preset(defaults) {
-    return function (props, ctx) {
-      return buildDockTabs(Object.assign({}, defaults, props), ctx)
+    return function (propsSig, ctx) {
+      return buildDockTabs(Object.assign({}, defaults, propsSig.peek() || {}), ctx)
     }
   }
 
-  EF.registerWidget('tab-standard', {
+  EF.registerComponent('tab-standard', {
     defaults: function () { return { title: 'Tabs' } },
-    create:   preset({ variant: 'bar', closable: true, addable: true }),
+    factory:  preset({ variant: 'bar', closable: true, addable: true }),
   })
 
-  EF.registerWidget('tab-compact', {
+  EF.registerComponent('tab-compact', {
     defaults: function () { return { title: 'Tabs' } },
-    create:   preset({ variant: 'compact', closable: false, minShowCount: 2 }),
+    factory:  preset({ variant: 'compact', closable: false, minShowCount: 2 }),
   })
 
-  EF.registerWidget('tab-collapsible', {
+  EF.registerComponent('tab-collapsible', {
     defaults: function () { return { title: 'Tabs' } },
-    create:   preset({ variant: 'bar', closable: true, collapsible: true }),
+    factory:  preset({ variant: 'bar', closable: true, collapsible: true }),
   })
 
-  EF.registerWidget('tab-sidebar', {
+  EF.registerComponent('tab-sidebar', {
     defaults: function () { return { title: 'Tabs' } },
-    create:   preset({
+    factory:  preset({
       variant:     'sidebar',
       iconOnly:    true,
       direction:   'vertical',

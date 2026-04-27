@@ -24,7 +24,8 @@
   const ui = EF.ui
 
   function createShowcase(cat) {
-    return function (props, ctx) {
+    return function (propsSig, ctx) {
+      const props = propsSig.peek() || {};
       const root = ui.h('div', 'demo-showcase')
       const body = ui.h('div', 'demo-showcase-body')
       const scroll = ui.scrollArea({ children: body })
@@ -80,11 +81,11 @@
   ]
   for (let i = 0; i < catDefs.length; i++) {
     const c = catDefs[i]
-    EF.registerWidget('showcase-' + c.id, {
+    EF.registerComponent('showcase-' + c.id, {
       defaults: (function (cc) {
         return function () { return { title: cc.label, icon: cc.icon } }
       })(c),
-      create: createShowcase(c.id),
+      factory: createShowcase(c.id),
     })
   }
 })(window.EF = window.EF || {})

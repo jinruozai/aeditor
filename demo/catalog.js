@@ -75,7 +75,7 @@
         let clicks = 0
         return ui.button({ text: s.text, kind: s.kind, size: s.size, disabled: s.disabled, onClick: function () {
           clicks++
-          EF.log('info', { scope: 'widget', widget: 'button' }, 'clicked (' + clicks + ')')
+          EF.log.push('info', { scope: 'widget', widget: 'button' }, 'clicked (' + clicks + ')')
         }})
       },
       editFor: function (s) { return {
@@ -164,7 +164,7 @@
       }},
       mount: function (s) {
         return ui.tag({ text: s.text, color: s.color, onClose: function () {
-          EF.log('info', { scope: 'widget', widget: 'tag' }, 'tag close clicked')
+          EF.log.push('info', { scope: 'widget', widget: 'tag' }, 'tag close clicked')
         }})
       },
       editFor: function (s) { return {
@@ -694,10 +694,10 @@
     // ═════════════════════ DATA ═════════════════════
     {
       id: 'list', name: 'List', category: 'data',
-      description: 'Virtualized fixed-row list.',
+      description: 'Virtualized fixed-row list. Multi-select with ctrl/shift.',
       signals: function () { return {
         items:    EF.signal(Array.from({ length: 200 }, function (_, i) { return 'Item #' + (i + 1) })),
-        selected: EF.signal(null),
+        selected: EF.signal([]),
       }},
       mount: function (s) {
         const wrap = ui.h('div', null, { style: 'height:180px;width:240px;border:1px solid var(--ef-border);border-radius:4px' })
@@ -729,7 +729,7 @@
             { id: 'catalog', label: 'catalog.js', icon: '📄' },
           ]},
         ]),
-        selected: EF.signal(null),
+        selected: EF.signal([]),
       }},
       mount: function (s) {
         const wrap = ui.h('div', null, { style: 'height:200px;width:240px;border:1px solid var(--ef-border);border-radius:4px' })
@@ -822,16 +822,16 @@
             anchor: btn,
             items: [
               { type: 'header', label: 'File' },
-              { label: 'New',   icon: '＋', kbd: 'Ctrl+N', onSelect: function () { EF.log('info', { scope: 'demo' }, 'menu: New') } },
-              { label: 'Open…', icon: '📂', kbd: 'Ctrl+O', onSelect: function () { EF.log('info', { scope: 'demo' }, 'menu: Open') } },
-              { label: 'Save',  icon: '💾', kbd: 'Ctrl+S', onSelect: function () { EF.log('info', { scope: 'demo' }, 'menu: Save') } },
+              { label: 'New',   icon: '＋', kbd: 'Ctrl+N', onSelect: function () { EF.log.push('info', { scope: 'demo' }, 'menu: New') } },
+              { label: 'Open…', icon: '📂', kbd: 'Ctrl+O', onSelect: function () { EF.log.push('info', { scope: 'demo' }, 'menu: Open') } },
+              { label: 'Save',  icon: '💾', kbd: 'Ctrl+S', onSelect: function () { EF.log.push('info', { scope: 'demo' }, 'menu: Save') } },
               { type: 'divider' },
               { label: 'Recent', items: [
                 { label: 'alpha.txt', onSelect: function () {} },
                 { label: 'beta.txt',  onSelect: function () {} },
               ]},
               { type: 'divider' },
-              { label: 'Delete', icon: '🗑', danger: true, onSelect: function () { EF.log('warn', { scope: 'demo' }, 'menu: Delete') } },
+              { label: 'Delete', icon: '🗑', danger: true, onSelect: function () { EF.log.push('warn', { scope: 'demo' }, 'menu: Delete') } },
             ],
           })
         })
@@ -886,16 +886,16 @@
     },
 
     {
-      id: 'alert', name: 'Alert', category: 'overlay',
+      id: 'banner', name: 'Banner', category: 'overlay',
       description: 'Inline banner — info / success / warn / error.',
       signals: function () { return {
         kind:    EF.signal('info'),
         title:   EF.signal('Heads up!'),
-        message: EF.signal('This is an inline alert banner.'),
+        message: EF.signal('This is an inline status banner.'),
       }},
       mount: function (s) {
         const wrap = ui.h('div', null, { style: 'width:300px' })
-        wrap.appendChild(ui.alert({ kind: s.kind, title: s.title, message: s.message }))
+        wrap.appendChild(ui.banner({ kind: s.kind, title: s.title, message: s.message }))
         return wrap
       },
       editFor: function (s) { return {

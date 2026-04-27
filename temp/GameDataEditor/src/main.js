@@ -36,15 +36,17 @@
     // render as flat monochrome SVG, not emoji. Fallback to the glyph
     // rendering path kicks in automatically if a name isn't registered.
     panels: [
-      EF.panel({ widget: 'gde-tables',     title: I18N.t('panel.tablemap'),   icon: 'table'    }),
-      EF.panel({ widget: 'gde-typeconfig', title: I18N.t('panel.typeconfig'), icon: 'settings' }),
-      EF.panel({ widget: 'gde-search',     title: I18N.t('panel.search'),     icon: 'search'   }),
+      EF.panel({ widget: 'gde-tables',          title: I18N.t('panel.tablemap'),   icon: 'table'    }),
+      EF.panel({ widget: 'gde-typeconfig',      title: I18N.t('panel.typeconfig'), icon: 'settings' }),
+      EF.panel({ widget: 'gde-search',          title: I18N.t('panel.search'),     icon: 'search'   }),
+      EF.panel({ widget: 'gde-cardstyle-list',  title: 'Card Styles',              icon: 'columns'  }),
+      EF.panel({ widget: 'gde-cardstyle-tree',  title: 'Object Tree',              icon: 'list'     }),
     ],
   });
 
   var centerDock = EF.dock({
     name:   'center',
-    accept: ['gde-table-data'],   // only table-data panels land here
+    accept: ['gde-table-data', 'gde-cardstyle-editor'],
     toolbar: {
       direction: 'top',
       items: [{ widget: 'tab-standard', props: { addable: false } }],
@@ -61,11 +63,12 @@
       direction: 'bottom',
       items: [{ widget: 'tab-collapsible', props: { closable: false } }],
     },
-    // Use the built-in 'log' widget (EF.logs / EF.errors). Project writes
-    // go through State.log → EF.log, so both code paths land in the same
-    // signal and appear here unified.
+    // Use the built-in 'log' widget (EF.log signal). Project writes go
+    // through State.log → EF.log.push, so framework + app messages share
+    // one stream.
     panels: [
-      EF.panel({ widget: 'log', title: 'Log' }),
+      EF.panel({ widget: 'log',                    title: 'Log',        icon: 'list'    }),
+      EF.panel({ widget: 'gde-cardstyle-palette',  title: 'Components', icon: 'columns' }),
     ],
   });
 

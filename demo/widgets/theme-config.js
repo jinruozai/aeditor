@@ -119,9 +119,9 @@
   })()
 
   // ── widget ────────────────────────────────────────────────────────
-  EF.registerWidget('theme-config', {
+  EF.registerComponent('theme-config', {
     defaults: function () { return { title: 'Theme', icon: '🎨' } },
-    create: function (props, ctx) {
+    factory: function (propsSig, ctx) { const props = propsSig.peek() || {};
       const root = ui.h('div', 'demo-theme')
 
       // Signal map so refreshAll can re-pull from CSS after Reset/Mode change.

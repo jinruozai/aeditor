@@ -102,10 +102,40 @@
     return { projectTC: projectTC, tables: { 'data/items': items, 'data/characters': characters, 'data/shops': shops } };
   }
 
+  // Default cardStyle = 120×120 absolute card with the 'id' field shown
+  // centered at the bottom. Shipped as the fallback every table inherits.
+  function buildDemoCardStyles() {
+    return {
+      'default': {
+        name: 'Default',
+        root: {
+          id: 'root',
+          type: 'absolute',
+          props: { width: 120, height: 120, background: 'var(--ef-bg-2)', borderRadius: 4 },
+          bindings: {},
+          children: [
+            {
+              id: 'id-text',
+              type: 'text',
+              props: { align: 'center', size: 'sm', color: 'var(--ef-fg-2)' },
+              bindings: { value: { source: 'field', field: 'id' } },
+              layout: { anchor: 'bl', x: 0, y: 4, w: 120, h: 18, unit: 'px' },
+              children: [],
+            },
+          ],
+        },
+      },
+    };
+  }
+
   function install() {
     State.setBuiltinTypeConfig(BUILTIN);
     var demo = buildDemo();
     State.setProjectTypeConfig(demo.projectTC);
+
+    // Seed cardStyles. The 'default' is mandatory — every table that didn't
+    // pick one falls back to it, so the grid always has *something* to show.
+    State.setProjectCardStyles(buildDemoCardStyles());
 
     var tm = {};
     var gd = {};
@@ -117,7 +147,7 @@
         gd[id] = e;
         ids.push(id);
       });
-      tm[pathKey] = { struct_def: t.struct_def, id: ids };
+      tm[pathKey] = { struct_def: t.struct_def, id: ids, card_style: 'default' };
     });
     // Wire first shop's stock[0].id to first item, and starter → Iron Sword
     var itemIds = tm['data/items'].id;

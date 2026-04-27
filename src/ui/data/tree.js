@@ -27,11 +27,10 @@
 //   across flattens, new node objects at the same id are treated as "same
 //   node with updated fields" for the purposes of expansion / selection.
 //
-// ── backward compat ──────────────────────────────────────────────────
-// The pre-1.2 API (items / selected / onSelect / rowHeight / onActivate /
-// default single-value selection + click-to-select + arrow-to-toggle) is a
-// proper subset of this surface. Callers pinned to the old shape keep
-// working with zero changes.
+//   `selected: signal<id[]>` is always an array (length ≤ 1 in single
+//   select). `multi` defaults to true; `multi: false` collapses ctrl/shift
+//   click to plain replace. `onSelect: (ids[]) => void` receives the new
+//   selection array.
 ;(function (EF) {
   'use strict'
   const ui = EF.ui = EF.ui || {}
@@ -49,7 +48,6 @@
   }
 
   function asSet(x) { return x instanceof Set ? x : new Set(x || []) }
-  function arr(v) { return Array.isArray(v) ? v : (v == null ? [] : [v]) }
 
   // ── flatten (search-aware) ─────────────────────────────────────────
   // Returns Array<Row> where Row = { node, depth, hasKids, expanded, matched }.
@@ -277,22 +275,14 @@
     const keyboardOn = o.keyboard !== false
     const searchBehavior = o.searchBehavior || 'filter'
 
-    // Selection — detect single vs multi from signal shape or explicit opt.
+    // Selection — `selected: signal<id[]>` is always an array (length ≤ 1 in
+    // single-select). multi defaults to true; `multi: false` collapses
+    // ctrl/shift to plain click without changing the signal contract.
     const selSig = o.selected || null
-    const initialSel = selSig ? selSig.peek() : null
-    const multiMode = o.multi === true || Array.isArray(initialSel)
+    const multiMode = o.multi !== false
     const writeSel = selSig ? ui.writer(selSig, o.onSelect, 'ui.tree') : null
-    function readSelSet() {
-      if (!selSig) return new Set()
-      const v = selSig.peek()
-      if (v == null) return new Set()
-      return new Set(arr(v))
-    }
-    function writeSelSet(set) {
-      if (!writeSel) return
-      if (multiMode) writeSel(Array.from(set))
-      else writeSel(set.size ? set.values().next().value : null)
-    }
+    function readSelSet() { return new Set(selSig ? (selSig.peek() || []) : []) }
+    function writeSelSet(set) { if (writeSel) writeSel(Array.from(set)) }
 
     // Expansion signal — internal by default, caller may own it externally.
     const expanded = o.expanded || EF.signal(new Set())
@@ -420,11 +410,7 @@
           const items = o.contextMenu(row.node)
           if (!items || !items.length) return
           ev.preventDefault()
-          if (ui.menu && typeof UIX !== 'undefined' && UIX.contextMenu) {
-            UIX.contextMenu({ x: ev.clientX, y: ev.clientY }, items)
-          } else if (ui.menu) {
-            ui.menu({ items: items, anchor: { x: ev.clientX, y: ev.clientY } })
-          }
+          ui.contextMenu({ x: ev.clientX, y: ev.clientY }, items)
         })
       }
     }

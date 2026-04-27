@@ -5,7 +5,8 @@
 (function () {
   'use strict';
 
-  function createPanel(props, ctx) {
+  function createPanel(propsSig, ctx) {
+    var props = propsSig.peek() || {};
     var ui = EF.ui;
     var pathKey = props.pathKey;
     var root = document.createElement('div');
@@ -195,10 +196,9 @@
       grid.style.gridTemplateColumns = 'repeat(auto-fill,minmax(' + cardSize + 'px,1fr))';
 
       var data = gd();
-      var sd = table().struct_def || {};
       ids.forEach(function (id) {
-        var entity = data[id];
-        var card = Card.render(entity, id, sd, cardSize, cardSize * 4 / 3);
+        var entity = Object.assign({ id: id }, data[id] || {});
+        var card = Card.render(entity, id, pathKey);
         if (selectedIds.has(id)) card.classList.add('is-selected');
         grid.appendChild(card);
       });
@@ -325,7 +325,7 @@
     function handleDelete() {
       var ids = Array.from(selectedIds);
       if (!ids.length) return;
-      UIX.confirm({
+      EF.ui.confirm({
         title:   T('table.delete'),
         message: T('table.delete_confirm', { n: ids.length }),
         danger:  true,
@@ -420,8 +420,8 @@
     return root;
   }
 
-  EF.registerWidget('gde-table-data', {
-    create: createPanel,
+  EF.registerComponent('gde-table-data', {
+    factory: createPanel,
     defaults: function () { return { title: 'Table', props: { pathKey: '' } }; },
   });
 })();

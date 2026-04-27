@@ -118,7 +118,7 @@
     if (!f || !f.node.activeId) return null
     const active = f.node.panels.find(function (p) { return p.id === f.node.activeId })
     if (!active) return null
-    const defaults = EF.widgetDefaults(active.widget)
+    const defaults = EF.componentDefaults(active.widget)
     return [Object.assign({}, defaults, { widget: active.widget })]
   }
 

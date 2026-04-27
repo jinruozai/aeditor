@@ -23,9 +23,9 @@ const DIST = join(ROOT, 'dist')
 // at the end (UI widgets only depend on core/registry, never on each other).
 
 const JS_ORDER = [
-  // Layer 0 — reactivity & errors
+  // Layer 0 — reactivity & log
   'core/signal.js',
-  'core/errors.js',
+  'core/log.js',
   'core/bus.js',
 
   // Layer 1 — tree (pure data)
@@ -49,6 +49,8 @@ const JS_ORDER = [
   'ui/_internal/_floating.js',
   'ui/_internal/_drag.js',
   'ui/_internal/_signal.js',
+  'ui/_internal/_mixed.js',
+  'ui/_internal/_render-tree.js',
   'ui/_internal/_overlay.js',
   'ui/_internal/_dnd.js',
 
@@ -64,6 +66,7 @@ const JS_ORDER = [
   'ui/base/tag.js',
   'ui/base/spinner.js',
   'ui/base/divider.js',
+  'ui/base/text.js',
 
   // Layer 7 — UI library: form
   'ui/form/input.js',
@@ -105,6 +108,8 @@ const JS_ORDER = [
   'ui/container/card.js',
   'ui/container/scrollArea.js',
   'ui/container/tabPanel.js',
+  'ui/container/absolute.js',
+  'ui/container/vbox.js',
 
   // Layer 10 — UI library: data
   'ui/data/list.js',
@@ -118,12 +123,18 @@ const JS_ORDER = [
   'ui/overlay/menu.js',
   'ui/overlay/modal.js',
   'ui/overlay/drawer.js',
-  'ui/overlay/alert.js',
+  'ui/overlay/banner.js',
   'ui/overlay/toast.js',
+  'ui/overlay/dialogs.js',  // ui.alert / ui.confirm / ui.prompt / ui.contextMenu — depend on modal + menu
 
-  // Layer 12 — built-in panel widgets (compose EF.ui.* + register via EF.registerWidget)
+  // Layer 12 — built-in panel widgets (compose EF.ui.* + register via EF.registerComponent)
   'ui/panel/dock-tabs.js',
   'ui/panel/log.js',
+
+  // Layer 13 — palette metadata for built-in ui.* components. Must come last:
+  // it touches every ui.* function via EF.registerComponent and only the new
+  // EF.ui.text + container/{absolute,vbox,hbox} files self-register.
+  'ui/_internal/_register-builtins.js',
 ]
 
 const CSS_ORDER = [

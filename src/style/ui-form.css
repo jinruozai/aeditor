@@ -938,3 +938,23 @@
   color: var(--ef-fg-2);
   cursor: help;
 }
+
+/* ── slot wrapper for multi-target editing ─────────────────────────
+   propertyPanel emits each editor inside a .ef-ui-slot; the slot gains
+   data-mixed when targets disagree on this field. */
+.ef-ui-slot { position: relative; min-width: 0; }
+.ef-ui-slot[data-mixed] {
+  border-left: 2px dashed var(--ef-warn);
+  padding-left: 4px;
+}
+.ef-ui-slot[data-mixed]::after {
+  content: 'Mixed';
+  position: absolute;
+  right: 6px; top: 50%;
+  transform: translateY(-50%);
+  font: 10px/1 var(--ef-font-ui);
+  letter-spacing: 0.5px;
+  color: var(--ef-warn);
+  opacity: 0.75;
+  pointer-events: none;
+}

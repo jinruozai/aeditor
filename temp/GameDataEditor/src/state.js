@@ -28,10 +28,19 @@
   var builtinTypeConfig = EF.signal({});
   var projectTypeConfig = EF.signal({});
   var gameData = EF.signal({});
-  var tableMap = EF.signal({}); // { pathKey: { struct_def, id: [] } }
+  var tableMap = EF.signal({}); // { pathKey: { struct_def, id: [], card_style? } }
   var projectName = EF.signal('Untitled');
   var activeTable = EF.signal(null);
   var selection = EF.signal(null); // { pathKey, ids: [], lastId }
+  // Project-level UI tree library — each entry is a CardStyleDef:
+  //   { name: string, root: TreeNode | null }
+  // Tables reference one by key via tableMap[pk].card_style (string).
+  // Built-in 'default' is seeded by seed.js; user can add more.
+  var projectCardStyles = EF.signal({});
+  // "Which cardStyle is the editor focused on" — drives the node-tree panel
+  // in the left dock. Not the same as State.selection (which can be any
+  // kind), but updated whenever a card_style / card_component is selected.
+  var activeCardStyle = EF.signal(null);
 
   // ---------- Layout handle (set by main.js after createDockLayout) ----------
   var _handle = null;
@@ -189,13 +198,81 @@
     return out;
   }
 
+  // ---------- CardStyle mutators ----------
+  function setProjectCardStyles(cs) {
+    projectCardStyles.set(Object.assign({}, cs));
+    emit('cardstyles:changed');
+  }
+  function upsertCardStyle(key, def) {
+    var cs = Object.assign({}, projectCardStyles());
+    cs[key] = def;
+    projectCardStyles.set(cs);
+    emit('cardstyles:changed');
+  }
+  function deleteCardStyle(key) {
+    if (key === 'default') throw new Error('Cannot delete the built-in default cardStyle');
+    var cs = Object.assign({}, projectCardStyles());
+    delete cs[key];
+    projectCardStyles.set(cs);
+    // Cascade: tables referencing this style fall back to 'default'.
+    var tm = tableMap();
+    var nextTm = null;
+    Object.keys(tm).forEach(function (pk) {
+      if (tm[pk].card_style === key) {
+        if (!nextTm) nextTm = Object.assign({}, tm);
+        nextTm[pk] = Object.assign({}, tm[pk], { card_style: 'default' });
+      }
+    });
+    if (nextTm) { tableMap.set(nextTm); emit('tables:changed'); }
+    if (activeCardStyle.peek() === key) activeCardStyle.set(null);
+    emit('cardstyles:changed');
+  }
+  function renameCardStyle(oldKey, newKey) {
+    if (oldKey === 'default') throw new Error('Cannot rename the built-in default cardStyle');
+    if (!oldKey || !newKey || oldKey === newKey) return;
+    var cs = Object.assign({}, projectCardStyles());
+    if (!cs[oldKey]) throw new Error('Not a project cardStyle: ' + oldKey);
+    if (cs[newKey]) throw new Error('CardStyle key already exists: ' + newKey);
+    cs[newKey] = cs[oldKey];
+    delete cs[oldKey];
+    projectCardStyles.set(cs);
+    var tm = tableMap();
+    var nextTm = null;
+    Object.keys(tm).forEach(function (pk) {
+      if (tm[pk].card_style === oldKey) {
+        if (!nextTm) nextTm = Object.assign({}, tm);
+        nextTm[pk] = Object.assign({}, tm[pk], { card_style: newKey });
+      }
+    });
+    if (nextTm) { tableMap.set(nextTm); emit('tables:changed'); }
+    if (activeCardStyle.peek() === oldKey) activeCardStyle.set(newKey);
+    emit('cardstyles:changed');
+  }
+  function setTableCardStyle(pathKey, styleKey) {
+    var tm = tableMap();
+    if (!tm[pathKey]) return;
+    var nextTm = Object.assign({}, tm);
+    nextTm[pathKey] = Object.assign({}, tm[pathKey], { card_style: styleKey });
+    tableMap.set(nextTm);
+    emit('tables:changed');
+  }
+  // Resolve the CardStyleDef a table renders with. Falls back to 'default'
+  // when the table didn't pick one or its key is stale (cascade also
+  // rewrites stale refs, so this is just defense in depth).
+  function resolveCardStyleForTable(pathKey) {
+    var cs = projectCardStyles();
+    var tm = tableMap();
+    var key = (tm[pathKey] && tm[pathKey].card_style) || 'default';
+    return cs[key] || cs['default'] || null;
+  }
+
   function setTableMap(tm) { tableMap.set(Object.assign({}, tm)); emit('tables:changed'); }
   function setGameData(gd) { gameData.set(Object.assign({}, gd)); }
 
   function addTable(pathKey, struct_def) {
     var tm = Object.assign({}, tableMap());
     if (tm[pathKey]) throw new Error('Table already exists: ' + pathKey);
-    tm[pathKey] = { struct_def: struct_def || {}, id: [] };
+    tm[pathKey] = { struct_def: struct_def || {}, id: [], card_style: 'default' };
     tableMap.set(tm);
     emit('tables:changed');
   }
@@ -636,15 +713,13 @@
   }
 
   // ---------- Logging ----------
-  // All logging flows through EF.logs (framework signal). State.log is a
-  // thin compat wrapper so existing call sites (`State.log('info', msg,
-  // meta)`) keep working — meta is merged into the framework source object
-  // under the 'gde' scope so the built-in 'log' widget can display it and
-  // tools like EF.errors subset auto-populate from level='error' entries.
+  // All logging flows through EF.log (framework signal). State.log is a
+  // thin convenience wrapper that fixes scope='gde' so the built-in 'log'
+  // widget can group app messages.
   function log(level, message, meta) {
-    return EF.log(level || 'info', Object.assign({ scope: 'gde' }, meta || {}), message);
+    return EF.log.push(level || 'info', Object.assign({ scope: 'gde' }, meta || {}), message);
   }
-  function clearLogs() { EF.clearLogs(); }
+  function clearLogs() { EF.log.clear(); }
 
   // ---------- Expose ----------
   window.State = {
@@ -652,15 +727,16 @@
     version: version,
     builtinTypeConfig: builtinTypeConfig,
     projectTypeConfig: projectTypeConfig,
+    projectCardStyles: projectCardStyles,
+    activeCardStyle:   activeCardStyle,
     gameData: gameData,
     tableMap: tableMap,
     projectName: projectName,
     activeTable: activeTable,
     selection: selection,
-    // Framework-native signal — gde and any framework widget see the same
-    // list. Exposed here for backwards compatibility with callers that
-    // used State.logs().
-    logs: EF.logs,
+    // Framework-native log signal — gde widgets and framework widgets see
+    // the same entries. Exposed for callers that read State.logs().
+    logs: EF.log,
 
     // Layout glue — called once from main.js after createDockLayout.
     _setLayout: _setLayout,
@@ -686,6 +762,12 @@
     upsertProjectType: upsertProjectType,
     deleteProjectType: deleteProjectType,
     renameProjectType: renameProjectType,
+    setProjectCardStyles: setProjectCardStyles,
+    upsertCardStyle:      upsertCardStyle,
+    deleteCardStyle:      deleteCardStyle,
+    renameCardStyle:      renameCardStyle,
+    setTableCardStyle:    setTableCardStyle,
+    resolveCardStyleForTable: resolveCardStyleForTable,
     setTableMap: setTableMap,
     setGameData: setGameData,
     addTable: addTable,

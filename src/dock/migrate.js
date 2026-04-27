@@ -47,7 +47,7 @@
 
     // Serialize widget state if supported.
     let state = null
-    const spec = EF.resolveWidget(panelData.widget)
+    const spec = EF.resolveComponent(panelData.widget)
     if (spec.serialize && pr.contentEl) {
       state = EF.safeCall(
         { scope: 'widget', widget: panelData.widget, panelId: panelId },
@@ -170,7 +170,7 @@
     // implement it.
     const pr = EF._dock.findPanelRuntime(layout, panelId)
     if (msg.state != null && pr && pr.contentEl) {
-      const spec = EF.resolveWidget(widget)
+      const spec = EF.resolveComponent(widget)
       if (spec.deserialize) {
         EF.safeCall(
           { scope: 'widget', widget: widget, panelId: panelId },

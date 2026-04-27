@@ -4,7 +4,8 @@
 (function () {
   'use strict';
 
-  function createPanel(props, ctx) {
+  function createPanel(propsSig, ctx) {
+    var props = propsSig.peek() || {};
     var root = document.createElement('div');
     root.style.cssText = 'display:flex;flex-direction:column;height:100%;padding:8px;';
 
@@ -87,8 +88,8 @@
     return root;
   }
 
-  EF.registerWidget('gde-search', {
-    create: createPanel,
+  EF.registerComponent('gde-search', {
+    factory: createPanel,
     defaults: function () { return { title: 'Search', props: {} }; },
   });
 })();

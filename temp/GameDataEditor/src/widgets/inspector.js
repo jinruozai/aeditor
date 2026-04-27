@@ -208,7 +208,8 @@
   var _kinds = Object.create(null);
   function registerKind(kind, provider) { _kinds[kind] = provider; }
 
-  function createPanel(props, ctx) {
+  function createPanel(propsSig, ctx) {
+    var props = propsSig.peek() || {};
     var root = document.createElement('div');
     root.className = 'gde-inspector';
     root.style.cssText = 'display:flex;flex-direction:column;height:100%;overflow:auto;';
@@ -219,13 +220,15 @@
     roLabel.textContent = 'read-only'; roLabel.hidden = true;
     header.appendChild(titleEl); header.appendChild(roLabel);
 
-    var schemaSig = EF.signal({});
-    var valueSig  = EF.signal({});
+    var schemaSig    = EF.signal({});
+    var targetsSig   = EF.signal([]);
+    var disabledSig  = EF.signal(false);
     var currentOnChange = null;
 
     var form = ui.propertyPanel({
       schema:   schemaSig,
-      value:    valueSig,
+      targets:  targetsSig,
+      disabled: disabledSig,
       onChange: function (field, nv) { if (currentOnChange) currentOnChange(field, nv); },
       ctx:      { source: 'gde-inspector' },
     });
@@ -301,15 +304,20 @@
       var isDisabled = !!(kind.disabled && kind.disabled(sel));
       roLabel.hidden = !isDisabled;
       if (kind.render) {
-        form.classList.remove('gde-inspector-disabled');
+        disabledSig.set(false);
         renderCustom(kind, sel);
         return;
       }
       disposeCustom();
+      // Blur before pushing the new value: the input bind effect skips writes
+      // while the input has focus, so propagating the new selection's value
+      // first would leave the previous user-typed text stranded in the DOM.
+      // Going inert also requires no descendant has focus.
+      if (isDisabled && form.contains(document.activeElement)) document.activeElement.blur();
+      disabledSig.set(isDisabled);
       schemaSig.set(kind.schema(sel) || {});
-      valueSig.set(kind.value(sel)   || {});
+      targetsSig.set([kind.value(sel) || {}]);
       currentOnChange = function (field, nv) { kind.onChange(sel, field, nv); };
-      form.classList.toggle('gde-inspector-disabled', isDisabled);
       renderForm();
     }
 
@@ -327,8 +335,8 @@
     return root;
   }
 
-  EF.registerWidget('gde-inspector', {
-    create:   createPanel,
+  EF.registerComponent('gde-inspector', {
+    factory: createPanel,
     defaults: function () { return { title: 'Inspector', props: {} }; },
   });
 
@@ -603,7 +611,7 @@
     }
 
     function deleteField(fieldName) {
-      UIX.confirm({
+      EF.ui.confirm({
         title: 'Delete field',
         message: 'Remove "' + fieldName + '" from table "' + pathKey + '"? Existing entity data for this field will remain untouched until you run Fix format.',
         okLabel: 'Delete', danger: true,
@@ -784,7 +792,7 @@
 
     function handleDeleteTable() {
       var n = ((State.tableMap()[pathKey] || {}).id || []).length;
-      UIX.confirm({
+      EF.ui.confirm({
         title:   'Delete table',
         message: 'Delete table "' + pathKey + '" and all its ' + n + ' entities?',
         okLabel: 'Delete', danger: true,
@@ -810,6 +818,175 @@
     ctx.bus.on('tables:changed',     function () { renderFields(false); });
     ctx.bus.on('typeconfig:changed', function () { renderFields(true);  });
     renderFields();
+    return root;
+  }
+
+  // ── card_style — edits the cardStyle's own meta (name) ───────────
+  // The root node's props are edited via card_component selection on the
+  // root id; this kind covers the cardStyle envelope.
+  registerKind('card_style', {
+    title:    function (sel) { return (State.projectCardStyles()[sel.key] || {}).name || sel.key; },
+    schema:   function ()    { return { name: { type: 'string' } }; },
+    value:    function (sel) {
+      var cs = State.projectCardStyles()[sel.key] || {};
+      return { name: cs.name || '' };
+    },
+    onChange: function (sel, field, nv) {
+      var cs = Object.assign({}, State.projectCardStyles()[sel.key] || {});
+      cs[field] = nv;
+      State.upsertCardStyle(sel.key, cs);
+    },
+    dataTopic: function () { return 'cardstyles:changed'; },
+  });
+
+  // ── card_component — edits one or more nodes inside a cardStyle ──
+  // sel.styleKey + sel.nodeIds[] (length≥1). Schema comes from the
+  // component's spec.schema; multi-target uses propertyPanel's MIXED
+  // semantics for free.
+  registerKind('card_component', {
+    title: function (sel) {
+      var ids = sel.nodeIds || [];
+      if (ids.length > 1) return ids.length + ' components';
+      var n = findNodeInStyle(sel.styleKey, ids[0]);
+      return n ? n.type : '(missing)';
+    },
+    render: function (sel, ctx) { return buildComponentPropsForm(sel, ctx); },
+    dataTopic: function () { return 'cardstyles:changed'; },
+  });
+
+  function findNodeInStyle(styleKey, nodeId) {
+    var cs = State.projectCardStyles()[styleKey];
+    if (!cs || !cs.root) return null;
+    function walk(n) {
+      if (!n) return null;
+      if (n.id === nodeId) return n;
+      var kids = n.children || [];
+      for (var i = 0; i < kids.length; i++) { var hit = walk(kids[i]); if (hit) return hit; }
+      return null;
+    }
+    return walk(cs.root);
+  }
+  function findNodePath(root, id, parent, idx) {
+    if (!root) return null;
+    if (root.id === id) return { node: root, parent: parent, index: idx };
+    var kids = root.children || [];
+    for (var i = 0; i < kids.length; i++) {
+      var hit = findNodePath(kids[i], id, root, i);
+      if (hit) return hit;
+    }
+    return null;
+  }
+
+  // Builds a custom-render component-props panel: schema-driven form +
+  // per-prop "🔗 Bind to field" toggles. Multi-select feeds propertyPanel
+  // with all node.props as targets so MIXED kicks in automatically.
+  function buildComponentPropsForm(sel, panelCtx) {
+    var root = ui.h('div', 'gde-cs-comp-form');
+    var styleKey = sel.styleKey;
+    var ids = sel.nodeIds || [];
+
+    function rebuild() {
+      root.innerHTML = '';
+      var cs = State.projectCardStyles()[styleKey]; if (!cs) return;
+      var nodes = ids.map(function (id) { return findNodeInStyle(styleKey, id); }).filter(Boolean);
+      if (!nodes.length) {
+        root.appendChild(ui.h('div', 'gde-inspector-empty', { text: '(no node)' }));
+        return;
+      }
+      // Use the first node's component spec as the schema source. If
+      // multiple kinds are mixed (e.g. text + img selected), we bail to
+      // a placeholder rather than render a meaningless form.
+      var firstType = nodes[0].type;
+      if (nodes.some(function (n) { return n.type !== firstType; })) {
+        root.appendChild(ui.h('div', 'gde-inspector-empty', {
+          text: 'Selection has mixed component types — pick a single kind to edit.',
+        }));
+        return;
+      }
+      var spec; try { spec = EF.resolveComponent(firstType); } catch (_) { return; }
+      var schema = spec.schema || {};
+      var bindable = spec.bindable || [];
+
+      var targetsSig = EF.signal(nodes.map(function (n) { return n.props || {}; }));
+      var form = ui.propertyPanel({
+        schema:  schema,
+        targets: targetsSig,
+        onChange: function (field, nv) {
+          // Write nv into every selected node's props (taking the
+          // bound→literal route by default; binding swaps below).
+          mutateNodes(styleKey, ids, function (node) {
+            node.props = Object.assign({}, node.props || {});
+            node.props[field] = nv;
+            // Editing a literal value clears any binding on this prop.
+            if (node.bindings && node.bindings[field]) {
+              node.bindings = Object.assign({}, node.bindings);
+              delete node.bindings[field];
+            }
+          });
+        },
+      });
+      root.appendChild(form);
+
+      // Bindings UI — under the form, one row per bindable prop, lets
+      // the user link the prop to a struct field instead of a literal.
+      if (bindable.length) {
+        root.appendChild(ui.h('div', 'gde-cs-bindings-head', { text: 'Bindings' }));
+        var box = ui.h('div', 'gde-cs-bindings');
+        bindable.forEach(function (key) { box.appendChild(buildBindingRow(key, ids[0])); });
+        root.appendChild(box);
+      }
+    }
+
+    function buildBindingRow(propKey, sampleId) {
+      var row = ui.h('div', 'gde-cs-binding-row');
+      row.appendChild(ui.h('span', 'gde-cs-binding-key', { text: propKey }));
+      var node = findNodeInStyle(styleKey, sampleId);
+      var current = (node && node.bindings && node.bindings[propKey] && node.bindings[propKey].field) || '';
+      var fieldsForSelect = collectAvailableFields();
+      var sig = EF.signal(current);
+      var sel = ui.select({
+        value: sig,
+        options: [{ value: '', label: '(literal)' }].concat(
+          fieldsForSelect.map(function (f) { return { value: f, label: f }; })
+        ),
+        onChange: function (v) {
+          mutateNodes(styleKey, ids, function (n) {
+            n.bindings = Object.assign({}, n.bindings || {});
+            if (!v) delete n.bindings[propKey];
+            else n.bindings[propKey] = { source: 'field', field: v };
+          });
+        },
+      });
+      row.appendChild(sel);
+      return row;
+    }
+    function collectAvailableFields() {
+      // Union of every table's struct_def field names — cardStyles aren't
+      // bound to a specific struct, but offering "any field name we know
+      // about" is useful guidance.
+      var s = new Set();
+      var tm = State.tableMap();
+      Object.keys(tm).forEach(function (pk) {
+        var sd = tm[pk].struct_def || {};
+        Object.keys(sd).forEach(function (k) { s.add(k); });
+      });
+      // Always offer 'id' (every entity has one).
+      s.add('id');
+      return Array.from(s).sort();
+    }
+    function mutateNodes(styleKey, ids, fn) {
+      var cs = State.projectCardStyles()[styleKey]; if (!cs) return;
+      var clone = JSON.parse(JSON.stringify(cs));
+      ids.forEach(function (id) {
+        var hit = findNodePath(clone.root, id, null, -1);
+        if (hit) fn(hit.node);
+      });
+      State.upsertCardStyle(styleKey, clone);
+    }
+
+    EF.effect(rebuild);
+    panelCtx.bus.on('cardstyles:changed', rebuild);
+    panelCtx.bus.on('selection:changed',  rebuild);
     return root;
   }
 

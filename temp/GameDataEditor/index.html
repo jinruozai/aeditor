@@ -339,9 +339,7 @@
        stylesheet's `[hidden] { display: none }` because class rules beat
        attribute defaults. Reassert it. */
     .gde-inspector-ro-badge[hidden] { display: none; }
-    .ef-ui-property-panel.gde-inspector-disabled {
-      pointer-events: none; opacity: 0.45;
-    }
+    .ef-ui-property-panel[inert] { opacity: 0.45; }
 
     /* ── ref_id field (inspector.js ref_id renderer) ────────────── */
     .gde-refid {
@@ -929,6 +927,123 @@
     *::-webkit-scrollbar-track { background: transparent; }
     *::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 5px; }
     *::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.16); }
+
+    /* ── CardStyle list panel ─────────────────────────────────────── */
+    .gde-cs-list { display: flex; flex-direction: column; height: 100%; min-height: 0; }
+    .gde-cs-list-bar {
+      display: flex; padding: 6px 8px;
+      border-bottom: 1px solid var(--ef-border);
+    }
+    .gde-cs-list-grid {
+      flex: 1 1 auto; overflow: auto;
+      display: flex; flex-wrap: wrap; gap: 8px;
+      padding: 8px;
+      align-content: flex-start;
+    }
+    .gde-cs-tile {
+      width: 88px; cursor: pointer; user-select: none;
+      border: 1px solid var(--ef-border);
+      border-radius: var(--ef-r-2);
+      background: var(--ef-bg-1);
+      overflow: hidden;
+      display: flex; flex-direction: column;
+    }
+    .gde-cs-tile.is-active { border-color: var(--ef-accent); box-shadow: 0 0 0 1px var(--ef-accent); }
+    .gde-cs-tile-preview {
+      height: 70px; padding: 4px;
+      display: flex; align-items: center; justify-content: center;
+      transform: scale(0.55); transform-origin: top center;
+    }
+    .gde-cs-tile-name {
+      padding: 4px 6px;
+      font: var(--ef-fs-xs) var(--ef-font-ui);
+      color: var(--ef-fg-1);
+      text-align: center;
+      border-top: 1px solid var(--ef-border);
+      background: var(--ef-bg-2);
+      white-space: nowrap; text-overflow: ellipsis; overflow: hidden;
+    }
+
+    /* ── CardStyle node tree panel ───────────────────────────────── */
+    .gde-cs-tree { display: flex; flex-direction: column; height: 100%; min-height: 0; }
+    .gde-cs-tree-header {
+      padding: 6px 10px;
+      border-bottom: 1px solid var(--ef-border);
+      font: 600 var(--ef-fs-sm) var(--ef-font-ui);
+      color: var(--ef-fg-1);
+    }
+    .gde-cs-tree-empty {
+      padding: 16px;
+      font: var(--ef-fs-sm) var(--ef-font-ui);
+      color: var(--ef-fg-3);
+      text-align: center; line-height: 1.5;
+    }
+
+    /* ── CardStyle palette panel ─────────────────────────────────── */
+    .gde-palette { padding: 6px; overflow: auto; height: 100%; }
+    .gde-palette-section { margin-bottom: 8px; }
+    .gde-palette-cat {
+      font: 600 10px var(--ef-font-ui);
+      letter-spacing: 0.06em; text-transform: uppercase;
+      color: var(--ef-fg-3);
+      padding: 4px 4px;
+    }
+    .gde-palette-grid { display: flex; flex-wrap: wrap; gap: 4px; }
+    .gde-palette-chip {
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 4px 8px;
+      border: 1px solid var(--ef-border);
+      border-radius: var(--ef-r-2);
+      background: var(--ef-bg-2);
+      font: var(--ef-fs-sm) var(--ef-font-ui);
+      color: var(--ef-fg-1);
+      cursor: grab;
+      user-select: none;
+    }
+    .gde-palette-chip:hover { background: var(--ef-hover); border-color: var(--ef-border-strong); }
+    .gde-palette-chip:active { cursor: grabbing; }
+
+    /* ── CardStyle editor panel ──────────────────────────────────── */
+    .gde-cs-editor { display: flex; flex-direction: column; height: 100%; min-height: 0; }
+    .gde-cs-editor-bar {
+      display: flex; align-items: center; gap: 12px;
+      padding: 6px 10px;
+      border-bottom: 1px solid var(--ef-border);
+      background: var(--ef-bg-2);
+    }
+    .gde-cs-editor-name {
+      font: 600 var(--ef-fs-md) var(--ef-font-ui);
+      color: var(--ef-fg-0);
+    }
+    .gde-cs-editor-size {
+      font: var(--ef-fs-xs) var(--ef-font-ui);
+      color: var(--ef-fg-3);
+    }
+    .gde-cs-stage {
+      flex: 1 1 auto; overflow: auto;
+      background:
+        repeating-conic-gradient(var(--ef-bg-1) 0% 25%, var(--ef-bg-2) 0% 50%) 0 0/16px 16px;
+      display: flex; align-items: center; justify-content: center;
+      padding: 32px;
+    }
+    .gde-cs-canvas {
+      box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+      outline: 1px solid var(--ef-border);
+    }
+    .gde-cs-canvas-empty {
+      width: 200px; height: 120px;
+      display: flex; align-items: center; justify-content: center;
+      background: var(--ef-bg-2);
+      border: 2px dashed var(--ef-border);
+      border-radius: 4px;
+      color: var(--ef-fg-3);
+      font: var(--ef-fs-sm) var(--ef-font-ui);
+      text-align: center; padding: 12px;
+    }
+    .gde-cs-canvas [data-node-id].is-selected-node {
+      outline: 2px solid var(--ef-accent);
+      outline-offset: 2px;
+    }
   </style>
 </head>
 <body>
@@ -943,7 +1058,6 @@
   <!-- Core data model & utilities -->
   <script src="src/state.js?v=7"></script>
   <script src="src/normalize.js?v=7"></script>
-  <script src="src/ui_helpers.js?v=7"></script>
   <script src="src/renderers.js?v=7"></script>
   <script src="src/card.js?v=7"></script>
 
@@ -956,6 +1070,10 @@
   <script src="src/widgets/typeconfig.js?v=7"></script>
   <!-- log panel deleted: using the framework's built-in 'log' widget -->
   <script src="src/widgets/tabledata.js?v=7"></script>
+  <script src="src/widgets/cardstyle-list.js?v=7"></script>
+  <script src="src/widgets/cardstyle-tree.js?v=7"></script>
+  <script src="src/widgets/cardstyle-palette.js?v=7"></script>
+  <script src="src/widgets/cardstyle-editor.js?v=7"></script>
   <script src="src/widgets/toolbar.js?v=7"></script>
 
   <!-- Seed demo data & mount -->

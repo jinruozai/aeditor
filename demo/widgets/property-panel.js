@@ -56,9 +56,9 @@
     return key.replace(/([a-z])([A-Z])/g, '$1 $2').replace(/^./, function (c) { return c.toUpperCase() })
   }
 
-  EF.registerWidget('property-panel', {
+  EF.registerComponent('property-panel', {
     defaults: function () { return { title: 'Properties', icon: '⚙' } },
-    create: function (props, ctx) {
+    factory: function (propsSig, ctx) { const props = propsSig.peek() || {};
       const root = ui.h('div', 'demo-prop')
 
       const empty = ui.h('div', 'demo-prop-empty', {

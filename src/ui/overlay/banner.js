@@ -1,4 +1,8 @@
-// EF.ui.alert — inline alert/banner (not a modal).
+// EF.ui.banner — inline status banner (info / success / warn / error).
+//
+// Use this when the message is part of page flow (above a form, inside a
+// panel). For modal acknowledgements use ui.alert; for transient toasts use
+// ui.toast.
 //
 // opts: {
 //   kind?: 'info'|'success'|'warn'|'error' | signal,
@@ -10,37 +14,35 @@
   'use strict'
   const ui = EF.ui = EF.ui || {}
 
-  ui.alert = function (opts) {
+  ui.banner = function (opts) {
     const o = opts || {}
     const kind    = ui.asSig(o.kind    != null ? o.kind    : 'info')
     const title   = ui.asSig(o.title   != null ? o.title   : '')
     const message = ui.asSig(o.message != null ? o.message : '')
-    const el = ui.h('div', 'ef-ui-alert')
-    ui.bindClass(el, kind, 'ef-ui-alert-')
+    const el = ui.h('div', 'ef-ui-banner')
+    ui.bindClass(el, kind, 'ef-ui-banner-')
     ui.bind(el, kind, function (v) {
       const assertive = v === 'error' || v === 'warn'
       el.setAttribute('role',       assertive ? 'alert'     : 'status')
       el.setAttribute('aria-live',  assertive ? 'assertive' : 'polite')
     })
 
-    // Icon glyph comes from `::before { content: var(--ef-icon-<kind>) }`;
-    // the span is an empty aria-hidden slot that CSS fills.
-    const iconEl = ui.h('span', 'ef-ui-alert-icon', { 'aria-hidden': 'true' })
+    const iconEl = ui.h('span', 'ef-ui-banner-icon', { 'aria-hidden': 'true' })
     el.appendChild(iconEl)
 
-    const inner = ui.h('div', 'ef-ui-alert-body')
-    const titleEl = ui.h('div', 'ef-ui-alert-title')
+    const inner = ui.h('div', 'ef-ui-banner-body')
+    const titleEl = ui.h('div', 'ef-ui-banner-title')
     ui.bindText(titleEl, title)
     ui.bind(el, title, function (v) { titleEl.style.display = (v == null || v === '') ? 'none' : '' })
     inner.appendChild(titleEl)
-    const msgEl = ui.h('div', 'ef-ui-alert-msg')
+    const msgEl = ui.h('div', 'ef-ui-banner-msg')
     ui.bindText(msgEl, message)
     inner.appendChild(msgEl)
     el.appendChild(inner)
 
     if (o.onClose) {
-      const x = ui.h('button', 'ef-ui-alert-close',
-        { type: 'button', text: '×', 'aria-label': 'Dismiss alert' })
+      const x = ui.h('button', 'ef-ui-banner-close',
+        { type: 'button', text: '×', 'aria-label': 'Dismiss' })
       x.addEventListener('click', o.onClose)
       el.appendChild(x)
     }

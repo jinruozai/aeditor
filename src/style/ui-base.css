@@ -362,3 +362,17 @@
   text-transform: uppercase;
   letter-spacing: .06em;
 }
+
+/* ── text (display-only) ────────────────────────────────────────── */
+.ef-ui-text {
+  font: var(--ef-fs-md) var(--ef-font-ui);
+  color: var(--ef-fg-1);
+  line-height: 1.4;
+  min-width: 0;
+}
+.ef-ui-text-size-sm { font-size: var(--ef-fs-sm); }
+.ef-ui-text-size-md { font-size: var(--ef-fs-md); }
+.ef-ui-text-size-lg { font-size: var(--ef-fs-lg); }
+.ef-ui-text-h1      { font-weight: 700; font-size: var(--ef-fs-xl); color: var(--ef-fg-0); }
+.ef-ui-text-h2      { font-weight: 600; font-size: var(--ef-fs-lg); color: var(--ef-fg-0); }
+.ef-ui-text-caption { font-size: var(--ef-fs-xs); color: var(--ef-fg-2); }

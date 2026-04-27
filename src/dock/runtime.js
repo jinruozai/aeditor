@@ -312,11 +312,21 @@
   // Any real reactivity must go through EF.effect explicitly inside the
   // widget body, which establishes its own effect scope.
   function materializeWidgetEl(runtime, srcExtra) {
-    const spec = EF.resolveWidget(runtime.widget)
+    const spec = EF.resolveComponent(runtime.widget)
     const src = Object.assign({ scope: 'widget', widget: runtime.widget }, srcExtra || {})
+    // propsSig source per kind:
+    //   panel runtimes track props live via ctx.panel.props (derived off
+    //     runtime.data) — pass that signal directly so widgets that subscribe
+    //     to props get reactivity for free.
+    //   toolbar (static / dynamic) runtimes get a frozen signal seeded from
+    //     the static spec.props — those don't change after registration.
+    const propsSig = (runtime.kind === 'panel')
+      ? runtime.ctx.panel.props
+      : EF.signal(runtime.props || {})
+    runtime.propsSig = propsSig
     const el = EF.safeCall(src, function () {
       return EF.untracked(function () {
-        return spec.create(runtime.props || (runtime.data && runtime.data.peek().props) || {}, runtime.ctx)
+        return spec.factory(propsSig, runtime.ctx)
       })
     })
     runtime.contentEl = el || makeErrorEl(runtime.widget)
@@ -328,7 +338,7 @@
     }
     runtime.cleanups = []
     if (runtime.contentEl) {
-      const spec = EF.resolveWidget(runtime.widget)
+      const spec = EF.resolveComponent(runtime.widget)
       if (spec.dispose) {
         EF.safeCall({ scope: 'widget', widget: runtime.widget },
           function () { spec.dispose(runtime.contentEl) })

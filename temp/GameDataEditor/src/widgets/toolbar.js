@@ -6,10 +6,10 @@
   'use strict';
 
   // Map legacy ContextMenu item format (onClick/separator/items) to
-  // UIX.contextMenu (onSelect / { type:'divider' } / nested submenu).
+  // EF.ui.contextMenu (onSelect / { type:'divider' } / nested submenu).
   function buildMenu(anchor, items) {
     var r = anchor.getBoundingClientRect();
-    UIX.contextMenu({ x: r.left, y: r.bottom + 2 }, items.map(function map(it) {
+    EF.ui.contextMenu({ x: r.left, y: r.bottom + 2 }, items.map(function map(it) {
       if (it.separator) return { type: 'divider' };
       if (it.items)     return { label: it.label, items: it.items.map(map) };
       return { label: it.label, danger: it.danger, onSelect: it.onClick };
@@ -110,7 +110,7 @@
   }
 
   function doNew() {
-    UIX.confirm({
+    EF.ui.confirm({
       title:   'New Project',
       message: 'Discard current project and start a new one?',
       danger:  true,

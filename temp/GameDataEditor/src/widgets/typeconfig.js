@@ -110,7 +110,8 @@
     throw new Error('Could not generate a unique type name');
   }
 
-  function createPanel(props, ctx) {
+  function createPanel(propsSig, ctx) {
+    var props = propsSig.peek() || {};
     var root = document.createElement('div');
     root.style.cssText = 'display:flex;flex-direction:column;height:100%;';
 
@@ -185,7 +186,7 @@
       if (editable) {
         item.addEventListener('contextmenu', function (e) {
           e.preventDefault();
-          UIX.contextMenu({ x: e.clientX, y: e.clientY }, [
+          EF.ui.contextMenu({ x: e.clientX, y: e.clientY }, [
             { label: t('typeconfig.ctx.delete'), danger: true, onSelect: function () { deleteType(key); } },
           ]);
         });
@@ -243,7 +244,7 @@
         title = t('typeconfig.delete_confirm_title') || 'Delete type';
         msg = t('typeconfig.delete_confirm', { name: key });
       }
-      UIX.confirm({ title: title, message: msg, danger: true, okLabel: t('common.delete') || 'Delete' })
+      EF.ui.confirm({ title: title, message: msg, danger: true, okLabel: t('common.delete') || 'Delete' })
         .then(function (ok) {
           if (!ok) return;
           if (usages.length > 0) {
@@ -284,8 +285,8 @@
     return root;
   }
 
-  EF.registerWidget('gde-typeconfig', {
-    create: createPanel,
+  EF.registerComponent('gde-typeconfig', {
+    factory: createPanel,
     defaults: function () { return { title: 'TypeConfig', props: {} }; },
   });
 })();

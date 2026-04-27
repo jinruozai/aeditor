@@ -15,9 +15,9 @@
   'use strict'
   const ui = EF.ui
 
-  EF.registerWidget('component-tree', {
+  EF.registerComponent('component-tree', {
     defaults: function () { return { title: 'Components', icon: '☰' } },
-    create: function (props, ctx) {
+    factory: function (propsSig, ctx) { const props = propsSig.peek() || {};
       const root = ui.h('div', 'demo-sidepanel')
       const scroll = ui.scrollArea()
       scroll.classList.add('demo-tree-scroll')

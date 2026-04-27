@@ -6,9 +6,9 @@
   'use strict'
   const ui = EF.ui
 
-  EF.registerWidget('component-search', {
+  EF.registerComponent('component-search', {
     defaults: function () { return { title: 'Search', icon: '⌕' } },
-    create: function (props, ctx) {
+    factory: function (propsSig, ctx) { const props = propsSig.peek() || {};
       const root = ui.h('div', 'demo-sidepanel demo-search')
 
       const query = EF.signal('')
@@ -36,12 +36,19 @@
         return out
       })
 
+      // Bridge Demo.selected (scalar id) to ui.list's array-of-entries selected.
+      const selectedArr = EF.derived(function () {
+        const id = Demo.selected()
+        const e  = id ? Demo.catalog.find(function (c) { return c.id === id }) : null
+        return e ? [e] : []
+      })
       const list = ui.list({
         items: filtered,
         rowHeight: 36,
-        selected: Demo.selected,
+        multi: false,
+        selected: selectedArr,
         // VSCode-style: single click = preview (transient), double click = pin.
-        onSelect:   function (entry) { Demo.select(entry.id, { preview: true }) },
+        onSelect:   function (arr) { if (arr[0]) Demo.select(arr[0].id, { preview: true }) },
         onActivate: function (entry) { Demo.select(entry.id, { preview: false }) },
         render: function (entry) {
           const row = ui.h('div', 'demo-search-row')
