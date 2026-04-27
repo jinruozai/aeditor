@@ -32,6 +32,9 @@
       id:       n.id,
       label:    label,
       icon:     (spec && spec.icon) || 'square',
+      // Preserve the component name so consumers like contextMenu(node)
+      // can re-resolve the spec (acceptsChildren etc).
+      type:     n.type,
       children: (n.children || []).map(toTreeRow),
     };
   }
@@ -49,6 +52,22 @@
 
   var nextId = 1;
   function uid(prefix) { return (prefix || 'n') + '-' + (nextId++) + '-' + Date.now().toString(36); }
+
+  // Module-local node clipboard. Holds JSON-serialized TreeNode objects
+  // so paste works across cardStyles too — every TreeNode is the same
+  // shape regardless of which cardStyle it came from. Paste deep-clones
+  // and rewrites every id with uid() so duplicates don't collide.
+  var clipboard = EF.signal([]);
+  function retagIds(node) {
+    if (!node) return;
+    node.id = uid(node.type);
+    (node.children || []).forEach(retagIds);
+  }
+  function cloneAndRetag(node) {
+    var c = JSON.parse(JSON.stringify(node));
+    retagIds(c);
+    return c;
+  }
 
   function factory(_propsSig, ctx) {
     var root = ui.h('div', 'gde-cs-tree');
@@ -93,7 +112,15 @@
         else State.setSelection({ kind: 'card_component', styleKey: key, nodeIds: ids });
       },
       contextMenu: function (node) {
+        var spec = null; try { spec = EF.resolveComponent(node.type); } catch (_) {}
+        var canPaste = (clipboard.peek() || []).length > 0;
         return [
+          { label: 'Copy', icon: 'copy', onSelect: function () { copyNodes(); } },
+          { label: 'Paste as sibling', disabled: !canPaste,
+            onSelect: function () { pasteAsSibling(node.id); } },
+          { label: 'Paste as child', disabled: !canPaste || !(spec && spec.acceptsChildren),
+            onSelect: function () { pasteAsChild(node.id); } },
+          { type: 'divider' },
           { label: 'Delete', danger: true, onSelect: function () { deleteNode(node.id); } },
         ];
       },
@@ -137,6 +164,16 @@
       } else {
         selectedSig.set([]);
       }
+    }
+
+    // The local selectedSig (the one ui.tree writes only when no onSelect
+    // is provided) is read-only here — our onSelect routes through State.
+    // So always source the live selection from State.selection().
+    function currentSelectedIds() {
+      var key = State.activeCardStyle.peek();
+      var sel = State.selection();
+      if (!sel || sel.kind !== 'card_component' || sel.styleKey !== key) return [];
+      return sel.nodeIds || [];
     }
 
     // Move srcIds into target relative to the targetId. Cut first (so target
@@ -244,7 +281,7 @@
       // Otherwise: insert under the current selection if it's a container,
       // else as the next sibling of the selection, else as a child of the
       // root.
-      var selIds = selectedSig.peek() || [];
+      var selIds = currentSelectedIds() || [];
       var anchorId = selIds[selIds.length - 1] || clone.root.id;
       var hit = findNode(clone.root, anchorId, null, -1);
       var anchorSpec = null;
@@ -260,6 +297,55 @@
       }
       State.upsertCardStyle(key, clone);
       State.setSelection({ kind: 'card_component', styleKey: key, nodeIds: [newNode.id] });
+    }
+
+    // Copy the current tree-multi-selection (or fall back to the right-
+    // clicked node if nothing is multi-selected) into the module clipboard.
+    // We snapshot `JSON.stringify` payloads so the clipboard survives later
+    // edits to the source cardStyle. Root cannot be copied — copying root
+    // and pasting back would overwrite or duplicate the entire style.
+    function copyNodes() {
+      var key = State.activeCardStyle.peek();
+      if (!key) return;
+      var cs = State.projectCardStyles()[key]; if (!cs || !cs.root) return;
+      var ids = (currentSelectedIds() || []).filter(function (id) { return id !== cs.root.id; });
+      if (!ids.length) { State.log('warn', 'Nothing to copy (root cannot be copied).'); return; }
+      var payloads = ids.map(function (id) {
+        var hit = findNode(cs.root, id, null, -1);
+        return hit ? JSON.parse(JSON.stringify(hit.node)) : null;
+      }).filter(Boolean);
+      clipboard.set(payloads);
+      State.log('info', 'Copied ' + payloads.length + ' node(s).');
+    }
+    function pasteAsSibling(targetId) {
+      var key = State.activeCardStyle.peek(); if (!key) return;
+      var cs = State.projectCardStyles()[key]; if (!cs || !cs.root) return;
+      if (cs.root.id === targetId) { return pasteAsChild(targetId); }
+      var clip = clipboard.peek() || [];
+      if (!clip.length) return;
+      var clone = JSON.parse(JSON.stringify(cs));
+      var hit = findNode(clone.root, targetId, null, -1);
+      if (!hit || !hit.parent) return;
+      var fresh = clip.map(cloneAndRetag);
+      Array.prototype.splice.apply(hit.parent.children, [hit.index + 1, 0].concat(fresh));
+      State.upsertCardStyle(key, clone);
+      State.setSelection({ kind: 'card_component', styleKey: key, nodeIds: fresh.map(function (n) { return n.id; }) });
+    }
+    function pasteAsChild(targetId) {
+      var key = State.activeCardStyle.peek(); if (!key) return;
+      var cs = State.projectCardStyles()[key]; if (!cs || !cs.root) return;
+      var clip = clipboard.peek() || [];
+      if (!clip.length) return;
+      var clone = JSON.parse(JSON.stringify(cs));
+      var hit = findNode(clone.root, targetId, null, -1);
+      if (!hit) return;
+      var spec = null; try { spec = EF.resolveComponent(hit.node.type); } catch (_) {}
+      if (!spec || !spec.acceptsChildren) return;
+      hit.node.children = hit.node.children || [];
+      var fresh = clip.map(cloneAndRetag);
+      Array.prototype.push.apply(hit.node.children, fresh);
+      State.upsertCardStyle(key, clone);
+      State.setSelection({ kind: 'card_component', styleKey: key, nodeIds: fresh.map(function (n) { return n.id; }) });
     }
 
     function deleteNode(id) {

@@ -274,7 +274,14 @@
     // the custom element's responsibility (its own effects / bus subs).
     var currentCustom = null;
     var currentCustomKey = null;
-    function kindSelKey(sel) {
+    // A kind that doesn't fit `pathKey | key | id` (e.g. card_component
+    // selects N nodes inside one cardStyle) can supply its own `key(sel)
+    // → string` to drive identity. Without this the dispatcher would
+    // collapse every selection of the same kind into a single key, reuse
+    // the first-mounted form, and any `rebuild` inside that form would
+    // read stale closure state.
+    function kindSelKey(sel, kind) {
+      if (kind && typeof kind.key === 'function') return sel.kind + ':' + kind.key(sel);
       return sel.kind + ':' + (sel.pathKey || sel.key || sel.id || '');
     }
     function disposeCustom() {
@@ -285,7 +292,7 @@
       }
     }
     function renderCustom(kind, sel) {
-      var key = kindSelKey(sel);
+      var key = kindSelKey(sel, kind);
       if (key === currentCustomKey && currentCustom) return;  // same selection — leave mounted
       disposeCustom();
       currentCustomKey = key;
@@ -426,8 +433,14 @@
     }
 
     function buildFieldRow(fieldName) {
+      // Look up the *type* this field uses (struct_def[field].type), not
+      // the field name itself, against the type registry. The pre-1.3
+      // code did `tc[fieldName]` and so painted "unknown type" on every
+      // row — fields rarely share names with registered types.
       var tc = ui.getTypeConfig();
-      var def = tc[fieldName];
+      var sd = (State.tableMap()[pathKey] || {}).struct_def || {};
+      var fd = sd[fieldName] || {};
+      var def = fd.type ? tc[fd.type] : null;
       var known = !!def;
 
       var row = ui.h('div', 'gde-tm-field' + (known ? '' : ' is-unknown'));
@@ -850,6 +863,10 @@
       var n = findNodeInStyle(sel.styleKey, ids[0]);
       return n ? n.type : '(missing)';
     },
+    // Identity = which cardStyle + which node ids are selected. Without this
+    // every card_component selection collapsed to the same key, leaving the
+    // first form mounted forever and showing stale schema for newer picks.
+    key: function (sel) { return (sel.styleKey || '') + '/' + (sel.nodeIds || []).join(','); },
     render: function (sel, ctx) { return buildComponentPropsForm(sel, ctx); },
     dataTopic: function () { return 'cardstyles:changed'; },
   });

@@ -44,7 +44,10 @@
         (it.disabled ? ' ef-ui-menu-item-disabled' : '') +
         (it.danger ? ' ef-ui-menu-item-danger' : ''),
         { type: 'button' })
-      if (it.icon) row.appendChild(ui.icon({ glyph: it.icon, size: 'sm' }))
+      // ui.icon resolves `name` against the registered icon set (rendering
+      // an SVG); unknown names fall back to text. Passing the consumer's
+      // string as `name` keeps "icon: 'copy'" working as a real icon.
+      if (it.icon) row.appendChild(ui.icon({ name: it.icon, size: 'sm' }))
       row.appendChild(ui.h('span', 'ef-ui-menu-item-label', { text: it.label || '' }))
       if (it.kbd) {
         const k = ui.kbd(it.kbd); k.classList.add('ef-ui-menu-item-kbd'); row.appendChild(k)
