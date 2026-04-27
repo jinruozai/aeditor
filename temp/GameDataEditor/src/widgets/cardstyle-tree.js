@@ -80,6 +80,21 @@
           { label: 'Delete', danger: true, onSelect: function () { deleteNode(node.id); } },
         ];
       },
+      dnd: {
+        // 'inside' is only allowed when the target component is a container.
+        // Without this, dragging onto a leaf would corrupt the tree (leaves
+        // never grow children at runtime).
+        dropZones: function (targetNode) {
+          var spec = null;
+          try { spec = EF.resolveComponent(targetNode.type); } catch (_) {}
+          var zones = ['before', 'after'];
+          if (spec && spec.acceptsChildren) zones.push('inside');
+          return zones;
+        },
+        onDrop: function (targetNode, position, dragData) {
+          reparent(dragData.payload, targetNode.id, position);
+        },
+      },
     });
     tree.style.cssText = 'flex:1 1 0;';
 
@@ -105,6 +120,55 @@
       } else {
         selectedSig.set([]);
       }
+    }
+
+    // Move srcIds into target relative to the targetId. Cut first (so target
+     // index stays valid for in-tree moves), then splice in. Cycle prevention
+     // (dropping a parent into its descendant) is enforced upstream by
+     // tree-dnd; we just write what comes through.
+    function reparent(srcIds, targetId, position) {
+      var key = State.activeCardStyle.peek();
+      if (!key) return;
+      var cs = State.projectCardStyles()[key];
+      if (!cs || !cs.root) return;
+      // Don't allow dropping the root or making the root a child of someone.
+      if (srcIds.indexOf(cs.root.id) >= 0) return;
+      var clone = JSON.parse(JSON.stringify(cs));
+      var moving = [];
+      // Cut in reverse so multiple cuts under the same parent stay correct.
+      var ordered = orderByDepth(clone.root, srcIds);
+      ordered.forEach(function (id) {
+        var hit = findNode(clone.root, id, null, -1);
+        if (hit && hit.parent) {
+          moving.unshift(hit.parent.children.splice(hit.index, 1)[0]);
+        }
+      });
+      var dst = findNode(clone.root, targetId, null, -1);
+      if (!dst) return;
+      if (position === 'inside') {
+        dst.node.children = dst.node.children || [];
+        Array.prototype.push.apply(dst.node.children, moving);
+      } else if (position === 'before' && dst.parent) {
+        Array.prototype.splice.apply(dst.parent.children, [dst.index, 0].concat(moving));
+      } else if (position === 'after' && dst.parent) {
+        Array.prototype.splice.apply(dst.parent.children, [dst.index + 1, 0].concat(moving));
+      } else {
+        // No valid spot (e.g. before/after the root) — abort, restore.
+        return;
+      }
+      State.upsertCardStyle(key, clone);
+    }
+    // Order ids by descending depth so we cut leaves before their parents
+    // when both are in the moving set (otherwise the parent cut detaches
+    // the descendant before we get to it).
+    function orderByDepth(root, ids) {
+      var depths = {};
+      function walk(n, d) {
+        depths[n.id] = d;
+        (n.children || []).forEach(function (c) { walk(c, d + 1); });
+      }
+      walk(root, 0);
+      return ids.slice().sort(function (a, b) { return (depths[b]||0) - (depths[a]||0); });
     }
 
     function deleteNode(id) {

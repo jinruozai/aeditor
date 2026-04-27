@@ -937,19 +937,28 @@
       }
     }
 
-    function buildBindingRow(propKey, sampleId) {
+    // Build one binding row. Computes the consistent value across all
+    // selected nodes for this propKey — if every node binds to the same
+    // field, the dropdown shows it; if they disagree, it shows a Mixed
+    // placeholder option that the user can pick "(literal)" or a real
+    // field to overwrite for everyone.
+    function buildBindingRow(propKey) {
       var row = ui.h('div', 'gde-cs-binding-row');
       row.appendChild(ui.h('span', 'gde-cs-binding-key', { text: propKey }));
-      var node = findNodeInStyle(styleKey, sampleId);
-      var current = (node && node.bindings && node.bindings[propKey] && node.bindings[propKey].field) || '';
+
       var fieldsForSelect = collectAvailableFields();
-      var sig = EF.signal(current);
+      // Compute initial value by inspecting all selected nodes.
+      var summary = summarizeBinding(propKey);
+      var sig = EF.signal(summary.mixed ? '__mixed' : summary.value);
+      var options = [{ value: '', label: '(literal)' }];
+      if (summary.mixed) options.push({ value: '__mixed', label: '— Mixed —' });
+      fieldsForSelect.forEach(function (f) { options.push({ value: f, label: f }); });
+
       var sel = ui.select({
         value: sig,
-        options: [{ value: '', label: '(literal)' }].concat(
-          fieldsForSelect.map(function (f) { return { value: f, label: f }; })
-        ),
+        options: options,
         onChange: function (v) {
+          if (v === '__mixed') return;  // sentinel; user must pick something concrete
           mutateNodes(styleKey, ids, function (n) {
             n.bindings = Object.assign({}, n.bindings || {});
             if (!v) delete n.bindings[propKey];
@@ -957,8 +966,20 @@
           });
         },
       });
+      if (summary.mixed) sel.classList.add('is-mixed');
       row.appendChild(sel);
       return row;
+    }
+    function summarizeBinding(propKey) {
+      var first = null, mixed = false;
+      for (var i = 0; i < ids.length; i++) {
+        var n = findNodeInStyle(styleKey, ids[i]);
+        if (!n) continue;
+        var v = (n.bindings && n.bindings[propKey] && n.bindings[propKey].field) || '';
+        if (i === 0) first = v;
+        else if (v !== first) { mixed = true; break; }
+      }
+      return { value: first || '', mixed: mixed };
     }
     function collectAvailableFields() {
       // Union of every table's struct_def field names — cardStyles aren't
