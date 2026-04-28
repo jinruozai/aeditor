@@ -18,13 +18,13 @@
   const ui = EF.ui = EF.ui || {}
 
   ui.BOX_STYLE_SCHEMA = {
-    background:    { type: 'string' },
-    borderColor:   { type: 'string' },
-    borderWidth:   { type: 'int' },
+    background:    { type: 'color'  },
+    borderColor:   { type: 'color'  },
+    borderWidth:   { type: 'int'    },
     borderStyle:   { type: 'enum_string', type_agv: { options: ['solid','dashed','dotted'] } },
-    borderRadius:  { type: 'int' },
-    padding:       { type: 'int' },
-    opacity:       { type: 'float' },
+    borderRadius:  { type: 'int'    },
+    padding:       { type: 'int'    },
+    opacity:       { type: 'float'  },
     shadow:        { type: 'string' },
   }
 
