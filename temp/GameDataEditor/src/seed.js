@@ -108,13 +108,19 @@
     // Empty / null visual-style fields let the framework's CSS rules
     // (theme cascade) apply. The user can override per-cardStyle by
     // typing a real value into the inspector.
+    // The seed `default` style ships with deliberate visual choices: a
+    // deep-black background and rounded corners so cards look finished
+    // out of the box. New cardstyles created via the list-panel's "+"
+    // button start with empty visual defaults (theme cascade) — see
+    // cardstyle-list.js's emptyRoot. Users can reset these via the
+    // per-row reset buttons to fall back to cascade.
     return {
       'default': {
         name: 'Default',
         root: {
           id: 'root',
           type: 'absolute',
-          props: { width: 120, height: 120 },
+          props: { width: 120, height: 120, background: 'var(--ef-bg-0)', borderRadius: 6 },
           bindings: {},
           children: [
             {
