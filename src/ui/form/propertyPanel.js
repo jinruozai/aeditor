@@ -9,6 +9,9 @@
 //   onChange?:(field, newValue, targets) => void      app persistence; if omitted writes are
 //                                                     fan-out into `targets` directly
 //   disabled?:signal<boolean> | boolean               toggles `inert` on the root
+//   defaults?:object                                  per-key reset-to-default values; when
+//                                                     supplied, each row gets a small reset
+//                                                     iconButton (faded when already at default)
 //   ctx?:     any                                     forwarded to editorFor
 ;(function (EF) {
   'use strict'
@@ -19,15 +22,13 @@
     const targets   = ui.isSignal(o.targets) ? o.targets : EF.signal(o.targets || [])
     const schemaSig = ui.isSignal(o.schema)  ? o.schema  : EF.signal(o.schema  || {})
     const disabled  = ui.asSig(o.disabled != null ? o.disabled : false)
+    const defaults  = (o.defaults && typeof o.defaults === 'object') ? o.defaults : null
     const onChange  = typeof o.onChange === 'function' ? o.onChange : null
     const ctx       = o.ctx
 
     const root = ui.h('div', 'ef-ui-property-panel')
     ui.bind(root, disabled, function (v) { root.toggleAttribute('inert', !!v) })
 
-    // Per-field composite: unanimous value, or MIXED when targets disagree.
-    // Length-1 returns the single target verbatim so the ref stays stable
-    // and slot derived signals don't notify spuriously.
     const composite = EF.derived(function () {
       const arr    = targets() || []
       const schema = schemaSig() || {}
@@ -64,10 +65,14 @@
         const fields = Object.keys(schema).map(function (fname) {
           const raw   = schema[fname]
           const subFd = ui.resolveFieldDef(typeof raw === 'string' ? { type: raw } : raw)
+          // Capture fname so the slot factory closes over the right key for
+          // its reset button.
           return {
             key:    fname,
             label:  fname,
-            editor: function (slotSig, write, innerCtx) { return slotEditor(slotSig, write, innerCtx, subFd) },
+            editor: function (slotSig, write, innerCtx) {
+              return slotEditor(slotSig, write, innerCtx, subFd, fname, defaults)
+            },
           }
         })
         current = ui.structInput({
@@ -87,7 +92,9 @@
 
   // Slot wrapper: hides MIXED from the editor (substitutes a type-blank) and
   // carries the `data-mixed` attribute so CSS can paint the indicator.
-  function slotEditor(slotSig, write, innerCtx, fieldDef) {
+  // Optional reset button: present when `defaults[fname]` is defined; faded
+  // when the current slot value already equals that default.
+  function slotEditor(slotSig, write, innerCtx, fieldDef, fname, defaults) {
     const editorSig = EF.derived(function () {
       const v = slotSig()
       return ui.isMixed(v) ? ui.blankFor(fieldDef) : v
@@ -95,9 +102,38 @@
     const editorEl = ui.editorFor(fieldDef, editorSig, write, innerCtx)
     const slot = ui.h('div', 'ef-ui-slot')
     slot.appendChild(editorEl)
+    if (defaults && Object.prototype.hasOwnProperty.call(defaults, fname)) {
+      slot.appendChild(buildReset(slotSig, write, defaults[fname]))
+    }
     ui.bind(slot, slotSig, function (v) { slot.toggleAttribute('data-mixed', ui.isMixed(v)) })
     ui.collect(slot, editorSig.dispose)
     ui.collect(slot, function () { ui.dispose(editorEl) })
     return slot
+  }
+
+  function buildReset(slotSig, write, defaultValue) {
+    const btn = ui.iconButton({
+      icon: 'refresh', kind: 'ghost', size: 'sm', title: 'Reset to default',
+      onClick: function () { write(defaultValue) },
+    })
+    btn.classList.add('ef-ui-slot-reset')
+    // Fade when already at default — visual cue that the button is a
+    // no-op right now without removing it (so layout doesn't shift).
+    // undefined / null / '' are treated as the same "empty" state so a
+    // freshly-created node (where the field was never set) reads as
+    // "at default" even when the default literal is ''.
+    EF.effect(function () {
+      const v = slotSig()
+      const atDefault = isAtDefault(v, defaultValue)
+      btn.style.opacity = atDefault ? '0.3' : '1'
+      btn.style.cursor  = atDefault ? 'default' : ''
+    })
+    return btn
+  }
+  function isAtDefault(v, def) {
+    const ve = v   == null || v   === ''
+    const de = def == null || def === ''
+    if (ve && de) return true
+    return ui.equalValues(v, def)
   }
 })(window.EF = window.EF || {})

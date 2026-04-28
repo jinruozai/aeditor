@@ -17,16 +17,17 @@
   function buildAbsolute(propsSig) {
     const el = ui.h('div', 'ef-ui-absolute')
     el.style.position = 'relative'
+    // width / height / overflow are layout-y; background / border /
+    // borderRadius / padding come uniformly from BOX_STYLE so the
+    // absolute container shares the same visual vocabulary as every
+    // other component.
     EF.effect(function () {
       const p = propsSig() || {}
-      el.style.width      = p.width  != null ? toCssLen(p.width)  : ''
-      el.style.height     = p.height != null ? toCssLen(p.height) : ''
-      el.style.background = p.background || ''
-      el.style.borderRadius = p.borderRadius != null ? toCssLen(p.borderRadius) : ''
-      el.style.border       = p.border || ''
-      el.style.padding      = p.padding != null ? toCssLen(p.padding) : ''
-      el.style.overflow     = p.overflow || 'hidden'
+      el.style.width    = p.width  != null ? toCssLen(p.width)  : ''
+      el.style.height   = p.height != null ? toCssLen(p.height) : ''
+      el.style.overflow = p.overflow || 'hidden'
     })
+    ui.applyBoxStyle(el, propsSig)
     return el
   }
 
@@ -61,15 +62,11 @@
     category:        'layout',
     acceptsChildren: true,
     bindable:        [],
-    defaultProps:    { width: 120, height: 120, background: '' },
-    schema: {
-      width:        { type: 'int' },
-      height:       { type: 'int' },
-      background:   { type: 'string' },
-      borderRadius: { type: 'int' },
-      border:       { type: 'string' },
-      padding:      { type: 'int' },
-    },
+    defaultProps: Object.assign({}, ui.BOX_STYLE_DEFAULTS, { width: 120, height: 120 }),
+    schema: Object.assign({}, ui.BOX_STYLE_SCHEMA, {
+      width:  { type: 'int' },
+      height: { type: 'int' },
+    }),
     factory: function (propsSig) { return buildAbsolute(propsSig) },
     appendChild: function (parent, child, layout) {
       const slot = ui.h('div', 'ef-ui-abs-slot')

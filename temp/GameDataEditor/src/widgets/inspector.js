@@ -926,8 +926,9 @@
 
       var targetsSig = EF.signal(nodes.map(function (n) { return n.props || {}; }));
       var form = ui.propertyPanel({
-        schema:  schema,
-        targets: targetsSig,
+        schema:   schema,
+        targets:  targetsSig,
+        defaults: spec.defaultProps || null,
         onChange: function (field, nv) {
           // Write nv into every selected node's props (taking the
           // bound→literal route by default; binding swaps below).

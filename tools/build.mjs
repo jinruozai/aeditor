@@ -50,6 +50,8 @@ const JS_ORDER = [
   'ui/_internal/_drag.js',
   'ui/_internal/_signal.js',
   'ui/_internal/_mixed.js',
+  'ui/_internal/_box-style.js',
+  'ui/_internal/_text-style.js',
   'ui/_internal/_render-tree.js',
   'ui/_internal/_overlay.js',
   'ui/_internal/_dnd.js',

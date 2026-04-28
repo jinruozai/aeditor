@@ -48,21 +48,31 @@
     return el
   }
 
+  // Visual chrome (background / border / radius / padding / color /
+  // font / textAlign / etc) comes from the shared BOX_STYLE + TEXT_STYLE
+  // fragments. The text component owns only the semantic shortcuts
+  // (variant, size — preset CSS classes for h1/h2/body/caption +
+  // sm/md/lg) and content controls (value, clamp). align / color /
+  // weight are not passed through ui.text directly — applyTextStyle
+  // drives them, so user-set values override and empty values cascade
+  // to the theme.
   EF.registerComponent('text', {
     label: 'Text', icon: 'type', category: 'display',
     bindable:     ['value'],
-    defaultProps: { value: 'Text', align: 'left', variant: 'body', size: 'md' },
-    schema: {
+    defaultProps: Object.assign({}, ui.BOX_STYLE_DEFAULTS, ui.TEXT_STYLE_DEFAULTS, {
+      value: 'Text', variant: 'body', size: 'md', clamp: null,
+    }),
+    schema: Object.assign({}, ui.BOX_STYLE_SCHEMA, ui.TEXT_STYLE_SCHEMA, {
       value:   { type: 'string' },
-      align:   { type: 'enum_string', type_agv: { options: ['left','center','right'] } },
       variant: { type: 'enum_string', type_agv: { options: ['body','h1','h2','caption'] } },
       size:    { type: 'enum_string', type_agv: { options: ['sm','md','lg'] } },
-      weight:  { type: 'enum_string', type_agv: { options: ['normal','bold'] } },
-      color:   { type: 'string' },
       clamp:   { type: 'int' },
-    },
+    }),
     factory: function (propsSig) {
-      return ui.text(ui.liftProps(propsSig, ['value','align','variant','size','weight','color','clamp']))
+      const el = ui.text(ui.liftProps(propsSig, ['value','variant','size','clamp']))
+      ui.applyBoxStyle(el, propsSig)
+      ui.applyTextStyle(el, propsSig)
+      return el
     },
   })
 })(window.EF = window.EF || {})

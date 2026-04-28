@@ -1,63 +1,79 @@
 // Component-registry sidecar — registers the built-in ui.* widgets as
 // palette-able components so EF.ui.renderUITree (and editors / palettes
-// built on top of it) can instantiate them by name. Each entry adapts the
-// `(propsSig, ctx) → el` factory contract to the underlying ui.* function
-// via ui.liftProps, and ships a structconfig schema describing the props
-// that property-panel can edit.
+// built on top of it) can instantiate them by name.
 //
-// Apps add their own components with EF.registerComponent — this file is
-// just the bundled defaults. Conventions:
-//   bindable[]    — prop keys safe to bind to a data field at runtime.
-//                   Editors that wire bindings ignore everything else.
-//   defaultProps  — initial props when the component is dragged out of a
-//                   palette into a tree.
-//   schema        — typeconfig-shaped struct_def for the property panel.
+// Visual chrome (background / border / radius / padding / font / color /
+// text-align / etc) is supplied uniformly via two shared schema fragments
+// declared in `_box-style.js` and `_text-style.js`. A component opts in by
+// `Object.assign`-ing the fragments into its schema + defaultProps and
+// calling `ui.applyBoxStyle(el, props)` / `ui.applyTextStyle(el, props)`
+// on its outer element. Empty / null defaults mean "no inline style" which
+// lets the framework's CSS rules (theme cascade) win — that's the
+// "no edit = use theme" semantics for free.
 ;(function (EF) {
   'use strict'
   const ui = EF.ui
   const reg = EF.registerComponent
   const lift = ui.liftProps
+  const BOX  = ui.BOX_STYLE_SCHEMA
+  const BOX_D = ui.BOX_STYLE_DEFAULTS
+  const TEXT = ui.TEXT_STYLE_SCHEMA
+  const TEXT_D = ui.TEXT_STYLE_DEFAULTS
+  function box(el, p)  { ui.applyBoxStyle(el, p) }
+  function text(el, p) { ui.applyTextStyle(el, p) }
 
   // ── form ──────────────────────────────────────────────────────────
   reg('input', {
     label: 'Text Input', icon: 'type', category: 'form',
     bindable: ['value'],
-    defaultProps: { value: '', placeholder: '' },
-    schema: {
+    defaultProps: Object.assign({}, BOX_D, { value: '', placeholder: '' }),
+    schema: Object.assign({}, BOX, {
       value:       { type: 'string' },
       placeholder: { type: 'string' },
       disabled:    { type: 'bool' },
       readOnly:    { type: 'bool' },
+    }),
+    factory: function (p) {
+      const el = ui.input(lift(p, ['value','placeholder','disabled','readOnly']))
+      box(el, p)
+      return el
     },
-    factory: function (p) { return ui.input(lift(p, ['value','placeholder','disabled','readOnly'])) },
   })
 
   reg('textarea', {
     label: 'Textarea', icon: 'type', category: 'form',
     bindable: ['value'],
-    defaultProps: { value: '', placeholder: '', rows: 4 },
-    schema: {
+    defaultProps: Object.assign({}, BOX_D, TEXT_D, { value: '', placeholder: '', rows: 4 }),
+    schema: Object.assign({}, BOX, TEXT, {
       value:       { type: 'string' },
       placeholder: { type: 'string' },
       rows:        { type: 'int' },
       disabled:    { type: 'bool' },
+    }),
+    factory: function (p) {
+      const el = ui.textarea(lift(p, ['value','placeholder','rows','disabled']))
+      box(el, p); text(el, p)
+      return el
     },
-    factory: function (p) { return ui.textarea(lift(p, ['value','placeholder','rows','disabled'])) },
   })
 
   reg('numberInput', {
     label: 'Number Input', icon: 'hash', category: 'form',
     bindable: ['value'],
-    defaultProps: { value: 0, step: 1, precision: 0 },
-    schema: {
+    defaultProps: Object.assign({}, BOX_D, { value: 0, step: 1, precision: 0 }),
+    schema: Object.assign({}, BOX, {
       value:     { type: 'float' },
       min:       { type: 'float' },
       max:       { type: 'float' },
       step:      { type: 'float' },
       precision: { type: 'int' },
       disabled:  { type: 'bool' },
+    }),
+    factory: function (p) {
+      const el = ui.numberInput(lift(p, ['value','min','max','step','precision','disabled']))
+      box(el, p)
+      return el
     },
-    factory: function (p) { return ui.numberInput(lift(p, ['value','min','max','step','precision','disabled'])) },
   })
 
   reg('checkbox', {
@@ -98,13 +114,17 @@
   reg('select', {
     label: 'Select', icon: 'list', category: 'form',
     bindable: ['value'],
-    defaultProps: { value: '', options: [] },
-    schema: {
+    defaultProps: Object.assign({}, BOX_D, { value: '', options: [] }),
+    schema: Object.assign({}, BOX, {
       value:    { type: 'string' },
       options:  { type: 'array' },
       disabled: { type: 'bool' },
+    }),
+    factory: function (p) {
+      const el = ui.select(lift(p, ['value','options','disabled']))
+      box(el, p)
+      return el
     },
-    factory: function (p) { return ui.select(lift(p, ['value','options','disabled'])) },
   })
 
   reg('colorInput', {
@@ -127,94 +147,132 @@
   reg('button', {
     label: 'Button', icon: 'plus', category: 'base',
     bindable: ['text'],
-    defaultProps: { text: 'Button', kind: 'default', size: 'md' },
-    schema: {
+    defaultProps: Object.assign({}, BOX_D, TEXT_D, { text: 'Button', kind: 'default', size: 'md' }),
+    schema: Object.assign({}, BOX, TEXT, {
       text:     { type: 'string' },
       kind:     { type: 'enum_string', type_agv: { options: ['default','primary','ghost','danger'] } },
       size:     { type: 'enum_string', type_agv: { options: ['sm','md','lg'] } },
       disabled: { type: 'bool' },
+    }),
+    factory: function (p) {
+      const el = ui.button(lift(p, ['text','kind','size','disabled']))
+      box(el, p); text(el, p)
+      return el
     },
-    factory: function (p) { return ui.button(lift(p, ['text','kind','size','disabled'])) },
   })
 
   reg('iconButton', {
     label: 'Icon Button', icon: 'plus', category: 'base',
     bindable: ['icon'],
-    defaultProps: { icon: 'plus', size: 'md', kind: 'default' },
-    schema: {
+    defaultProps: Object.assign({}, BOX_D, { icon: 'plus', size: 'md', kind: 'default' }),
+    schema: Object.assign({}, BOX, {
       icon:     { type: 'string' },
       title:    { type: 'string' },
       size:     { type: 'enum_string', type_agv: { options: ['sm','md','lg'] } },
       kind:     { type: 'enum_string', type_agv: { options: ['default','primary','ghost','danger'] } },
       disabled: { type: 'bool' },
+    }),
+    factory: function (p) {
+      const el = ui.iconButton(lift(p, ['icon','title','size','kind','disabled']))
+      box(el, p)
+      return el
     },
-    factory: function (p) { return ui.iconButton(lift(p, ['icon','title','size','kind','disabled'])) },
   })
 
   reg('icon', {
     label: 'Icon', icon: 'image', category: 'base',
     bindable: ['name'],
-    defaultProps: { name: 'image', size: 'md' },
+    defaultProps: { name: 'image', size: 'md', color: '' },
     schema: {
-      name: { type: 'string' },
-      size: { type: 'enum_string', type_agv: { options: ['sm','md','lg'] } },
+      name:  { type: 'string' },
+      size:  { type: 'enum_string', type_agv: { options: ['sm','md','lg'] } },
+      color: { type: 'string' },
     },
-    factory: function (p) { return ui.icon(lift(p, ['name','size'])) },
+    factory: function (p) {
+      const el = ui.icon(lift(p, ['name','size']))
+      // Single-prop "color" maps to el.style.color directly — no need for
+      // the full TEXT_STYLE fragment for an icon.
+      EF.effect(function () {
+        const c = (p() || {}).color
+        el.style.color = (c == null || c === '') ? '' : c
+      })
+      return el
+    },
   })
 
   reg('badge', {
     label: 'Badge', icon: 'tag', category: 'display',
     bindable: ['text'],
-    defaultProps: { text: 'NEW', kind: 'accent' },
-    schema: {
+    defaultProps: Object.assign({}, BOX_D, TEXT_D, { text: 'NEW', kind: 'accent' }),
+    schema: Object.assign({}, BOX, TEXT, {
       text: { type: 'string' },
       kind: { type: 'enum_string', type_agv: { options: ['default','accent','success','warn','error'] } },
       dot:  { type: 'bool' },
+    }),
+    factory: function (p) {
+      const el = ui.badge(lift(p, ['text','kind','dot']))
+      box(el, p); text(el, p)
+      return el
     },
-    factory: function (p) { return ui.badge(lift(p, ['text','kind','dot'])) },
   })
 
   reg('tag', {
     label: 'Tag', icon: 'tag', category: 'display',
     bindable: ['text'],
-    defaultProps: { text: 'tag', color: 'gray' },
-    schema: {
+    defaultProps: Object.assign({}, BOX_D, TEXT_D, { text: 'tag', color: 'gray' }),
+    schema: Object.assign({}, BOX, TEXT, {
       text:  { type: 'string' },
       color: { type: 'enum_string', type_agv: { options: ['gray','accent','green','red','blue','yellow'] } },
+    }),
+    factory: function (p) {
+      const el = ui.tag(lift(p, ['text','color']))
+      box(el, p); text(el, p)
+      return el
     },
-    factory: function (p) { return ui.tag(lift(p, ['text','color'])) },
   })
 
   reg('banner', {
     label: 'Banner', icon: 'alert-triangle', category: 'display',
     bindable: ['title', 'message'],
-    defaultProps: { kind: 'info', title: '', message: '' },
-    schema: {
+    defaultProps: Object.assign({}, BOX_D, TEXT_D, { kind: 'info', title: '', message: '' }),
+    schema: Object.assign({}, BOX, TEXT, {
       kind:    { type: 'enum_string', type_agv: { options: ['info','success','warn','error'] } },
       title:   { type: 'string' },
       message: { type: 'string' },
+    }),
+    factory: function (p) {
+      const el = ui.banner(lift(p, ['kind','title','message']))
+      box(el, p); text(el, p)
+      return el
     },
-    factory: function (p) { return ui.banner(lift(p, ['kind','title','message'])) },
   })
 
   reg('divider', {
     label: 'Divider', icon: 'minus', category: 'display',
     bindable: ['label'],
-    defaultProps: { label: '', vertical: false },
-    schema: { label: { type: 'string' }, vertical: { type: 'bool' } },
-    factory: function (p) { return ui.divider(lift(p, ['label','vertical'])) },
+    defaultProps: Object.assign({}, BOX_D, { label: '', vertical: false }),
+    schema: Object.assign({}, BOX, { label: { type: 'string' }, vertical: { type: 'bool' } }),
+    factory: function (p) {
+      const el = ui.divider(lift(p, ['label','vertical']))
+      box(el, p)
+      return el
+    },
   })
 
   reg('progressBar', {
     label: 'Progress', icon: 'spinner', category: 'display',
     bindable: ['value'],
-    defaultProps: { value: 0, max: 100, showLabel: true },
-    schema: {
+    defaultProps: Object.assign({}, BOX_D, { value: 0, max: 100, showLabel: true }),
+    schema: Object.assign({}, BOX, {
       value:     { type: 'float' },
       max:       { type: 'float' },
       showLabel: { type: 'bool' },
+    }),
+    factory: function (p) {
+      const el = ui.progressBar(lift(p, ['value','max','showLabel']))
+      box(el, p)
+      return el
     },
-    factory: function (p) { return ui.progressBar(lift(p, ['value','max','showLabel'])) },
   })
 
   reg('spinner', {
@@ -228,22 +286,30 @@
   reg('kbd', {
     label: 'Keyboard', icon: 'type', category: 'display',
     bindable: ['text'],
-    defaultProps: { text: 'Ctrl+K' },
-    schema: { text: { type: 'string' } },
-    factory: function (p) { return ui.kbd(lift(p, ['text'])) },
+    defaultProps: Object.assign({}, BOX_D, TEXT_D, { text: 'Ctrl+K' }),
+    schema: Object.assign({}, BOX, TEXT, { text: { type: 'string' } }),
+    factory: function (p) {
+      const el = ui.kbd(lift(p, ['text']))
+      box(el, p); text(el, p)
+      return el
+    },
   })
 
   // ── editor / asset ────────────────────────────────────────────────
   reg('assetPicker', {
     label: 'Asset', icon: 'image', category: 'editor',
     bindable: ['value'],
-    defaultProps: { value: '', kind: 'image', placeholder: '' },
-    schema: {
+    defaultProps: Object.assign({}, BOX_D, { value: '', kind: 'image', placeholder: '' }),
+    schema: Object.assign({}, BOX, {
       value:       { type: 'string' },
       kind:        { type: 'enum_string', type_agv: { options: ['image','audio','file'] } },
       placeholder: { type: 'string' },
       accept:      { type: 'string' },
+    }),
+    factory: function (p) {
+      const el = ui.assetPicker(lift(p, ['value','kind','placeholder','accept']))
+      box(el, p)
+      return el
     },
-    factory: function (p) { return ui.assetPicker(lift(p, ['value','kind','placeholder','accept'])) },
   })
 })(window.EF = window.EF || {})

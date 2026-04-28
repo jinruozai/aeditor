@@ -1897,8 +1897,21 @@ body.ef-dragging-vertical,   body.ef-dragging-vertical *   { cursor: ns-resize !
 
 /* ── slot wrapper for multi-target editing ─────────────────────────
    propertyPanel emits each editor inside a .ef-ui-slot; the slot gains
-   data-mixed when targets disagree on this field. */
-.ef-ui-slot { position: relative; min-width: 0; }
+   data-mixed when targets disagree on this field. Grid template gives
+   the editor the full 1fr column and the optional reset button auto
+   width on the right — no layout shift between fields with/without a
+   reset. */
+.ef-ui-slot {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+.ef-ui-slot > * { min-width: 0; max-width: 100%; box-sizing: border-box; }
+.ef-ui-slot > :first-child { width: 100%; }
+.ef-ui-slot-reset { grid-column: 2; flex: 0 0 auto; transition: opacity var(--ef-dur-fast) var(--ef-ease); }
 .ef-ui-slot[data-mixed] {
   border-left: 2px dashed var(--ef-warn);
   padding-left: 4px;
@@ -1906,7 +1919,7 @@ body.ef-dragging-vertical,   body.ef-dragging-vertical *   { cursor: ns-resize !
 .ef-ui-slot[data-mixed]::after {
   content: 'Mixed';
   position: absolute;
-  right: 6px; top: 50%;
+  right: 32px; top: 50%;          /* offset to clear the reset button column */
   transform: translateY(-50%);
   font: 10px/1 var(--ef-font-ui);
   letter-spacing: 0.5px;

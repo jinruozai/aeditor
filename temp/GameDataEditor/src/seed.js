@@ -105,19 +105,22 @@
   // Default cardStyle = 120×120 absolute card with the 'id' field shown
   // centered at the bottom. Shipped as the fallback every table inherits.
   function buildDemoCardStyles() {
+    // Empty / null visual-style fields let the framework's CSS rules
+    // (theme cascade) apply. The user can override per-cardStyle by
+    // typing a real value into the inspector.
     return {
       'default': {
         name: 'Default',
         root: {
           id: 'root',
           type: 'absolute',
-          props: { width: 120, height: 120, background: 'var(--ef-bg-2)', borderRadius: 4 },
+          props: { width: 120, height: 120 },
           bindings: {},
           children: [
             {
               id: 'id-text',
               type: 'text',
-              props: { align: 'center', size: 'sm', color: 'var(--ef-fg-2)' },
+              props: { textAlign: 'center', size: 'sm' },
               bindings: { value: { source: 'field', field: 'id' } },
               layout: { anchor: 'bl', x: 0, y: 4, w: 120, h: 18, unit: 'px' },
               children: [],

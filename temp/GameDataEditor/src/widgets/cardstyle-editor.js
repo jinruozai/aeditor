@@ -80,6 +80,19 @@
       canvas.style.transformOrigin = 'center';
     });
 
+    // Wheel / trackpad-pinch → zoom. Step is proportional to current zoom
+    // so the perceived speed stays constant at any level (logarithmic
+    // feel — many editors do the same). preventDefault stops the page
+    // from scrolling underneath us; the stage doesn't need natural scroll
+    // because zoom is the primary interaction here.
+    stage.addEventListener('wheel', function (ev) {
+      ev.preventDefault();
+      var current = Number(zoom.peek()) || 100;
+      var step = Math.max(2, current * 0.1);          // 10% of current, floored
+      var next = current + Math.sign(-ev.deltaY) * step;
+      zoom.set(Math.max(25, Math.min(400, Math.round(next))));
+    }, { passive: false });
+
     // Sample-row signal — uses the first table's first entity if any
     // exists, otherwise just '#sample' so bindings resolve to undefined
     // (and the renderer paints blanks). The cardstyle is meant to work
@@ -173,7 +186,9 @@
         t = t.parentElement;
       }
       if (!clickedId) {
-        State.setSelection({ kind: 'card_style', key: styleKey });
+        // Click on canvas blank deselects everything. The cardStyle's
+        // own meta is editable from the cardstyle-list panel, not here.
+        State.setSelection(null);
         anchorId = null;
         return;
       }
