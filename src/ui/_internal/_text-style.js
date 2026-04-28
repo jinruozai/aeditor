@@ -9,7 +9,7 @@
   const ui = EF.ui = EF.ui || {}
 
   ui.TEXT_STYLE_SCHEMA = {
-    color:          { type: 'color'  },
+    color:          { type: 'color', type_agv: { valueKind: 'hex' } },
     fontFamily:     { type: 'string' },
     fontSize:       { type: 'int' },
     fontWeight:     { type: 'enum_string', type_agv: { options: ['normal','bold','100','200','300','400','500','600','700','800','900'] } },

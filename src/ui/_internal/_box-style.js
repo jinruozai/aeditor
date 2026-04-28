@@ -17,9 +17,13 @@
   'use strict'
   const ui = EF.ui = EF.ui || {}
 
+  // valueKind:'hex' forces colorInput to store '#rrggbb' strings — CSS
+  // accepts them directly. Without this override, the default color
+  // typedef (base_type:int) stores 24-bit ints, which write to
+  // el.style.background as plain digit strings and the browser ignores.
   ui.BOX_STYLE_SCHEMA = {
-    background:    { type: 'color'  },
-    borderColor:   { type: 'color'  },
+    background:    { type: 'color', type_agv: { valueKind: 'hex' } },
+    borderColor:   { type: 'color', type_agv: { valueKind: 'hex' } },
     borderWidth:   { type: 'int'    },
     borderStyle:   { type: 'enum_string', type_agv: { options: ['solid','dashed','dotted'] } },
     borderRadius:  { type: 'int'    },

@@ -188,12 +188,18 @@
     }
 
     function renderCards(ids) {
+      // Grid track width tracks the active cardStyle's root width; cards
+      // size to that exactly (see card.js render). User's sizeSig is a
+      // floor — useful when the cardstyle has no explicit width.
       var cardSize = sizeSig.peek();
+      var cs = State.resolveCardStyleForTable(pathKey);
+      var rootW = cs && cs.root && cs.root.props && cs.root.props.width;
+      var trackW = (typeof rootW === 'number' ? rootW : cardSize);
       var wrap = document.createElement('div');
       wrap.className = 'gde-cards-wrap';
       var grid = document.createElement('div');
       grid.className = 'gde-cards-grid';
-      grid.style.gridTemplateColumns = 'repeat(auto-fill,minmax(' + cardSize + 'px,1fr))';
+      grid.style.gridTemplateColumns = 'repeat(auto-fill,' + trackW + 'px)';
 
       var data = gd();
       ids.forEach(function (id) {

@@ -21,6 +21,13 @@
   const TEXT_D = ui.TEXT_STYLE_DEFAULTS
   function box(el, p)  { ui.applyBoxStyle(el, p) }
   function text(el, p) { ui.applyTextStyle(el, p) }
+  // liftProps returns derived-only signals (no .set). Form components call
+  // ui.writer(sig, onChange) which throws if neither is writable. Inside
+  // a renderUITree (cardStyle preview, table grid) the rendering is
+  // read-only — the user edits through the inspector, not by typing into
+  // a card. So every writable form component gets a noop onChange to
+  // satisfy ui.writer without enabling write-back.
+  function ro(opts) { opts.onChange = function () {}; return opts }
 
   // ── form ──────────────────────────────────────────────────────────
   reg('input', {
@@ -34,7 +41,7 @@
       readOnly:    { type: 'bool' },
     }),
     factory: function (p) {
-      const el = ui.input(lift(p, ['value','placeholder','disabled','readOnly']))
+      const el = ui.input(ro(lift(p, ['value','placeholder','disabled','readOnly'])))
       box(el, p)
       return el
     },
@@ -51,7 +58,7 @@
       disabled:    { type: 'bool' },
     }),
     factory: function (p) {
-      const el = ui.textarea(lift(p, ['value','placeholder','rows','disabled']))
+      const el = ui.textarea(ro(lift(p, ['value','placeholder','rows','disabled'])))
       box(el, p); text(el, p)
       return el
     },
@@ -70,7 +77,7 @@
       disabled:  { type: 'bool' },
     }),
     factory: function (p) {
-      const el = ui.numberInput(lift(p, ['value','min','max','step','precision','disabled']))
+      const el = ui.numberInput(ro(lift(p, ['value','min','max','step','precision','disabled'])))
       box(el, p)
       return el
     },
@@ -85,7 +92,7 @@
       label:    { type: 'string' },
       disabled: { type: 'bool' },
     },
-    factory: function (p) { return ui.checkbox(lift(p, ['value','label','disabled'])) },
+    factory: function (p) { return ui.checkbox(ro(lift(p, ['value','label','disabled']))) },
   })
 
   reg('switch', {
@@ -93,7 +100,7 @@
     bindable: ['value'],
     defaultProps: { value: false },
     schema: { value: { type: 'bool' }, disabled: { type: 'bool' } },
-    factory: function (p) { return ui.switch(lift(p, ['value','disabled'])) },
+    factory: function (p) { return ui.switch(ro(lift(p, ['value','disabled']))) },
   })
 
   reg('slider', {
@@ -108,7 +115,7 @@
       showValue: { type: 'bool' },
       disabled:  { type: 'bool' },
     },
-    factory: function (p) { return ui.slider(lift(p, ['value','min','max','step','showValue','disabled'])) },
+    factory: function (p) { return ui.slider(ro(lift(p, ['value','min','max','step','showValue','disabled']))) },
   })
 
   reg('select', {
@@ -121,7 +128,7 @@
       disabled: { type: 'bool' },
     }),
     factory: function (p) {
-      const el = ui.select(lift(p, ['value','options','disabled']))
+      const el = ui.select(ro(lift(p, ['value','options','disabled'])))
       box(el, p)
       return el
     },
@@ -132,7 +139,7 @@
     bindable: ['value'],
     defaultProps: { value: '#000000' },
     schema: { value: { type: 'string' }, disabled: { type: 'bool' } },
-    factory: function (p) { return ui.colorInput(lift(p, ['value','disabled'])) },
+    factory: function (p) { return ui.colorInput(ro(lift(p, ['value','disabled']))) },
   })
 
   reg('dateInput', {
@@ -140,7 +147,7 @@
     bindable: ['value'],
     defaultProps: { value: '' },
     schema: { value: { type: 'string' }, disabled: { type: 'bool' } },
-    factory: function (p) { return ui.dateInput(lift(p, ['value','disabled'])) },
+    factory: function (p) { return ui.dateInput(ro(lift(p, ['value','disabled']))) },
   })
 
   // ── base / display ─────────────────────────────────────────────────
@@ -307,7 +314,7 @@
       accept:      { type: 'string' },
     }),
     factory: function (p) {
-      const el = ui.assetPicker(lift(p, ['value','kind','placeholder','accept']))
+      const el = ui.assetPicker(ro(lift(p, ['value','kind','placeholder','accept'])))
       box(el, p)
       return el
     },

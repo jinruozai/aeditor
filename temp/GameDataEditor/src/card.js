@@ -22,6 +22,14 @@
     var cs = State.resolveCardStyleForTable(pathKey);
     if (!cs || !cs.root) return card;   // empty card — explicit by design
 
+    // The card's outer dimensions match the cardStyle's root size so the
+    // grid track is exactly the card and the inner absolute container
+    // fills it edge-to-edge — no aspect-ratio mismatch, no transparent
+    // frame, no clipped overflow.
+    var rp = cs.root.props || {};
+    if (rp.width  != null) card.style.width  = (typeof rp.width  === 'number' ? rp.width  + 'px' : rp.width);
+    if (rp.height != null) card.style.height = (typeof rp.height === 'number' ? rp.height + 'px' : rp.height);
+
     var entitySig = EF.signal(entity || {});
     card.__efEntitySig = entitySig;     // tabledata can update without rebuild
 
