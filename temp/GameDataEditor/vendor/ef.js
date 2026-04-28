@@ -2803,26 +2803,40 @@
   // accepts them directly. Without this override, the default color
   // typedef (base_type:int) stores 24-bit ints, which write to
   // el.style.background as plain digit strings and the browser ignores.
+  // valueKind:'hex' forces colorInput to store '#rrggbb' strings — CSS
+  // accepts them directly. Without this override, the default color
+  // typedef (base_type:int) stores 24-bit ints, which write to
+  // el.style.background as plain digit strings and the browser ignores.
   ui.BOX_STYLE_SCHEMA = {
     background:    { type: 'color', type_agv: { valueKind: 'hex' } },
     borderColor:   { type: 'color', type_agv: { valueKind: 'hex' } },
-    borderWidth:   { type: 'int'    },
+    borderWidth:   { type: 'int' },
     borderStyle:   { type: 'enum_string', type_agv: { options: ['solid','dashed','dotted'] } },
-    borderRadius:  { type: 'int'    },
-    padding:       { type: 'int'    },
-    opacity:       { type: 'float'  },
-    shadow:        { type: 'string' },
+    borderRadius:  { type: 'int' },
+    padding:       { type: 'int' },
+    opacity:       { type: 'float' },
+    shadowX:       { type: 'int' },
+    shadowY:       { type: 'int' },
+    shadowBlur:    { type: 'int' },
+    shadowColor:   { type: 'color', type_agv: { valueKind: 'hex' } },
   }
 
+  // borderStyle defaults to 'solid' so that as soon as a user sets
+  // borderWidth + borderColor, the border actually paints — CSS treats
+  // border-style:none (the spec default) as "no border", which made the
+  // empty default invisible even when the other two were filled in.
   ui.BOX_STYLE_DEFAULTS = {
     background:   '',
     borderColor:  '',
     borderWidth:  null,
-    borderStyle:  '',
+    borderStyle:  'solid',
     borderRadius: null,
     padding:      null,
     opacity:      null,
-    shadow:       '',
+    shadowX:      null,
+    shadowY:      null,
+    shadowBlur:   null,
+    shadowColor:  '',
   }
 
   ui.applyBoxStyle = function (el, propsSig) {
@@ -2831,11 +2845,25 @@
       setStr(el, 'background',   p.background)
       setStr(el, 'borderColor',  p.borderColor)
       setPx (el, 'borderWidth',  p.borderWidth)
-      setStr(el, 'borderStyle',  p.borderStyle)
+      // Fall back to 'solid' whenever a width is set but the user hasn't
+      // picked a style — CSS treats border-style:none as "no border" so an
+      // unset style would silently swallow width+color even if both were
+      // provided.
+      setStr(el, 'borderStyle',  p.borderStyle || (p.borderWidth > 0 ? 'solid' : ''))
       setPx (el, 'borderRadius', p.borderRadius)
       setPx (el, 'padding',      p.padding)
       setNum(el, 'opacity',      p.opacity)
-      setStr(el, 'boxShadow',    p.shadow)
+      // Compose box-shadow only when at least a color is supplied.
+      // Empty color → no shadow regardless of x/y/blur (CSS would fall
+      // back to currentColor, which is a confusing default for users).
+      if (p.shadowColor) {
+        el.style.boxShadow = (p.shadowX || 0) + 'px ' +
+                             (p.shadowY || 0) + 'px ' +
+                             (p.shadowBlur || 0) + 'px ' +
+                             p.shadowColor
+      } else {
+        el.style.boxShadow = ''
+      }
     })
   }
 
@@ -7225,11 +7253,17 @@
     // borderRadius / padding come uniformly from BOX_STYLE so the
     // absolute container shares the same visual vocabulary as every
     // other component.
+    //
+    // Default overflow lives in the .ef-ui-absolute CSS rule (hidden) so
+    // editor surfaces can override via specificity (the cardStyle editor
+    // wants resize handles to escape the card frame). We only write
+    // inline overflow if the user explicitly sets one.
     EF.effect(function () {
       const p = propsSig() || {}
-      el.style.width    = p.width  != null ? toCssLen(p.width)  : ''
-      el.style.height   = p.height != null ? toCssLen(p.height) : ''
-      el.style.overflow = p.overflow || 'hidden'
+      el.style.width  = p.width  != null ? toCssLen(p.width)  : ''
+      el.style.height = p.height != null ? toCssLen(p.height) : ''
+      if (p.overflow) el.style.overflow = p.overflow
+      else el.style.overflow = ''
     })
     ui.applyBoxStyle(el, propsSig)
     return el
@@ -7256,8 +7290,14 @@
       slotEl.style.left = '50%'; slotEl.style.top = '50%'
       slotEl.style.transform = 'translate(-50%, -50%)'
     }
-    if (layout.w != null) slotEl.style.width  = cssV(layout.w)
-    if (layout.h != null) slotEl.style.height = cssV(layout.h)
+    if (layout.w != null) {
+      slotEl.style.width = cssV(layout.w)
+      slotEl.classList.add('ef-ui-abs-slot-w')
+    }
+    if (layout.h != null) {
+      slotEl.style.height = cssV(layout.h)
+      slotEl.classList.add('ef-ui-abs-slot-h')
+    }
   }
 
   EF.registerComponent('absolute', {

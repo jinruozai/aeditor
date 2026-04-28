@@ -101,3 +101,17 @@
 }
 .ef-ui-scrollarea::-webkit-scrollbar-thumb:hover { background: var(--ef-fg-3); }
 
+
+/* ── absolute container ─────────────────────────────────────────
+   The container clips children by default — this is the runtime
+   behavior cards depend on. Editor surfaces (e.g. .gde-cs-canvas)
+   override via specificity to let resize handles escape the frame. */
+.ef-ui-absolute { overflow: hidden; }
+.ef-ui-absolute > .ef-ui-abs-slot { position: absolute; }
+/* When the slot has an explicit dimension (user set a w/h via the
+   layout editor), the inner component fills that dimension instead
+   of using its intrinsic theme size — that's how dragging a resize
+   handle actually changes the rendered component, not just the
+   slot's outline. */
+.ef-ui-abs-slot-w > * { width:  100%; box-sizing: border-box; }
+.ef-ui-abs-slot-h > * { height: 100%; box-sizing: border-box; }

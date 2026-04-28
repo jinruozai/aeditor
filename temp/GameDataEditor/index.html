@@ -1058,6 +1058,11 @@
       outline: 2px solid var(--ef-accent);
       outline-offset: 2px;
     }
+    /* In the editor we want resize handles + selection rings to escape
+       the cardStyle's clipping, so children dragged near edges still
+       expose their handles. The card preview in the table grid keeps
+       the runtime overflow:hidden via the .gde-card outer. */
+    .gde-cs-canvas .ef-ui-absolute { overflow: visible; }
     /* Resize-handle overlay — sits inside the selected slot, fills the
        slot's box and pins 8 small squares to its edges/corners. The slot
        itself takes "move" cursor; the handles override per-direction. */

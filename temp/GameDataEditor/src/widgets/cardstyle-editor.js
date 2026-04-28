@@ -85,6 +85,16 @@
     // feel — many editors do the same). preventDefault stops the page
     // from scrolling underneath us; the stage doesn't need natural scroll
     // because zoom is the primary interaction here.
+    // Click on the stage's empty area (the checkered background outside the
+     // canvas) deselects. The canvas's own click handler covers clicks
+     // INSIDE the card; this one catches the rest.
+    stage.addEventListener('click', function (ev) {
+      if (ev.target === stage) {
+        State.setSelection(null);
+        anchorId = null;
+      }
+    });
+
     stage.addEventListener('wheel', function (ev) {
       ev.preventDefault();
       var current = Number(zoom.peek()) || 100;
