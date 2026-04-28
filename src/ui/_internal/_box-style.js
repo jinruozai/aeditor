@@ -26,17 +26,17 @@
   // typedef (base_type:int) stores 24-bit ints, which write to
   // el.style.background as plain digit strings and the browser ignores.
   ui.BOX_STYLE_SCHEMA = {
-    background:    { type: 'color', type_agv: { valueKind: 'hex' } },
-    borderColor:   { type: 'color', type_agv: { valueKind: 'hex' } },
-    borderWidth:   { type: 'int' },
-    borderStyle:   { type: 'enum_string', type_agv: { options: ['solid','dashed','dotted'] } },
-    borderRadius:  { type: 'int' },
-    padding:       { type: 'int' },
-    opacity:       { type: 'float' },
-    shadowX:       { type: 'int' },
-    shadowY:       { type: 'int' },
-    shadowBlur:    { type: 'int' },
-    shadowColor:   { type: 'color', type_agv: { valueKind: 'hex' } },
+    background:    { type: 'color', type_agv: { valueKind: 'hex' }, group: 'background' },
+    borderColor:   { type: 'color', type_agv: { valueKind: 'hex' }, group: 'border' },
+    borderWidth:   { type: 'int',   group: 'border' },
+    borderStyle:   { type: 'enum_string', type_agv: { options: ['solid','dashed','dotted'] }, group: 'border' },
+    borderRadius:  { type: 'int',   group: 'border' },
+    padding:       { type: 'int',   group: 'spacing' },
+    opacity:       { type: 'float', group: 'effects' },
+    shadowX:       { type: 'int',   group: 'shadow' },
+    shadowY:       { type: 'int',   group: 'shadow' },
+    shadowBlur:    { type: 'int',   group: 'shadow' },
+    shadowColor:   { type: 'color', type_agv: { valueKind: 'hex' }, group: 'shadow' },
   }
 
   // borderStyle defaults to 'solid' so that as soon as a user sets

@@ -9,15 +9,15 @@
   const ui = EF.ui = EF.ui || {}
 
   ui.TEXT_STYLE_SCHEMA = {
-    color:          { type: 'color', type_agv: { valueKind: 'hex' } },
-    fontFamily:     { type: 'string' },
-    fontSize:       { type: 'int' },
-    fontWeight:     { type: 'enum_string', type_agv: { options: ['normal','bold','100','200','300','400','500','600','700','800','900'] } },
-    fontStyle:      { type: 'enum_string', type_agv: { options: ['normal','italic'] } },
-    textAlign:      { type: 'enum_string', type_agv: { options: ['left','center','right','justify'] } },
-    letterSpacing:  { type: 'float' },
-    lineHeight:     { type: 'float' },
-    textDecoration: { type: 'enum_string', type_agv: { options: ['none','underline','line-through'] } },
+    color:          { type: 'color', type_agv: { valueKind: 'hex' }, group: 'text' },
+    fontFamily:     { type: 'string', group: 'text' },
+    fontSize:       { type: 'int',    group: 'text' },
+    fontWeight:     { type: 'enum_string', type_agv: { options: ['normal','bold','100','200','300','400','500','600','700','800','900'] }, group: 'text' },
+    fontStyle:      { type: 'enum_string', type_agv: { options: ['normal','italic'] }, group: 'text' },
+    textAlign:      { type: 'enum_string', type_agv: { options: ['left','center','right','justify'] }, group: 'text' },
+    letterSpacing:  { type: 'float',  group: 'text' },
+    lineHeight:     { type: 'float',  group: 'text' },
+    textDecoration: { type: 'enum_string', type_agv: { options: ['none','underline','line-through'] }, group: 'text' },
   }
 
   ui.TEXT_STYLE_DEFAULTS = {

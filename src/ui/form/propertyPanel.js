@@ -17,6 +17,21 @@
   'use strict'
   const ui = EF.ui = EF.ui || {}
 
+  // Schema fields can carry a `group` tag; propertyPanel collects fields
+  // by tag and renders a labeled section per group. The order below is
+  // the canonical "what most users want to see" ranking. Anything not in
+  // PROP_GROUPS appears in declaration order at the end. Apps can mutate
+  // these tables to reskin / extend the panel without touching propertyPanel.
+  ui.PROP_GROUPS = ['text', 'background', 'border', 'spacing', 'effects', 'shadow']
+  ui.PROP_GROUP_LABELS = {
+    text:       'Text',
+    background: 'Background',
+    border:     'Border',
+    spacing:    'Spacing',
+    effects:    'Effects',
+    shadow:     'Shadow',
+  }
+
   ui.propertyPanel = function (opts) {
     const o = opts || {}
     const targets   = ui.isSignal(o.targets) ? o.targets : EF.signal(o.targets || [])
@@ -57,37 +72,71 @@
       targets.set(arr)
     }
 
-    let current = null
+    // Each schema rebuild produces N structInputs (one per group) with a
+    // header between. Sub-instances all share the same composite signal
+    // and route writes through the same fanOut, so per-key reactivity +
+    // MIXED detection still work without any cross-instance bookkeeping.
+    let mounted = []
     const stopSchema = EF.effect(function () {
       const schema = schemaSig() || {}
       EF.untracked(function () {
-        if (current) ui.dispose(current)
-        const fields = Object.keys(schema).map(function (fname) {
-          const raw   = schema[fname]
-          const subFd = ui.resolveFieldDef(typeof raw === 'string' ? { type: raw } : raw)
-          // Capture fname so the slot factory closes over the right key for
-          // its reset button.
-          return {
-            key:    fname,
-            label:  fname,
-            editor: function (slotSig, write, innerCtx) {
-              return slotEditor(slotSig, write, innerCtx, subFd, fname, defaults)
-            },
+        mounted.forEach(function (n) { ui.dispose(n); if (n.parentNode) n.parentNode.removeChild(n) })
+        mounted = []
+
+        const grouped = groupBySchema(schema)
+        for (let i = 0; i < grouped.length; i++) {
+          const g = grouped[i]
+          if (g.name) {
+            const head = ui.h('div', 'ef-ui-property-group', { text: ui.PROP_GROUP_LABELS[g.name] || g.name })
+            root.appendChild(head)
+            mounted.push(head)
           }
-        })
-        current = ui.structInput({
-          value:    composite,
-          fields:   fields,
-          onChange: function (_next, key, nv) { fanOut(key, nv) },
-          ctx:      ctx,
-        })
-        root.appendChild(current)
+          const fields = g.keys.map(function (fname) {
+            const raw   = schema[fname]
+            const subFd = ui.resolveFieldDef(typeof raw === 'string' ? { type: raw } : raw)
+            return {
+              key:    fname,
+              label:  fname,
+              editor: function (slotSig, write, innerCtx) {
+                return slotEditor(slotSig, write, innerCtx, subFd, fname, defaults)
+              },
+            }
+          })
+          const sub = ui.structInput({
+            value:    composite,
+            fields:   fields,
+            onChange: function (_next, key, nv) { fanOut(key, nv) },
+            ctx:      ctx,
+          })
+          root.appendChild(sub)
+          mounted.push(sub)
+        }
       })
     })
     ui.collect(root, stopSchema)
-    ui.collect(root, function () { if (current) ui.dispose(current) })
+    ui.collect(root, function () { mounted.forEach(function (n) { ui.dispose(n) }) })
 
     return root
+  }
+
+  // Walk the schema and produce ordered groups. Ungrouped fields go FIRST
+  // (component-specific essentials usually live at the top — value /
+  // width / etc.); then PROP_GROUPS in declared order, then any unknown
+  // tags in first-appearance order.
+  function groupBySchema(schema) {
+    const buckets = Object.create(null)
+    const seen = []
+    Object.keys(schema).forEach(function (k) {
+      const fd = schema[k] || {}
+      const tag = fd.group || ''
+      if (!buckets[tag]) { buckets[tag] = []; seen.push(tag) }
+      buckets[tag].push(k)
+    })
+    const order = []
+    if (buckets['']) order.push('')
+    ;(ui.PROP_GROUPS || []).forEach(function (g) { if (buckets[g]) order.push(g) })
+    seen.forEach(function (g) { if (g && order.indexOf(g) < 0) order.push(g) })
+    return order.map(function (g) { return { name: g, keys: buckets[g] } })
   }
 
   // Slot wrapper: hides MIXED from the editor (substitutes a type-blank) and

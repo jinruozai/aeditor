@@ -1879,6 +1879,16 @@ body.ef-dragging-vertical,   body.ef-dragging-vertical *   { cursor: ns-resize !
 .ef-ui-array-input-add { align-self: flex-start; margin-top: var(--ef-space-1); }
 
 .ef-ui-property-panel { display: flex; flex-direction: column; min-width: 0; }
+.ef-ui-property-group {
+  margin-top: var(--ef-space-3);
+  padding: 4px 0 4px 0;
+  font: 600 10px var(--ef-font-ui);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ef-fg-3);
+  border-bottom: 1px solid var(--ef-border);
+}
+.ef-ui-property-panel > .ef-ui-property-group:first-child { margin-top: 0; }
 .ef-ui-property-panel > .ef-ui-struct-input {
   border: 0;
   padding: 0;

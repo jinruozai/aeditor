@@ -1063,29 +1063,32 @@
        expose their handles. The card preview in the table grid keeps
        the runtime overflow:hidden via the .gde-card outer. */
     .gde-cs-canvas .ef-ui-absolute { overflow: visible; }
-    /* Resize-handle overlay — sits inside the selected slot, fills the
-       slot's box and pins 8 small squares to its edges/corners. The slot
-       itself takes "move" cursor; the handles override per-direction. */
+    /* Resize-handle overlay — hollow circles centered exactly on the
+       slot's edges/corners. Each handle anchors to its named edge/corner
+       (top/bottom/left/right = 0) and uses translate(±50%) to put its
+       own center on that anchor — pixel-perfect without depending on
+       the handle's own size, which is the trick mature editors use. */
     .ef-ui-abs-slot:has(.gde-cs-handles) { cursor: move; }
     .gde-cs-handles {
       position: absolute; inset: 0; pointer-events: none;
       z-index: 2;
     }
     .gde-cs-handle {
-      position: absolute; width: 9px; height: 9px;
-      background: var(--ef-accent);
-      border: 1px solid var(--ef-bg-0);
-      border-radius: 1px;
+      position: absolute; width: 10px; height: 10px;
+      background: var(--ef-bg-0);
+      border: 2px solid var(--ef-accent);
+      border-radius: 50%;
+      box-sizing: border-box;
       pointer-events: auto;
     }
-    .gde-cs-handle-n  { top: -5px;    left: 50%;    transform: translateX(-50%); cursor: ns-resize; }
-    .gde-cs-handle-s  { bottom: -5px; left: 50%;    transform: translateX(-50%); cursor: ns-resize; }
-    .gde-cs-handle-e  { right: -5px;  top: 50%;     transform: translateY(-50%); cursor: ew-resize; }
-    .gde-cs-handle-w  { left: -5px;   top: 50%;     transform: translateY(-50%); cursor: ew-resize; }
-    .gde-cs-handle-nw { top: -5px;    left: -5px;   cursor: nwse-resize; }
-    .gde-cs-handle-ne { top: -5px;    right: -5px;  cursor: nesw-resize; }
-    .gde-cs-handle-sw { bottom: -5px; left: -5px;   cursor: nesw-resize; }
-    .gde-cs-handle-se { bottom: -5px; right: -5px;  cursor: nwse-resize; }
+    .gde-cs-handle-n  { top: 0;    left: 50%;  transform: translate(-50%, -50%); cursor: ns-resize; }
+    .gde-cs-handle-s  { bottom: 0; left: 50%;  transform: translate(-50%,  50%); cursor: ns-resize; }
+    .gde-cs-handle-e  { top: 50%;  right: 0;   transform: translate( 50%, -50%); cursor: ew-resize; }
+    .gde-cs-handle-w  { top: 50%;  left: 0;    transform: translate(-50%, -50%); cursor: ew-resize; }
+    .gde-cs-handle-nw { top: 0;    left: 0;    transform: translate(-50%, -50%); cursor: nwse-resize; }
+    .gde-cs-handle-ne { top: 0;    right: 0;   transform: translate( 50%, -50%); cursor: nesw-resize; }
+    .gde-cs-handle-sw { bottom: 0; left: 0;    transform: translate(-50%,  50%); cursor: nesw-resize; }
+    .gde-cs-handle-se { bottom: 0; right: 0;   transform: translate( 50%,  50%); cursor: nwse-resize; }
 
     /* ── CardStyle inspector form ─────────────────────────────── */
     .gde-cs-bindings-head {
