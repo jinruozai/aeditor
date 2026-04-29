@@ -1,9 +1,9 @@
-// Dock runtime — LayoutRuntime / DockRuntime / WidgetRuntime lifecycle.
+// Dock runtime — LayoutRuntime / DockRuntime / ComponentRuntime lifecycle.
 //
 // This file owns:
-//   • per-panel WidgetRuntime objects (lazy contentEl, ctx, cleanups)
-//   • per-dock static toolbar WidgetRuntime objects (eager materialization)
-//   • per-panel dynamic toolbar WidgetRuntime objects (lazy, follow active)
+//   • per-panel ComponentRuntime objects (lazy contentEl, ctx, cleanups)
+//   • per-dock static toolbar ComponentRuntime objects (eager materialization)
+//   • per-panel dynamic toolbar ComponentRuntime objects (lazy, follow active)
 //   • activate-panel detach/re-attach against a dock's content container
 //   • dynamic-toolbar attach/detach across active-panel changes
 //   • activation counter (lastActivatedAt) for "new active after close" + LRU
@@ -116,7 +116,7 @@
     dockRuntime.panelRuntimes.forEach(disposePanelRuntime)
     dockRuntime.panelRuntimes.clear()
     for (let i = 0; i < dockRuntime.staticToolbarRuntimes.length; i++) {
-      disposeWidgetRuntime(dockRuntime.staticToolbarRuntimes[i])
+      disposeComponentRuntime(dockRuntime.staticToolbarRuntimes[i])
     }
     dockRuntime.staticToolbarRuntimes.length = 0
   }
@@ -139,7 +139,7 @@
       const item = items[i]
       const sr = {
         kind:     'toolbar-static',
-        widget:   item.widget,
+        component:   item.component,
         align:    item.align || 'start',
         contentEl:null,
         cleanups: [],
@@ -148,7 +148,7 @@
         props:    item.props || {},
       }
       sr.ctx = EF._dock.makeContext(sr, layout)
-      materializeWidgetEl(sr, { dockId: dockRuntime.id })
+      materializeComponentEl(sr, { dockId: dockRuntime.id })
       mountToolbarItem(sr, dockRuntime)
       dockRuntime.staticToolbarRuntimes.push(sr)
     }
@@ -189,7 +189,7 @@
     }
     pr = {
       kind:                   'panel',
-      widget:                 panelData.widget,
+      component:                 panelData.component,
       panelId:                panelData.id,
       contentEl:              null,
       ctx:                    null,
@@ -210,7 +210,7 @@
         const item = panelData.toolbarItems[i]
         const tr = {
           kind:     'toolbar-dynamic',
-          widget:   item.widget,
+          component:   item.component,
           align:    item.align || 'start',
           panelId:  pr.panelId,
           contentEl:null,
@@ -232,7 +232,7 @@
   // Mount the active panel into the dock's content container.
   // Detached DOM strategy (§ 4.3): non-active panels' contentEls are removed
   // from the DOM but kept alive in panelRuntimes. Switching just moves the
-  // existing reference; widgets are never recreated.
+  // existing reference; components are never recreated.
   function syncActivePanel(dockRuntime, dockData, layout) {
     const targetId = dockData.activeId
     const content  = dockRuntime.contentEl
@@ -258,7 +258,7 @@
     const pr = getOrCreatePanelRuntime(dockRuntime, pd, layout)
 
     if (!pr.contentEl) {
-      materializeWidgetEl(pr, { panelId: pd.id, dockId: dockRuntime.id })
+      materializeComponentEl(pr, { panelId: pd.id, dockId: dockRuntime.id })
       pr.contentEl.dataset.panelId = pd.id
       pr.contentEl.classList.add('ef-panel')
     }
@@ -281,7 +281,7 @@
     for (let i = 0; i < items.length; i++) {
       const tr = items[i]
       if (!tr.contentEl) {
-        materializeWidgetEl(tr, { panelId: tr.panelId })
+        materializeComponentEl(tr, { panelId: tr.panelId })
         tr.contentEl.classList.add('ef-toolbar-item')
       }
       const slot = tr.align === 'end'
@@ -301,22 +301,22 @@
     }
   }
 
-  // Generic widget materialization — used by panel, static toolbar, and
-  // dynamic toolbar runtimes. Wraps spec.create in safeCall so a buggy widget
+  // Generic component materialization — used by panel, static toolbar, and
+  // dynamic toolbar runtimes. Wraps spec.factory in safeCall so a buggy component
   // produces a visible error stub instead of breaking the framework.
   //
   // The entire create() runs inside EF.untracked — reconcile invokes this
   // from within its own effect, and we don't want incidental ctx.* signal
   // reads (e.g. `ctx.panel.title()` for a guard check, or `ctx.dock.panels()`
-  // in a toolbar tab widget) to leak into the reconcile effect's dep set.
+  // in a toolbar tab component) to leak into the reconcile effect's dep set.
   // Any real reactivity must go through EF.effect explicitly inside the
-  // widget body, which establishes its own effect scope.
-  function materializeWidgetEl(runtime, srcExtra) {
-    const spec = EF.resolveComponent(runtime.widget)
-    const src = Object.assign({ scope: 'widget', widget: runtime.widget }, srcExtra || {})
+  // component body, which establishes its own effect scope.
+  function materializeComponentEl(runtime, srcExtra) {
+    const spec = EF.resolveComponent(runtime.component)
+    const src = Object.assign({ scope: 'component', component: runtime.component }, srcExtra || {})
     // propsSig source per kind:
     //   panel runtimes track props live via ctx.panel.props (derived off
-    //     runtime.data) — pass that signal directly so widgets that subscribe
+    //     runtime.data) — pass that signal directly so components that subscribe
     //     to props get reactivity for free.
     //   toolbar (static / dynamic) runtimes get a frozen signal seeded from
     //     the static spec.props — those don't change after registration.
@@ -329,18 +329,18 @@
         return spec.factory(propsSig, runtime.ctx)
       })
     })
-    runtime.contentEl = el || makeErrorEl(runtime.widget)
+    runtime.contentEl = el || makeErrorEl(runtime.component)
   }
 
-  function disposeWidgetRuntime(runtime) {
+  function disposeComponentRuntime(runtime) {
     for (let i = 0; i < runtime.cleanups.length; i++) {
       try { runtime.cleanups[i]() } catch (e) { console.error(e) }
     }
     runtime.cleanups = []
     if (runtime.contentEl) {
-      const spec = EF.resolveComponent(runtime.widget)
+      const spec = EF.resolveComponent(runtime.component)
       if (spec.dispose) {
-        EF.safeCall({ scope: 'widget', widget: runtime.widget },
+        EF.safeCall({ scope: 'component', component: runtime.component },
           function () { spec.dispose(runtime.contentEl) })
       }
       runtime.contentEl.remove()
@@ -350,11 +350,11 @@
   }
 
   function disposePanelRuntime(pr) {
-    // Dispose the panel's own widget...
-    disposeWidgetRuntime(pr)
-    // ...and every dynamic toolbar widget it contributed.
+    // Dispose the panel's own component...
+    disposeComponentRuntime(pr)
+    // ...and every dynamic toolbar component it contributed.
     for (let i = 0; i < pr.dynamicToolbarRuntimes.length; i++) {
-      disposeWidgetRuntime(pr.dynamicToolbarRuntimes[i])
+      disposeComponentRuntime(pr.dynamicToolbarRuntimes[i])
     }
     pr.dynamicToolbarRuntimes.length = 0
   }
@@ -404,10 +404,10 @@
     }
   }
 
-  function makeErrorEl(widgetName) {
+  function makeErrorEl(componentName) {
     const el = document.createElement('div')
     el.className = 'ef-panel-error'
-    el.textContent = 'Failed to create widget: ' + widgetName
+    el.textContent = 'Failed to create component: ' + componentName
     return el
   }
 

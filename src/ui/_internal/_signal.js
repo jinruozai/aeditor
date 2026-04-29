@@ -1,7 +1,7 @@
 // UI library — signal helper.
 //
 // All input widgets in EF.ui take a caller-owned signal as `value`. This file
-// provides four small helpers that every widget reuses:
+// provides four small helpers that every component reuses:
 //
 //   asSig(v)             → returns v if it's a signal, or wraps a constant
 //   writer(sig, onChange, name)
@@ -16,9 +16,9 @@
 //                          auto-cleanup is registered on el.__efCleanups
 //   collect(el, fn)      → push a cleanup callback onto el.__efCleanups
 //
-// Cleanup model: every widget root element grows an `__efCleanups: fn[]`
+// Cleanup model: every component root element grows an `__efCleanups: fn[]`
 // array. EF.ui.dispose(el) runs them in reverse order and removes el from
-// its parent. Callers that mount UI widgets inside a framework panel should
+// its parent. Callers that mount UI components inside a framework panel should
 // call ctx.onCleanup(() => EF.ui.dispose(el)) so cleanups fire when the
 // panel is removed.
 ;(function (EF) {
@@ -47,7 +47,7 @@
   // Writes execute in `EF.untracked` scope so the caller's onChange (which may
   // read outer signals as part of persisting state) never silently subscribes
   // the effect that invoked the write. Same principle as `bus.emit` handlers
-  // and `materializeWidgetEl` — a write is a side effect, not a computation.
+  // and `materializeComponentEl` — a write is a side effect, not a computation.
   function writer(sig, onChange, name) {
     const write = (typeof onChange === 'function')
       ? onChange
@@ -114,8 +114,8 @@
     if (el.parentNode) el.parentNode.removeChild(el)
   }
 
-  // tiny element helper — keeps widget files terse.
-  // No `html:` escape hatch by design: if a widget genuinely needs raw HTML
+  // tiny element helper — keeps component files terse.
+  // No `html:` escape hatch by design: if a component genuinely needs raw HTML
   // (only codeInput does, for syntax highlighting), it assigns `.innerHTML`
   // directly on its own element. That makes the trust boundary visible at
   // the call site instead of hiding it behind an option name.

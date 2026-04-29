@@ -1,6 +1,6 @@
-// demo widget: showcase-<category>
+// demo component: showcase-<category>
 //
-// One widget per component category (Base / Form / Editor / Container / Data /
+// One component per component category (Base / Form / Editor / Container / Data /
 // Overlay). Each iterates Demo.byCategory(cat) and, for every entry, builds
 // a compact card:
 //

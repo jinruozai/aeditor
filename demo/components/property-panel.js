@@ -1,4 +1,4 @@
-// demo widget: property-panel
+// demo component: property-panel
 //
 // Right-dock panel. Subscribes to Demo.selected; when the id changes, grabs
 // the cached instance via Demo.getInstance(id) and builds an editable

@@ -100,7 +100,7 @@
     // on an invisible row.
     //
     // New model: `selectedSig` is a plain signal that IS the tree's
-    // selection (array per ui.tree contract; this widget is single-select
+    // selection (array per ui.tree contract; this component is single-select
     // so length ≤ 1). An effect syncs it *from* State. handleSelect drives
     // State mutations (which then flow back through this same effect —
     // structural dedupe keeps it stable).
@@ -109,10 +109,22 @@
       var sel = State.selection();
       var active = State.activeTable();
       var want;
-      if      (sel && sel.kind === 'card_data'  && sel.id)       want = 'e:' + sel.id;
-      else if (sel && sel.kind === 'table_meta' && sel.pathKey)  want = 't:' + sel.pathKey;
-      else if (active)                                            want = 't:' + active;
-      else                                                        want = null;
+      if (sel && sel.kind === 'card_data') {
+        if (sel.items && sel.items.length) {
+          selectedSig.set(sel.items.map(function (it) { return 'e:' + it.id; }));
+        } else {
+          var ids = sel.ids && sel.ids.length ? sel.ids : (sel.id ? [sel.id] : []);
+          selectedSig.set(ids.map(function (id) { return 'e:' + id; }));
+        }
+        return;
+      }
+      if (sel && sel.kind === 'table_meta_many' && sel.pathKeys) {
+        selectedSig.set(sel.pathKeys.map(function (pk) { return 't:' + pk; }));
+        return;
+      }
+      if      (sel && sel.kind === 'table_meta' && sel.pathKey) want = 't:' + sel.pathKey;
+      else if (active)                                          want = 't:' + active;
+      else                                                      want = null;
       selectedSig.set(want ? [want] : []);
     });
 
@@ -168,28 +180,55 @@
     }
 
     // ── Click dispatch ─────────────────────────────────────────────
-    // Writer signature: `(ids[])` per ui.tree contract; this widget is
-    // single-select (multi:false → array length ≤ 1). We defer the actual
-    // state mutation to State.* so derivedSelected reflects the result
-    // automatically.
     function handleSelect(ids) {
-      var id = ids && ids[0];
-      if (!id) return;
-      var n = findNode(id);
-      if (!n) return;
-      if (n.kind === 'table') {
+      var nodes = (ids || []).map(findNode).filter(Boolean);
+      if (!nodes.length) { State.setSelection(null); return; }
+      var last = nodes[nodes.length - 1];
+      var tables = nodes.filter(function (n) { return n.kind === 'table'; });
+      var entities = nodes.filter(function (n) { return n.kind === 'entity'; });
+
+      if (entities.length && entities.length === nodes.length) {
+        var pk = entities[0].pk;
+        var sameTable = entities.every(function (n) { return n.pk === pk; });
+        var entityIds = entities.map(function (n) { return n.entityId; });
+        var refs = entities.map(function (n) { return { pathKey: n.pk, id: n.entityId }; });
+        State.setSelection({
+          kind: 'card_data',
+          pathKey: sameTable ? pk : last.pk,
+          ids: sameTable ? entityIds : null,
+          items: refs,
+          id: last.entityId,
+          lastId: last.entityId,
+        });
+        State.openTable(last.pk, { transient: true });
+        EF.bus.emit('ui:openTable', { pathKey: last.pk });
+        return;
+      }
+
+      if (tables.length && tables.length === nodes.length) {
+        var pathKeys = tables.map(function (n) { return n.pk; });
+        if (pathKeys.length > 1) {
+          State.setSelection({ kind: 'table_meta_many', pathKeys: pathKeys, pathKey: last.pk });
+        } else {
+          State.setSelection({ kind: 'table_meta', pathKey: last.pk });
+        }
         // Table click = open table tab + make Inspector show the table's
         // own property form (kind='table_meta'). This also implicitly
         // clears any previous card_data selection, which tabledata.js
         // listens to and uses to drop its local card selection highlights.
-        State.setSelection({ kind: 'table_meta', pathKey: n.pk });
-        State.openTable(n.pk, { transient: true });
-        EF.bus.emit('ui:openTable', { pathKey: n.pk });
-      } else if (n.kind === 'entity') {
-        // nav:goto is handled in main.js: it opens the parent table
-        // (pinned) and sets a card_data selection — sync effect then
-        // surfaces the entity as the highlighted row.
-        EF.bus.emit('nav:goto', { pathKey: n.pk, id: n.entityId });
+        State.openTable(last.pk, { transient: true });
+        EF.bus.emit('ui:openTable', { pathKey: last.pk });
+        return;
+      }
+
+      // A table/entity range is ambiguous as an edit target. Use the
+      // last clicked row as the semantic selection, matching desktop editors.
+      if (last.kind === 'entity') {
+        State.setSelection({ kind: 'card_data', pathKey: last.pk, ids: [last.entityId], id: last.entityId, lastId: last.entityId });
+        State.openTable(last.pk, { transient: true });
+      } else {
+        State.setSelection({ kind: 'table_meta', pathKey: last.pk });
+        State.openTable(last.pk, { transient: true });
       }
     }
 
@@ -225,7 +264,7 @@
     var tree = ui.tree({
       items:    itemsSig,
       selected: selectedSig,
-      multi:    false,
+      multi:    true,
       expanded: expandedSig,
       search:   searchSig,
       searchBehavior: 'filter',

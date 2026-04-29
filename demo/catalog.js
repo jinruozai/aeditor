@@ -75,7 +75,7 @@
         let clicks = 0
         return ui.button({ text: s.text, kind: s.kind, size: s.size, disabled: s.disabled, onClick: function () {
           clicks++
-          EF.log.push('info', { scope: 'widget', widget: 'button' }, 'clicked (' + clicks + ')')
+          EF.log.push('info', { scope: 'component', component: 'button' }, 'clicked (' + clicks + ')')
         }})
       },
       editFor: function (s) { return {
@@ -164,7 +164,7 @@
       }},
       mount: function (s) {
         return ui.tag({ text: s.text, color: s.color, onClose: function () {
-          EF.log.push('info', { scope: 'widget', widget: 'tag' }, 'tag close clicked')
+          EF.log.push('info', { scope: 'component', component: 'tag' }, 'tag close clicked')
         }})
       },
       editFor: function (s) { return {

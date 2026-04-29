@@ -1,6 +1,6 @@
 // EF.ui.dropzone / EF.ui.dragsource — HTML5-native DnD primitives.
 //
-// Two small helpers that any widget can opt into. Both rely on the native
+// Two small helpers that any component can opt into. Both rely on the native
 // DataTransfer API, which means OS file drops work out of the box and
 // cross-window transfers behave the way users expect from web apps.
 //
@@ -223,23 +223,29 @@
     for (let i = 0; i < files.length; i++) if (re.test(files[i].type || '')) return true
     return false
   }
+  function urlMatches(v, re) {
+    if (!v) return false
+    return re.test(String(v).split(/[?#]/)[0])
+  }
 
   function matchesKind(data, kind) {
     if (!data) return false
     // Prefer the most specific signal that's actually readable at this
-    // phase: files (drop) → fileMimes (hover via dt.items) → uri → asset.
+    // phase: files (drop) → fileMimes (hover via dt.items) → uri/text → asset.
     if (kind === 'image') {
       if (anyFileMatches(data.files, /^image\//))      return true
       if (anyMimeMatches(data.fileMimes, /^image\//))  return true
-      if (data.uri)   return IMG_RE.test(data.uri)
-      if (data.asset) return data.asset.kind === 'image'
+      if (urlMatches(data.uri, IMG_RE))  return true
+      if (urlMatches(data.text, IMG_RE)) return true
+      if (data.asset) return data.asset.kind === 'image' || urlMatches(data.asset.value, IMG_RE)
       return false
     }
     if (kind === 'audio') {
       if (anyFileMatches(data.files, /^audio\//))      return true
       if (anyMimeMatches(data.fileMimes, /^audio\//))  return true
-      if (data.uri)   return AUD_RE.test(data.uri)
-      if (data.asset) return data.asset.kind === 'audio'
+      if (urlMatches(data.uri, AUD_RE))  return true
+      if (urlMatches(data.text, AUD_RE)) return true
+      if (data.asset) return data.asset.kind === 'audio' || urlMatches(data.asset.value, AUD_RE)
       return false
     }
     // 'file' / default — accept anything that carries a File or URL.

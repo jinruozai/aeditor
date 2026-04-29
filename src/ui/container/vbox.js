@@ -30,11 +30,13 @@
   }
 
   const FLEX_SCHEMA = {
-    gap:     { type: 'int' },
-    align:   { type: 'enum_string', type_agv: { options: ['stretch','flex-start','center','flex-end'] } },
-    justify: { type: 'enum_string', type_agv: { options: ['flex-start','center','flex-end','space-between','space-around'] } },
-    width:   { type: 'int' },
-    height:  { type: 'int' },
+    gap:     { type: 'int', desc: 'Pixel gap between children.' },
+    align:   { type: 'enum_string', type_agv: { options: ['stretch','flex-start','center','flex-end'] },
+               desc: 'Cross-axis alignment of children: stretch · flex-start · center · flex-end.' },
+    justify: { type: 'enum_string', type_agv: { options: ['flex-start','center','flex-end','space-between','space-around'] },
+               desc: 'Main-axis distribution of children.' },
+    width:   { type: 'int', desc: 'Fixed width in pixels (empty = auto).' },
+    height:  { type: 'int', desc: 'Fixed height in pixels (empty = auto).' },
   }
   const SCHEMA   = Object.assign({}, ui.BOX_STYLE_SCHEMA, FLEX_SCHEMA)
   const DEFAULTS = Object.assign({}, ui.BOX_STYLE_DEFAULTS, { gap: 4 })

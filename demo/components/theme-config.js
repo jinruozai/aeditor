@@ -1,4 +1,4 @@
-// demo widget: theme-config
+// demo component: theme-config
 //
 // A panel that lets the user live-edit the editorframe theme tokens. Writes
 // to documentElement.style.setProperty so the change reflects everywhere
@@ -118,7 +118,7 @@
     applyPersisted()
   })()
 
-  // ── widget ────────────────────────────────────────────────────────
+  // ── component ────────────────────────────────────────────────────────
   EF.registerComponent('theme-config', {
     defaults: function () { return { title: 'Theme', icon: '🎨' } },
     factory: function (propsSig, ctx) { const props = propsSig.peek() || {};

@@ -27,8 +27,8 @@
 
     const srcFound = EF.findPanel(treeSig.peek(), panelId)
     if (!srcFound) return
-    const label  = srcFound.panel.title || srcFound.panel.widget
-    const widget = srcFound.panel.widget
+    const label  = srcFound.panel.title || srcFound.panel.component
+    const component = srcFound.panel.component
 
     const startX = e.clientX, startY = e.clientY
     let dragging = false
@@ -75,7 +75,7 @@
       const dst = EF.findDock(treeSig.peek(), dstId)
       if (!dst) return
       const a = dst.node.accept
-      const accepts = !a || a === '*' || (Array.isArray(a) && a.indexOf(widget) >= 0)
+      const accepts = !a || a === '*' || (Array.isArray(a) && a.indexOf(component) >= 0)
 
       // Same-dock drop on plain dock body (not on tab bar) is a no-op —
       // we don't paint anything and dropIndex stays null so pointerup does
@@ -187,7 +187,7 @@
 
   // Build a short accent bar between two tabs (or before/after the whole
   // strip) to visualise the insertion slot. Positioned absolutely inside
-  // the tabs element (which is position:relative per widget.css).
+  // the tabs element (which is position:relative per component.css).
   function makeDropIndicator(tabsEl, index) {
     const vertical = tabsEl.classList.contains('ef-ui-tab-vertical')
     const ind = document.createElement('div')

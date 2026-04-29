@@ -28,7 +28,7 @@
 // The factory's first parameter is a signal carrying the current props.
 // Read with `propsSig()` inside an effect for reactivity, or `propsSig.peek()`
 // for a one-shot snapshot. The runtime / renderer that materializes the
-// component decides what feeds the signal — for panel widgets it's
+// component decides what feeds the signal — for panel components it's
 // ctx.panel.props (live); for toolbar items / UI-tree leaves it's a frozen
 // signal seeded from the literal/static props.
 ;(function (EF) {

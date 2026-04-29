@@ -1,6 +1,6 @@
-// WidgetContext factory — the only handle a widget gets into the framework.
+// ComponentContext factory — the only handle a component gets into the framework.
 //
-// Three kinds of WidgetRuntime share this factory; the only difference is
+// Three kinds of ComponentRuntime share this factory; the only difference is
 // which fields ctx exposes (§ 4.9 ctx surface):
 //
 //   kind='panel'           → ctx.dock + ctx.panel; dock follows runtime.dockRef
@@ -20,8 +20,8 @@
     const ctx = {}
 
     // Private back-reference so widgets that need framework-level operations
-    // (e.g. tab widget calling beginPanelDrag) can reach the layout runtime.
-    // Underscore-prefixed → not part of the public WidgetContext surface.
+    // (e.g. tab component calling beginPanelDrag) can reach the layout runtime.
+    // Underscore-prefixed → not part of the public ComponentContext surface.
     ctx._layout = layout
 
     // ── shared (all kinds) ─────────────────────────────
@@ -34,7 +34,7 @@
     // Auto-unsubscribing bus. The disposer returned by `on()` is the single
     // canonical way to unsubscribe — it's idempotent and self-splices from
     // `runtime.cleanups`, so manual early-unsubscribe leaves no stale entry.
-    // Panel dispose flushes anything still in cleanups. Widgets that need the
+    // Panel dispose flushes anything still in cleanups. Components that need the
     // raw `off(topic, handler)` surface can use EF.bus.off directly.
     ctx.bus = {
       on: function (topic, handler) {
@@ -111,7 +111,7 @@
 
     return {
       id:    panelId,
-      title: derived(function () { return data().title || data().widget }),
+      title: derived(function () { return data().title || data().component }),
       icon:  derived(function () { return data().icon || '' }),
       dirty: derived(function () { return !!data().dirty }),
       badge: derived(function () { return data().badge || null }),
@@ -135,7 +135,7 @@
   }
 
   function runtimeSource(runtime) {
-    const src = { scope: 'widget', widget: runtime.widget }
+    const src = { scope: 'component', component: runtime.component }
     if (runtime.kind === 'panel' || runtime.kind === 'toolbar-dynamic') {
       src.panelId = runtime.panelId
     }

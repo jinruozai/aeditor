@@ -5,7 +5,7 @@
 // Spec:
 //   TreeNode = {
 //     id?:       string,                       // editor-side stable id
-//     type:      string,                       // registered component name
+//     component: string,                       // registered component name
 //     props?:    object,                       // literal prop values
 //     bindings?: { [propKey]: { source: 'field', field: string } },
 //     layout?:   object,                       // parent container interprets
@@ -30,7 +30,7 @@
 
   ui.renderUITree = function renderUITree(node, ctx) {
     if (!node) return ui.h('div', 'ef-ui-tree-empty')
-    const spec = EF.resolveComponent(node.type)
+    const spec = EF.resolveComponent(node.component)
     const propsSig = buildPropsSig(node, ctx)
     const el = spec.factory(propsSig, ctx || {})
     if (spec.acceptsChildren && node.children && node.children.length) {

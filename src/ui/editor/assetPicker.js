@@ -16,6 +16,12 @@
 //                                                default opens a hidden
 //                                                file input and stores an
 //                                                object URL.
+//   onFile?:      (file,current) => Promise<string|null> | string | null
+//                                                custom file import path;
+//                                                used by drop + default browse.
+//   resolveSrc?:  (value) => string             preview URL resolver for
+//                                                project-relative paths.
+//   exists?:      (value) => boolean            marks missing project assets
 //
 // Layout: [thumb] [path input]. Clicking the thumb opens the picker
 // (same action the now-removed folder button used to do). Dragging the
@@ -41,7 +47,7 @@
       thumb.innerHTML = ''
       if (kind === 'image' && v) {
         const img = document.createElement('img')
-        img.src = v
+        img.src = typeof o.resolveSrc === 'function' ? (o.resolveSrc(v) || v) : v
         img.onerror = function () { img.remove(); thumb.appendChild(placeholderIcon()) }
         thumb.appendChild(img)
       } else if (kind === 'audio') {
@@ -72,6 +78,7 @@
     ui.bind(wrap, sig, function (v) {
       const s = v == null ? '' : String(v)
       if (pathSig.peek() !== s) pathSig.set(s)
+      wrap.classList.toggle('is-missing', !!s && typeof o.exists === 'function' && !o.exists(s))
       paintPreview(s)
     })
     EF.effect(function () {
@@ -85,7 +92,15 @@
     ui.dropzone(wrap, {
       accept:  ['Files', 'text/uri-list', 'text/plain', 'application/ef.asset+json'],
       canDrop: function (d) { return ui.dnd.matchesKind(d, kind) },
-      onDrop:  function (d) { doWrite(ui.dnd.extractUrl(d)) },
+      onDrop:  function (d) {
+        if (d.files && d.files[0] && typeof o.onFile === 'function') {
+          const res = o.onFile(d.files[0], sig.peek())
+          if (res && typeof res.then === 'function') res.then(function (v) { if (v != null) doWrite(v) })
+          else if (res != null) doWrite(res)
+          return
+        }
+        doWrite(ui.dnd.extractUrl(d))
+      },
     })
 
     // Drag source — the thumbnail exports the current value. Other
@@ -123,7 +138,13 @@
       function cleanup() { if (f.parentNode) f.parentNode.removeChild(f) }
       f.addEventListener('change', function () {
         const file = f.files && f.files[0]
-        if (file) doWrite(URL.createObjectURL(file))
+        if (file && typeof o.onFile === 'function') {
+          const res = o.onFile(file, sig.peek())
+          if (res && typeof res.then === 'function') res.then(function (v) { if (v != null) doWrite(v) })
+          else if (res != null) doWrite(res)
+        } else if (file) {
+          doWrite(URL.createObjectURL(file))
+        }
         cleanup()
       })
       f.addEventListener('cancel', cleanup)

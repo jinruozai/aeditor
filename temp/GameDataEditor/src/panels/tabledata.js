@@ -1,5 +1,5 @@
 /**
- * Table Data panel widget — cards + list, selection, drag-sort, sort dropdown.
+ * Table Data panel component — cards + list, selection, drag-sort, sort dropdown.
  * Props: { pathKey }
  */
 (function () {
@@ -96,7 +96,7 @@
       try { return JSON.parse(localStorage.getItem(STORE) || '') || {}; } catch (_) { return {}; }
     })();
     var mode = state.mode || 'card';
-    // Seed signals from persisted state. framework wraps widget.create in
+    // Seed signals from persisted state. framework wraps component.factory in
     // EF.untracked so these plain writes don't pollute the reconcile effect.
     sizeSig.set(state.cardSize || 140);
     sortFieldSig.set(state.sortField || '');
@@ -188,23 +188,20 @@
     }
 
     function renderCards(ids) {
-      // Grid track width tracks the active cardStyle's root width; cards
-      // size to that exactly (see card.js render). User's sizeSig is a
-      // floor — useful when the cardstyle has no explicit width.
+      // The toolbar size is the rendered card width in this table view.
+      // The cardStyle root remains the design coordinate space; card.js
+      // scales it to fill this width while preserving the root aspect ratio.
       var cardSize = sizeSig.peek();
-      var cs = State.resolveCardStyleForTable(pathKey);
-      var rootW = cs && cs.root && cs.root.props && cs.root.props.width;
-      var trackW = (typeof rootW === 'number' ? rootW : cardSize);
       var wrap = document.createElement('div');
       wrap.className = 'gde-cards-wrap';
       var grid = document.createElement('div');
       grid.className = 'gde-cards-grid';
-      grid.style.gridTemplateColumns = 'repeat(auto-fill,' + trackW + 'px)';
+      grid.style.gridTemplateColumns = 'repeat(auto-fill,' + cardSize + 'px)';
 
       var data = gd();
       ids.forEach(function (id) {
         var entity = Object.assign({ id: id }, data[id] || {});
-        var card = Card.render(entity, id, pathKey);
+        var card = Card.render(entity, id, pathKey, { width: cardSize });
         if (selectedIds.has(id)) card.classList.add('is-selected');
         grid.appendChild(card);
       });
@@ -229,8 +226,22 @@
       var fields = Object.keys(sd);
       var wrap = document.createElement('div');
       wrap.style.cssText = 'overflow:auto;height:100%;';
+      wrap.addEventListener('click', function (ev) {
+        if (ev.target !== wrap) return;
+        selectedIds.clear();
+        lastClicked = null;
+        pushSelection();
+        renderBody();
+      });
       var tb = document.createElement('table');
       tb.className = 'gde-list';
+      tb.addEventListener('click', function (ev) {
+        if (ev.target.closest && ev.target.closest('tr')) return;
+        selectedIds.clear();
+        lastClicked = null;
+        pushSelection();
+        renderBody();
+      });
       var thead = document.createElement('thead');
       var trh = document.createElement('tr');
       var thId = document.createElement('th'); thId.textContent = 'ID';
@@ -349,11 +360,13 @@
     }
 
     // Reactive size / sort: toolbar signals drive persistence + re-render.
+    var lastRenderedSize = null
     var offSize = EF.effect(function () {
       var sz = sizeSig()
       save()
-      var grid = body.querySelector('.gde-cards-grid')
-      if (grid) grid.style.gridTemplateColumns = 'repeat(auto-fill,minmax(' + sz + 'px,1fr))'
+      if (lastRenderedSize === sz) return
+      lastRenderedSize = sz
+      if (mode === 'card' && body.querySelector('.gde-cards-grid')) renderBody()
     })
     var offSortF = EF.effect(function () { sortFieldSig(); save(); renderBody() })
     var offSortO = EF.effect(function () { sortOrderSig(); save(); renderBody() })
@@ -409,7 +422,16 @@
     // a top-level node cancels card selection in the opened table."
     ctx.bus.on('selection:changed', function (sel) {
       var stillOurs = sel && sel.kind === 'card_data' && sel.pathKey === pathKey;
-      if (!stillOurs && selectedIds.size > 0) {
+      if (stillOurs) {
+        var nextIds = (sel.ids && sel.ids.length ? sel.ids : (sel.id ? [sel.id] : [])).map(String);
+        if (!sameSelection(selectedIds, nextIds)) {
+          selectedIds = new Set(nextIds);
+          lastClicked = sel.lastId || sel.id || nextIds[nextIds.length - 1] || null;
+          renderBody();
+        }
+        return;
+      }
+      if (selectedIds.size > 0) {
         selectedIds.clear();
         lastClicked = null;
         delDisabledSig.set(true);
@@ -417,8 +439,14 @@
       }
     });
 
+    function sameSelection(set, ids) {
+      if (set.size !== ids.length) return false;
+      for (var i = 0; i < ids.length; i++) if (!set.has(ids[i])) return false;
+      return true;
+    }
+
     // Each table gets its own panel instance — no more "rebind pathKey on
-    // active-table:changed" hack. This widget is pure w.r.t. props.pathKey.
+    // active-table:changed" hack. This component is pure w.r.t. props.pathKey.
     var offLocale = I18N.onChange(applyLocale);
     ctx.onCleanup(offLocale);
 

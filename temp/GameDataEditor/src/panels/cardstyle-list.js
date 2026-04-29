@@ -2,8 +2,8 @@
  * CardStyle list — left dock panel showing every project cardStyle as a
  * tile (name + small live preview rendered with the actual cardStyle root).
  *
- * Click a tile → activeCardStyle.set + selection.set + open transient
- * editor panel in the center dock. Double-click pins it.
+ * Click a tile → selection + open transient editor panel in the center
+ * dock. Double-click pins it.
  * Right-click context menu: Rename / Duplicate / Delete (Default protected).
  *
  * Add button (+) creates a new empty style with an absolute root, opens it
@@ -19,7 +19,7 @@
   function emptyRoot() {
     return {
       id: uid('root'),
-      type: 'absolute',
+      component: 'absolute',
       props: { width: 120, height: 120, background: 'var(--ef-bg-2)', borderRadius: 4 },
       bindings: {},
       children: [],
@@ -51,50 +51,22 @@
     root.appendChild(bar);
 
     var grid = ui.h('div', 'gde-cs-list-grid');
+    grid.addEventListener('click', function (ev) {
+      if (ev.target !== grid) return;
+      var sel = State.selection();
+      if (sel && (sel.kind === 'card_style' || sel.kind === 'card_component')) State.setSelection(null);
+    });
     root.appendChild(grid);
 
     function select(key, pin) {
-      State.activeCardStyle.set(key);
-      State.setSelection({ kind: 'card_style', key: key });
-      // Ensure an editor tab exists in the center dock; preview-mode (transient)
-      // on first single click, pinned on double click.
-      ensureEditorTab(key, !!pin);
-    }
-
-    function ensureEditorTab(key, pin) {
-      var handle = (window.__gde && window.__gde.handle) || null;
-      if (!handle) return;
-      var tree = handle.tree();
-      var centerDockId = null;
-      var existingPanelId = null;
-      (function walk(n) {
-        if (!n) return;
-        if (n.type === 'dock' && n.name === 'center') {
-          centerDockId = n.id;
-          for (var i = 0; i < n.panels.length; i++) {
-            var p = n.panels[i];
-            if (p.widget === 'gde-cardstyle-editor' && p.props && p.props.styleKey === key) {
-              existingPanelId = p.id;
-              break;
-            }
-          }
-        } else if (n.type === 'split') {
-          n.children.forEach(walk);
-        }
-      })(tree);
-      if (!centerDockId) return;
-      if (existingPanelId) {
-        handle.activatePanel(existingPanelId);
-        if (pin) handle.promotePanel ? handle.promotePanel(existingPanelId) : null;
+      State.openCardStyle(key, { transient: !pin });
+      var def = State.projectCardStyles()[key];
+      if (def && def.root) {
+        State.setSelection({ kind: 'card_component', styleKey: key, nodeIds: [def.root.id] });
       } else {
-        var ret = handle.addPanel(centerDockId, {
-          widget: 'gde-cardstyle-editor',
-          title:  (State.projectCardStyles()[key] || {}).name || key,
-          icon:   'columns',
-          props:  { styleKey: key },
-        }, pin ? {} : { transient: true });
-        handle.activatePanel(ret.panelId);
+        State.setSelection({ kind: 'card_style', key: key });
       }
+      State.showCardStyleTree();
     }
 
     function buildTile(key, def) {
@@ -102,7 +74,8 @@
       tile.dataset.key = key;
       EF.effect(function () {
         var sel = State.selection();
-        var active = sel && sel.kind === 'card_style' && sel.key === key;
+        var active = sel && ((sel.kind === 'card_style' && sel.key === key)
+          || (sel.kind === 'card_component' && sel.styleKey === key));
         EF.untracked(function () { tile.classList.toggle('is-active', !!active); });
       });
 
@@ -113,7 +86,17 @@
         try {
           var sample = EF.signal({ id: '#sample', name: 'Sample' });
           var p = ui.renderUITree(def.root, { data: sample });
-          previewWrap.appendChild(p);
+          var size = State.cardStyleRootSize(def);
+          var slotW = 76;
+          var slotH = 70;
+          var scale = Math.min(slotW / size.w, slotH / size.h);
+          var holder = ui.h('div', 'gde-cs-preview-holder');
+          holder.style.width = Math.round(size.w * scale) + 'px';
+          holder.style.height = Math.round(size.h * scale) + 'px';
+          p.style.transform = 'scale(' + scale + ')';
+          p.style.transformOrigin = '0 0';
+          holder.appendChild(p);
+          previewWrap.appendChild(holder);
         } catch (e) { /* malformed tree — silent */ }
       }
       tile.appendChild(previewWrap);
@@ -168,7 +151,7 @@
     }
     function retagIds(node) {
       if (!node) return;
-      node.id = uid(node.type);
+      node.id = uid(node.component);
       (node.children || []).forEach(retagIds);
     }
 
@@ -183,7 +166,9 @@
     ctx.bus.on('selection:changed',  function () {
       // Just re-flag the active tile; cheap.
       var sel = State.selection();
-      var activeKey = (sel && sel.kind === 'card_style') ? sel.key : null;
+      var activeKey = sel && sel.kind === 'card_style'
+        ? sel.key
+        : (sel && sel.kind === 'card_component' ? sel.styleKey : null);
       Array.from(grid.children).forEach(function (t) {
         t.classList.toggle('is-active', t.dataset.key === activeKey);
       });

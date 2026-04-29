@@ -98,7 +98,7 @@
     dataTopic: function ()    { return 'typeconfig:changed'; },
   });
 
-  // ── Panel widget ──────────────────────────────────────────────
+  // ── Panel component ──────────────────────────────────────────────
   function randomTypeName() {
     var existing = Object.assign({}, State.builtinTypeConfig(), State.projectTypeConfig());
     for (var i = 0; i < 100; i++) {
@@ -138,6 +138,11 @@
 
     var list = document.createElement('div');
     list.style.cssText = 'flex:1;overflow:auto;';
+    list.addEventListener('click', function (ev) {
+      if (ev.target !== list) return;
+      var sel = State.selection();
+      if (sel && sel.kind === 'typeconfig') State.setSelection(null);
+    });
 
     root.appendChild(bar); root.appendChild(list);
 

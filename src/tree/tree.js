@@ -8,9 +8,9 @@
 //   { type: 'split', direction, sizes[], children[] }
 //   { type: 'dock',  id, panels[], activeId, toolbar?, accept?, collapsed?, focused?, name? }
 //
-// PanelData: { id, widget, title?, icon?, dirty?, badge?, props?, transient?, toolbarItems?, name? }
+// PanelData: { id, component, title?, icon?, dirty?, badge?, props?, transient?, toolbarItems?, name? }
 // ToolbarConfig: { direction, items[] }
-// ToolbarItemSpec: { id, widget, props, align }
+// ToolbarItemSpec: { id, component, props, align }
 //
 // All ids are framework-generated (§ 4.13). Users may attach an optional
 // `name` for stable lookup via findByName.
@@ -58,15 +58,15 @@
   }
 
   function panel(partial) {
-    if (!partial || typeof partial.widget !== 'string')
-      throw new Error('panel: widget (string) is required')
+    if (!partial || typeof partial.component !== 'string')
+      throw new Error('panel: component (string) is required')
     const p = {
       id:     nextPanelId(),
-      widget: partial.widget,
+      component: partial.component,
     }
     if (partial.name != null)         p.name         = partial.name
-    // § 4.9 Layer 2: title defaults to widget name when not provided.
-    p.title = partial.title != null ? partial.title : partial.widget
+    // § 4.9 Layer 2: title defaults to component name when not provided.
+    p.title = partial.title != null ? partial.title : partial.component
     if (partial.icon != null)         p.icon         = partial.icon
     if (partial.dirty)                p.dirty        = true
     if (partial.badge != null)        p.badge        = partial.badge
@@ -94,11 +94,11 @@
   }
 
   function normalizeToolbarItem(item) {
-    if (!item || typeof item.widget !== 'string')
-      throw new Error('toolbar item: widget (string) is required')
+    if (!item || typeof item.component !== 'string')
+      throw new Error('toolbar item: component (string) is required')
     return {
       id:     nextToolbarItemId(),
-      widget: item.widget,
+      component: item.component,
       props:  item.props || {},
       align:  item.align || 'start',
     }
@@ -260,11 +260,11 @@
   }
 
   // ─── accept whitelist (§ 4.14) ────────────────────────────
-  function checkAccept(dockNode, widgetName) {
+  function checkAccept(dockNode, componentName) {
     if (!dockNode.accept || dockNode.accept === '*') return true
     if (Array.isArray(dockNode.accept)) {
       for (let i = 0; i < dockNode.accept.length; i++)
-        if (dockNode.accept[i] === widgetName) return true
+        if (dockNode.accept[i] === componentName) return true
     }
     return false
   }
@@ -282,10 +282,10 @@
   function addPanel(tree, dockId, partial, opts) {
     const found = findDock(tree, dockId)
     if (!found) throw new Error('addPanel: dock not found: ' + dockId)
-    if (!partial || typeof partial.widget !== 'string')
-      throw new Error('addPanel: widget (string) required')
-    if (!checkAccept(found.node, partial.widget))
-      throw new Error('addPanel: dock "' + dockId + '" does not accept widget "' + partial.widget + '"')
+    if (!partial || typeof partial.component !== 'string')
+      throw new Error('addPanel: component (string) required')
+    if (!checkAccept(found.node, partial.component))
+      throw new Error('addPanel: dock "' + dockId + '" does not accept component "' + partial.component + '"')
     const p = panel(partial)
     if (opts && opts.transient) p.transient = true
     let existing = found.node.panels
@@ -325,10 +325,10 @@
     const dockNode = getAt(tree, found.path)
     const idx = dockNode.panels.findIndex(function (p) { return p.id === panelId })
     if (idx < 0) return tree
-    // Forbid id/widget overrides through patch.
+    // Forbid id/component overrides through patch.
     const safe = Object.assign({}, patch)
     delete safe.id
-    delete safe.widget
+    delete safe.component
     const newPanel = Object.assign({}, dockNode.panels[idx], safe)
     const newPanels = dockNode.panels.slice()
     newPanels[idx] = newPanel
@@ -350,7 +350,7 @@
   }
 
   // movePanel — cross-dock move, or in-dock reorder if src === dst.
-  // Throws if dst dock rejects the widget via accept whitelist.
+  // Throws if dst dock rejects the component via accept whitelist.
   // Omitting dstIndex appends.
   function movePanel(tree, panelId, dstDockId, dstIndex) {
     const found = findPanel(tree, panelId)
@@ -360,8 +360,8 @@
 
     const srcDock = getAt(tree, found.path)
     const panelData = srcDock.panels.find(function (p) { return p.id === panelId })
-    if (!checkAccept(dstFound.node, panelData.widget))
-      throw new Error('movePanel: dst dock does not accept widget "' + panelData.widget + '"')
+    if (!checkAccept(dstFound.node, panelData.component))
+      throw new Error('movePanel: dst dock does not accept component "' + panelData.component + '"')
 
     // Same-dock reorder
     if (found.dockId === dstDockId) {
@@ -398,7 +398,7 @@
   // ─── split / merge ────────────────────────────────────────
   // splitDock — insert a NEW empty dock alongside the target along `direction`.
   // The new dock is empty (panels: []). The runtime layer is responsible for
-  // post-seeding it with a default panel (per § 4.1, using widget defaults of
+  // post-seeding it with a default panel (per § 4.1, using component defaults of
   // the source dock's active panel) — splitDock takes optional opts.seedPanels
   // to let the runtime pass that in.
   //

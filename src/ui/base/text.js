@@ -63,10 +63,12 @@
       value: 'Text', variant: 'body', size: 'md', clamp: null,
     }),
     schema: Object.assign({}, ui.BOX_STYLE_SCHEMA, ui.TEXT_STYLE_SCHEMA, {
-      value:   { type: 'string' },
-      variant: { type: 'enum_string', type_agv: { options: ['body','h1','h2','caption'] } },
-      size:    { type: 'enum_string', type_agv: { options: ['sm','md','lg'] } },
-      clamp:   { type: 'int' },
+      value:   { type: 'string', desc: 'The text to display.' },
+      variant: { type: 'enum_string', type_agv: { options: ['body','h1','h2','caption'] },
+                 desc: 'Typographic role: body · h1 · h2 · caption.' },
+      size:    { type: 'enum_string', type_agv: { options: ['sm','md','lg'] },
+                 desc: 'Size scale: sm · md · lg.' },
+      clamp:   { type: 'int', desc: 'Maximum visible lines before truncating with "…". 0 = no clamp.' },
     }),
     factory: function (propsSig) {
       const el = ui.text(ui.liftProps(propsSig, ['value','variant','size','clamp']))

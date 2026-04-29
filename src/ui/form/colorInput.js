@@ -58,7 +58,7 @@
       if (pop) { pop.close(); pop = null; return }
       pop = openPicker(el, sig, doWrite, function () { pop = null })
     })
-    // If the widget is disposed while the picker is open, tear it down.
+    // If the component is disposed while the picker is open, tear it down.
     ui.collect(el, function () { if (pop) { pop.close(); pop = null } })
     return el
   }

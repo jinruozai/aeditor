@@ -919,8 +919,8 @@
 .ef-ui-array-input-cell { min-width: 0; }
 .ef-ui-struct-input-cell > *,
 .ef-ui-array-input-cell > * { width: 100%; max-width: 100%; box-sizing: border-box; }
-/* propertyPanel wraps each editor in a .ef-ui-slot (mixed indicator) — the
-   editor inside the slot also needs to fill width or every numberInput /
+/* propertyPanel wraps each editor in a .ef-ui-slot. The editor inside the
+   slot also needs to fill width or every numberInput /
    colorInput / etc collapses to its intrinsic size while text inputs take
    the remaining space, producing ragged-right rows. */
 .ef-ui-slot > *,
@@ -929,38 +929,34 @@
 .ef-ui-array-input-add { align-self: flex-start; margin-top: var(--ef-space-1); }
 
 .ef-ui-property-panel { display: flex; flex-direction: column; min-width: 0; }
-.ef-ui-property-group {
-  margin-top: var(--ef-space-3);
-  padding: 4px 0 4px 0;
-  font: 600 10px var(--ef-font-ui);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--ef-fg-3);
-  border-bottom: 1px solid var(--ef-border);
-}
-.ef-ui-property-panel > .ef-ui-property-group:first-child { margin-top: 0; }
-.ef-ui-property-panel > .ef-ui-struct-input {
+/* Strip struct-input chrome inside the panel — both the unnamed top bucket
+   (rendered flat) and the bodies of property sections share the same row
+   layout: a fixed-ish label column + 1fr editor column. */
+.ef-ui-property-panel .ef-ui-struct-input {
   border: 0;
   padding: 0;
   background: transparent;
 }
-.ef-ui-property-panel > .ef-ui-struct-input > .ef-ui-struct-input-row {
+.ef-ui-property-panel .ef-ui-struct-input > .ef-ui-struct-input-row {
   grid-template-columns: minmax(90px, 120px) minmax(0, 1fr);
   gap: var(--ef-space-2);
   padding: var(--ef-space-1) 0;
 }
-.ef-ui-property-panel > .ef-ui-struct-input > .ef-ui-struct-input-row > .ef-ui-struct-input-label {
+.ef-ui-property-panel .ef-ui-struct-input > .ef-ui-struct-input-row > .ef-ui-struct-input-label {
   font: var(--ef-fs-sm) var(--ef-font-ui);
   color: var(--ef-fg-2);
-  cursor: help;
 }
+/* Help cursor only when the label actually carries a tooltip — otherwise the
+ * cursor lies. Marker is set by ui.structInput when a tooltip is wired. */
+.ef-ui-struct-input-label[data-has-tip] { cursor: help; }
+/* Section-wrapped groups: section provides the collapsible header; we
+   neutralize its body padding so rows align with the flat top bucket. */
+.ef-ui-property-section > .ef-ui-section-body { padding: 0 0 var(--ef-space-1) 0; gap: 0; }
 
-/* ── slot wrapper for multi-target editing ─────────────────────────
-   propertyPanel emits each editor inside a .ef-ui-slot; the slot gains
-   data-mixed when targets disagree on this field. Grid template gives
-   the editor the full 1fr column and the optional reset button auto
-   width on the right — no layout shift between fields with/without a
-   reset. */
+/* ── slot wrapper for propertyPanel editing ─────────────────────────
+   Grid template gives the editor the full 1fr column and the optional reset
+   button auto width on the right — no layout shift between fields with/without
+   a reset. */
 .ef-ui-slot {
   position: relative;
   display: grid;
@@ -972,18 +968,3 @@
 .ef-ui-slot > * { min-width: 0; max-width: 100%; box-sizing: border-box; }
 .ef-ui-slot > :first-child { width: 100%; }
 .ef-ui-slot-reset { grid-column: 2; flex: 0 0 auto; transition: opacity var(--ef-dur-fast) var(--ef-ease); }
-.ef-ui-slot[data-mixed] {
-  border-left: 2px dashed var(--ef-warn);
-  padding-left: 4px;
-}
-.ef-ui-slot[data-mixed]::after {
-  content: 'Mixed';
-  position: absolute;
-  right: 32px; top: 50%;          /* offset to clear the reset button column */
-  transform: translateY(-50%);
-  font: 10px/1 var(--ef-font-ui);
-  letter-spacing: 0.5px;
-  color: var(--ef-warn);
-  opacity: 0.75;
-  pointer-events: none;
-}

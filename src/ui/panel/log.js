@@ -1,9 +1,9 @@
-// Log panel widget — built entirely from EF.ui.* primitives.
+// Log panel component — built entirely from EF.ui.* primitives.
 //
 // Subscribes to EF.log and renders one ef-ui-card per entry inside a
-// ef-ui-scrollarea. Click a card to dismiss. Newest on top. A segmented
+// ef-ui-scrollarea. Newest on top. A segmented
 // level filter (All / Error / Warn / Info / Debug) controls the visible
-// subset. This is a built-in `registered panel widget` (§ 4.7) — users put
+// subset. This is a built-in `registered panel component` (§ 4.7) — users put
 // it in any dock and they immediately see every panel error / log call /
 // global throw / async rejection routed to one place.
 //
@@ -84,14 +84,13 @@
     // Stack trace lives in the entry data (and console.error fallback) but is
     // not rendered — the log panel is a one-line scan, not a debugger.
     row.title = entry.stack ? entry.message + '\n\n' + entry.stack : entry.message
-    row.addEventListener('click', function () { EF.log.dismiss(entry.id) })
     return row
   }
 
   function formatSource(s) {
     if (!s) return 'unknown'
     const parts = [s.scope || 'unknown']
-    if (s.widget)  parts.push('widget=' + s.widget)
+    if (s.component)  parts.push('component=' + s.component)
     if (s.dockId)  parts.push('dock=' + s.dockId)
     if (s.panelId) parts.push('panel=' + s.panelId)
     if (s.topic)   parts.push('topic=' + s.topic)

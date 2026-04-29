@@ -38,13 +38,16 @@
     var spec = EF.resolveComponent(name);
     return {
       id:        uid(name),
-      type:      name,
+      component: name,
       props:     Object.assign({}, spec.defaultProps || {}),
       bindings:  {},
       children:  spec.acceptsChildren ? [] : [],
-      // Default placement — the absolute container's child slots interpret
-      // layout; flex containers ignore it.
-      layout:    { anchor: 'tl', x: 8, y: 8, w: 80, h: 24, unit: 'px' },
+      // Default placement: 80×24 fixed-point box at 8,8 from top-left
+      // anchor (LayoutRect — see EF.ui.layoutRect). Flex containers ignore.
+      layout: {
+        aMin: { x: 0, y: 0 }, aMax: { x: 0, y: 0 },
+        oMin: { x: 8, y: 8 }, oMax: { x: 88, y: 32 },
+      },
     };
   }
 
@@ -131,9 +134,8 @@
         return;
       }
       nameEl.textContent = cs.name || styleKey;
-      var w = (cs.root && cs.root.props && cs.root.props.width) || 120;
-      var h = (cs.root && cs.root.props && cs.root.props.height) || 120;
-      sizeEl.textContent = w + ' × ' + h;
+      var size = State.cardStyleRootSize(cs);
+      sizeEl.textContent = size.w + ' × ' + size.h;
       if (!cs.root) {
         canvas.appendChild(ui.h('div', 'gde-cs-canvas-empty', {
           text: 'Drop a Layout component here to begin.',
@@ -157,9 +159,9 @@
       walkChildrenIds(rootEl, rootNode);
     }
     function walkChildrenIds(domEl, treeNode) {
-      var spec; try { spec = EF.resolveComponent(treeNode.type); } catch (_) {}
+      var spec; try { spec = EF.resolveComponent(treeNode.component); } catch (_) {}
       if (!spec || !spec.acceptsChildren || !treeNode.children) return;
-      if (treeNode.type === 'absolute') {
+      if (treeNode.component === 'absolute') {
         var slots = Array.from(domEl.querySelectorAll(':scope > .ef-ui-abs-slot'));
         slots.forEach(function (slot, i) {
           var childNode = treeNode.children[i];
@@ -242,39 +244,37 @@
       var payload = null; try { payload = JSON.parse(raw); } catch (_) { return; }
       if (!payload || !payload.name) return;
 
-      var cs = State.projectCardStyles()[styleKey]; if (!cs) return;
-      var clone = JSON.parse(JSON.stringify(cs));
-      // Empty cardStyle: drop becomes the root.
-      if (!clone.root) {
-        clone.root = nodeFromComponent(payload.name);
-        delete clone.root.layout;  // root has no parent layout
-        State.upsertCardStyle(styleKey, clone);
-        return;
-      }
-      // Find the most specific accepting ancestor under cursor.
-      var targetId = clone.root.id;
-      var t = ev.target;
-      while (t && t !== canvas) {
-        if (t.dataset && t.dataset.nodeId) {
-          var hit = findNode(clone.root, t.dataset.nodeId, null, -1);
-          if (hit) {
-            var s; try { s = EF.resolveComponent(hit.node.type); } catch (_) {}
-            if (s && s.acceptsChildren) { targetId = hit.node.id; break; }
-          }
+      State.mutateCardStyle(styleKey, function (clone) {
+        // Empty cardStyle: drop becomes the root.
+        if (!clone.root) {
+          clone.root = nodeFromComponent(payload.name);
+          delete clone.root.layout;  // root has no parent layout
+          return;
         }
-        t = t.parentElement;
-      }
-      var hit2 = findNode(clone.root, targetId, null, -1);
-      if (!hit2) return;
-      hit2.node.children = hit2.node.children || [];
-      hit2.node.children.push(nodeFromComponent(payload.name));
-      State.upsertCardStyle(styleKey, clone);
+        // Find the most specific accepting ancestor under cursor.
+        var targetId = clone.root.id;
+        var t = ev.target;
+        while (t && t !== canvas) {
+          if (t.dataset && t.dataset.nodeId) {
+            var hit = findNode(clone.root, t.dataset.nodeId, null, -1);
+            if (hit) {
+              var s; try { s = EF.resolveComponent(hit.node.component); } catch (_) {}
+              if (s && s.acceptsChildren) { targetId = hit.node.id; break; }
+            }
+          }
+          t = t.parentElement;
+        }
+        var hit2 = findNode(clone.root, targetId, null, -1);
+        if (!hit2) return false;
+        hit2.node.children = hit2.node.children || [];
+        hit2.node.children.push(nodeFromComponent(payload.name));
+      });
     });
 
     // ── WYSIWYG drag / resize ─────────────────────────────────────
     // Each render rebuilds slot elements, so we wire drag handlers per
     // node fresh each time. Only nodes inside an `absolute` container
-    // (i.e. with a `layout` field carrying x/y/anchor/unit) participate;
+    // (i.e. with a LayoutRect `layout` field) participate;
     // flex children fall through to the click handler.
     //
     // First click on a node = select. Second click on the already-selected
@@ -373,10 +373,11 @@
       var start = JSON.parse(JSON.stringify(hit.node.layout));
       var sx = ev.clientX, sy = ev.clientY;
       var z = getZoom();
+      var parentSize = parentSizeForSlot(slot, z);
       function move(e) {
         var dx = (e.clientX - sx) / z;
         var dy = (e.clientY - sy) / z;
-        previewLayout(slot, withResize(start, dx, dy, handle));
+        previewLayout(slot, withResize(start, dx, dy, handle, parentSize));
       }
       function up(e) {
         document.removeEventListener('pointermove', move);
@@ -385,76 +386,40 @@
         var dy = (e.clientY - sy) / z;
         if (Math.abs(dx) < 1 && Math.abs(dy) < 1) return;
         dragSuppressClick = true;
-        commitLayout(nodeId, withResize(start, Math.round(dx), Math.round(dy), handle));
+        commitLayout(nodeId, withResize(start, Math.round(dx), Math.round(dy), handle, parentSize));
         setTimeout(function () { dragSuppressClick = false; }, 0);
       }
       document.addEventListener('pointermove', move);
       document.addEventListener('pointerup',   up);
     }
 
-    // Translation in (x,y) for a layout — meaning depends on anchor
-    // because anchored corners measure offsets in different directions.
-    function withMove(layout, dx, dy) {
-      var a = layout.anchor || 'tl';
-      var nx = layout.x || 0, ny = layout.y || 0;
-      // Mapping: when the anchor side is right/bottom the offset grows
-      // *inward*, so a positive screen delta has to subtract from x/y.
-      if (a === 'tr') { nx -= dx; ny += dy; }
-      else if (a === 'bl') { nx += dx; ny -= dy; }
-      else if (a === 'br') { nx -= dx; ny -= dy; }
-      else { nx += dx; ny += dy; }            // tl / c
-      return Object.assign({}, layout, { x: nx, y: ny });
+    // Move + resize work on a LayoutRect (see EF.ui.layoutRect): translation
+    // shifts both oMin and oMax; per-edge resize moves only the corresponding
+    // corner. Anchors are preserved so the relationship to the parent
+    // (fixed point vs. stretched) survives editing.
+    function withMove(layout, dx, dy) { return EF.ui.layoutRect.translate(layout, dx, dy); }
+    function withResize(layout, dx, dy, edges, parentSize) {
+      return EF.ui.layoutRect.resize(layout, edges, dx, dy, parentSize);
     }
-    function withResize(layout, dx, dy, h) {
-      // Each handle adjusts one or two of {x,y,w,h} depending on which
-      // side it represents. We only resize from sides that don't move
-      // the anchor corner, so for anchor='tl' (the common case) e/se/s
-      // grow w/h, n/nw/w shrink-and-translate. For other anchors the
-      // mapping inverts symmetrically.
-      var a = layout.anchor || 'tl';
-      var w = layout.w || 0, hh = layout.h || 0;
-      var x = layout.x || 0, y = layout.y || 0;
-      var west  = h.indexOf('w') >= 0;
-      var east  = h.indexOf('e') >= 0;
-      var north = h.indexOf('n') >= 0;
-      var south = h.indexOf('s') >= 0;
-      // Width
-      if (east)  { (a === 'tr' || a === 'br') ? (x -= dx, w += dx) : (w += dx); }
-      if (west)  { (a === 'tl' || a === 'bl' || a === 'c') ? (x += dx, w -= dx) : (w -= dx); }
-      // Height
-      if (south) { (a === 'bl' || a === 'br') ? (y -= dy, hh += dy) : (hh += dy); }
-      if (north) { (a === 'tl' || a === 'tr' || a === 'c') ? (y += dy, hh -= dy) : (hh -= dy); }
-      // Floor at 1px so handles can't invert
-      if (w < 1)  w = 1;
-      if (hh < 1) hh = 1;
-      return Object.assign({}, layout, { x: x, y: y, w: w, h: hh });
+    function parentSizeForSlot(slot, zoom) {
+      var parent = slot.parentElement;
+      if (!parent) return null;
+      var r = parent.getBoundingClientRect();
+      var z = zoom || 1;
+      return { w: r.width / z, h: r.height / z };
     }
 
-    // Inline-style preview during drag. Mirrors what absolute.js's
-    // appendChild does, just operates on an existing DOM element.
+    // Inline-style preview during drag. Mirrors absolute.js's appendChild
+    // path on an existing slot element.
     function previewLayout(slot, layout) {
-      var u = layout.unit || 'px';
-      var cssV = function (v) { return u === 'percent' ? (v * 100) + '%' : v + 'px'; };
-      slot.style.left = ''; slot.style.right = '';
-      slot.style.top  = ''; slot.style.bottom = '';
-      slot.style.transform = '';
-      var a = layout.anchor || 'tl';
-      var x = layout.x || 0, y = layout.y || 0;
-      if (a === 'tl') { slot.style.left  = cssV(x); slot.style.top    = cssV(y); }
-      else if (a === 'tr') { slot.style.right = cssV(x); slot.style.top    = cssV(y); }
-      else if (a === 'bl') { slot.style.left  = cssV(x); slot.style.bottom = cssV(y); }
-      else if (a === 'br') { slot.style.right = cssV(x); slot.style.bottom = cssV(y); }
-      else if (a === 'c')  { slot.style.left  = '50%';   slot.style.top    = '50%'; slot.style.transform = 'translate(-50%, -50%)'; }
-      if (layout.w != null) slot.style.width  = cssV(layout.w);
-      if (layout.h != null) slot.style.height = cssV(layout.h);
+      EF.ui.layoutRect.applyToSlot(slot, layout);
     }
     function commitLayout(nodeId, layout) {
-      var cs = State.projectCardStyles()[styleKey]; if (!cs) return;
-      var clone = JSON.parse(JSON.stringify(cs));
-      var hit = findNode(clone.root, nodeId, null, -1);
-      if (!hit) return;
-      hit.node.layout = layout;
-      State.upsertCardStyle(styleKey, clone);
+      State.mutateCardStyle(styleKey, function (clone) {
+        var hit = findNode(clone.root, nodeId, null, -1);
+        if (!hit) return false;
+        hit.node.layout = layout;
+      });
     }
 
     EF.effect(rerender);

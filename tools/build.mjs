@@ -31,7 +31,7 @@ const JS_ORDER = [
   // Layer 1 — tree (pure data)
   'tree/tree.js',
 
-  // Layer 2 — registry & widget context
+  // Layer 2 — registry & component context
   'core/registry.js',
   'core/context.js',
 
@@ -49,7 +49,6 @@ const JS_ORDER = [
   'ui/_internal/_floating.js',
   'ui/_internal/_drag.js',
   'ui/_internal/_signal.js',
-  'ui/_internal/_mixed.js',
   'ui/_internal/_box-style.js',
   'ui/_internal/_text-style.js',
   'ui/_internal/_render-tree.js',
@@ -59,6 +58,7 @@ const JS_ORDER = [
   // Layer 6 — UI library: base
   'ui/base/icon-set.js',   // default icon registry (Lucide subset)
   'ui/base/icon.js',
+  'ui/base/image.js',
   'ui/base/button.js',
   'ui/base/iconButton.js',
   'ui/base/tooltip.js',
@@ -110,8 +110,11 @@ const JS_ORDER = [
   'ui/container/card.js',
   'ui/container/scrollArea.js',
   'ui/container/tabPanel.js',
+  'ui/container/_layout-rect.js',  // LayoutRect data + math; required by absolute.js + anchorPicker
   'ui/container/absolute.js',
   'ui/container/vbox.js',
+  'ui/editor/anchorPicker.js',     // depends on ui.layoutRect from above
+
 
   // Layer 10 — UI library: data
   'ui/data/list.js',
@@ -123,13 +126,14 @@ const JS_ORDER = [
 
   // Layer 11 — UI library: overlays
   'ui/overlay/menu.js',
+  'ui/overlay/searchMenu.js',
   'ui/overlay/modal.js',
   'ui/overlay/drawer.js',
   'ui/overlay/banner.js',
   'ui/overlay/toast.js',
   'ui/overlay/dialogs.js',  // ui.alert / ui.confirm / ui.prompt / ui.contextMenu — depend on modal + menu
 
-  // Layer 12 — built-in panel widgets (compose EF.ui.* + register via EF.registerComponent)
+  // Layer 12 — built-in panel components (compose EF.ui.* + register via EF.registerComponent)
   'ui/panel/dock-tabs.js',
   'ui/panel/log.js',
 
@@ -142,7 +146,7 @@ const JS_ORDER = [
 const CSS_ORDER = [
   'style/theme.css',     // tokens first — everything else uses var(--ef-*)
   'style/dock.css',
-  'style/widget.css',
+  'style/component.css',
   'style/ui-base.css',
   'style/ui-form.css',
   'style/ui-editor.css',

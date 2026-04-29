@@ -1,7 +1,7 @@
 // EF.ui.pathInput — file/folder path with browse button.
 //
 // In a pure-frontend world we can't actually open OS file dialogs. This
-// widget emits an `onBrowse` callback you wire up to your own picker (or
+// component emits an `onBrowse` callback you wire up to your own picker (or
 // to <input type=file>). For demos we expose `useFileInput: true` which
 // uses the browser file picker to grab a name only.
 //

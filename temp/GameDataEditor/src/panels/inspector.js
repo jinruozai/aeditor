@@ -8,7 +8,8 @@
  * Provider shape:
  *   title(sel):              string                 header text
  *   schema(sel):             struct_def-shaped obj  drives propertyPanel rows
- *   value(sel):              plain object           current values
+ *   value(sel):              plain object           current value
+ *   targets(sel):            plain object[]         optional batch-edit values
  *   onChange(sel,field,nv):  void                   persistence
  *   dataTopic(sel)?:         string | null          bus topic watched for refresh
  */
@@ -16,6 +17,34 @@
   'use strict';
 
   var ui = EF.ui;
+
+  function registerAssetRenderers() {
+    function assetRenderer(kind, accept) {
+      return function (args) {
+        var agv = args.fieldDef.type_agv || {};
+        return ui.assetPicker({
+          value: args.sig,
+          onChange: args.write,
+          kind: kind,
+          accept: agv.accept || accept,
+          placeholder: agv.placeholder || agv.suffix || '',
+          resolveSrc: function (v) { return ProjectIO.assets.urlFor(v); },
+          exists: function (v) { return !ProjectIO.assets.isAssetUrl(v) || ProjectIO.assets.exists(v); },
+          onFile: function (file) {
+            return ProjectIO.assets.importFile(file, kind, {
+              mode: 'property',
+              kind: kind,
+              field: args.ctx && args.ctx.field,
+              selection: args.ctx && args.ctx.selectionSig ? args.ctx.selectionSig.peek() : null,
+            });
+          },
+        });
+      };
+    }
+    ui.registerRenderer('img', assetRenderer('image', '.png,.jpg,.jpeg,.gif,.webp'));
+    ui.registerRenderer('snd', assetRenderer('audio', '.mp3,.wav,.ogg'));
+  }
+  registerAssetRenderers();
 
   // Project-specific ref_id renderer.
   //
@@ -230,7 +259,7 @@
       targets:  targetsSig,
       disabled: disabledSig,
       onChange: function (field, nv) { if (currentOnChange) currentOnChange(field, nv); },
-      ctx:      { source: 'gde-inspector' },
+      ctx:      function (field) { return { source: 'gde-inspector', field: field, selectionSig: State.selection }; },
     });
 
     // Dynamic bus subscription — the current kind decides which topic should
@@ -323,8 +352,8 @@
       if (isDisabled && form.contains(document.activeElement)) document.activeElement.blur();
       disabledSig.set(isDisabled);
       schemaSig.set(kind.schema(sel) || {});
-      targetsSig.set([kind.value(sel) || {}]);
-      currentOnChange = function (field, nv) { kind.onChange(sel, field, nv); };
+      targetsSig.set(kind.targets ? (kind.targets(sel) || []) : [kind.value(sel) || {}]);
+      currentOnChange = function (field, nv) { kind.onChange(sel, field, nv, targetsSig.peek()); };
       renderForm();
     }
 
@@ -350,15 +379,59 @@
   // ── Built-in provider: editing an entity in a table ───────────
   registerKind('card_data', {
     title: function (sel) {
-      var info = State.resolveEntityDisplay(sel.id);
-      var face = info && info.name !== String(sel.id) ? info.name : sel.pathKey;
-      return t('inspector.id_label') + ': ' + sel.id + ' · ' + face;
+      var refs = selectedEntityRefs(sel);
+      if (refs.length > 1) {
+        var samePath = refs.every(function (r) { return r.pathKey === refs[0].pathKey; });
+        return refs.length + ' selected' + (samePath ? ' · ' + refs[0].pathKey : '');
+      }
+      var id = refs[0] ? refs[0].id : sel.id;
+      var info = State.resolveEntityDisplay(id);
+      var face = info && info.name !== String(id) ? info.name : (refs[0] && refs[0].pathKey) || sel.pathKey;
+      return t('inspector.id_label') + ': ' + id + ' · ' + face;
     },
-    schema:    function (sel) { return (State.tableMap()[sel.pathKey] || {}).struct_def || {}; },
+    schema:    function (sel) { return commonEntitySchema(selectedEntityRefs(sel)); },
     value:     function (sel) { return State.gameData()[sel.id] || {}; },
-    onChange:  function (sel, field, nv) { State.setEntityField(sel.id, field, nv); },
-    dataTopic: function (sel) { return 'data:changed:' + sel.pathKey; },
+    targets:   function (sel) {
+      var gd = State.gameData();
+      return selectedEntityRefs(sel).map(function (ref) { return gd[ref.id] || {}; });
+    },
+    onChange:  function (sel, field, nv) {
+      State.setEntityFieldMany(selectedEntityRefs(sel).map(function (ref) { return ref.id; }), field, nv);
+    },
+    dataTopic: function (sel) {
+      var refs = selectedEntityRefs(sel);
+      if (!refs.length) return null;
+      var samePath = refs.every(function (r) { return r.pathKey === refs[0].pathKey; });
+      return samePath ? 'data:changed:' + refs[0].pathKey : 'data:changed';
+    },
   });
+
+  function selectedEntityRefs(sel) {
+    if (sel && sel.items && sel.items.length) {
+      return sel.items.map(function (it) { return { pathKey: it.pathKey, id: String(it.id) }; });
+    }
+    var ids = sel && sel.ids && sel.ids.length ? sel.ids : (sel && sel.id != null ? [sel.id] : []);
+    return ids.map(function (id) { return { pathKey: sel.pathKey, id: String(id) }; });
+  }
+  function commonEntitySchema(refs) {
+    var tm = State.tableMap();
+    if (!refs.length) return {};
+    var first = (tm[refs[0].pathKey] || {}).struct_def || {};
+    var out = {};
+    Object.keys(first).forEach(function (field) {
+      var sig = fieldTypeSignature(first[field]);
+      for (var i = 1; i < refs.length; i++) {
+        var sd = (tm[refs[i].pathKey] || {}).struct_def || {};
+        if (!sd[field] || fieldTypeSignature(sd[field]) !== sig) return;
+      }
+      out[field] = first[field];
+    });
+    return out;
+  }
+  function fieldTypeSignature(def) {
+    if (typeof def === 'string') return def;
+    return def && typeof def === 'object' ? String(def.type || '') : '';
+  }
 
   // ── Built-in provider: editing the table itself ──────────────
   // Uses the `render` escape hatch instead of the propertyPanel
@@ -394,6 +467,39 @@
     });
     root.appendChild(pathLab);
     root.appendChild(pathIn);
+
+    // ── Card Style ──────────────────────────────────────────
+    // Tables reference cardStyles by key (cardStyles are project-level —
+    // multiple tables can share the same one). The dropdown is rebuilt
+    // when the cardStyle catalog changes (add / rename / delete) so the
+    // option list stays current; the value signal handles the per-table
+    // record changes (cascade on rename / delete).
+    var styleSig = EF.signal(currentStyleKey());
+    function currentStyleKey() {
+      var rec = State.tableMap()[pathKey];
+      return (rec && rec.card_style) || 'default';
+    }
+    function styleOptions() {
+      var cs = State.projectCardStyles();
+      return Object.keys(cs).sort().map(function (k) {
+        return { value: k, label: cs[k].name || k };
+      });
+    }
+    var styleLab  = ui.h('div', 'gde-tm-section-label', { text: 'Card Style' });
+    var styleHost = ui.h('div', 'gde-tm-cardstyle');
+    root.appendChild(styleLab);
+    root.appendChild(styleHost);
+    function mountStyleSelect() {
+      Array.from(styleHost.children).forEach(function (c) { ui.dispose(c); c.remove(); });
+      styleHost.appendChild(ui.select({
+        value:   styleSig,
+        options: styleOptions(),
+        onChange: function (v) { State.setTableCardStyle(pathKey, v); styleSig.set(v); },
+      }));
+    }
+    mountStyleSelect();
+    ui.collect(root, ctx.bus.on('cardstyles:changed', mountStyleSelect));
+    ui.collect(root, ctx.bus.on('tables:changed', function () { styleSig.set(currentStyleKey()); }));
 
     // ── Fields ──────────────────────────────────────────────
     var fieldsLab = ui.h('div', 'gde-tm-section-label gde-tm-fields-label', { text: 'Fields' });
@@ -512,7 +618,7 @@
       return editor;
     }
 
-    // Stringified form of a typeDef[sub] value for the editor widget.
+    // Stringified form of a typeDef[sub] value for the editor component.
     // `default` and `type_agv` carry JSON-shaped values in struct_def but
     // are edited as text, so we pre-stringify / post-parse through JSON.
     function isJsonSub(sub) { return sub === 'default' || sub === 'type_agv'; }
@@ -527,9 +633,9 @@
       var cell = ui.h('span', 'gde-tm-override-cell');
       var val  = (sub === 'key') ? fieldName : typeDef[sub];
       var sig  = EF.signal(subToStr(sub, val));
-      var widget = ui.editorFor(fieldDef, sig, function () {}, {});
-      widget.classList.add('gde-tm-override-widget');
-      cell.appendChild(widget);
+      var editorEl = ui.editorFor(fieldDef, sig, function () {}, {});
+      editorEl.classList.add('gde-tm-override-component');
+      cell.appendChild(editorEl);
       row.appendChild(cell);
       return row;
     }
@@ -547,11 +653,11 @@
       }
 
       // Editor signal — kept in sync with the displayed value (inherited
-      // or override). Writes from the widget are commit-only when we're
+      // or override). Writes from the component are commit-only when we're
       // in override state; the effect below reconciles the signal after
       // each struct_def mutation.
       var vSig = EF.signal(inheritedStr());
-      var widget = ui.editorFor(fieldDef, vSig, function (nv) {
+      var editorEl = ui.editorFor(fieldDef, vSig, function (nv) {
         var sd = State.tableMap()[pathKey].struct_def || {};
         var o  = sd[fieldName] || {};
         if (!(sub in o)) return;               // inherited — writes ignored
@@ -566,8 +672,8 @@
         var next  = Object.assign({}, sd); next[fieldName] = patch;
         State.updateStructDef(pathKey, next);
       }, {});
-      widget.classList.add('gde-tm-override-widget');
-      cell.appendChild(widget);
+      editorEl.classList.add('gde-tm-override-component');
+      cell.appendChild(editorEl);
 
       function unlock() {
         var sd = State.tableMap()[pathKey].struct_def || {};
@@ -579,7 +685,7 @@
         var next = Object.assign({}, sd); next[fieldName] = patch;
         State.updateStructDef(pathKey, next);
         setTimeout(function () {
-          var input = widget.querySelector('input,select,textarea');
+          var input = editorEl.querySelector('input,select,textarea');
           if (input) { input.focus(); if (input.select) input.select(); }
         }, 0);
       }
@@ -604,7 +710,7 @@
       cell.appendChild(lockBtn); cell.appendChild(revertBtn);
       row.appendChild(cell);
 
-      // Reactive paint. The editor widget itself (via ui.input / ui.select)
+      // Reactive paint. The editor component itself (via ui.input / ui.select)
       // already avoids clobbering a focused input when its value signal
       // changes, so we can just push the current display value here.
       var stop = EF.effect(function () {
@@ -854,14 +960,14 @@
 
   // ── card_component — edits one or more nodes inside a cardStyle ──
   // sel.styleKey + sel.nodeIds[] (length≥1). Schema comes from the
-  // component's spec.schema; multi-target uses propertyPanel's MIXED
-  // semantics for free.
+  // component's spec.schema; multi-target shows the first selected node's
+  // values and writes edits to every selected node.
   registerKind('card_component', {
     title: function (sel) {
       var ids = sel.nodeIds || [];
       if (ids.length > 1) return ids.length + ' components';
       var n = findNodeInStyle(sel.styleKey, ids[0]);
-      return n ? n.type : '(missing)';
+      return n ? n.component : '(missing)';
     },
     // Identity = which cardStyle + which node ids are selected. Without this
     // every card_component selection collapsed to the same key, leaving the
@@ -895,8 +1001,8 @@
   }
 
   // Builds a custom-render component-props panel: schema-driven form +
-  // per-prop "🔗 Bind to field" toggles. Multi-select feeds propertyPanel
-  // with all node.props as targets so MIXED kicks in automatically.
+  // per-prop bind-to-field toggles. Multi-select feeds propertyPanel with
+  // all node.props as targets so edits fan out.
   //
   // Critically: the form is built ONCE per selection. propertyPanel takes
   // a `targets` signal and reactively diffs rows when that signal updates
@@ -914,14 +1020,14 @@
       root.appendChild(ui.h('div', 'gde-inspector-empty', { text: '(no node)' }));
       return root;
     }
-    var firstType = initial[0].type;
-    if (initial.some(function (n) { return n.type !== firstType; })) {
+    var firstComponent = initial[0].component;
+    if (initial.some(function (n) { return n.component !== firstComponent; })) {
       root.appendChild(ui.h('div', 'gde-inspector-empty', {
-        text: 'Selection has mixed component types — pick a single kind to edit.',
+        text: 'Selection has different component types — pick a single kind to edit.',
       }));
       return root;
     }
-    var spec; try { spec = EF.resolveComponent(firstType); } catch (_) { return root; }
+    var spec; try { spec = EF.resolveComponent(firstComponent); } catch (_) { return root; }
     var schema = spec.schema || {};
     var bindable = spec.bindable || [];
 
@@ -931,6 +1037,7 @@
       schema:   schema,
       targets:  targetsSig,
       defaults: spec.defaultProps || null,
+      ctx:      function (field) { return { source: 'gde-cardstyle', field: field, selectionSig: State.selection }; },
       onChange: function (field, nv) {
         mutateNodes(styleKey, ids, function (node) {
           node.props = Object.assign({}, node.props || {});
@@ -944,6 +1051,26 @@
       },
     });
     root.appendChild(form);
+
+    // Layout editor (single-selection only — layout is per-node). Shown when this node lives
+    // inside an absolute parent (i.e. has a LayoutRect).
+    var layoutSig = null;
+    var parentSizeSig = null;
+    if (ids.length === 1 && initial[0].layout) {
+      layoutSig = EF.signal(initial[0].layout);
+      parentSizeSig = EF.signal(State.cardStyleRootSize(styleKey));
+      root.appendChild(ui.h('div', 'gde-cs-bindings-head', { text: 'Layout' }));
+      var pickerBox = ui.h('div', 'gde-cs-layout');
+      pickerBox.appendChild(ui.anchorPicker({
+        value: layoutSig,
+        parentSize: parentSizeSig,
+        onChange: function (next) {
+          layoutSig.set(next);
+          mutateNodes(styleKey, ids, function (n) { n.layout = next; });
+        },
+      }));
+      root.appendChild(pickerBox);
+    }
 
     var bindingsBox = null;
     if (bindable.length) {
@@ -963,30 +1090,27 @@
       if (!nodes.length) return;
       targetsSig.set(nodes.map(function (n) { return n.props || {}; }));
       refreshBindings();
+      // Keep the layout picker in sync with WYSIWYG drag/resize commits.
+      if (layoutSig && nodes[0].layout) layoutSig.set(nodes[0].layout);
+      if (parentSizeSig) parentSizeSig.set(State.cardStyleRootSize(styleKey));
     });
 
-    // Build one binding row. Computes the consistent value across all
-    // selected nodes for this propKey — if every node binds to the same
-    // field, the dropdown shows it; if they disagree, it shows a Mixed
-    // placeholder option that the user can pick "(literal)" or a real
-    // field to overwrite for everyone.
+    // Build one binding row. Multi-select shows the first selected node's
+    // binding; picking a value overwrites every selected node.
     function buildBindingRow(propKey) {
       var row = ui.h('div', 'gde-cs-binding-row');
       row.appendChild(ui.h('span', 'gde-cs-binding-key', { text: propKey }));
 
       var fieldsForSelect = collectAvailableFields();
-      // Compute initial value by inspecting all selected nodes.
-      var summary = summarizeBinding(propKey);
-      var sig = EF.signal(summary.mixed ? '__mixed' : summary.value);
+      var sig = EF.signal(firstBindingValue(propKey));
       var options = [{ value: '', label: '(literal)' }];
-      if (summary.mixed) options.push({ value: '__mixed', label: '— Mixed —' });
       fieldsForSelect.forEach(function (f) { options.push({ value: f, label: f }); });
 
-      var sel = ui.select({
+      var sel = ui.combobox({
         value: sig,
         options: options,
+        placeholder: 'Search fields...',
         onChange: function (v) {
-          if (v === '__mixed') return;  // sentinel; user must pick something concrete
           mutateNodes(styleKey, ids, function (n) {
             n.bindings = Object.assign({}, n.bindings || {});
             if (!v) delete n.bindings[propKey];
@@ -994,20 +1118,12 @@
           });
         },
       });
-      if (summary.mixed) sel.classList.add('is-mixed');
       row.appendChild(sel);
       return row;
     }
-    function summarizeBinding(propKey) {
-      var first = null, mixed = false;
-      for (var i = 0; i < ids.length; i++) {
-        var n = findNodeInStyle(styleKey, ids[i]);
-        if (!n) continue;
-        var v = (n.bindings && n.bindings[propKey] && n.bindings[propKey].field) || '';
-        if (i === 0) first = v;
-        else if (v !== first) { mixed = true; break; }
-      }
-      return { value: first || '', mixed: mixed };
+    function firstBindingValue(propKey) {
+      var n = findNodeInStyle(styleKey, ids[0]);
+      return (n && n.bindings && n.bindings[propKey] && n.bindings[propKey].field) || '';
     }
     function collectAvailableFields() {
       // Union of every table's struct_def field names — cardStyles aren't
@@ -1024,13 +1140,12 @@
       return Array.from(s).sort();
     }
     function mutateNodes(styleKey, ids, fn) {
-      var cs = State.projectCardStyles()[styleKey]; if (!cs) return;
-      var clone = JSON.parse(JSON.stringify(cs));
-      ids.forEach(function (id) {
-        var hit = findNodePath(clone.root, id, null, -1);
-        if (hit) fn(hit.node);
+      State.mutateCardStyle(styleKey, function (clone) {
+        ids.forEach(function (id) {
+          var hit = findNodePath(clone.root, id, null, -1);
+          if (hit) fn(hit.node);
+        });
       });
-      State.upsertCardStyle(styleKey, clone);
     }
 
     return root;

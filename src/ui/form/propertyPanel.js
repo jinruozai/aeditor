@@ -1,7 +1,7 @@
 // EF.ui.propertyPanel — schema-driven form for editing one or more objects.
 // One panel can edit a single object (length-1 targets) or batch-edit many;
-// fields that disagree across targets render as MIXED with a visual cue,
-// and a user edit fans out to every target.
+// multi-target reads display the first target's value, and a user edit fans
+// out to every target.
 //
 // opts:
 //   targets:  signal<T[]> | T[]                       required (single-edit = [obj])
@@ -46,19 +46,8 @@
 
     const composite = EF.derived(function () {
       const arr    = targets() || []
-      const schema = schemaSig() || {}
       if (arr.length === 0) return {}
-      if (arr.length === 1) return arr[0] || {}
-      const out = {}
-      Object.keys(schema).forEach(function (key) {
-        const v0 = arr[0] ? arr[0][key] : undefined
-        let mixed = false
-        for (let i = 1; i < arr.length; i++) {
-          if (!ui.equalValues(v0, arr[i] ? arr[i][key] : undefined)) { mixed = true; break }
-        }
-        out[key] = mixed ? ui.MIXED : v0
-      })
-      return out
+      return arr[0] || {}
     })
     ui.collect(root, composite.dispose)
 
@@ -74,8 +63,8 @@
 
     // Each schema rebuild produces N structInputs (one per group) with a
     // header between. Sub-instances all share the same composite signal
-    // and route writes through the same fanOut, so per-key reactivity +
-    // MIXED detection still work without any cross-instance bookkeeping.
+    // and route writes through the same fanOut, so per-key reactivity works
+    // without any cross-instance bookkeeping.
     let mounted = []
     const stopSchema = EF.effect(function () {
       const schema = schemaSig() || {}
@@ -86,30 +75,39 @@
         const grouped = groupBySchema(schema)
         for (let i = 0; i < grouped.length; i++) {
           const g = grouped[i]
-          if (g.name) {
-            const head = ui.h('div', 'ef-ui-property-group', { text: ui.PROP_GROUP_LABELS[g.name] || g.name })
-            root.appendChild(head)
-            mounted.push(head)
-          }
           const fields = g.keys.map(function (fname) {
             const raw   = schema[fname]
             const subFd = ui.resolveFieldDef(typeof raw === 'string' ? { type: raw } : raw)
             return {
-              key:    fname,
-              label:  fname,
-              editor: function (slotSig, write, innerCtx) {
-                return slotEditor(slotSig, write, innerCtx, subFd, fname, defaults)
+              key:     fname,
+              label:   fname,
+              tooltip: subFd.desc || '',
+              editor:  function (slotSig, write, innerCtx) {
+                return slotEditor(slotSig, write, fieldCtx(innerCtx, fname), subFd, fname, defaults)
               },
             }
           })
-          const sub = ui.structInput({
+          const body = ui.structInput({
             value:    composite,
             fields:   fields,
             onChange: function (_next, key, nv) { fanOut(key, nv) },
             ctx:      ctx,
           })
-          root.appendChild(sub)
-          mounted.push(sub)
+          // Named groups wrap in a collapsible section; the unnamed
+          // "essentials" bucket renders flat at the top so the most
+          // important fields are always visible without a click.
+          let mountedEl
+          if (g.name) {
+            mountedEl = ui.section({
+              title:    ui.PROP_GROUP_LABELS[g.name] || g.name,
+              children: [body],
+            })
+            mountedEl.classList.add('ef-ui-property-section')
+          } else {
+            mountedEl = body
+          }
+          root.appendChild(mountedEl)
+          mounted.push(mountedEl)
         }
       })
     })
@@ -139,23 +137,19 @@
     return order.map(function (g) { return { name: g, keys: buckets[g] } })
   }
 
-  // Slot wrapper: hides MIXED from the editor (substitutes a type-blank) and
-  // carries the `data-mixed` attribute so CSS can paint the indicator.
-  // Optional reset button: present when `defaults[fname]` is defined; faded
+  function fieldCtx(ctx, field) {
+    return typeof ctx === 'function' ? ctx(field) : ctx
+  }
+
+  // Slot wrapper. Optional reset button: present when `defaults[fname]` is defined; faded
   // when the current slot value already equals that default.
   function slotEditor(slotSig, write, innerCtx, fieldDef, fname, defaults) {
-    const editorSig = EF.derived(function () {
-      const v = slotSig()
-      return ui.isMixed(v) ? ui.blankFor(fieldDef) : v
-    })
-    const editorEl = ui.editorFor(fieldDef, editorSig, write, innerCtx)
+    const editorEl = ui.editorFor(fieldDef, slotSig, write, innerCtx)
     const slot = ui.h('div', 'ef-ui-slot')
     slot.appendChild(editorEl)
     if (defaults && Object.prototype.hasOwnProperty.call(defaults, fname)) {
       slot.appendChild(buildReset(slotSig, write, defaults[fname]))
     }
-    ui.bind(slot, slotSig, function (v) { slot.toggleAttribute('data-mixed', ui.isMixed(v)) })
-    ui.collect(slot, editorSig.dispose)
     ui.collect(slot, function () { ui.dispose(editorEl) })
     return slot
   }
@@ -183,6 +177,12 @@
     const ve = v   == null || v   === ''
     const de = def == null || def === ''
     if (ve && de) return true
-    return ui.equalValues(v, def)
+    return equalValues(v, def)
+  }
+  function equalValues(a, b) {
+    if (a === b) return true
+    if (a == null || b == null) return false
+    if (typeof a !== 'object' || typeof b !== 'object') return false
+    return JSON.stringify(a) === JSON.stringify(b)
   }
 })(window.EF = window.EF || {})

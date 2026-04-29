@@ -11,12 +11,12 @@
 
   // Category definitions — order matters for the tree view.
   Demo.categories = [
-    { id: 'base',      label: 'Base',      icon: '◇', widget: 'showcase-base' },
-    { id: 'form',      label: 'Form',      icon: '▣', widget: 'showcase-form' },
-    { id: 'editor',    label: 'Editor',    icon: '✎', widget: 'showcase-editor' },
-    { id: 'container', label: 'Container', icon: '▢', widget: 'showcase-container' },
-    { id: 'data',      label: 'Data',      icon: '▤', widget: 'showcase-data' },
-    { id: 'overlay',   label: 'Overlay',   icon: '◈', widget: 'showcase-overlay' },
+    { id: 'base',      label: 'Base',      icon: '◇', component: 'showcase-base' },
+    { id: 'form',      label: 'Form',      icon: '▣', component: 'showcase-form' },
+    { id: 'editor',    label: 'Editor',    icon: '✎', component: 'showcase-editor' },
+    { id: 'container', label: 'Container', icon: '▢', component: 'showcase-container' },
+    { id: 'data',      label: 'Data',      icon: '▤', component: 'showcase-data' },
+    { id: 'overlay',   label: 'Overlay',   icon: '◈', component: 'showcase-overlay' },
   ]
 
   Demo.byCategory = function (cat) {
@@ -112,7 +112,7 @@
     if (!layout) return
     const preview = !!(opts && opts.preview)
     const tree = layout.tree()
-    const found = findPanelByWidget(tree, catDef.widget)
+    const found = findPanelByComponent(tree, catDef.component)
     if (found) {
       if (!preview) layout.promotePanel(found.panelId)
       layout.activatePanel(found.panelId)
@@ -121,17 +121,17 @@
     const mainDockId = findDockByName(tree, 'editor')
     if (!mainDockId) return
     layout.addPanel(mainDockId, {
-      widget: catDef.widget,
+      component: catDef.component,
       title:  catDef.label,
       icon:   catDef.icon,
     }, preview ? { transient: true } : undefined)
   }
 
-  function findPanelByWidget(tree, widgetName) {
+  function findPanelByComponent(tree, componentName) {
     function walk(node) {
       if (node.type === 'dock') {
         for (let i = 0; i < node.panels.length; i++) {
-          if (node.panels[i].widget === widgetName) {
+          if (node.panels[i].component === componentName) {
             return { dockId: node.id, panelId: node.panels[i].id }
           }
         }

@@ -2,7 +2,7 @@
  * Component palette — bottom dock, drag-source list grouped by category.
  *
  * Reads EF.listComponents() at mount, filters to the categories that make
- * sense inside a card layout (panel widgets are excluded), groups them by
+ * sense inside a card layout (panel components are excluded), groups them by
  * category, and renders each entry as a draggable iconButton-shaped chip.
  *
  * Drag payload (MIME application/ef.component+json):
@@ -16,7 +16,7 @@
 
   var ui = EF.ui;
 
-  // Categories we surface in the palette, in order. Built-in panel widgets
+  // Categories we surface in the palette, in order. Built-in panel components
   // (tab-*, log, gde-*) live in different dock layers and aren't useful as
   // card children, so we exclude them.
   var CATEGORIES = ['layout', 'display', 'base', 'form', 'editor'];

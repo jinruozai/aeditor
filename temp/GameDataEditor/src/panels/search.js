@@ -1,5 +1,5 @@
 /**
- * Global Search panel widget.
+ * Global Search panel component.
  */
 (function () {
   'use strict';

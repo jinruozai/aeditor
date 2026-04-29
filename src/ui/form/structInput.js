@@ -7,8 +7,9 @@
 //
 // opts:
 //   value:    signal<object>                               required
-//   fields:   [{ key, label?, editor }]                    required
+//   fields:   [{ key, label?, tooltip?, editor }]          required
 //               editor(slotSig, write, ctx) → HTMLElement
+//               tooltip — optional one-liner shown on label hover
 //   onChange?: (nextObj, changedKey, newValue) => void
 //               if absent, writes go straight into `value`
 //   ctx?:     any                                           forwarded to editor()
@@ -34,7 +35,14 @@
 
     fields.forEach(function (f) {
       const row   = ui.h('div', 'ef-ui-struct-input-row')
-      const label = ui.h('div', 'ef-ui-struct-input-label', { title: f.label || f.key, text: f.label || f.key })
+      const label = ui.h('div', 'ef-ui-struct-input-label', { text: f.label || f.key })
+      // Tooltip surfaces the field's purpose on hover. The `data-has-tip`
+      // marker is a CSS hook for the help cursor; we don't paint that
+      // cursor on every label because most labels have no extra info.
+      if (f.tooltip) {
+        label.setAttribute('data-has-tip', '')
+        ui.tooltip(label, { text: f.tooltip })
+      }
       const cell  = ui.h('div', 'ef-ui-struct-input-cell')
 
       const fieldSig = EF.derived(function () {

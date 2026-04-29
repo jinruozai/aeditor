@@ -1,7 +1,7 @@
 // EF.ui.tab — general-purpose tab strip.
 //
 // This is the single implementation of "tab bar" for the whole framework.
-// All visuals live here; the dock-tabs panel widget (src/ui/panel/dock-tabs.js)
+// All visuals live here; the dock-tabs panel component (src/ui/panel/dock-tabs.js)
 // is a thin shell that just wires ctx.dock.* signals/methods into this.
 //
 // Signal-first API (like every other EF.ui.* component):
@@ -88,7 +88,7 @@
     // so we skip DOM writes that would be no-ops. Without this, clicking a
     // tab would re-render the clicked button mid-gesture and kill its
     // :active CSS state — that's the same bug stable-DOM fixed in the old
-    // widget/tab.js. Keep the invariant here.
+    // component/tab.js. Keep the invariant here.
     const entries = new Map() // id → { btn, iconEl, titleEl, badgeEl, closeEl, last: {} }
     let addBtn = null
 

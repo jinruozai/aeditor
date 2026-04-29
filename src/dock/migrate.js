@@ -9,7 +9,7 @@
 //   4. Source: receives 'ready' (matched by ev.source === w) → posts
 //      { efAction:'migrate', txId, panelData, state } to w
 //   5. Target: receives 'migrate' → finds an accepting dock → addPanel with
-//      panelData.props → if widget.deserialize exists, applies state →
+//      panelData.props → if component.deserialize exists, applies state →
 //      posts { efAction:'migrate-ack', txId } back to opener
 //   6. Source: on 'migrate-ack', calls layout.removePanel(panelId)
 //
@@ -17,8 +17,8 @@
 // target rejects (no dock with matching accept), it sends 'migrate-reject'
 // and the source keeps the panel.
 //
-// Widget contract — § 4.8 spec.serialize / spec.deserialize are optional.
-// Widgets that don't implement them migrate with props only (a fresh create).
+// Component contract — § 4.8 spec.serialize / spec.deserialize are optional.
+// Components that don't implement them migrate with props only (a fresh create).
 ;(function (EF) {
   'use strict'
 
@@ -45,12 +45,12 @@
     if (!pr) return
     const panelData = pr.data.peek()
 
-    // Serialize widget state if supported.
+    // Serialize component state if supported.
     let state = null
-    const spec = EF.resolveComponent(panelData.widget)
+    const spec = EF.resolveComponent(panelData.component)
     if (spec.serialize && pr.contentEl) {
       state = EF.safeCall(
-        { scope: 'widget', widget: panelData.widget, panelId: panelId },
+        { scope: 'component', component: panelData.component, panelId: panelId },
         function () { return spec.serialize(pr.contentEl) }
       )
     }
@@ -94,7 +94,7 @@
         // already fine, but we also drop framework-internal id so the target
         // generates a fresh one.
         const cleanData = {
-          widget: panelData.widget,
+          component: panelData.component,
           title:  panelData.title,
           icon:   panelData.icon,
           props:  panelData.props,
@@ -140,14 +140,14 @@
 
   function acceptMigration(layout, msg, opener) {
     const tree = layout.treeSig.peek()
-    const widget = msg.panelData.widget
+    const component = msg.panelData.component
 
-    // Find first dock that accepts this widget.
+    // Find first dock that accepts this component.
     let targetId = null
     walkDocks(tree, function (d) {
       if (targetId) return
       const a = d.accept
-      const ok = !a || a === '*' || (Array.isArray(a) && a.indexOf(widget) >= 0)
+      const ok = !a || a === '*' || (Array.isArray(a) && a.indexOf(component) >= 0)
       if (ok) targetId = d.id
     })
 
@@ -158,7 +158,7 @@
     }
 
     const panelId = layout.addPanel(targetId, {
-      widget: widget,
+      component: component,
       title:  msg.panelData.title,
       icon:   msg.panelData.icon,
       props:  msg.panelData.props,
@@ -166,14 +166,14 @@
     })
 
     // layout.addPanel triggered reconcile synchronously, which materialized
-    // the widget's contentEl. Now apply serialized state if both sides
+    // the component's contentEl. Now apply serialized state if both sides
     // implement it.
     const pr = EF._dock.findPanelRuntime(layout, panelId)
     if (msg.state != null && pr && pr.contentEl) {
-      const spec = EF.resolveComponent(widget)
+      const spec = EF.resolveComponent(component)
       if (spec.deserialize) {
         EF.safeCall(
-          { scope: 'widget', widget: widget, panelId: panelId },
+          { scope: 'component', component: component, panelId: panelId },
           function () { spec.deserialize(pr.contentEl, msg.state) }
         )
       }

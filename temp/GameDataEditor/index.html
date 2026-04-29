@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <title>GameDataEditor</title>
-  <link rel="stylesheet" href="vendor/ef.css" />
+  <link rel="stylesheet" href="vendor/ef.css?v=10" />
   <style>
     html, body { margin: 0; height: 100%; background: var(--ef-bg-0, #1e1e22); }
     /* #app lives inside .gde-body; must inherit its height, not 100vh.
@@ -165,7 +165,7 @@
     .gde-iconbtn.is-primary:hover { background: var(--ef-accent-soft, #7fb5ff); }
     .gde-iconbtn.is-danger { color: var(--ef-error, #e07a78); }
 
-    /* Tab bar widget — lives in the center dock's toolbar, NOT outside. */
+    /* Tab bar component — lives in the center dock's toolbar, NOT outside. */
     .gde-tabbar {
       display: flex; align-items: stretch;
       width: 100%; height: 100%;
@@ -194,10 +194,9 @@
     }
     /* Cards sit on top of the dock body — use --ef-bg-raised (a step lighter
      * than bg-1) + a subtle shadow so the grid feels "lifted". */
-    /* Card dimensions come from the cardStyle root's props (set inline by
-       card.js render()). Visual chrome (bg/border/radius) lives on the
-       cardStyle's root via BOX_STYLE — .gde-card is just a hit target +
-       selection ring host. */
+    /* Card dimensions come from the table view's cardSize. card.js scales
+       the cardStyle root to fill the actual card while preserving its
+       design aspect ratio. Visual chrome lives on the cardStyle root. */
     .gde-card {
       position: relative;
       overflow: hidden; cursor: pointer;
@@ -213,7 +212,7 @@
       box-shadow: 0 0 0 1px var(--ef-accent, #4a90e2) inset, var(--ef-shadow-2);
     }
     .gde-card.is-dragging { opacity: .4; }
-    .gde-card .gde-card-inner { position: absolute; inset: 0; }
+    .gde-card .gde-card-inner { position: absolute; inset: 0; overflow: hidden; }
 
     .gde-card-el { position: absolute; overflow: hidden; }
     .gde-card-el.text {
@@ -452,8 +451,8 @@
       color: var(--ef-warn, #d4ba6b);
     }
 
-    /* Per-sub-key override row: [label] [editor-widget] [action-btn?]
-       The widget is whatever ui.editorFor renders (input / select / …),
+    /* Per-sub-key override row: [label] [editor-component] [action-btn?]
+       The component is whatever ui.editorFor renders (input / select / …),
        matching the TypeConfig panel 1:1 so the two surfaces look identical. */
     .gde-tm-override-editor {
       display: flex; flex-direction: column; gap: 4px;
@@ -476,23 +475,23 @@
       display: flex; align-items: center; gap: 4px;
       min-width: 0;
     }
-    .gde-tm-override-widget { flex: 1 1 auto; min-width: 0; }
+    .gde-tm-override-component { flex: 1 1 auto; min-width: 0; }
     .gde-tm-override-action { flex: 0 0 auto; opacity: 0.7; }
     .gde-tm-override-action:hover { opacity: 1; }
 
     /* Identity rows and inherited-state overridable rows are visually the
        same: muted, non-interactive editor showing the TypeConfig value.
        Identity has no button at all; inherited has a lock (✎).
-       pointer-events:none on the widget disables interaction uniformly
+       pointer-events:none on the component disables interaction uniformly
        whether it's an <input>, <select>, or richer editor. */
-    .gde-tm-override-row.is-identity  .gde-tm-override-widget,
-    .gde-tm-override-row.is-inherited .gde-tm-override-widget {
+    .gde-tm-override-row.is-identity  .gde-tm-override-component,
+    .gde-tm-override-row.is-inherited .gde-tm-override-component {
       pointer-events: none;
       opacity: 0.6;
       font-style: italic;
     }
-    /* Overridden state: normal widget, with a warm outline hint. */
-    .gde-tm-override-row.is-overridden .gde-tm-override-widget :is(input,select,textarea,.ef-ui-field) {
+    /* Overridden state: normal component, with a warm outline hint. */
+    .gde-tm-override-row.is-overridden .gde-tm-override-component :is(input,select,textarea,.ef-ui-field) {
       border-color: color-mix(in srgb, var(--ef-warn, #d4ba6b) 55%, var(--ef-border-input, #3a3a40));
     }
 
@@ -762,6 +761,74 @@
       font-size: 11px; color: var(--ef-fg-3, #8a8a90);
     }
 
+    /* Asset panel */
+    .gde-assets {
+      height: 100%; display: flex; flex-direction: column;
+      background: var(--ef-bg-1, #26262b); color: var(--ef-fg-1, #d6d6d9);
+      font-size: 12px;
+    }
+    .gde-assets-toolbar {
+      display: flex; align-items: center; gap: 6px;
+      padding: 6px 8px; border-bottom: 1px solid var(--ef-border, #3a3a40);
+      background: var(--ef-bg-1, #26262b);
+    }
+    .gde-assets-toolbar input {
+      width: 240px; max-width: 40%;
+      background: var(--ef-bg-0, #1e1e22);
+      border: 1px solid var(--ef-border, #3a3a40);
+      color: var(--ef-fg-1, #d6d6d9);
+      border-radius: 3px; padding: 4px 8px; outline: none;
+    }
+    .gde-assets-btn {
+      display: inline-flex; align-items: center; gap: 4px;
+      height: 24px; padding: 0 8px;
+      border: 1px solid var(--ef-border, #3a3a40);
+      border-radius: 3px; background: var(--ef-bg-2, #202024);
+      color: var(--ef-fg-1, #d6d6d9); cursor: pointer; font-size: 12px;
+    }
+    .gde-assets-btn:hover { border-color: var(--ef-accent); color: var(--ef-accent); }
+    .gde-assets-crumb {
+      display: flex; align-items: center; gap: 4px;
+      min-height: 28px; padding: 0 10px;
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+      color: var(--ef-fg-3, #8a8a90);
+    }
+    .gde-assets-crumb button {
+      border: 0; background: transparent; color: var(--ef-fg-1);
+      cursor: pointer; padding: 2px 4px; border-radius: 3px;
+    }
+    .gde-assets-crumb button:hover { background: var(--ef-hover, rgba(255,255,255,.05)); }
+    .gde-assets-grid {
+      position: relative; flex: 1; overflow: auto;
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(92px, 1fr));
+      align-content: start; gap: 8px; padding: 10px;
+    }
+    .gde-asset-tile {
+      min-width: 0; height: 92px; padding: 6px;
+      display: flex; flex-direction: column; align-items: center; gap: 6px;
+      border: 1px solid transparent; border-radius: 5px;
+      cursor: default; user-select: none;
+    }
+    .gde-asset-tile:hover { background: var(--ef-hover, rgba(255,255,255,.05)); }
+    .gde-asset-tile.is-selected {
+      background: color-mix(in srgb, var(--ef-accent) 22%, transparent);
+      border-color: var(--ef-accent);
+    }
+    .gde-asset-thumb {
+      width: 52px; height: 52px; display: flex; align-items: center; justify-content: center;
+      border-radius: 5px; background: var(--ef-bg-0, #1e1e22);
+      overflow: hidden; color: var(--ef-fg-3);
+    }
+    .gde-asset-thumb img { width: 100%; height: 100%; object-fit: cover; }
+    .gde-asset-name {
+      width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+      text-align: center; font-size: 11px;
+    }
+    .gde-assets-empty {
+      grid-column: 1 / -1; padding: 24px; text-align: center;
+      color: var(--ef-fg-3, #8a8a90); font-style: italic;
+    }
+
     /* Log panel */
     .gde-log { padding: 0; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 12px; }
     .gde-log-list { overflow: auto; height: 100%; }
@@ -950,9 +1017,14 @@
     }
     .gde-cs-tile.is-active { border-color: var(--ef-accent); box-shadow: 0 0 0 1px var(--ef-accent); }
     .gde-cs-tile-preview {
-      height: 70px; padding: 4px;
+      height: 78px; padding: 4px;
       display: flex; align-items: center; justify-content: center;
-      transform: scale(0.55); transform-origin: top center;
+      overflow: hidden;
+    }
+    .gde-cs-preview-holder {
+      position: relative;
+      flex: 0 0 auto;
+      overflow: hidden;
     }
     .gde-cs-tile-name {
       padding: 4px 6px;
@@ -1069,16 +1141,20 @@
        own center on that anchor — pixel-perfect without depending on
        the handle's own size, which is the trick mature editors use. */
     .ef-ui-abs-slot:has(.gde-cs-handles) { cursor: move; }
+    /* Wrapper extends 3px outside slot edges so handle centers land on the
+       selection ring's center line (ring = 2px outline + 2px offset → its
+       midline sits 3px outward from the slot edge). */
     .gde-cs-handles {
-      position: absolute; inset: 0; pointer-events: none;
+      position: absolute; inset: -3px; pointer-events: none;
       z-index: 2;
     }
     .gde-cs-handle {
-      position: absolute; width: 10px; height: 10px;
-      background: var(--ef-bg-0);
+      position: absolute; width: 12px; height: 12px;
+      background: #fff;
       border: 2px solid var(--ef-accent);
       border-radius: 50%;
       box-sizing: border-box;
+      box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.4);
       pointer-events: auto;
     }
     .gde-cs-handle-n  { top: 0;    left: 50%;  transform: translate(-50%, -50%); cursor: ns-resize; }
@@ -1100,6 +1176,7 @@
       border-top: 1px solid var(--ef-border);
     }
     .gde-cs-bindings { display: flex; flex-direction: column; gap: 4px; padding: 4px 8px; }
+    .gde-cs-layout   { padding: 4px 8px 8px; }
     .gde-cs-binding-row { display: flex; align-items: center; gap: 8px; }
     .gde-cs-binding-key {
       flex: 0 0 90px;
@@ -1107,43 +1184,49 @@
       color: var(--ef-fg-2);
     }
     .gde-cs-binding-row .ef-ui-field { flex: 1 1 auto; }
-    .gde-cs-binding-row .ef-ui-select.is-mixed {
-      border-left: 2px dashed var(--ef-warn);
-    }
   </style>
 </head>
 <body>
   <div class="gde-topbar" id="gde-topbar"></div>
   <div class="gde-body"><div id="app"></div></div>
 
-  <script src="vendor/ef.js"></script>
+  <script src="vendor/ef.js?v=10"></script>
+  <script src="vendor/fflate.min.js?v=10"></script>
 
   <!-- i18n (must load before everything else) -->
-  <script src="src/i18n.js?v=7"></script>
+  <script src="src/i18n.js?v=10"></script>
 
   <!-- Core data model & utilities -->
-  <script src="src/state.js?v=7"></script>
-  <script src="src/normalize.js?v=7"></script>
-  <script src="src/renderers.js?v=7"></script>
-  <script src="src/card.js?v=7"></script>
+  <script src="src/state.js?v=10"></script>
+  <script src="src/normalize.js?v=10"></script>
+  <script src="src/renderers.js?v=10"></script>
+  <script src="src/card.js?v=10"></script>
 
-  <!-- Widgets (one file per panel). Tab bars / panel rails / log header
-       are delegated to the framework's built-in tab widgets (tab-standard
-       / tab-sidebar / tab-collapsible) — no per-project tab widget. -->
-  <script src="src/widgets/tables.js?v=7"></script>
-  <script src="src/widgets/search.js?v=7"></script>
-  <script src="src/widgets/inspector.js?v=7"></script>
-  <script src="src/widgets/typeconfig.js?v=7"></script>
-  <!-- log panel deleted: using the framework's built-in 'log' widget -->
-  <script src="src/widgets/tabledata.js?v=7"></script>
-  <script src="src/widgets/cardstyle-list.js?v=7"></script>
-  <script src="src/widgets/cardstyle-tree.js?v=7"></script>
-  <script src="src/widgets/cardstyle-palette.js?v=7"></script>
-  <script src="src/widgets/cardstyle-editor.js?v=7"></script>
-  <script src="src/widgets/toolbar.js?v=7"></script>
+  <!-- Project IO: folder workspace + zip fallback. -->
+  <script src="src/project-io/codec.js?v=10"></script>
+  <script src="src/project-io/assets.js?v=10"></script>
+  <script src="src/project-io/fs-workspace.js?v=10"></script>
+  <script src="src/project-io/zip-workspace.js?v=10"></script>
+  <script src="src/project-io/recent.js?v=10"></script>
+
+  <!-- Panels (one file per panel). Tab bars / panel rails / log header
+       are delegated to the framework's built-in tab components (tab-standard
+       / tab-sidebar / tab-collapsible) — no per-project tab component. -->
+  <script src="src/panels/tables.js?v=10"></script>
+  <script src="src/panels/search.js?v=10"></script>
+  <script src="src/panels/assets.js?v=10"></script>
+  <script src="src/panels/inspector.js?v=10"></script>
+  <script src="src/panels/typeconfig.js?v=10"></script>
+  <!-- log panel deleted: using the framework's built-in 'log' component -->
+  <script src="src/panels/tabledata.js?v=10"></script>
+  <script src="src/panels/cardstyle-list.js?v=10"></script>
+  <script src="src/panels/cardstyle-tree.js?v=10"></script>
+  <script src="src/panels/cardstyle-palette.js?v=10"></script>
+  <script src="src/panels/cardstyle-editor.js?v=10"></script>
+  <script src="src/panels/toolbar.js?v=10"></script>
 
   <!-- Seed demo data & mount -->
-  <script src="src/seed.js?v=7"></script>
-  <script src="src/main.js?v=7"></script>
+  <script src="src/seed.js?v=10"></script>
+  <script src="src/main.js?v=10"></script>
 </body>
 </html>

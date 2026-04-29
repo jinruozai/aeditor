@@ -46,8 +46,8 @@
         const curId  = ctx.dock.activeId()
         const active = panels.find(function (pp) { return pp.id === curId })
         if (!active) return
-        const defaults = EF.componentDefaults(active.widget)
-        ctx.dock.addPanel(Object.assign({}, defaults, { widget: active.widget }))
+        const defaults = EF.componentDefaults(active.component)
+        ctx.dock.addPanel(Object.assign({}, defaults, { component: active.component }))
       },
       onDragStart: function (ev, panelId) {
         const fn = EF._dock && EF._dock.beginPanelDrag

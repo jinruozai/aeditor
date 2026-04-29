@@ -44,6 +44,18 @@
 .ef-ui-icon-md svg { width: var(--ef-size-icon-md); height: var(--ef-size-icon-md); }
 .ef-ui-icon-lg svg { width: var(--ef-size-icon-lg); height: var(--ef-size-icon-lg); }
 
+/* ── image ────────────────────────────────────────── */
+/* Displayed at 100% of its slot — sizing comes from the absolute slot or
+ * BOX_STYLE width/height applied by the registration. object-fit decides
+ * how the bitmap fills that box. */
+.ef-ui-image {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  user-select: none;
+}
+
 /* ── button ───────────────────────────────────────── */
 .ef-ui-btn {
   position: relative;

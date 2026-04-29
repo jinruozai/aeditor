@@ -30,17 +30,16 @@
     name: 'left',
     toolbar: {
       direction: 'left',
-      items: [{ widget: 'tab-sidebar' }],
+      items: [{ component: 'tab-sidebar' }],
     },
     // Icons here are framework registered names (see EF.ui icon set) — they
     // render as flat monochrome SVG, not emoji. Fallback to the glyph
     // rendering path kicks in automatically if a name isn't registered.
     panels: [
-      EF.panel({ widget: 'gde-tables',          title: I18N.t('panel.tablemap'),   icon: 'table'    }),
-      EF.panel({ widget: 'gde-typeconfig',      title: I18N.t('panel.typeconfig'), icon: 'settings' }),
-      EF.panel({ widget: 'gde-search',          title: I18N.t('panel.search'),     icon: 'search'   }),
-      EF.panel({ widget: 'gde-cardstyle-list',  title: 'Card Styles',              icon: 'columns'  }),
-      EF.panel({ widget: 'gde-cardstyle-tree',  title: 'Object Tree',              icon: 'list'     }),
+      EF.panel({ component: 'gde-tables',          title: I18N.t('panel.tablemap'),   icon: 'table'    }),
+      EF.panel({ component: 'gde-typeconfig',      title: I18N.t('panel.typeconfig'), icon: 'settings' }),
+      EF.panel({ component: 'gde-search',          title: I18N.t('panel.search'),     icon: 'search'   }),
+      EF.panel({ component: 'gde-cardstyle-tree',  title: 'Object Tree',              icon: 'list'     }),
     ],
   });
 
@@ -49,26 +48,28 @@
     accept: ['gde-table-data', 'gde-cardstyle-editor'],
     toolbar: {
       direction: 'top',
-      items: [{ widget: 'tab-standard', props: { addable: false } }],
+      items: [{ component: 'tab-standard', props: { addable: false } }],
     },
   });
 
   var logDock = EF.dock({
     name:      'log',
-    collapsed: true,
+    collapsed: false,
     // Bottom-aligned toolbar: when the dock is collapsed only the tab strip
     // remains visible, anchored to the very bottom of the center column —
     // exactly how VS Code's status/output panel behaves.
     toolbar: {
       direction: 'bottom',
-      items: [{ widget: 'tab-collapsible', props: { closable: false } }],
+      items: [{ component: 'tab-collapsible', props: { closable: false } }],
     },
-    // Use the built-in 'log' widget (EF.log signal). Project writes go
+    // Use the built-in 'log' component (EF.log signal). Project writes go
     // through State.log → EF.log.push, so framework + app messages share
     // one stream.
     panels: [
-      EF.panel({ widget: 'log',                    title: 'Log',        icon: 'list'    }),
-      EF.panel({ widget: 'gde-cardstyle-palette',  title: 'Components', icon: 'columns' }),
+      EF.panel({ component: 'gde-assets',             title: 'Assets',     icon: 'folder'  }),
+      EF.panel({ component: 'gde-cardstyle-list',     title: 'Card Styles', icon: 'columns' }),
+      EF.panel({ component: 'gde-cardstyle-palette',  title: 'Components', icon: 'columns' }),
+      EF.panel({ component: 'log',                    title: 'Log',        icon: 'list'    }),
     ],
   });
 
@@ -76,7 +77,7 @@
     name: 'right',
     // No toolbar = single fixed panel, no tab bar.
     panels: [
-      EF.panel({ widget: 'gde-inspector', title: I18N.t('panel.inspector') }),
+      EF.panel({ component: 'gde-inspector', title: I18N.t('panel.inspector') }),
     ],
   });
 
@@ -99,7 +100,7 @@
 
   // 6. Sync State.activeTable FROM the center dock's activeId. This is the
   //    single source of truth for "which table is being edited" — every
-  //    widget subscribes to State.activeTable, not to the layout tree.
+  //    component subscribes to State.activeTable, not to the layout tree.
   //    handle.subscribe re-fires whenever the layout tree changes; peek on
   //    activeTable so this callback never subscribes to its own writes.
   handle.subscribe(function (t) {

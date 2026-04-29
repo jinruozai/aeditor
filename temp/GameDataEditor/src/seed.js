@@ -1,7 +1,7 @@
 /**
  * Seed data — builtin TypeConfig + a small demo project.
  * The builtin TypeConfig is the source-of-truth for known types; project-level
- * TypeConfig (loaded from .gmdata) overrides individual fields on top.
+ * TypeConfig loaded from gamedata.json overrides individual fields on top.
  */
 (function () {
   'use strict';
@@ -119,16 +119,21 @@
         name: 'Default',
         root: {
           id: 'root',
-          type: 'absolute',
+          component: 'absolute',
           props: { width: 120, height: 120, background: 'var(--ef-bg-0)', borderRadius: 6 },
           bindings: {},
           children: [
             {
               id: 'id-text',
-              type: 'text',
+              component: 'text',
               props: { textAlign: 'center', size: 'sm' },
               bindings: { value: { source: 'field', field: 'id' } },
-              layout: { anchor: 'bl', x: 0, y: 4, w: 120, h: 18, unit: 'px' },
+              // Stretch horizontally across the bottom, 18px tall, 4px above
+              // the parent's bottom edge — the LayoutRect way.
+              layout: {
+                aMin: { x: 0, y: 1 }, aMax: { x: 1, y: 1 },
+                oMin: { x: 0, y: -22 }, oMax: { x: 0, y: -4 },
+              },
               children: [],
             },
           ],
@@ -173,7 +178,9 @@
     State.setGameData(gd);
     State.setTableMap(tm);
     State.projectName.set('Demo Project');
+    State.setWorkspaceInfo({ kind: 'demo', name: 'Demo Project' });
     Normalize.normalizeAll();
+    State.clearDirty();
     State.log('info', 'Loaded demo project (' +
       Object.keys(tm).length + ' tables, ' + Object.keys(gd).length + ' entities)');
   }

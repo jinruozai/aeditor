@@ -1,7 +1,7 @@
-// demo widget: component-tree
+// demo component: component-tree
 //
 // Left-sidebar panel listing every catalog entry, grouped by category. The
-// widget is a simple flat scrollable list with section headers — not a
+// component is a simple flat scrollable list with section headers — not a
 // real tree — because:
 //   1. The catalog is tiny (45 entries) so collapse/expand is UX debt
 //   2. Users want to click any component without first expanding a group

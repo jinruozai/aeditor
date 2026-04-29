@@ -5,7 +5,7 @@
  *   Layer 2 — Roles       : semantic mapping onto primitives (--ef-bg-1, --ef-fg-2)
  *   Layer 3 — Components  : the rare per-component tweak that isn't a role
  *
- * ALL non-token CSS in dock.css / widget.css / ui-*.css must reference Layer 2
+ * ALL non-token CSS in dock.css / component.css / ui-*.css must reference Layer 2
  * roles, not Layer 1 primitives. Themes (dark / light) only override Layer 1
  * primitives + a few Layer 2 mappings; Layer 3 stays put.
  *
@@ -183,7 +183,7 @@
   --ef-icon-error:   "⨯";
 
   /* Legacy aliases — kept until Phase 2 grep-replace finishes.
-   * dock.css / widget.css will be migrated to use the new role names directly,
+   * dock.css / component.css will be migrated to use the new role names directly,
    * then these can be removed. */
   --ef-color-bg-0:        var(--ef-bg-0);
   --ef-color-bg-1:        var(--ef-bg-1);

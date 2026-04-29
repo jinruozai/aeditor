@@ -1,4 +1,4 @@
-// demo widget: component-search
+// demo component: component-search
 //
 // Left-sidebar panel: a text input + filtered ui.list over the catalog.
 // Clicking a row calls Demo.select(id), same entry point as the tree.

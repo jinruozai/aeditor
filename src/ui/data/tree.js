@@ -310,6 +310,14 @@
     const spacer = ui.h('div', 'ef-ui-tree-spacer')
     const win = ui.h('div', 'ef-ui-tree-window')
     el.appendChild(spacer); spacer.appendChild(win)
+    if (writeSel) {
+      el.addEventListener('pointerdown', function (ev) {
+        if (ev.target.closest && ev.target.closest('.ef-ui-tree-row')) return
+        focusedId = null
+        anchorId = null
+        writeSelSet(new Set())
+      })
+    }
 
     // Derived flat list; recomputed whenever items / expanded / search change.
     const flatSig = EF.derived(function () {

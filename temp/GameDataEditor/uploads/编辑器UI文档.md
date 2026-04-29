@@ -17,10 +17,26 @@ EditorFrame 的理念：
 - 最左：项目图标 + 项目名称
   - 点击弹出菜单：
     - 新建
-    - 打开
+    - 打开目录
     - 打开最近（子菜单）
     - 保存
     - 另存为
+    - 导入
+    - 导出 zip
+
+### 1.1.1 项目加载规则
+
+项目目录没有强制根结构要求，加载逻辑以“尽量打开”为原则：
+- `gamedata.json` 是可选文件；存在时读取 `project` / `type_config` / `card_styles`，不存在时使用空项目配置与默认 card style。
+- 遍历目录内所有 `.json` 文件。
+- `gamedata.json` 之外，只有包含 `_table` 的 JSON 会作为表文件加载；其他 JSON 忽略。
+- 表路径等于文件路径去掉 `.json` 后的相对路径，例如 `data/items.json` 加载为 `data/items`。
+- 表文件格式：
+  - `_table.struct_def`：表结构定义
+  - `_table.card_style`：该表使用的 card style key，缺省为 `default`
+  - 其他顶层 key：实体 ID，对应值为实体数据
+- 如果 `struct_def` 里引用的 type 不在当前 `type_config`（含内置基础类型）中，加载不中断，只写入 error log。
+- 坏 JSON、无 `_table` 的 JSON、重复 ID 等错误都不阻止项目打开；能识别的数据正常加载，识别不了的部分跳过。
 
 ### 1.2 中（Middle：三列）
 
@@ -117,6 +133,7 @@ EditorFrame 的理念：
 1) **Log 面板**
 - 需要能清晰区分：普通输出 / 警告 / 报错
 - 支持过滤与复制
+- 单击记录不删除；只有 Clear 按钮清空日志
 - 双击 log 记录可定位到表/ID/字段（若有位置信息）
 
 ---

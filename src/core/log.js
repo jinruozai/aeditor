@@ -13,7 +13,7 @@
 //
 // LogEntry = { id, time, level, source, message, error?, stack? }
 // level    = 'error' | 'warn' | 'info' | 'debug'
-// source   = { scope: 'widget'|'global'|'bus'|..., dockId?, panelId?, widget?, topic? }
+// source   = { scope: 'component'|'global'|'bus'|..., dockId?, panelId?, component?, topic? }
 //
 // The window 'error' / 'unhandledrejection' listeners are NOT installed
 // here — they live in dock/layout.js and attach on first createDockLayout()

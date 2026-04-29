@@ -94,7 +94,7 @@
       return dr.dockEl
     }
 
-    // Fresh dock: build DOM + runtime + (optionally) toolbar widgets.
+    // Fresh dock: build DOM + runtime + (optionally) toolbar components.
     const dockEl = document.createElement('div')
     dockEl.className = 'ef-dock'
     if (dockData.toolbar) {
@@ -138,7 +138,7 @@
     layout.dockRuntimes.set(dockData.id, dr)
 
     // Now that the runtime exists with toolbar element references, instantiate
-    // every static toolbar widget. They live for the entire dock lifetime.
+    // every static toolbar component. They live for the entire dock lifetime.
     if (dockData.toolbar) {
       RT.createStaticToolbarRuntimes(dr, dockData, layout)
     }

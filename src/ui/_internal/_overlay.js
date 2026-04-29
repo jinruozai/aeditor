@@ -1,7 +1,7 @@
 // UI library — overlay controller.
 //
 // Single authority for all EF.ui overlay widgets (popover, menu, modal,
-// drawer). Owns the things that caused cross-widget bugs when they were
+// drawer). Owns the things that caused cross-component bugs when they were
 // rolled by hand:
 //
 //   1. Overlay stack         Nested overlays dismiss in LIFO order. ESC only
@@ -34,7 +34,7 @@
 //                          // NOT treated as "outside".
 //     modal?: boolean,     // true = modal-class overlay. Enables focus trap
 //                          // + focus restore. backdrop is NOT created here;
-//                          // the widget owns its own visual backdrop.
+//                          // the component owns its own visual backdrop.
 //     dismissOnOutside?,   // default: true for anchored, false for modal.
 //                          // Modal overlays still listen, but "outside"
 //                          // means "on the backdrop element" — opt in via
@@ -47,7 +47,7 @@
 //     role?, ariaLabel?, ariaLabelledBy?, ariaModal?,
 //     onDismiss,           // fired when the overlay is closed by this
 //                          // controller (outside click, ESC, or
-//                          // handle.close()). Widgets use it to run
+//                          // handle.close()). Components use it to run
 //                          // their own cleanup + animations.
 //   })
 //
@@ -55,10 +55,10 @@
 //
 // Notes on ordering
 //
-//   - The widget is responsible for mounting its own DOM (usually via
+//   - The component is responsible for mounting its own DOM (usually via
 //     ui.portal). This controller does NOT mount or unmount DOM — it just
 //     wires dismissal, focus, and ARIA onto an already-mounted element.
-//   - Widgets call open() right after mounting and should forward
+//   - Components call open() right after mounting and should forward
 //     { onDismiss } through to their own `close()` function so external
 //     and internal dismissal go through the same code path.
 ;(function (EF) {
@@ -90,7 +90,7 @@
       const f = stack[i]
       if (!f.armed) return            // opened by the very event we're handling — skip this tick
       if (f.el.contains(e.target)) return // click inside this overlay — keep it open
-      if (f.opts.anchor && f.opts.anchor.contains(e.target)) return // on its anchor — widget handles toggle
+      if (f.opts.anchor && f.opts.anchor.contains(e.target)) return // on its anchor — component handles toggle
       if (f.opts.outsideTarget && !f.opts.outsideTarget.contains(e.target)) {
         // Modal path: only the explicitly-declared backdrop element counts.
         return
@@ -105,7 +105,7 @@
     if (globalBound) return
     globalBound = true
     // Capture phase so we see events before normal handlers run, which
-    // lets us stop the ESC event from propagating into widget keydown
+    // lets us stop the ESC event from propagating into component keydown
     // listeners that might also close something.
     document.addEventListener('keydown', onGlobalKey, true)
     // mousedown (not click) so the dismissal happens before any click

@@ -1,6 +1,6 @@
 // EF.ui.menu — context / dropdown menu.
 //
-// This is just a normal UI widget; the framework does NOT bind global menu
+// This is just a normal UI component; the framework does NOT bind global menu
 // hotkeys or right-click handlers. Callers wire it up: pointerdown / Ctrl+K /
 // button click → call EF.ui.menu({ ... }) to open it.
 //

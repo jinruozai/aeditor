@@ -35,10 +35,10 @@
     bindable: ['value'],
     defaultProps: Object.assign({}, BOX_D, { value: '', placeholder: '' }),
     schema: Object.assign({}, BOX, {
-      value:       { type: 'string' },
-      placeholder: { type: 'string' },
-      disabled:    { type: 'bool' },
-      readOnly:    { type: 'bool' },
+      value:       { type: 'string', desc: 'Current text value of the input.' },
+      placeholder: { type: 'string', desc: 'Hint shown when the input is empty.' },
+      disabled:    { type: 'bool',   desc: 'Disable interaction (greyed out, not focusable).' },
+      readOnly:    { type: 'bool',   desc: 'Allow focus and selection but block edits.' },
     }),
     factory: function (p) {
       const el = ui.input(ro(lift(p, ['value','placeholder','disabled','readOnly'])))
@@ -52,10 +52,10 @@
     bindable: ['value'],
     defaultProps: Object.assign({}, BOX_D, TEXT_D, { value: '', placeholder: '', rows: 4 }),
     schema: Object.assign({}, BOX, TEXT, {
-      value:       { type: 'string' },
-      placeholder: { type: 'string' },
-      rows:        { type: 'int' },
-      disabled:    { type: 'bool' },
+      value:       { type: 'string', desc: 'Current text value of the textarea.' },
+      placeholder: { type: 'string', desc: 'Hint shown when the textarea is empty.' },
+      rows:        { type: 'int',    desc: 'Visible height in rows of text.' },
+      disabled:    { type: 'bool',   desc: 'Disable interaction (greyed out, not focusable).' },
     }),
     factory: function (p) {
       const el = ui.textarea(ro(lift(p, ['value','placeholder','rows','disabled'])))
@@ -69,12 +69,12 @@
     bindable: ['value'],
     defaultProps: Object.assign({}, BOX_D, { value: 0, step: 1, precision: 0 }),
     schema: Object.assign({}, BOX, {
-      value:     { type: 'float' },
-      min:       { type: 'float' },
-      max:       { type: 'float' },
-      step:      { type: 'float' },
-      precision: { type: 'int' },
-      disabled:  { type: 'bool' },
+      value:     { type: 'float', desc: 'Current numeric value.' },
+      min:       { type: 'float', desc: 'Minimum allowed value (empty = no lower bound).' },
+      max:       { type: 'float', desc: 'Maximum allowed value (empty = no upper bound).' },
+      step:      { type: 'float', desc: 'Increment per arrow / scrub.' },
+      precision: { type: 'int',   desc: 'Decimal places shown.' },
+      disabled:  { type: 'bool',  desc: 'Disable interaction (greyed out, not focusable).' },
     }),
     factory: function (p) {
       const el = ui.numberInput(ro(lift(p, ['value','min','max','step','precision','disabled'])))
@@ -88,9 +88,9 @@
     bindable: ['value'],
     defaultProps: { value: false, label: '' },
     schema: {
-      value:    { type: 'bool' },
-      label:    { type: 'string' },
-      disabled: { type: 'bool' },
+      value:    { type: 'bool',   desc: 'Checked / unchecked.' },
+      label:    { type: 'string', desc: 'Text shown next to the box.' },
+      disabled: { type: 'bool',   desc: 'Disable interaction (greyed out, not focusable).' },
     },
     factory: function (p) { return ui.checkbox(ro(lift(p, ['value','label','disabled']))) },
   })
@@ -99,7 +99,10 @@
     label: 'Switch', icon: 'toggle-right', category: 'form',
     bindable: ['value'],
     defaultProps: { value: false },
-    schema: { value: { type: 'bool' }, disabled: { type: 'bool' } },
+    schema: {
+      value:    { type: 'bool', desc: 'On / off.' },
+      disabled: { type: 'bool', desc: 'Disable interaction (greyed out, not focusable).' },
+    },
     factory: function (p) { return ui.switch(ro(lift(p, ['value','disabled']))) },
   })
 
@@ -108,12 +111,12 @@
     bindable: ['value'],
     defaultProps: { value: 0, min: 0, max: 100, step: 1, showValue: true },
     schema: {
-      value:     { type: 'float' },
-      min:       { type: 'float' },
-      max:       { type: 'float' },
-      step:      { type: 'float' },
-      showValue: { type: 'bool' },
-      disabled:  { type: 'bool' },
+      value:     { type: 'float', desc: 'Current value along the track.' },
+      min:       { type: 'float', desc: 'Minimum value at the left end of the track.' },
+      max:       { type: 'float', desc: 'Maximum value at the right end of the track.' },
+      step:      { type: 'float', desc: 'Snap increment.' },
+      showValue: { type: 'bool',  desc: 'Show the current value next to the slider.' },
+      disabled:  { type: 'bool',  desc: 'Disable interaction (greyed out, not focusable).' },
     },
     factory: function (p) { return ui.slider(ro(lift(p, ['value','min','max','step','showValue','disabled']))) },
   })
@@ -123,9 +126,9 @@
     bindable: ['value'],
     defaultProps: Object.assign({}, BOX_D, { value: '', options: [] }),
     schema: Object.assign({}, BOX, {
-      value:    { type: 'string' },
-      options:  { type: 'array' },
-      disabled: { type: 'bool' },
+      value:    { type: 'string', desc: 'Currently selected option value.' },
+      options:  { type: 'array',  desc: 'List of options as [{ value, label }] objects.' },
+      disabled: { type: 'bool',   desc: 'Disable interaction (greyed out, not focusable).' },
     }),
     factory: function (p) {
       const el = ui.select(ro(lift(p, ['value','options','disabled'])))
@@ -138,7 +141,10 @@
     label: 'Color', icon: 'palette', category: 'form',
     bindable: ['value'],
     defaultProps: { value: '#000000' },
-    schema: { value: { type: 'string' }, disabled: { type: 'bool' } },
+    schema: {
+      value:    { type: 'string', desc: 'Hex color value, e.g. "#ff8800".' },
+      disabled: { type: 'bool',   desc: 'Disable interaction (greyed out, not focusable).' },
+    },
     factory: function (p) { return ui.colorInput(ro(lift(p, ['value','disabled']))) },
   })
 
@@ -146,7 +152,10 @@
     label: 'Date', icon: 'calendar', category: 'form',
     bindable: ['value'],
     defaultProps: { value: '' },
-    schema: { value: { type: 'string' }, disabled: { type: 'bool' } },
+    schema: {
+      value:    { type: 'string', desc: 'Date as ISO string (YYYY-MM-DD).' },
+      disabled: { type: 'bool',   desc: 'Disable interaction (greyed out, not focusable).' },
+    },
     factory: function (p) { return ui.dateInput(ro(lift(p, ['value','disabled']))) },
   })
 
@@ -156,10 +165,12 @@
     bindable: ['text'],
     defaultProps: Object.assign({}, BOX_D, TEXT_D, { text: 'Button', kind: 'default', size: 'md' }),
     schema: Object.assign({}, BOX, TEXT, {
-      text:     { type: 'string' },
-      kind:     { type: 'enum_string', type_agv: { options: ['default','primary','ghost','danger'] } },
-      size:     { type: 'enum_string', type_agv: { options: ['sm','md','lg'] } },
-      disabled: { type: 'bool' },
+      text:     { type: 'string', desc: 'Button label.' },
+      kind:     { type: 'enum_string', type_agv: { options: ['default','primary','ghost','danger'] },
+                  desc: 'Visual variant: default · primary · ghost · danger.' },
+      size:     { type: 'enum_string', type_agv: { options: ['sm','md','lg'] },
+                  desc: 'Button size: sm · md · lg.' },
+      disabled: { type: 'bool', desc: 'Disable interaction (greyed out, not focusable).' },
     }),
     factory: function (p) {
       const el = ui.button(lift(p, ['text','kind','size','disabled']))
@@ -173,14 +184,39 @@
     bindable: ['icon'],
     defaultProps: Object.assign({}, BOX_D, { icon: 'plus', size: 'md', kind: 'default' }),
     schema: Object.assign({}, BOX, {
-      icon:     { type: 'string' },
-      title:    { type: 'string' },
-      size:     { type: 'enum_string', type_agv: { options: ['sm','md','lg'] } },
-      kind:     { type: 'enum_string', type_agv: { options: ['default','primary','ghost','danger'] } },
-      disabled: { type: 'bool' },
+      icon:     { type: 'string', desc: 'Registered icon name (see EF.ui.registerIcon).' },
+      title:    { type: 'string', desc: 'Tooltip / accessibility label shown on hover.' },
+      size:     { type: 'enum_string', type_agv: { options: ['sm','md','lg'] },
+                  desc: 'Button size: sm · md · lg.' },
+      kind:     { type: 'enum_string', type_agv: { options: ['default','primary','ghost','danger'] },
+                  desc: 'Visual variant: default · primary · ghost · danger.' },
+      disabled: { type: 'bool', desc: 'Disable interaction (greyed out, not focusable).' },
     }),
     factory: function (p) {
-      const el = ui.iconButton(lift(p, ['icon','title','size','kind','disabled']))
+      const opts = lift(p, ['icon','size','kind','disabled'])
+      opts.title = EF.derived(function () {
+        const cur = p() || {}
+        return cur.title || cur.icon || 'Icon button'
+      })
+      const el = ui.iconButton(opts)
+      ui.collect(el, opts.title.dispose)
+      box(el, p)
+      return el
+    },
+  })
+
+  reg('image', {
+    label: 'Image', icon: 'image', category: 'display',
+    bindable: ['src'],
+    defaultProps: Object.assign({}, BOX_D, { src: '', alt: '', objectFit: 'cover' }),
+    schema: Object.assign({}, BOX, {
+      src:       { type: 'string', desc: 'Image URL or data URI.' },
+      alt:       { type: 'string', desc: 'Accessibility text shown when the image fails to load.' },
+      objectFit: { type: 'enum_string', type_agv: { options: ['cover','contain','fill','none'] },
+                   desc: 'How the image fills its box: cover crops · contain letterboxes · fill stretches · none keeps native size.' },
+    }),
+    factory: function (p) {
+      const el = ui.image(lift(p, ['src','alt','objectFit']))
       box(el, p)
       return el
     },
@@ -191,9 +227,10 @@
     bindable: ['name'],
     defaultProps: { name: 'image', size: 'md', color: '' },
     schema: {
-      name:  { type: 'string' },
-      size:  { type: 'enum_string', type_agv: { options: ['sm','md','lg'] } },
-      color: { type: 'string' },
+      name:  { type: 'string', desc: 'Registered icon name (see EF.ui.registerIcon). Falls back to literal text.' },
+      size:  { type: 'enum_string', type_agv: { options: ['sm','md','lg'] },
+               desc: 'Icon size: sm · md · lg.' },
+      color: { type: 'string', desc: 'CSS color override. Empty inherits from text color.' },
     },
     factory: function (p) {
       const el = ui.icon(lift(p, ['name','size']))
@@ -212,9 +249,10 @@
     bindable: ['text'],
     defaultProps: Object.assign({}, BOX_D, TEXT_D, { text: 'NEW', kind: 'accent' }),
     schema: Object.assign({}, BOX, TEXT, {
-      text: { type: 'string' },
-      kind: { type: 'enum_string', type_agv: { options: ['default','accent','success','warn','error'] } },
-      dot:  { type: 'bool' },
+      text: { type: 'string', desc: 'Badge text (a short label or count).' },
+      kind: { type: 'enum_string', type_agv: { options: ['default','accent','success','warn','error'] },
+              desc: 'Visual tone: default · accent · success · warn · error.' },
+      dot:  { type: 'bool', desc: 'Render as a tiny status dot instead of a text pill.' },
     }),
     factory: function (p) {
       const el = ui.badge(lift(p, ['text','kind','dot']))
@@ -228,8 +266,9 @@
     bindable: ['text'],
     defaultProps: Object.assign({}, BOX_D, TEXT_D, { text: 'tag', color: 'gray' }),
     schema: Object.assign({}, BOX, TEXT, {
-      text:  { type: 'string' },
-      color: { type: 'enum_string', type_agv: { options: ['gray','accent','green','red','blue','yellow'] } },
+      text:  { type: 'string', desc: 'Tag label.' },
+      color: { type: 'enum_string', type_agv: { options: ['gray','accent','green','red','blue','yellow'] },
+               desc: 'Tag color: gray · accent · green · red · blue · yellow.' },
     }),
     factory: function (p) {
       const el = ui.tag(lift(p, ['text','color']))
@@ -243,9 +282,10 @@
     bindable: ['title', 'message'],
     defaultProps: Object.assign({}, BOX_D, TEXT_D, { kind: 'info', title: '', message: '' }),
     schema: Object.assign({}, BOX, TEXT, {
-      kind:    { type: 'enum_string', type_agv: { options: ['info','success','warn','error'] } },
-      title:   { type: 'string' },
-      message: { type: 'string' },
+      kind:    { type: 'enum_string', type_agv: { options: ['info','success','warn','error'] },
+                 desc: 'Banner tone: info · success · warn · error.' },
+      title:   { type: 'string', desc: 'Banner heading.' },
+      message: { type: 'string', desc: 'Banner body text.' },
     }),
     factory: function (p) {
       const el = ui.banner(lift(p, ['kind','title','message']))
@@ -258,7 +298,10 @@
     label: 'Divider', icon: 'minus', category: 'display',
     bindable: ['label'],
     defaultProps: Object.assign({}, BOX_D, { label: '', vertical: false }),
-    schema: Object.assign({}, BOX, { label: { type: 'string' }, vertical: { type: 'bool' } }),
+    schema: Object.assign({}, BOX, {
+      label:    { type: 'string', desc: 'Optional caption on the line.' },
+      vertical: { type: 'bool',   desc: 'Render the divider vertically instead of horizontally.' },
+    }),
     factory: function (p) {
       const el = ui.divider(lift(p, ['label','vertical']))
       box(el, p)
@@ -271,9 +314,9 @@
     bindable: ['value'],
     defaultProps: Object.assign({}, BOX_D, { value: 0, max: 100, showLabel: true }),
     schema: Object.assign({}, BOX, {
-      value:     { type: 'float' },
-      max:       { type: 'float' },
-      showLabel: { type: 'bool' },
+      value:     { type: 'float', desc: 'Current progress value.' },
+      max:       { type: 'float', desc: 'Maximum value (the bar fills when value reaches this).' },
+      showLabel: { type: 'bool',  desc: 'Show the percentage label inside the bar.' },
     }),
     factory: function (p) {
       const el = ui.progressBar(lift(p, ['value','max','showLabel']))
@@ -286,7 +329,10 @@
     label: 'Spinner', icon: 'spinner', category: 'display',
     bindable: [],
     defaultProps: { size: 'md' },
-    schema: { size: { type: 'enum_string', type_agv: { options: ['sm','md','lg'] } } },
+    schema: {
+      size: { type: 'enum_string', type_agv: { options: ['sm','md','lg'] },
+              desc: 'Spinner size: sm · md · lg.' },
+    },
     factory: function (p) { return ui.spinner(lift(p, ['size'])) },
   })
 
@@ -294,7 +340,9 @@
     label: 'Keyboard', icon: 'type', category: 'display',
     bindable: ['text'],
     defaultProps: Object.assign({}, BOX_D, TEXT_D, { text: 'Ctrl+K' }),
-    schema: Object.assign({}, BOX, TEXT, { text: { type: 'string' } }),
+    schema: Object.assign({}, BOX, TEXT, {
+      text: { type: 'string', desc: 'Keyboard shortcut to display, e.g. "Ctrl+K".' },
+    }),
     factory: function (p) {
       const el = ui.kbd(lift(p, ['text']))
       box(el, p); text(el, p)
@@ -308,10 +356,11 @@
     bindable: ['value'],
     defaultProps: Object.assign({}, BOX_D, { value: '', kind: 'image', placeholder: '' }),
     schema: Object.assign({}, BOX, {
-      value:       { type: 'string' },
-      kind:        { type: 'enum_string', type_agv: { options: ['image','audio','file'] } },
-      placeholder: { type: 'string' },
-      accept:      { type: 'string' },
+      value:       { type: 'string', desc: 'Asset path or URL.' },
+      kind:        { type: 'enum_string', type_agv: { options: ['image','audio','file'] },
+                     desc: 'Asset kind: image · audio · file. Drives the preview affordance.' },
+      placeholder: { type: 'string', desc: 'Hint shown when no asset is picked.' },
+      accept:      { type: 'string', desc: 'MIME pattern passed to the file picker (e.g. "image/png").' },
     }),
     factory: function (p) {
       const el = ui.assetPicker(ro(lift(p, ['value','kind','placeholder','accept'])))

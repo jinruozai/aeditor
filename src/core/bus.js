@@ -1,4 +1,4 @@
-// EF.bus — global pub/sub for decoupled panel/dock/widget communication.
+// EF.bus — global pub/sub for decoupled panel/dock/component communication.
 //
 //   EF.bus.on(topic, handler)  → unsubscribe fn
 //   EF.bus.off(topic, handler)
@@ -9,7 +9,7 @@
 // the emit (§ 4.15 — error isolation across mutually distrustful widgets).
 //
 // Auto-unsubscribe is NOT done here; it lives in widgets/context.js where
-// the WidgetContext factory has access to the runtime's `cleanups` array.
+// the ComponentContext factory has access to the runtime's `cleanups` array.
 // Calling EF.bus.on directly (without ctx.bus) gives no auto-unsubscribe —
 // the caller manages the returned fn themselves.
 ;(function (EF) {

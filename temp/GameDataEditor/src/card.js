@@ -8,13 +8,13 @@
  * pulling fields off the entity reactively.
  *
  * Exposed:
- *   Card.render(entity, id, pathKey) → HTMLElement
+ *   Card.render(entity, id, pathKey, opts) → HTMLElement
  *   Card.attachGrid(container, opts)  — selection / marquee / drag-sort
  */
 (function () {
   'use strict';
 
-  function render(entity, id, pathKey) {
+  function render(entity, id, pathKey, opts) {
     var card = document.createElement('div');
     card.className = 'gde-card';
     card.dataset.id = id;
@@ -22,20 +22,25 @@
     var cs = State.resolveCardStyleForTable(pathKey);
     if (!cs || !cs.root) return card;   // empty card — explicit by design
 
-    // The card's outer dimensions match the cardStyle's root size so the
-    // grid track is exactly the card and the inner absolute container
-    // fills it edge-to-edge — no aspect-ratio mismatch, no transparent
-    // frame, no clipped overflow.
-    var rp = cs.root.props || {};
-    if (rp.width  != null) card.style.width  = (typeof rp.width  === 'number' ? rp.width  + 'px' : rp.width);
-    if (rp.height != null) card.style.height = (typeof rp.height === 'number' ? rp.height + 'px' : rp.height);
+    var size = State.cardStyleRootSize(cs);
+    var rootW = size.w;
+    var rootH = size.h;
+    var cardW = opts && typeof opts.width === 'number' && opts.width > 0 ? opts.width : rootW;
+    var scale = cardW / rootW;
+    var cardH = Math.max(1, Math.round(rootH * scale));
+    card.style.width = cardW + 'px';
+    card.style.height = cardH + 'px';
 
     var entitySig = EF.signal(entity || {});
     card.__efEntitySig = entitySig;     // tabledata can update without rebuild
 
+    var viewport = document.createElement('div');
+    viewport.className = 'gde-card-inner';
     var inner = EF.ui.renderUITree(cs.root, { data: entitySig });
-    inner.classList.add('gde-card-inner');
-    card.appendChild(inner);
+    inner.style.transform = 'scale(' + scale + ')';
+    inner.style.transformOrigin = '0 0';
+    viewport.appendChild(inner);
+    card.appendChild(viewport);
     return card;
   }
 

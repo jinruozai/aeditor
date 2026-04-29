@@ -58,7 +58,7 @@
       movePanel:     function (panelId, dstDockId, dstIndex) { layout.movePanel(panelId, dstDockId, dstIndex) },
 
       splitDock: function (dockId, dir, side, ratio, opts) {
-        // § 4.1 — seed new dock from active panel widget defaults.
+        // § 4.1 — seed new dock from active panel component defaults.
         const seed = computeSplitSeed(tree.peek(), dockId)
         const r = EF.splitDock(tree.peek(), dockId, dir, side, ratio, { seedPanels: seed })
         tree.set(r.tree)
@@ -111,15 +111,15 @@
     return hit
   }
 
-  // Compute seedPanels for a split — § 4.1: same widget as source's active
-  // panel + that widget's defaults. Empty source dock → empty new dock.
+  // Compute seedPanels for a split — § 4.1: same component as source's active
+  // panel + that component's defaults. Empty source dock → empty new dock.
   function computeSplitSeed(tree, srcDockId) {
     const f = EF.findDock(tree, srcDockId)
     if (!f || !f.node.activeId) return null
     const active = f.node.panels.find(function (p) { return p.id === f.node.activeId })
     if (!active) return null
-    const defaults = EF.componentDefaults(active.widget)
-    return [Object.assign({}, defaults, { widget: active.widget })]
+    const defaults = EF.componentDefaults(active.component)
+    return [Object.assign({}, defaults, { component: active.component })]
   }
 
   EF.createDockLayout = createDockLayout

@@ -8,7 +8,7 @@
 //   disabled?: bool | signal<bool>
 // }
 //
-// The widget is intentionally thin: we rely on the native `<input type=date>`
+// The component is intentionally thin: we rely on the native `<input type=date>`
 // rather than re-implementing a calendar. The wrapper `.ef-ui-field` gives it
 // the same visual frame as ui.input, so dates and strings sit flush in forms.
 ;(function (EF) {

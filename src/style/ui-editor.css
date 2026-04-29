@@ -301,6 +301,10 @@
   padding: 2px;
   min-width: 0;
 }
+.ef-ui-asset-picker.is-missing {
+  border-color: var(--ef-error, #e06c75) !important;
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--ef-error, #e06c75) 55%, transparent) inset;
+}
 .ef-ui-asset-preview {
   display: flex;
   align-items: center;
@@ -330,3 +334,74 @@
   opacity: .75;
 }
 .ef-ui-date-input::-webkit-calendar-picker-indicator:hover { opacity: 1; }
+
+/* ── ui.anchorPicker — anchor preset grid + offset fields ─────────── */
+.ef-ui-anchor-picker {
+  display: flex; flex-direction: column;
+  gap: var(--ef-space-2);
+}
+.ef-ui-anchor-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 2px;
+  padding: 2px;
+  background: var(--ef-bg-2);
+  border: 1px solid var(--ef-border);
+  border-radius: var(--ef-r-2);
+}
+.ef-ui-anchor-cell {
+  appearance: none;
+  background: var(--ef-bg-1);
+  border: 1px solid transparent;
+  border-radius: var(--ef-r-1);
+  padding: 0;
+  aspect-ratio: 1;
+  cursor: pointer;
+  transition: background var(--ef-dur-fast), border-color var(--ef-dur-fast);
+}
+.ef-ui-anchor-cell:hover { background: var(--ef-bg-3); }
+.ef-ui-anchor-cell.is-active {
+  background: color-mix(in srgb, var(--ef-accent) 18%, transparent);
+  border-color: var(--ef-accent);
+}
+.ef-ui-anchor-glyph { width: 100%; height: 100%; display: block; }
+.ef-ui-anchor-glyph-frame {
+  fill: none; stroke: var(--ef-fg-3);
+  stroke-width: 0.5; stroke-dasharray: 1.5 1.5;
+}
+.ef-ui-anchor-glyph-span {
+  fill: color-mix(in srgb, var(--ef-accent) 22%, transparent);
+}
+.ef-ui-anchor-glyph-mark { fill: var(--ef-accent); }
+.ef-ui-anchor-cell.is-active .ef-ui-anchor-glyph-frame { stroke: var(--ef-accent); }
+
+.ef-ui-anchor-offsets {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--ef-space-1) var(--ef-space-2);
+}
+.ef-ui-anchor-offset {
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr);
+  align-items: center;
+  gap: var(--ef-space-1);
+}
+.ef-ui-anchor-offset-label {
+  font: var(--ef-fs-sm) var(--ef-font-ui);
+  color: var(--ef-fg-2);
+}
+.ef-ui-anchor-offset-input {
+  width: 100%; min-width: 0;
+  height: var(--ef-size-h-md);
+  padding: 0 var(--ef-space-1);
+  background: var(--ef-bg-2);
+  border: 1px solid var(--ef-border);
+  border-radius: var(--ef-r-1);
+  color: var(--ef-fg-0);
+  font: var(--ef-fs-sm) var(--ef-font-mono);
+  box-sizing: border-box;
+}
+.ef-ui-anchor-offset-input:focus {
+  outline: none;
+  border-color: var(--ef-accent);
+}

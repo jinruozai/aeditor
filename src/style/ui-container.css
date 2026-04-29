@@ -108,10 +108,9 @@
    override via specificity to let resize handles escape the frame. */
 .ef-ui-absolute { overflow: hidden; }
 .ef-ui-absolute > .ef-ui-abs-slot { position: absolute; }
-/* When the slot has an explicit dimension (user set a w/h via the
-   layout editor), the inner component fills that dimension instead
-   of using its intrinsic theme size — that's how dragging a resize
-   handle actually changes the rendered component, not just the
-   slot's outline. */
-.ef-ui-abs-slot-w > * { width:  100%; box-sizing: border-box; }
-.ef-ui-abs-slot-h > * { height: 100%; box-sizing: border-box; }
+/* The slot's geometry is fully expressed via left/top/right/bottom (see
+   _layout-rect.js), so the wrapped component fills it edge-to-edge. The slot
+   contract: the rendered component is always the first child; any later
+   children are editor overlays (resize handles, drag affordances) that
+   need their own positioning and must not be auto-sized. */
+.ef-ui-abs-slot > :first-child { width: 100%; height: 100%; box-sizing: border-box; }

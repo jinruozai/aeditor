@@ -9,15 +9,24 @@
   const ui = EF.ui = EF.ui || {}
 
   ui.TEXT_STYLE_SCHEMA = {
-    color:          { type: 'color', type_agv: { valueKind: 'hex' }, group: 'text' },
-    fontFamily:     { type: 'string', group: 'text' },
-    fontSize:       { type: 'int',    group: 'text' },
-    fontWeight:     { type: 'enum_string', type_agv: { options: ['normal','bold','100','200','300','400','500','600','700','800','900'] }, group: 'text' },
-    fontStyle:      { type: 'enum_string', type_agv: { options: ['normal','italic'] }, group: 'text' },
-    textAlign:      { type: 'enum_string', type_agv: { options: ['left','center','right','justify'] }, group: 'text' },
-    letterSpacing:  { type: 'float',  group: 'text' },
-    lineHeight:     { type: 'float',  group: 'text' },
-    textDecoration: { type: 'enum_string', type_agv: { options: ['none','underline','line-through'] }, group: 'text' },
+    color:          { type: 'color', type_agv: { valueKind: 'hex' }, group: 'text',
+                      desc: 'Text color. Empty falls back to the theme.' },
+    fontFamily:     { type: 'string', group: 'text',
+                      desc: 'CSS font-family stack (e.g. "Inter, sans-serif"). Empty inherits.' },
+    fontSize:       { type: 'int',    group: 'text',
+                      desc: 'Font size in pixels.' },
+    fontWeight:     { type: 'enum_string', type_agv: { options: ['normal','bold','100','200','300','400','500','600','700','800','900'] }, group: 'text',
+                      desc: 'Font weight. 400 = normal, 700 = bold; numeric values for fine control.' },
+    fontStyle:      { type: 'enum_string', type_agv: { options: ['normal','italic'] }, group: 'text',
+                      desc: 'normal · italic.' },
+    textAlign:      { type: 'enum_string', type_agv: { options: ['left','center','right','justify'] }, group: 'text',
+                      desc: 'Horizontal text alignment.' },
+    letterSpacing:  { type: 'float',  group: 'text',
+                      desc: 'Extra space between characters in pixels (negative = tighter).' },
+    lineHeight:     { type: 'float',  group: 'text',
+                      desc: 'Line height as a multiplier of font size (1.4 = 140%).' },
+    textDecoration: { type: 'enum_string', type_agv: { options: ['none','underline','line-through'] }, group: 'text',
+                      desc: 'none · underline · line-through.' },
   }
 
   ui.TEXT_STYLE_DEFAULTS = {

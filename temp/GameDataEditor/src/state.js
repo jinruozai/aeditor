@@ -11,6 +11,8 @@
  *   projectName()            string
  *   selection()              { pathKey, ids: string[], lastId } | null
  *   activeTable()            pathKey | null  (synced FROM the layout tree)
+ *   dirty()                  boolean
+ *   workspaceInfo()          { kind, name } | null
  *
  * Bus events:
  *   'tables:changed', 'data:changed:<pathKey>', 'selection:changed',
@@ -30,6 +32,8 @@
   var gameData = EF.signal({});
   var tableMap = EF.signal({}); // { pathKey: { struct_def, id: [], card_style? } }
   var projectName = EF.signal('Untitled');
+  var dirty = EF.signal(false);
+  var workspaceInfo = EF.signal(null);
   var activeTable = EF.signal(null);
   var selection = EF.signal(null); // { pathKey, ids: [], lastId }
   // Project-level UI tree library — each entry is a CardStyleDef:
@@ -72,7 +76,7 @@
       if (n.type === 'dock' && n.name === _centerDockName) {
         for (var i = 0; i < n.panels.length; i++) {
           var p = n.panels[i];
-          if (p.widget === 'gde-table-data' && p.props && p.props.pathKey === pathKey) {
+          if (p.component === 'gde-table-data' && p.props && p.props.pathKey === pathKey) {
             found = { panel: p, dockId: n.id };
             return;
           }
@@ -84,21 +88,65 @@
     return found;
   }
 
-  function _allTablePanels() {
+  function _findCardStylePanel(styleKey) {
+    if (!_handle) return null;
+    var tree = _handle.tree();
+    var found = null;
+    (function walk(n) {
+      if (!n || found) return;
+      if (n.type === 'dock' && n.name === _centerDockName) {
+        for (var i = 0; i < n.panels.length; i++) {
+          var p = n.panels[i];
+          if (p.component === 'gde-cardstyle-editor' && p.props && p.props.styleKey === styleKey) {
+            found = { panel: p, dockId: n.id };
+            return;
+          }
+        }
+      } else if (n.type === 'split') {
+        n.children.forEach(walk);
+      }
+    })(tree);
+    return found;
+  }
+
+  function _allCenterPanels() {
     if (!_handle) return [];
     var tree = _handle.tree();
     var out = [];
     (function walk(n) {
       if (!n) return;
       if (n.type === 'dock' && n.name === _centerDockName) {
-        n.panels.forEach(function (p) {
-          if (p.widget === 'gde-table-data') out.push(p);
-        });
+        n.panels.forEach(function (p) { out.push(p); });
       } else if (n.type === 'split') {
         n.children.forEach(walk);
       }
     })(tree);
     return out;
+  }
+
+  function _findPanelByComponent(component) {
+    if (!_handle) return null;
+    var tree = _handle.tree();
+    var found = null;
+    (function walk(n) {
+      if (!n || found) return;
+      if (n.type === 'dock') {
+        for (var i = 0; i < n.panels.length; i++) {
+          if (n.panels[i].component === component) {
+            found = { panel: n.panels[i], dockId: n.id, dockName: n.name };
+            return;
+          }
+        }
+      } else if (n.type === 'split') {
+        n.children.forEach(walk);
+      }
+    })(tree);
+    return found;
+  }
+
+  function showCardStyleTree() {
+    var hit = _findPanelByComponent('gde-cardstyle-tree');
+    if (hit && _handle) _handle.activatePanel(hit.panel.id);
   }
 
   function _shortName(pathKey) {
@@ -107,7 +155,16 @@
   }
 
   // ---------- Helpers ----------
-  function emit(ev, payload) { EF.bus.emit(ev, payload); }
+  function isDirtyEvent(ev) {
+    return ev === 'tables:changed'
+        || ev === 'typeconfig:changed'
+        || ev === 'cardstyles:changed'
+        || ev.indexOf('data:changed') === 0;
+  }
+  function emit(ev, payload) {
+    if (isDirtyEvent(ev)) dirty.set(true);
+    EF.bus.emit(ev, payload);
+  }
 
   // Whenever either TypeConfig signal changes, push the merged view into the
   // framework so EF.ui.propertyPanel / propertyEditor / resolveFieldDef pick
@@ -209,6 +266,14 @@
     projectCardStyles.set(cs);
     emit('cardstyles:changed');
   }
+  function mutateCardStyle(key, fn) {
+    var current = projectCardStyles()[key];
+    if (!current) return null;
+    var next = JSON.parse(JSON.stringify(current));
+    if (fn(next) === false) return null;
+    upsertCardStyle(key, next);
+    return next;
+  }
   function deleteCardStyle(key) {
     if (key === 'default') throw new Error('Cannot delete the built-in default cardStyle');
     var cs = Object.assign({}, projectCardStyles());
@@ -224,7 +289,16 @@
       }
     });
     if (nextTm) { tableMap.set(nextTm); emit('tables:changed'); }
+    if (_handle) {
+      var hit = _findCardStylePanel(key);
+      if (hit) _handle.removePanel(hit.panel.id);
+    }
     if (activeCardStyle.peek() === key) activeCardStyle.set(null);
+    var sel = selection.peek();
+    if (sel && ((sel.kind === 'card_style' && sel.key === key)
+             || (sel.kind === 'card_component' && sel.styleKey === key))) {
+      setSelection(null);
+    }
     emit('cardstyles:changed');
   }
   function renameCardStyle(oldKey, newKey) {
@@ -245,7 +319,24 @@
       }
     });
     if (nextTm) { tableMap.set(nextTm); emit('tables:changed'); }
+    if (_handle) {
+      var hit = _findCardStylePanel(oldKey);
+      if (hit) {
+        var tree = _handle.tree();
+        tree = EF.updatePanel(tree, hit.panel.id, {
+          title: (cs[newKey] && cs[newKey].name) || newKey,
+          props: Object.assign({}, hit.panel.props, { styleKey: newKey }),
+        });
+        _handle.setTree(tree);
+      }
+    }
     if (activeCardStyle.peek() === oldKey) activeCardStyle.set(newKey);
+    var sel = selection.peek();
+    if (sel && sel.kind === 'card_style' && sel.key === oldKey) {
+      setSelection({ kind: 'card_style', key: newKey });
+    } else if (sel && sel.kind === 'card_component' && sel.styleKey === oldKey) {
+      setSelection(Object.assign({}, sel, { styleKey: newKey }));
+    }
     emit('cardstyles:changed');
   }
   function setTableCardStyle(pathKey, styleKey) {
@@ -264,6 +355,16 @@
     var tm = tableMap();
     var key = (tm[pathKey] && tm[pathKey].card_style) || 'default';
     return cs[key] || cs['default'] || null;
+  }
+  function cardStyleRootSize(styleOrKey) {
+    var def = typeof styleOrKey === 'string' ? projectCardStyles()[styleOrKey] : styleOrKey;
+    var root = def && def.root;
+    var props = (root && root.props) || {};
+    var w = Number(props.width);
+    var h = Number(props.height);
+    if (!Number.isFinite(w) || w <= 0) w = 120;
+    if (!Number.isFinite(h) || h <= 0) h = w;
+    return { w: w, h: h };
   }
 
   function setTableMap(tm) { tableMap.set(Object.assign({}, tm)); emit('tables:changed'); }
@@ -383,6 +484,28 @@
     Object.keys(tm).some(function (pk) { if (tm[pk].id.indexOf(id) >= 0) { owner = pk; return true; } return false; });
     if (owner) emit('data:changed:' + owner);
   }
+  function setEntityFieldMany(ids, field, value) {
+    var list = (ids || []).map(String);
+    if (!list.length) return;
+    var gd = Object.assign({}, gameData());
+    var touched = {};
+    list.forEach(function (id) {
+      if (!gd[id]) return;
+      gd[id] = Object.assign({}, gd[id]);
+      gd[id][field] = value;
+      touched[id] = true;
+    });
+    if (!Object.keys(touched).length) return;
+    gameData.set(gd);
+    var tm = tableMap();
+    Object.keys(tm).forEach(function (pk) {
+      var idsInTable = tm[pk].id || [];
+      for (var i = 0; i < idsInTable.length; i++) {
+        if (touched[idsInTable[i]]) { emit('data:changed:' + pk); break; }
+      }
+    });
+    emit('data:changed', {});
+  }
 
   // setActiveTable(pathKey) — selects the panel for pathKey in the center
   // dock. If no such panel exists this is a no-op (use openTable instead).
@@ -410,10 +533,30 @@
     var dockId = _centerDockId();
     if (!dockId) return;
     _handle.addPanel(dockId, {
-      widget: 'gde-table-data',
+      component: 'gde-table-data',
       title:  _shortName(pathKey),
       props:  { pathKey: pathKey },
     }, { transient: transient });
+  }
+  function openCardStyle(styleKey, opts) {
+    if (!styleKey || !_handle) return;
+    var transient = opts && opts.transient != null ? !!opts.transient : true;
+    var hit = _findCardStylePanel(styleKey);
+    if (hit) {
+      _handle.activatePanel(hit.panel.id);
+      if (!transient && hit.panel.transient) _handle.promotePanel(hit.panel.id);
+      return;
+    }
+    var dockId = _centerDockId();
+    if (!dockId) return;
+    var def = projectCardStyles()[styleKey] || {};
+    var ret = _handle.addPanel(dockId, {
+      component: 'gde-cardstyle-editor',
+      title:  def.name || styleKey,
+      icon:   'columns',
+      props:  { styleKey: styleKey },
+    }, { transient: transient });
+    _handle.activatePanel(ret.panelId);
   }
   function closeTab(pathKey) {
     var hit = _findTablePanel(pathKey);
@@ -424,9 +567,14 @@
     if (hit) _handle.promotePanel(hit.panel.id);
   }
   function closeAllTabs() {
-    _allTablePanels().forEach(function (p) { _handle.removePanel(p.id); });
+    _allCenterPanels().forEach(function (p) { _handle.removePanel(p.id); });
   }
   function setSelection(sel) {
+    if (sel && sel.kind === 'card_style') {
+      activeCardStyle.set(sel.key || null);
+    } else if (sel && sel.kind === 'card_component') {
+      activeCardStyle.set(sel.styleKey || null);
+    }
     selection.set(sel);
     emit('selection:changed', sel);
   }
@@ -704,7 +852,7 @@
     (function walk(n) {
       if (!n) return;
       if (n.type === 'dock') {
-        (n.panels || []).forEach(function (p) { if (p.widget === 'log') logPanelId = p.id; });
+        (n.panels || []).forEach(function (p) { if (p.component === 'log') logPanelId = p.id; });
       } else if (n.children) {
         n.children.forEach(walk);
       }
@@ -715,11 +863,14 @@
   // ---------- Logging ----------
   // All logging flows through EF.log (framework signal). State.log is a
   // thin convenience wrapper that fixes scope='gde' so the built-in 'log'
-  // widget can group app messages.
+  // component can group app messages.
   function log(level, message, meta) {
     return EF.log.push(level || 'info', Object.assign({ scope: 'gde' }, meta || {}), message);
   }
   function clearLogs() { EF.log.clear(); }
+  function markDirty() { dirty.set(true); }
+  function clearDirty() { dirty.set(false); }
+  function setWorkspaceInfo(info) { workspaceInfo.set(info || null); }
 
   // ---------- Expose ----------
   window.State = {
@@ -732,6 +883,8 @@
     gameData: gameData,
     tableMap: tableMap,
     projectName: projectName,
+    dirty: dirty,
+    workspaceInfo: workspaceInfo,
     activeTable: activeTable,
     selection: selection,
     // Framework-native log signal — gde widgets and framework widgets see
@@ -755,6 +908,7 @@
     previewMergeStructDef: previewMergeStructDef,
     mergeStructDef: mergeStructDef,
     showLogPanel: showLogPanel,
+    showCardStyleTree: showCardStyleTree,
 
     // mutators
     setBuiltinTypeConfig: setBuiltinTypeConfig,
@@ -764,10 +918,12 @@
     renameProjectType: renameProjectType,
     setProjectCardStyles: setProjectCardStyles,
     upsertCardStyle:      upsertCardStyle,
+    mutateCardStyle:      mutateCardStyle,
     deleteCardStyle:      deleteCardStyle,
     renameCardStyle:      renameCardStyle,
     setTableCardStyle:    setTableCardStyle,
     resolveCardStyleForTable: resolveCardStyleForTable,
+    cardStyleRootSize: cardStyleRootSize,
     setTableMap: setTableMap,
     setGameData: setGameData,
     addTable: addTable,
@@ -779,12 +935,17 @@
     deleteEntities: deleteEntities,
     updateEntity: updateEntity,
     setEntityField: setEntityField,
+    setEntityFieldMany: setEntityFieldMany,
     setActiveTable: setActiveTable,
     openTable: openTable,
+    openCardStyle: openCardStyle,
     closeTab: closeTab,
     pinTab: pinTab,
     closeAllTabs: closeAllTabs,
     setSelection: setSelection,
+    markDirty: markDirty,
+    clearDirty: clearDirty,
+    setWorkspaceInfo: setWorkspaceInfo,
     log: log,
     clearLogs: clearLogs,
   };

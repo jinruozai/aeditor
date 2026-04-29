@@ -1,6 +1,6 @@
 // EF.ui.fileInput — drop zone + click-to-pick file input. Uses the shared
 // ui.dropzone primitive so OS file drops and the reject/accept affordance
-// stay consistent with every other asset-aware widget.
+// stay consistent with every other asset-aware component.
 //
 // opts: { value: signal<File|null>, onChange?, accept?, multiple? }
 //   value: if multiple, signal holds File[]; otherwise File or null.

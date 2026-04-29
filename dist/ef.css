@@ -11,7 +11,7 @@
  *   Layer 2 — Roles       : semantic mapping onto primitives (--ef-bg-1, --ef-fg-2)
  *   Layer 3 — Components  : the rare per-component tweak that isn't a role
  *
- * ALL non-token CSS in dock.css / widget.css / ui-*.css must reference Layer 2
+ * ALL non-token CSS in dock.css / component.css / ui-*.css must reference Layer 2
  * roles, not Layer 1 primitives. Themes (dark / light) only override Layer 1
  * primitives + a few Layer 2 mappings; Layer 3 stays put.
  *
@@ -189,7 +189,7 @@
   --ef-icon-error:   "⨯";
 
   /* Legacy aliases — kept until Phase 2 grep-replace finishes.
-   * dock.css / widget.css will be migrated to use the new role names directly,
+   * dock.css / component.css will be migrated to use the new role names directly,
    * then these can be removed. */
   --ef-color-bg-0:        var(--ef-bg-0);
   --ef-color-bg-1:        var(--ef-bg-1);
@@ -486,8 +486,8 @@ body.ef-dragging-vertical,   body.ef-dragging-vertical *   { cursor: ns-resize !
   .ef-corner, .ef-splitter, .ef-corner::before { transition: none; }
 }
 
-/* ════ style/widget.css ════ */
-/* editorframe — built-in widget styles
+/* ════ style/component.css ════ */
+/* editorframe — built-in component styles
  *
  * Only contains toolbar + panel-drag visuals now. Tabs moved to
  * ui-form.css (.ef-ui-tab*) and are visually owned by EF.ui.tab; the
@@ -613,6 +613,18 @@ body.ef-dragging-vertical,   body.ef-dragging-vertical *   { cursor: ns-resize !
 .ef-ui-icon-sm svg { width: var(--ef-size-icon-sm); height: var(--ef-size-icon-sm); }
 .ef-ui-icon-md svg { width: var(--ef-size-icon-md); height: var(--ef-size-icon-md); }
 .ef-ui-icon-lg svg { width: var(--ef-size-icon-lg); height: var(--ef-size-icon-lg); }
+
+/* ── image ────────────────────────────────────────── */
+/* Displayed at 100% of its slot — sizing comes from the absolute slot or
+ * BOX_STYLE width/height applied by the registration. object-fit decides
+ * how the bitmap fills that box. */
+.ef-ui-image {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  user-select: none;
+}
 
 /* ── button ───────────────────────────────────────── */
 .ef-ui-btn {
@@ -1869,8 +1881,8 @@ body.ef-dragging-vertical,   body.ef-dragging-vertical *   { cursor: ns-resize !
 .ef-ui-array-input-cell { min-width: 0; }
 .ef-ui-struct-input-cell > *,
 .ef-ui-array-input-cell > * { width: 100%; max-width: 100%; box-sizing: border-box; }
-/* propertyPanel wraps each editor in a .ef-ui-slot (mixed indicator) — the
-   editor inside the slot also needs to fill width or every numberInput /
+/* propertyPanel wraps each editor in a .ef-ui-slot. The editor inside the
+   slot also needs to fill width or every numberInput /
    colorInput / etc collapses to its intrinsic size while text inputs take
    the remaining space, producing ragged-right rows. */
 .ef-ui-slot > *,
@@ -1879,38 +1891,34 @@ body.ef-dragging-vertical,   body.ef-dragging-vertical *   { cursor: ns-resize !
 .ef-ui-array-input-add { align-self: flex-start; margin-top: var(--ef-space-1); }
 
 .ef-ui-property-panel { display: flex; flex-direction: column; min-width: 0; }
-.ef-ui-property-group {
-  margin-top: var(--ef-space-3);
-  padding: 4px 0 4px 0;
-  font: 600 10px var(--ef-font-ui);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--ef-fg-3);
-  border-bottom: 1px solid var(--ef-border);
-}
-.ef-ui-property-panel > .ef-ui-property-group:first-child { margin-top: 0; }
-.ef-ui-property-panel > .ef-ui-struct-input {
+/* Strip struct-input chrome inside the panel — both the unnamed top bucket
+   (rendered flat) and the bodies of property sections share the same row
+   layout: a fixed-ish label column + 1fr editor column. */
+.ef-ui-property-panel .ef-ui-struct-input {
   border: 0;
   padding: 0;
   background: transparent;
 }
-.ef-ui-property-panel > .ef-ui-struct-input > .ef-ui-struct-input-row {
+.ef-ui-property-panel .ef-ui-struct-input > .ef-ui-struct-input-row {
   grid-template-columns: minmax(90px, 120px) minmax(0, 1fr);
   gap: var(--ef-space-2);
   padding: var(--ef-space-1) 0;
 }
-.ef-ui-property-panel > .ef-ui-struct-input > .ef-ui-struct-input-row > .ef-ui-struct-input-label {
+.ef-ui-property-panel .ef-ui-struct-input > .ef-ui-struct-input-row > .ef-ui-struct-input-label {
   font: var(--ef-fs-sm) var(--ef-font-ui);
   color: var(--ef-fg-2);
-  cursor: help;
 }
+/* Help cursor only when the label actually carries a tooltip — otherwise the
+ * cursor lies. Marker is set by ui.structInput when a tooltip is wired. */
+.ef-ui-struct-input-label[data-has-tip] { cursor: help; }
+/* Section-wrapped groups: section provides the collapsible header; we
+   neutralize its body padding so rows align with the flat top bucket. */
+.ef-ui-property-section > .ef-ui-section-body { padding: 0 0 var(--ef-space-1) 0; gap: 0; }
 
-/* ── slot wrapper for multi-target editing ─────────────────────────
-   propertyPanel emits each editor inside a .ef-ui-slot; the slot gains
-   data-mixed when targets disagree on this field. Grid template gives
-   the editor the full 1fr column and the optional reset button auto
-   width on the right — no layout shift between fields with/without a
-   reset. */
+/* ── slot wrapper for propertyPanel editing ─────────────────────────
+   Grid template gives the editor the full 1fr column and the optional reset
+   button auto width on the right — no layout shift between fields with/without
+   a reset. */
 .ef-ui-slot {
   position: relative;
   display: grid;
@@ -1922,21 +1930,6 @@ body.ef-dragging-vertical,   body.ef-dragging-vertical *   { cursor: ns-resize !
 .ef-ui-slot > * { min-width: 0; max-width: 100%; box-sizing: border-box; }
 .ef-ui-slot > :first-child { width: 100%; }
 .ef-ui-slot-reset { grid-column: 2; flex: 0 0 auto; transition: opacity var(--ef-dur-fast) var(--ef-ease); }
-.ef-ui-slot[data-mixed] {
-  border-left: 2px dashed var(--ef-warn);
-  padding-left: 4px;
-}
-.ef-ui-slot[data-mixed]::after {
-  content: 'Mixed';
-  position: absolute;
-  right: 32px; top: 50%;          /* offset to clear the reset button column */
-  transform: translateY(-50%);
-  font: 10px/1 var(--ef-font-ui);
-  letter-spacing: 0.5px;
-  color: var(--ef-warn);
-  opacity: 0.75;
-  pointer-events: none;
-}
 
 /* ════ style/ui-editor.css ════ */
 /* editorframe — UI library: editor specials */
@@ -2242,6 +2235,10 @@ body.ef-dragging-vertical,   body.ef-dragging-vertical *   { cursor: ns-resize !
   padding: 2px;
   min-width: 0;
 }
+.ef-ui-asset-picker.is-missing {
+  border-color: var(--ef-error, #e06c75) !important;
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--ef-error, #e06c75) 55%, transparent) inset;
+}
 .ef-ui-asset-preview {
   display: flex;
   align-items: center;
@@ -2271,6 +2268,77 @@ body.ef-dragging-vertical,   body.ef-dragging-vertical *   { cursor: ns-resize !
   opacity: .75;
 }
 .ef-ui-date-input::-webkit-calendar-picker-indicator:hover { opacity: 1; }
+
+/* ── ui.anchorPicker — anchor preset grid + offset fields ─────────── */
+.ef-ui-anchor-picker {
+  display: flex; flex-direction: column;
+  gap: var(--ef-space-2);
+}
+.ef-ui-anchor-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 2px;
+  padding: 2px;
+  background: var(--ef-bg-2);
+  border: 1px solid var(--ef-border);
+  border-radius: var(--ef-r-2);
+}
+.ef-ui-anchor-cell {
+  appearance: none;
+  background: var(--ef-bg-1);
+  border: 1px solid transparent;
+  border-radius: var(--ef-r-1);
+  padding: 0;
+  aspect-ratio: 1;
+  cursor: pointer;
+  transition: background var(--ef-dur-fast), border-color var(--ef-dur-fast);
+}
+.ef-ui-anchor-cell:hover { background: var(--ef-bg-3); }
+.ef-ui-anchor-cell.is-active {
+  background: color-mix(in srgb, var(--ef-accent) 18%, transparent);
+  border-color: var(--ef-accent);
+}
+.ef-ui-anchor-glyph { width: 100%; height: 100%; display: block; }
+.ef-ui-anchor-glyph-frame {
+  fill: none; stroke: var(--ef-fg-3);
+  stroke-width: 0.5; stroke-dasharray: 1.5 1.5;
+}
+.ef-ui-anchor-glyph-span {
+  fill: color-mix(in srgb, var(--ef-accent) 22%, transparent);
+}
+.ef-ui-anchor-glyph-mark { fill: var(--ef-accent); }
+.ef-ui-anchor-cell.is-active .ef-ui-anchor-glyph-frame { stroke: var(--ef-accent); }
+
+.ef-ui-anchor-offsets {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--ef-space-1) var(--ef-space-2);
+}
+.ef-ui-anchor-offset {
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr);
+  align-items: center;
+  gap: var(--ef-space-1);
+}
+.ef-ui-anchor-offset-label {
+  font: var(--ef-fs-sm) var(--ef-font-ui);
+  color: var(--ef-fg-2);
+}
+.ef-ui-anchor-offset-input {
+  width: 100%; min-width: 0;
+  height: var(--ef-size-h-md);
+  padding: 0 var(--ef-space-1);
+  background: var(--ef-bg-2);
+  border: 1px solid var(--ef-border);
+  border-radius: var(--ef-r-1);
+  color: var(--ef-fg-0);
+  font: var(--ef-fs-sm) var(--ef-font-mono);
+  box-sizing: border-box;
+}
+.ef-ui-anchor-offset-input:focus {
+  outline: none;
+  border-color: var(--ef-accent);
+}
 
 /* ════ style/ui-container.css ════ */
 /* editorframe — UI library: containers */
@@ -2383,13 +2451,12 @@ body.ef-dragging-vertical,   body.ef-dragging-vertical *   { cursor: ns-resize !
    override via specificity to let resize handles escape the frame. */
 .ef-ui-absolute { overflow: hidden; }
 .ef-ui-absolute > .ef-ui-abs-slot { position: absolute; }
-/* When the slot has an explicit dimension (user set a w/h via the
-   layout editor), the inner component fills that dimension instead
-   of using its intrinsic theme size — that's how dragging a resize
-   handle actually changes the rendered component, not just the
-   slot's outline. */
-.ef-ui-abs-slot-w > * { width:  100%; box-sizing: border-box; }
-.ef-ui-abs-slot-h > * { height: 100%; box-sizing: border-box; }
+/* The slot's geometry is fully expressed via left/top/right/bottom (see
+   _layout-rect.js), so the wrapped component fills it edge-to-edge. The slot
+   contract: the rendered component is always the first child; any later
+   children are editor overlays (resize handles, drag affordances) that
+   need their own positioning and must not be auto-sized. */
+.ef-ui-abs-slot > :first-child { width: 100%; height: 100%; box-sizing: border-box; }
 
 /* ════ style/ui-data.css ════ */
 /* editorframe — UI library: data display */
@@ -2822,6 +2889,21 @@ body.ef-dragging-vertical,   body.ef-dragging-vertical *   { cursor: ns-resize !
   margin-left: var(--ef-space-2);
   color: var(--ef-fg-3);
   font-size: 10px;
+}
+
+.ef-ui-search-menu {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ef-space-1);
+  padding: var(--ef-space-1);
+}
+.ef-ui-search-menu-input {
+  width: 100%;
+  box-sizing: border-box;
+}
+.ef-ui-search-menu-list {
+  overflow: auto;
+  max-height: 360px;
 }
 
 /* ── modal ──────────────────────────────────────────────────────── */

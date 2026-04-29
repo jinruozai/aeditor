@@ -21,12 +21,12 @@
   }
   function toTreeRow(n) {
     var spec = null;
-    try { spec = EF.resolveComponent(n.type); } catch (_) {}
-    var label = n.type;
+    try { spec = EF.resolveComponent(n.component); } catch (_) {}
+    var label = n.component;
     var bound = n.bindings && Object.keys(n.bindings).length;
     if (bound) {
       var b = n.bindings[Object.keys(n.bindings)[0]];
-      label = n.type + ' · ' + (b && b.field ? '🔗 ' + b.field : '');
+      label = n.component + ' · ' + (b && b.field ? '🔗 ' + b.field : '');
     }
     return {
       id:       n.id,
@@ -34,7 +34,7 @@
       icon:     (spec && spec.icon) || 'square',
       // Preserve the component name so consumers like contextMenu(node)
       // can re-resolve the spec (acceptsChildren etc).
-      type:     n.type,
+      component: n.component,
       children: (n.children || []).map(toTreeRow),
     };
   }
@@ -60,7 +60,7 @@
   var clipboard = EF.signal([]);
   function retagIds(node) {
     if (!node) return;
-    node.id = uid(node.type);
+    node.id = uid(node.component);
     (node.children || []).forEach(retagIds);
   }
   function cloneAndRetag(node) {
@@ -112,7 +112,7 @@
         else State.setSelection({ kind: 'card_component', styleKey: key, nodeIds: ids });
       },
       contextMenu: function (node) {
-        var spec = null; try { spec = EF.resolveComponent(node.type); } catch (_) {}
+        var spec = null; try { spec = EF.resolveComponent(node.component); } catch (_) {}
         var canPaste = (clipboard.peek() || []).length > 0;
         return [
           { label: 'Copy', icon: 'copy', onSelect: function () { copyNodes(); } },
@@ -130,7 +130,7 @@
         // never grow children at runtime).
         dropZones: function (targetNode) {
           var spec = null;
-          try { spec = EF.resolveComponent(targetNode.type); } catch (_) {}
+          try { spec = EF.resolveComponent(targetNode.component); } catch (_) {}
           var zones = ['before', 'after'];
           if (spec && spec.acceptsChildren) zones.push('inside');
           return zones;
@@ -187,30 +187,29 @@
       if (!cs || !cs.root) return;
       // Don't allow dropping the root or making the root a child of someone.
       if (srcIds.indexOf(cs.root.id) >= 0) return;
-      var clone = JSON.parse(JSON.stringify(cs));
-      var moving = [];
-      // Cut in reverse so multiple cuts under the same parent stay correct.
-      var ordered = orderByDepth(clone.root, srcIds);
-      ordered.forEach(function (id) {
-        var hit = findNode(clone.root, id, null, -1);
-        if (hit && hit.parent) {
-          moving.unshift(hit.parent.children.splice(hit.index, 1)[0]);
+      State.mutateCardStyle(key, function (clone) {
+        var moving = [];
+        // Cut in reverse so multiple cuts under the same parent stay correct.
+        var ordered = orderByDepth(clone.root, srcIds);
+        ordered.forEach(function (id) {
+          var hit = findNode(clone.root, id, null, -1);
+          if (hit && hit.parent) {
+            moving.unshift(hit.parent.children.splice(hit.index, 1)[0]);
+          }
+        });
+        var dst = findNode(clone.root, targetId, null, -1);
+        if (!dst) return false;
+        if (position === 'inside') {
+          dst.node.children = dst.node.children || [];
+          Array.prototype.push.apply(dst.node.children, moving);
+        } else if (position === 'before' && dst.parent) {
+          Array.prototype.splice.apply(dst.parent.children, [dst.index, 0].concat(moving));
+        } else if (position === 'after' && dst.parent) {
+          Array.prototype.splice.apply(dst.parent.children, [dst.index + 1, 0].concat(moving));
+        } else {
+          return false;
         }
       });
-      var dst = findNode(clone.root, targetId, null, -1);
-      if (!dst) return;
-      if (position === 'inside') {
-        dst.node.children = dst.node.children || [];
-        Array.prototype.push.apply(dst.node.children, moving);
-      } else if (position === 'before' && dst.parent) {
-        Array.prototype.splice.apply(dst.parent.children, [dst.index, 0].concat(moving));
-      } else if (position === 'after' && dst.parent) {
-        Array.prototype.splice.apply(dst.parent.children, [dst.index + 1, 0].concat(moving));
-      } else {
-        // No valid spot (e.g. before/after the root) — abort, restore.
-        return;
-      }
-      State.upsertCardStyle(key, clone);
     }
     // Order ids by descending depth so we cut leaves before their parents
     // when both are in the moving set (otherwise the parent cut detaches
@@ -245,16 +244,25 @@
           return (a.label || a.name).localeCompare(b.label || b.name);
         });
         if (!entries.length) return;
-        items.push({ type: 'header', label: cat });
         entries.forEach(function (spec) {
           items.push({
             label: spec.label || spec.name,
+            value: spec.name,
             icon:  spec.icon  || 'square',
+            group: cat,
             onSelect: function () { addComponent(spec.name); },
           });
         });
       });
-      ui.contextMenu({ x: rect.right, y: rect.bottom + 4 }, items);
+      ui.searchMenu({
+        anchor: ev.target,
+        items: items,
+        placeholder: 'Search components...',
+        side: 'right',
+        align: 'start',
+        width: 300,
+        maxHeight: 520,
+      });
     }
     function addComponent(name) {
       var key = State.activeCardStyle.peek();
@@ -262,41 +270,43 @@
       var spec = EF.resolveComponent(name);
       var newNode = {
         id:        uid(name),
-        type:      name,
+        component: name,
         props:     Object.assign({}, spec.defaultProps || {}),
         bindings:  {},
         children:  [],
-        layout:    { anchor: 'tl', x: 8, y: 8, w: 80, h: 24, unit: 'px' },
+        layout: {
+          aMin: { x: 0, y: 0 }, aMax: { x: 0, y: 0 },
+          oMin: { x: 8, y: 8 }, oMax: { x: 88, y: 32 },
+        },
       };
-      var cs = State.projectCardStyles()[key];
-      var clone = JSON.parse(JSON.stringify(cs || { name: key, root: null }));
-      // Empty cardStyle → new node becomes the root.
-      if (!clone.root) {
-        delete newNode.layout;
-        clone.root = newNode;
-        State.upsertCardStyle(key, clone);
-        State.setSelection({ kind: 'card_component', styleKey: key, nodeIds: [newNode.id] });
-        return;
-      }
-      // Otherwise: insert under the current selection if it's a container,
-      // else as the next sibling of the selection, else as a child of the
-      // root.
-      var selIds = currentSelectedIds() || [];
-      var anchorId = selIds[selIds.length - 1] || clone.root.id;
-      var hit = findNode(clone.root, anchorId, null, -1);
-      var anchorSpec = null;
-      try { anchorSpec = hit && EF.resolveComponent(hit.node.type); } catch (_) {}
-      if (hit && anchorSpec && anchorSpec.acceptsChildren) {
-        hit.node.children = hit.node.children || [];
-        hit.node.children.push(newNode);
-      } else if (hit && hit.parent) {
-        hit.parent.children.splice(hit.index + 1, 0, newNode);
-      } else {
-        clone.root.children = clone.root.children || [];
-        clone.root.children.push(newNode);
-      }
-      State.upsertCardStyle(key, clone);
-      State.setSelection({ kind: 'card_component', styleKey: key, nodeIds: [newNode.id] });
+      var selectedNodeId = null;
+      State.mutateCardStyle(key, function (clone) {
+        if (!clone.root) {
+          delete newNode.layout;
+          clone.root = newNode;
+          selectedNodeId = newNode.id;
+          return;
+        }
+        // Otherwise: insert under the current selection if it's a container,
+        // else as the next sibling of the selection, else as a child of the
+        // root.
+        var selIds = currentSelectedIds() || [];
+        var anchorId = selIds[selIds.length - 1] || clone.root.id;
+        var hit = findNode(clone.root, anchorId, null, -1);
+        var anchorSpec = null;
+        try { anchorSpec = hit && EF.resolveComponent(hit.node.component); } catch (_) {}
+        if (hit && anchorSpec && anchorSpec.acceptsChildren) {
+          hit.node.children = hit.node.children || [];
+          hit.node.children.push(newNode);
+        } else if (hit && hit.parent) {
+          hit.parent.children.splice(hit.index + 1, 0, newNode);
+        } else {
+          clone.root.children = clone.root.children || [];
+          clone.root.children.push(newNode);
+        }
+        selectedNodeId = newNode.id;
+      });
+      if (selectedNodeId) State.setSelection({ kind: 'card_component', styleKey: key, nodeIds: [selectedNodeId] });
     }
 
     // Copy the current tree-multi-selection (or fall back to the right-
@@ -323,12 +333,13 @@
       if (cs.root.id === targetId) { return pasteAsChild(targetId); }
       var clip = clipboard.peek() || [];
       if (!clip.length) return;
-      var clone = JSON.parse(JSON.stringify(cs));
-      var hit = findNode(clone.root, targetId, null, -1);
-      if (!hit || !hit.parent) return;
       var fresh = clip.map(cloneAndRetag);
-      Array.prototype.splice.apply(hit.parent.children, [hit.index + 1, 0].concat(fresh));
-      State.upsertCardStyle(key, clone);
+      var changed = State.mutateCardStyle(key, function (clone) {
+        var hit = findNode(clone.root, targetId, null, -1);
+        if (!hit || !hit.parent) return false;
+        Array.prototype.splice.apply(hit.parent.children, [hit.index + 1, 0].concat(fresh));
+      });
+      if (!changed) return;
       State.setSelection({ kind: 'card_component', styleKey: key, nodeIds: fresh.map(function (n) { return n.id; }) });
     }
     function pasteAsChild(targetId) {
@@ -336,15 +347,16 @@
       var cs = State.projectCardStyles()[key]; if (!cs || !cs.root) return;
       var clip = clipboard.peek() || [];
       if (!clip.length) return;
-      var clone = JSON.parse(JSON.stringify(cs));
-      var hit = findNode(clone.root, targetId, null, -1);
-      if (!hit) return;
-      var spec = null; try { spec = EF.resolveComponent(hit.node.type); } catch (_) {}
-      if (!spec || !spec.acceptsChildren) return;
-      hit.node.children = hit.node.children || [];
       var fresh = clip.map(cloneAndRetag);
-      Array.prototype.push.apply(hit.node.children, fresh);
-      State.upsertCardStyle(key, clone);
+      var changed = State.mutateCardStyle(key, function (clone) {
+        var hit = findNode(clone.root, targetId, null, -1);
+        if (!hit) return false;
+        var spec = null; try { spec = EF.resolveComponent(hit.node.component); } catch (_) {}
+        if (!spec || !spec.acceptsChildren) return false;
+        hit.node.children = hit.node.children || [];
+        Array.prototype.push.apply(hit.node.children, fresh);
+      });
+      if (!changed) return;
       State.setSelection({ kind: 'card_component', styleKey: key, nodeIds: fresh.map(function (n) { return n.id; }) });
     }
 
@@ -360,11 +372,11 @@
         State.log('warn', 'Use the inspector to clear the root node.');
         return;
       }
-      var clone = JSON.parse(JSON.stringify(def));
-      var hit = findNode(clone.root, id, null, -1);
-      if (!hit || !hit.parent) return;
-      hit.parent.children.splice(hit.index, 1);
-      State.upsertCardStyle(key, clone);
+      State.mutateCardStyle(key, function (clone) {
+        var hit = findNode(clone.root, id, null, -1);
+        if (!hit || !hit.parent) return false;
+        hit.parent.children.splice(hit.index, 1);
+      });
     }
 
     EF.effect(refresh);
