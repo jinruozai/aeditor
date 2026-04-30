@@ -625,6 +625,9 @@ body.ef-dragging-vertical,   body.ef-dragging-vertical *   { cursor: ns-resize !
   object-fit: cover;
   user-select: none;
 }
+.ef-ui-image:not([src]) {
+  visibility: hidden;
+}
 
 /* ── button ───────────────────────────────────────── */
 .ef-ui-btn {
@@ -1008,6 +1011,19 @@ body.ef-dragging-vertical,   body.ef-dragging-vertical *   { cursor: ns-resize !
   padding: 0;
 }
 .ef-ui-input::placeholder { color: var(--ef-fg-3); }
+.ef-ui-search-field .ef-ui-field-prefix {
+  color: var(--ef-fg-3);
+}
+.ef-ui-search-clear[hidden] {
+  display: none;
+}
+.ef-ui-search-clear {
+  width: 18px;
+  height: 18px;
+  min-width: 18px;
+  padding: 0;
+  color: var(--ef-fg-3);
+}
 
 /* ── textarea ───────────────────────────────────────────────────── */
 .ef-ui-textarea {
@@ -1432,6 +1448,7 @@ body.ef-dragging-vertical,   body.ef-dragging-vertical *   { cursor: ns-resize !
 .ef-ui-menu {
   display: flex;
   flex-direction: column;
+  position: relative;
   padding: var(--ef-space-1);
   min-width: 120px;
   background: var(--ef-bg-raised);
@@ -1867,7 +1884,7 @@ body.ef-dragging-vertical,   body.ef-dragging-vertical *   { cursor: ns-resize !
   align-items: center;
   padding: 2px 0;
 }
-.ef-ui-struct-input-row { grid-template-columns: 70px minmax(0, 1fr); }
+.ef-ui-struct-input-row { grid-template-columns: 56px minmax(0, 1fr); }
 .ef-ui-array-input-row  { grid-template-columns: auto minmax(0, 1fr) auto; }
 .ef-ui-struct-input-label,
 .ef-ui-array-input-index {
@@ -1900,7 +1917,7 @@ body.ef-dragging-vertical,   body.ef-dragging-vertical *   { cursor: ns-resize !
   background: transparent;
 }
 .ef-ui-property-panel .ef-ui-struct-input > .ef-ui-struct-input-row {
-  grid-template-columns: minmax(90px, 120px) minmax(0, 1fr);
+  grid-template-columns: minmax(64px, 76px) minmax(0, 1fr);
   gap: var(--ef-space-2);
   padding: var(--ef-space-1) 0;
 }
@@ -2353,11 +2370,11 @@ body.ef-dragging-vertical,   body.ef-dragging-vertical *   { cursor: ns-resize !
 .ef-ui-section-head {
   display: flex;
   align-items: center;
-  gap: var(--ef-space-1);
+  gap: 2px;
   width: 100%;
   height: var(--ef-size-h-md);
-  padding: 0 var(--ef-space-2);
-  background: var(--ef-bg-1);
+  padding: 0 var(--ef-space-1);
+  background: var(--ef-bg-raised);
   border: 0;
   color: var(--ef-fg-0);
   font: 600 var(--ef-fs-sm) var(--ef-font-ui);
@@ -2366,12 +2383,15 @@ body.ef-dragging-vertical,   body.ef-dragging-vertical *   { cursor: ns-resize !
   cursor: pointer;
   text-align: left;
 }
-.ef-ui-section-head:hover { background: var(--ef-bg-2); }
+.ef-ui-section-head:hover { background: var(--ef-bg-3); }
 .ef-ui-section-arrow {
-  display: inline-block;
-  width: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
   color: var(--ef-fg-2);
-  font-size: 10px;
+  font-size: 13px;
+  line-height: 1;
 }
 .ef-ui-section-title { flex: 1 1 auto; }
 .ef-ui-section-body {
@@ -2427,6 +2447,37 @@ body.ef-dragging-vertical,   body.ef-dragging-vertical *   { cursor: ns-resize !
 }
 .ef-ui-card-body { display: flex; flex-direction: column; gap: var(--ef-space-2); }
 .ef-ui-card-padded .ef-ui-card-body { padding: var(--ef-space-3); }
+
+/* ── scene / UI tree node wrapper ─────────────────────────────────
+   Every renderUITree node is a real editor node. The component body fills
+   the node; arbitrary children default to an absolute overlay layer. */
+.ef-ui-node {
+  position: relative;
+  display: inline-block;
+  min-width: 0;
+  box-sizing: border-box;
+}
+.ef-ui-node-body {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+.ef-ui-node-body > :first-child {
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+}
+.ef-ui-node-children {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.ef-ui-node-children > .ef-ui-abs-slot {
+  position: absolute;
+  pointer-events: auto;
+}
 
 /* ── scrollArea ─────────────────────────────────────────────────── */
 .ef-ui-scrollarea {
@@ -2517,7 +2568,7 @@ body.ef-dragging-vertical,   body.ef-dragging-vertical *   { cursor: ns-resize !
 .ef-ui-tree-row {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 3px;
   width: 100%;
   padding-right: 4px;
   font: var(--ef-fs-sm) var(--ef-font-ui);
@@ -2537,9 +2588,10 @@ body.ef-dragging-vertical,   body.ef-dragging-vertical *   { cursor: ns-resize !
   display: inline-flex;
   align-items: center; justify-content: center;
   flex: 0 0 auto;
-  width: 14px; height: 14px;
+  width: 16px; height: 16px;
   color: var(--ef-fg-2);
-  font-size: 9px;
+  font-size: 12px;
+  line-height: 1;
   cursor: pointer;
   border-radius: var(--ef-r-1, 2px);
 }
@@ -2605,9 +2657,11 @@ body.ef-dragging-vertical,   body.ef-dragging-vertical *   { cursor: ns-resize !
   transition: opacity var(--ef-dur-fast, 80ms);
 }
 .ef-ui-tree-drop-indicator.ef-ui-tree-drop-inside {
-  background: transparent;
+  background: color-mix(in srgb, var(--ef-accent) 12%, transparent);
   border: 2px solid var(--ef-accent);
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--ef-accent) 30%, transparent);
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--ef-accent) 45%, transparent),
+    0 0 10px color-mix(in srgb, var(--ef-accent) 30%, transparent);
   border-radius: var(--ef-r-2);
 }
 .ef-ui-tree-drop-indicator.ef-ui-tree-drop-reject {
@@ -2615,7 +2669,7 @@ body.ef-dragging-vertical,   body.ef-dragging-vertical *   { cursor: ns-resize !
   box-shadow: 0 0 4px var(--ef-error);
 }
 .ef-ui-tree-drop-indicator.ef-ui-tree-drop-inside.ef-ui-tree-drop-reject {
-  background: transparent;
+  background: color-mix(in srgb, var(--ef-error) 10%, transparent);
   border-color: var(--ef-error);
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--ef-error) 30%, transparent);
 }
@@ -2888,7 +2942,16 @@ body.ef-dragging-vertical,   body.ef-dragging-vertical *   { cursor: ns-resize !
 .ef-ui-menu-item-sub {
   margin-left: var(--ef-space-2);
   color: var(--ef-fg-3);
-  font-size: 10px;
+  font-size: 13px;
+  line-height: 1;
+}
+.ef-ui-menu-item[data-open="true"] {
+  background: var(--ef-hover);
+  color: var(--ef-fg-0);
+}
+.ef-ui-menu-submenu {
+  position: absolute;
+  z-index: calc(var(--ef-z-popover) + 2);
 }
 
 .ef-ui-search-menu {

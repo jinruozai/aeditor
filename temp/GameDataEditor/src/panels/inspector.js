@@ -980,24 +980,8 @@
   function findNodeInStyle(styleKey, nodeId) {
     var cs = State.projectCardStyles()[styleKey];
     if (!cs || !cs.root) return null;
-    function walk(n) {
-      if (!n) return null;
-      if (n.id === nodeId) return n;
-      var kids = n.children || [];
-      for (var i = 0; i < kids.length; i++) { var hit = walk(kids[i]); if (hit) return hit; }
-      return null;
-    }
-    return walk(cs.root);
-  }
-  function findNodePath(root, id, parent, idx) {
-    if (!root) return null;
-    if (root.id === id) return { node: root, parent: parent, index: idx };
-    var kids = root.children || [];
-    for (var i = 0; i < kids.length; i++) {
-      var hit = findNodePath(kids[i], id, root, i);
-      if (hit) return hit;
-    }
-    return null;
+    var hit = SceneNode.find(cs.root, nodeId);
+    return hit ? hit.node : null;
   }
 
   // Builds a custom-render component-props panel: schema-driven form +
@@ -1142,7 +1126,7 @@
     function mutateNodes(styleKey, ids, fn) {
       State.mutateCardStyle(styleKey, function (clone) {
         ids.forEach(function (id) {
-          var hit = findNodePath(clone.root, id, null, -1);
+          var hit = SceneNode.find(clone.root, id);
           if (hit) fn(hit.node);
         });
       });

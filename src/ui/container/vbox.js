@@ -43,7 +43,7 @@
 
   EF.registerComponent('vbox', {
     label: 'V Box', icon: 'columns', category: 'layout',
-    acceptsChildren: true, bindable: [],
+    bindable: [],
     defaultProps: DEFAULTS, schema: SCHEMA,
     factory: function (propsSig) { return build(propsSig, 'vbox') },
     appendChild: function (parent, child, layout) { applyChildLayout(child, layout); parent.appendChild(child) },
@@ -51,7 +51,7 @@
 
   EF.registerComponent('hbox', {
     label: 'H Box', icon: 'columns', category: 'layout',
-    acceptsChildren: true, bindable: [],
+    bindable: [],
     defaultProps: DEFAULTS, schema: SCHEMA,
     factory: function (propsSig) { return build(propsSig, 'hbox') },
     appendChild: function (parent, child, layout) { applyChildLayout(child, layout); parent.appendChild(child) },

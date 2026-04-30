@@ -38,8 +38,8 @@
     panels: [
       EF.panel({ component: 'gde-tables',          title: I18N.t('panel.tablemap'),   icon: 'table'    }),
       EF.panel({ component: 'gde-typeconfig',      title: I18N.t('panel.typeconfig'), icon: 'settings' }),
-      EF.panel({ component: 'gde-search',          title: I18N.t('panel.search'),     icon: 'search'   }),
       EF.panel({ component: 'gde-cardstyle-tree',  title: 'Object Tree',              icon: 'list'     }),
+      EF.panel({ component: 'gde-search',          title: I18N.t('panel.search'),     icon: 'search'   }),
     ],
   });
 

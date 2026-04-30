@@ -13,10 +13,13 @@
     const o = opts || {}
     let pop = null
     const root = ui.h('div', 'ef-ui-search-menu')
-    const input = ui.h('input', 'ef-ui-input ef-ui-search-menu-input', {
-      type: 'text',
+    const query = EF.signal('')
+    const input = ui.searchInput({
+      value: query,
       placeholder: o.placeholder || 'Search...',
+      onChange: function () { active = 0; paint() },
     })
+    input.classList.add('ef-ui-search-menu-input')
     const list = ui.h('div', 'ef-ui-menu ef-ui-search-menu-list')
     root.appendChild(input)
     root.appendChild(list)
@@ -26,7 +29,7 @@
 
     function close() { if (pop) { pop.close(); pop = null } }
     function filtered() {
-      const q = input.value.trim().toLowerCase()
+      const q = String(query.peek() || '').trim().toLowerCase()
       if (!q) return items
       return items.filter(function (it) {
         return String(it.label || it.value || '').toLowerCase().indexOf(q) >= 0
@@ -66,7 +69,6 @@
       close()
     }
 
-    input.addEventListener('input', function () { active = 0; paint() })
     input.addEventListener('keydown', function (ev) {
       const rows = filtered()
       if (ev.key === 'ArrowDown') { ev.preventDefault(); active = Math.min(rows.length - 1, active + 1); paintActive(); return }
@@ -87,7 +89,10 @@
       role: 'menu',
       onDismiss: function () { pop = null },
     })
-    setTimeout(function () { input.focus(); input.select() }, 0)
+    setTimeout(function () {
+      const inner = input.querySelector('input')
+      if (inner) { inner.focus(); inner.select() }
+    }, 0)
     return pop
   }
 })(window.EF = window.EF || {})

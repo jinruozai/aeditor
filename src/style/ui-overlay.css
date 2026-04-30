@@ -29,7 +29,16 @@
 .ef-ui-menu-item-sub {
   margin-left: var(--ef-space-2);
   color: var(--ef-fg-3);
-  font-size: 10px;
+  font-size: 13px;
+  line-height: 1;
+}
+.ef-ui-menu-item[data-open="true"] {
+  background: var(--ef-hover);
+  color: var(--ef-fg-0);
+}
+.ef-ui-menu-submenu {
+  position: absolute;
+  z-index: calc(var(--ef-z-popover) + 2);
 }
 
 .ef-ui-search-menu {

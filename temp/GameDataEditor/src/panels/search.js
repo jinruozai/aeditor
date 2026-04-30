@@ -9,8 +9,8 @@
     var root = document.createElement('div');
     root.style.cssText = 'display:flex;flex-direction:column;height:100%;padding:8px;';
 
-    var input = document.createElement('input');
-    input.className = 'gde-search-input';
+    var inputSig = EF.signal('');
+    var input = EF.ui.searchInput({ value: inputSig, placeholder: t('search.placeholder') });
 
     var countLine = document.createElement('div');
     countLine.style.cssText = 'font-size:11px;color:var(--ef-fg-3,#8a8a90);margin-bottom:4px;';
@@ -73,10 +73,11 @@
       });
     }
 
-    input.addEventListener('input', function () { query = input.value; search(); });
+    EF.ui.bind(root, inputSig, function (v) { query = v || ''; search(); });
 
     function applyLocale() {
-      input.placeholder = t('search.placeholder');
+      var inner = input.querySelector('input');
+      if (inner) inner.placeholder = t('search.placeholder');
       (function(__t){ if (ctx.panel && ctx.panel.title && ctx.panel.title()!==__t) ctx.panel.setTitle(__t); })(t('panel.search'));
       search();
     }

@@ -13,17 +13,12 @@
   'use strict';
 
   var ui = EF.ui;
-  var nextId = 1;
-  function uid(prefix) { return (prefix || 'n') + '-' + (nextId++) + '-' + Date.now().toString(36); }
 
   function emptyRoot() {
-    return {
-      id: uid('root'),
-      component: 'absolute',
-      props: { width: 120, height: 120, background: 'var(--ef-bg-2)', borderRadius: 4 },
-      bindings: {},
-      children: [],
-    };
+    return SceneNode.create('absolute', {
+      layout: false,
+      props: { width: 120, height: 168, background: 'var(--ef-bg-2)', borderRadius: 4 },
+    });
   }
 
   function suggestKey(existing) {
@@ -137,7 +132,7 @@
       var nk = suggestKey(cs);
       var clone = JSON.parse(JSON.stringify(src));
       clone.name = (src.name || key) + ' (copy)';
-      retagIds(clone.root);
+      if (clone.root) SceneNode.retag(clone.root);
       State.upsertCardStyle(nk, clone);
       select(nk, true);
     }
@@ -149,12 +144,6 @@
           catch (e) { State.log('error', String(e.message || e)); }
         });
     }
-    function retagIds(node) {
-      if (!node) return;
-      node.id = uid(node.component);
-      (node.children || []).forEach(retagIds);
-    }
-
     function paint() {
       grid.innerHTML = '';
       var cs = State.projectCardStyles();

@@ -55,6 +55,9 @@
   object-fit: cover;
   user-select: none;
 }
+.ef-ui-image:not([src]) {
+  visibility: hidden;
+}
 
 /* ── button ───────────────────────────────────────── */
 .ef-ui-btn {

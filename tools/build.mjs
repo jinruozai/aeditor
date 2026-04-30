@@ -72,6 +72,7 @@ const JS_ORDER = [
 
   // Layer 7 — UI library: form
   'ui/form/input.js',
+  'ui/form/searchInput.js',
   'ui/form/textarea.js',
   'ui/form/numberInput.js',
   'ui/form/vectorInput.js',

@@ -16,13 +16,13 @@
 //   deserialize?:      (el, state) => void,
 //
 //   // Palette / UI-tree metadata (consumed by EF.ui.renderUITree + tools that
-//   // present a palette of available components, e.g. a card-layout editor)
+//   // present a palette of available components, e.g. a scene editor)
 //   label?:            string,
 //   icon?:             string,
 //   category?:         'layout'|'base'|'form'|'editor'|'display'|'data'|'overlay'|'panel'|'custom',
 //   schema?:           StructDef,                // describes spec props for propertyPanel
 //   bindable?:         string[],                 // prop keys allowed to bind to a data field
-//   acceptsChildren?:  boolean,                  // container — UI tree may insert children
+//   appendChild?:      (parentEl, childEl, layout) => void, // optional custom child layout
 // }
 //
 // The factory's first parameter is a signal carrying the current props.

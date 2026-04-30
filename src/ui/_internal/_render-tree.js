@@ -21,9 +21,10 @@
 // according to `bindings`. If a bound field's data source is missing the
 // prop is undefined (component decides whether to no-op or render blank).
 //
-// Container components opt in via spec.acceptsChildren=true. Their child
-// mounting logic can be customized via spec.appendChild(parentEl, childEl,
-// childLayout). The default just `parentEl.appendChild(childEl)`.
+// Every UI tree node may own children. Components only render their body;
+// child layout is a node-level concern. Components that need a custom child
+// layout provide `appendChild(parentEl, childEl, childLayout)`. Everything
+// else gets the default overlay child layer.
 ;(function (EF) {
   'use strict'
   const ui = EF.ui = EF.ui || {}
@@ -32,13 +33,21 @@
     if (!node) return ui.h('div', 'ef-ui-tree-empty')
     const spec = EF.resolveComponent(node.component)
     const propsSig = buildPropsSig(node, ctx)
-    const el = spec.factory(propsSig, ctx || {})
-    if (spec.acceptsChildren && node.children && node.children.length) {
-      const append = typeof spec.appendChild === 'function' ? spec.appendChild : defaultAppend
+    const bodyEl = spec.factory(propsSig, ctx || {})
+    const el = ui.h('div', 'ef-ui-node')
+    el.dataset.efNodeId = node.id || ''
+    const body = ui.h('div', 'ef-ui-node-body')
+    body.appendChild(bodyEl)
+    el.appendChild(body)
+
+    if (node.children && node.children.length) {
+      const append = typeof spec.appendChild === 'function'
+        ? function (childEl, layout) { spec.appendChild(bodyEl, childEl, layout) }
+        : function (childEl, layout) { appendOverlay(el, childEl, layout) }
       for (let i = 0; i < node.children.length; i++) {
         const child = node.children[i]
         const childEl = renderUITree(child, ctx)
-        append(el, childEl, child.layout || null)
+        append(childEl, child.layout || null)
       }
     }
     return el
@@ -64,7 +73,17 @@
     })
   }
 
-  function defaultAppend(parent, child) { parent.appendChild(child) }
+  function appendOverlay(parent, child, layout) {
+    let layer = parent.querySelector(':scope > .ef-ui-node-children')
+    if (!layer) {
+      layer = ui.h('div', 'ef-ui-node-children')
+      parent.appendChild(layer)
+    }
+    const slot = ui.h('div', 'ef-ui-abs-slot')
+    ui.layoutRect.applyToSlot(slot, layout || ui.layoutRect.identity())
+    slot.appendChild(child)
+    layer.appendChild(slot)
+  }
 
   // Helper for component factories that wrap a ui.* primitive expecting
   // per-prop signals. Returns `{ key: derived(() => propsSig().key) }`.

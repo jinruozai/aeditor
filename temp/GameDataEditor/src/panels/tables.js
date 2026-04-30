@@ -145,7 +145,7 @@
       return allExpandedSig() ? 'chevron-up' : 'chevron-down';
     });
 
-    var searchInput = ui.input({ value: searchSig, placeholder: placeholderSig });
+    var searchInput = ui.searchInput({ value: searchSig, placeholder: placeholderSig });
     searchInput.style.cssText = 'flex:1 1 auto;min-width:0;';
     var toggleAllBtn = ui.iconButton({
       icon: toggleIconSig, kind: 'ghost', title: 'Expand / collapse all',

@@ -6,12 +6,11 @@
   'use strict';
 
   function buildMenu(anchor, items) {
-    var r = anchor.getBoundingClientRect();
-    return EF.ui.contextMenu({ x: r.left, y: r.bottom + 2 }, items.map(function map(it) {
+    return EF.ui.menu({ anchor: anchor, side: 'bottom', align: 'start', items: items.map(function map(it) {
       if (it.separator) return { type: 'divider' };
       if (it.items)     return { label: it.label, items: it.items.map(map) };
       return { label: it.label, danger: it.danger, disabled: it.disabled, onSelect: it.onClick };
-    }));
+    })});
   }
 
   var THEME_KEY = 'gde.theme';

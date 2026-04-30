@@ -21,10 +21,6 @@
   // accepts them directly. Without this override, the default color
   // typedef (base_type:int) stores 24-bit ints, which write to
   // el.style.background as plain digit strings and the browser ignores.
-  // valueKind:'hex' forces colorInput to store '#rrggbb' strings — CSS
-  // accepts them directly. Without this override, the default color
-  // typedef (base_type:int) stores 24-bit ints, which write to
-  // el.style.background as plain digit strings and the browser ignores.
   ui.BOX_STYLE_SCHEMA = {
     background:    { type: 'color', type_agv: { valueKind: 'hex' }, group: 'background',
                      desc: 'Fill color of the box. Empty falls back to the theme.' },
@@ -72,13 +68,24 @@
     EF.effect(function () {
       const p = propsSig() || {}
       setStr(el, 'background',   p.background)
-      setStr(el, 'borderColor',  p.borderColor)
-      setPx (el, 'borderWidth',  p.borderWidth)
-      // Fall back to 'solid' whenever a width is set but the user hasn't
-      // picked a style — CSS treats border-style:none as "no border" so an
-      // unset style would silently swallow width+color even if both were
-      // provided.
-      setStr(el, 'borderStyle',  p.borderStyle || (p.borderWidth > 0 ? 'solid' : ''))
+      const bw = Number(p.borderWidth)
+      if (p.borderWidth === 0 || p.borderWidth === '0') {
+        el.style.border = '0'
+      } else if (p.borderWidth == null || p.borderWidth === '' || !isFinite(bw) || bw <= 0) {
+        el.style.border = ''
+        el.style.borderWidth = ''
+        el.style.borderColor = ''
+        el.style.borderStyle = ''
+      } else {
+        el.style.border = ''
+        setPx (el, 'borderWidth',  bw)
+        setStr(el, 'borderColor',  p.borderColor)
+        // Fall back to 'solid' whenever a width is set but the user hasn't
+        // picked a style — CSS treats border-style:none as "no border" so an
+        // unset style would silently swallow width+color even if both were
+        // provided.
+        setStr(el, 'borderStyle',  p.borderStyle || 'solid')
+      }
       setPx (el, 'borderRadius', p.borderRadius)
       setPx (el, 'padding',      p.padding)
       setNum(el, 'opacity',      p.opacity)

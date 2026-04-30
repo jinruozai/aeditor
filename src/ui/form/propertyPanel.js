@@ -66,8 +66,12 @@
     // and route writes through the same fanOut, so per-key reactivity works
     // without any cross-instance bookkeeping.
     let mounted = []
+    let mountedSchemaKey = null
     const stopSchema = EF.effect(function () {
       const schema = schemaSig() || {}
+      const schemaKey = JSON.stringify(schema)
+      if (schemaKey === mountedSchemaKey) return
+      mountedSchemaKey = schemaKey
       EF.untracked(function () {
         mounted.forEach(function (n) { ui.dispose(n); if (n.parentNode) n.parentNode.removeChild(n) })
         mounted = []

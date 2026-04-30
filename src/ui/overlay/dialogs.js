@@ -101,7 +101,12 @@
       style: 'position:fixed;width:0;height:0;left:' + (pos.x || 0) + 'px;top:' + (pos.y || 0) + 'px;',
     })
     document.body.appendChild(anchor)
-    const menu = ui.menu({ anchor: anchor, items: items, side: 'bottom', align: 'start' })
+    const menu = ui.menu({
+      anchor: anchor, items: items, side: 'bottom', align: 'start',
+      onDismiss: function () {
+        if (anchor.parentNode) anchor.parentNode.removeChild(anchor)
+      },
+    })
     const origClose = menu.close
     menu.close = function () {
       origClose()

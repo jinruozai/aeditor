@@ -11,29 +11,31 @@
     var toolbar = document.createElement('div');
     toolbar.className = 'gde-assets-toolbar';
 
-    var search = document.createElement('input');
-    search.className = 'gde-search-input';
-    search.placeholder = 'Search assets...';
+    var searchSig = EF.signal('');
+    var search = EF.ui.searchInput({ value: searchSig, placeholder: 'Search assets...' });
 
     var addBtn = button('Add Files', 'plus');
     var folderBtn = button('Folder', 'plus');
     var renameBtn = button('Rename', 'edit');
     var deleteBtn = button('Delete', 'trash');
+    var actions = document.createElement('div');
+    actions.className = 'gde-assets-actions';
 
     toolbar.appendChild(search);
-    toolbar.appendChild(addBtn);
-    toolbar.appendChild(folderBtn);
-    toolbar.appendChild(renameBtn);
-    toolbar.appendChild(deleteBtn);
+    actions.appendChild(addBtn);
+    actions.appendChild(folderBtn);
+    actions.appendChild(renameBtn);
+    actions.appendChild(deleteBtn);
+    toolbar.appendChild(actions);
 
     var crumb = document.createElement('div');
     crumb.className = 'gde-assets-crumb';
+    toolbar.insertBefore(crumb, search);
 
     var grid = document.createElement('div');
     grid.className = 'gde-assets-grid';
 
     root.appendChild(toolbar);
-    root.appendChild(crumb);
     root.appendChild(grid);
 
     var dir = '';
@@ -41,8 +43,8 @@
     var selected = new Set();
     var last = null;
 
-    search.addEventListener('input', function () {
-      query = search.value || '';
+    EF.ui.bind(root, searchSig, function (v) {
+      query = v || '';
       selected.clear();
       render();
     });
@@ -143,6 +145,11 @@
 
     function render() {
       ProjectIO.assets.version();
+      if (dir && ProjectIO.assets.dirs().indexOf(dir) < 0) {
+        dir = '';
+        selected.clear();
+        last = null;
+      }
       renderCrumb();
       grid.innerHTML = '';
       var rows = ProjectIO.assets.children(dir, query);

@@ -43,6 +43,7 @@
     'database':    '<ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14a9 3 0 0 0 18 0V5"/><path d="M3 12a9 3 0 0 0 18 0"/>',
     'columns':     '<rect width="18" height="18" x="3" y="3" rx="2"/><path d="M12 3v18"/>',
     'grid':        '<rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/>',
+    'magnet':      '<path d="M6 3v8a6 6 0 0 0 12 0V3"/><path d="M6 8h4"/><path d="M14 8h4"/><path d="M6 3h4"/><path d="M14 3h4"/>',
     'list':        '<line x1="8" x2="21" y1="6" y2="6"/><line x1="8" x2="21" y1="12" y2="12"/><line x1="8" x2="21" y1="18" y2="18"/><line x1="3" x2="3.01" y1="6" y2="6"/><line x1="3" x2="3.01" y1="12" y2="12"/><line x1="3" x2="3.01" y1="18" y2="18"/>',
 
     // ─── Media / Misc ───────────────────────────────────────────

@@ -82,7 +82,7 @@
       root: {
         id: 'root',
         component: 'absolute',
-        props: { width: 120, height: 120, background: 'var(--ef-bg-0)', borderRadius: 6 },
+        props: { width: 120, height: 168, background: 'var(--ef-bg-0)', borderRadius: 6 },
         bindings: {},
         children: [{
           id: 'id-text',

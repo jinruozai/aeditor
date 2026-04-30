@@ -34,7 +34,6 @@
     label:           'Absolute',
     icon:            'maximize',
     category:        'layout',
-    acceptsChildren: true,
     bindable:        [],
     defaultProps: Object.assign({}, ui.BOX_STYLE_DEFAULTS, { width: 120, height: 120 }),
     schema: Object.assign({}, ui.BOX_STYLE_SCHEMA, {

@@ -18,37 +18,11 @@
   'use strict';
 
   var ui = EF.ui;
-  var nextId = 1;
-  function uid(prefix) { return (prefix || 'n') + '-' + (nextId++) + '-' + Date.now().toString(36); }
 
-  function findNode(root, id, parent, idx) {
-    if (!root) return null;
-    if (root.id === id) return { node: root, parent: parent, index: idx };
-    var kids = root.children || [];
-    for (var i = 0; i < kids.length; i++) {
-      var hit = findNode(kids[i], id, root, i);
-      if (hit) return hit;
-    }
-    return null;
-  }
-
-  // Build a fresh TreeNode from a component name. Containers start empty
-  // and inherit a sensible default size from defaultProps.
+  // Build a fresh scene node from a component name. All nodes may own
+  // children; parent layout is assigned by the insertion path.
   function nodeFromComponent(name) {
-    var spec = EF.resolveComponent(name);
-    return {
-      id:        uid(name),
-      component: name,
-      props:     Object.assign({}, spec.defaultProps || {}),
-      bindings:  {},
-      children:  spec.acceptsChildren ? [] : [],
-      // Default placement: 80×24 fixed-point box at 8,8 from top-left
-      // anchor (LayoutRect — see EF.ui.layoutRect). Flex containers ignore.
-      layout: {
-        aMin: { x: 0, y: 0 }, aMax: { x: 0, y: 0 },
-        oMin: { x: 8, y: 8 }, oMax: { x: 88, y: 32 },
-      },
-    };
+    return SceneNode.create(name);
   }
 
   function factory(propsSig, ctx) {
@@ -60,12 +34,55 @@
     var sizeEl = ui.h('div', 'gde-cs-editor-size', { text: '' });
     bar.appendChild(nameEl); bar.appendChild(sizeEl);
 
+    var gridVisible = EF.signal(true);
+    var snapEnabled = EF.signal(false);
+    var gridSize = EF.signal(16);
+    var snapGrid = EF.signal(true);
+    var snapParent = EF.signal(false);
+    var snapSiblings = EF.signal(false);
+    var gridBtn = ui.iconButton({
+      icon: 'grid',
+      title: 'Show grid',
+      kind: 'ghost',
+      onClick: function () { gridVisible.set(!gridVisible.peek()); },
+    });
+    var gridSizeEl = ui.numberInput({ value: gridSize, min: 1, max: 128, step: 1, precision: 0 });
+    var snapBtn = ui.iconButton({
+      icon: 'magnet',
+      title: 'Snap',
+      kind: 'ghost',
+      onClick: function () { snapEnabled.set(!snapEnabled.peek()); },
+    });
+    var snapGridBtn = snapSourceButton('Grid', snapGrid, 'Snap to grid');
+    var snapParentBtn = snapSourceButton('Parent', snapParent, 'Snap to parent edges and center');
+    var snapSiblingsBtn = snapSourceButton('Siblings', snapSiblings, 'Snap to sibling edges and centers');
+    var alignMenuBtn = ui.iconButton({
+      icon: 'more-horizontal',
+      title: 'Align and distribute',
+      kind: 'ghost',
+      onClick: function () { openAlignMenu(alignMenuBtn); },
+    });
+    gridBtn.classList.add('gde-cs-toggle');
+    snapBtn.classList.add('gde-cs-toggle');
+    gridSizeEl.classList.add('gde-cs-grid-size');
+    snapGridBtn.classList.add('gde-cs-toggle');
+    snapParentBtn.classList.add('gde-cs-toggle');
+    snapSiblingsBtn.classList.add('gde-cs-toggle');
+    alignMenuBtn.classList.add('gde-cs-align-menu-btn');
+
     // Zoom — applied to canvas via CSS transform. Range chosen wide enough
     // to peek at small text + back out to layout overview without becoming
     // a scrubbable axis (numberInput is a deliberate two-click affair).
     var zoom = EF.signal(100);
     var zoomEl = ui.numberInput({ value: zoom, min: 25, max: 400, step: 25, precision: 0 });
     var zoomWrap = ui.h('div', 'gde-cs-editor-zoom');
+    zoomWrap.appendChild(gridBtn);
+    zoomWrap.appendChild(gridSizeEl);
+    zoomWrap.appendChild(snapBtn);
+    zoomWrap.appendChild(snapGridBtn);
+    zoomWrap.appendChild(snapParentBtn);
+    zoomWrap.appendChild(snapSiblingsBtn);
+    zoomWrap.appendChild(alignMenuBtn);
     zoomWrap.appendChild(ui.h('span', 'gde-cs-editor-zoom-label', { text: 'Zoom %' }));
     zoomWrap.appendChild(zoomEl);
     bar.appendChild(zoomWrap);
@@ -74,14 +91,68 @@
 
     var stage = ui.h('div', 'gde-cs-stage');
     root.appendChild(stage);
+    EF.effect(function () {
+      var n = Math.max(1, Number(gridSize()) || 16);
+      stage.style.setProperty('--gde-cs-grid-size', n + 'px');
+      stage.toggleAttribute('data-grid', !!gridVisible());
+      gridBtn.classList.toggle('is-on', !!gridVisible.peek());
+      snapBtn.classList.toggle('is-on', !!snapEnabled());
+      snapGridBtn.classList.toggle('is-on', !!snapGrid());
+      snapParentBtn.classList.toggle('is-on', !!snapParent());
+      snapSiblingsBtn.classList.toggle('is-on', !!snapSiblings());
+      setAlignEnabled(canAlignSelection());
+    });
 
     var canvas = ui.h('div', 'gde-cs-canvas');
     stage.appendChild(canvas);
+    var guideLayer = ui.h('div', 'gde-cs-guides');
+    var marqueeEl = ui.h('div', 'gde-cs-marquee');
     EF.effect(function () {
       var z = Math.max(25, Math.min(400, Number(zoom()) || 100)) / 100;
       canvas.style.transform = 'scale(' + z + ')';
       canvas.style.transformOrigin = 'center';
     });
+
+    function snapSourceButton(label, sig, title) {
+      var btn = ui.button({
+        text: label,
+        kind: 'ghost',
+        size: 'sm',
+        onClick: function () { sig.set(!sig.peek()); },
+      });
+      btn.setAttribute('title', title);
+      return btn;
+    }
+    function openAlignMenu(anchor) {
+      var disabled = !canAlignSelection();
+      ui.menu({
+        anchor: anchor,
+        side: 'bottom',
+        align: 'end',
+        items: [
+          { type: 'header', label: 'Align' },
+          { label: 'Left', disabled: disabled, onSelect: function () { applyAlign('left'); } },
+          { label: 'Horizontal Center', disabled: disabled, onSelect: function () { applyAlign('center-x'); } },
+          { label: 'Right', disabled: disabled, onSelect: function () { applyAlign('right'); } },
+          { type: 'divider' },
+          { label: 'Top', disabled: disabled, onSelect: function () { applyAlign('top'); } },
+          { label: 'Vertical Center', disabled: disabled, onSelect: function () { applyAlign('center-y'); } },
+          { label: 'Bottom', disabled: disabled, onSelect: function () { applyAlign('bottom'); } },
+          { type: 'divider' },
+          { label: 'Distribute Horizontally', disabled: disabled, onSelect: function () { applyAlign('distribute-x'); } },
+          { label: 'Distribute Vertically', disabled: disabled, onSelect: function () { applyAlign('distribute-y'); } },
+        ],
+      });
+    }
+    function setAlignEnabled(enabled) {
+      alignMenuBtn.disabled = !enabled;
+    }
+    function canAlignSelection() {
+      var cs = State.projectCardStyles()[styleKey];
+      if (!cs || !cs.root) return false;
+      var ids = SceneSelection.idsFromSelection(State.selection(), styleKey);
+      return SceneNode.topLevelIds(cs.root, ids).length >= 2;
+    }
 
     // Wheel / trackpad-pinch → zoom. Step is proportional to current zoom
     // so the perceived speed stays constant at any level (logarithmic
@@ -105,6 +176,11 @@
       var next = current + Math.sign(-ev.deltaY) * step;
       zoom.set(Math.max(25, Math.min(400, Math.round(next))));
     }, { passive: false });
+
+    stage.addEventListener('pointerdown', function (ev) {
+      if (ev.button !== 0 || ev.target !== stage) return;
+      startMarquee(ev);
+    });
 
     // Sample-row signal — uses the first table's first entity if any
     // exists, otherwise just '#sample' so bindings resolve to undefined
@@ -143,93 +219,35 @@
         return;
       }
       var inner = ui.renderUITree(cs.root, { data: sampleSig });
-      // Mark each rendered child with its node id so click → select works.
-      annotateIds(inner, cs.root);
+      SceneDOM.annotate(inner, cs.root);
       canvas.appendChild(inner);
+      canvas.appendChild(guideLayer);
     }
 
-    // Tag exactly one DOM element per TreeNode with data-node-id. For
-    // absolute children that's the slot wrapper (it owns the layout — drag
-    // and resize affect it). For vbox / hbox / leaf children that's the
-    // editor element itself. Tagging two elements caused findSlot to pick
-    // the wrong one and handles never mounted.
-    function annotateIds(rootEl, rootNode) {
-      if (!rootNode) return;
-      rootEl.dataset.nodeId = rootNode.id;
-      walkChildrenIds(rootEl, rootNode);
-    }
-    function walkChildrenIds(domEl, treeNode) {
-      var spec; try { spec = EF.resolveComponent(treeNode.component); } catch (_) {}
-      if (!spec || !spec.acceptsChildren || !treeNode.children) return;
-      if (treeNode.component === 'absolute') {
-        var slots = Array.from(domEl.querySelectorAll(':scope > .ef-ui-abs-slot'));
-        slots.forEach(function (slot, i) {
-          var childNode = treeNode.children[i];
-          if (!childNode) return;
-          slot.dataset.nodeId = childNode.id;
-          // Recurse into the inner editor for grand-children.
-          if (slot.firstElementChild) walkChildrenIds(slot.firstElementChild, childNode);
-        });
-      } else {
-        var kids = Array.from(domEl.children);
-        kids.forEach(function (kidEl, i) {
-          var childNode = treeNode.children[i];
-          if (!childNode) return;
-          kidEl.dataset.nodeId = childNode.id;
-          walkChildrenIds(kidEl, childNode);
-        });
-      }
-    }
-
-    // Plain / ctrl-cmd / shift click parity with ui.list & ui.tree. Range
-    // ordering uses a DFS-preorder of the cardStyle tree (the same order
-    // children paint in, so a "shift over visible nodes" feel maps
-    // intuitively to the array slice).
     var anchorId = null;
     canvas.addEventListener('click', function (ev) {
       // The pointerup that ends a drag fires a click immediately after.
       // dragSuppressClick is set right before we commit and cleared on the
       // next tick, so clicks induced by drags don't reshape the selection.
       if (dragSuppressClick) return;
-      var t = ev.target;
-      var clickedId = null;
-      while (t && t !== canvas) {
-        if (t.dataset && t.dataset.nodeId) { clickedId = t.dataset.nodeId; break; }
-        t = t.parentElement;
-      }
+      var clickedId = SceneDOM.idFromEvent(ev, canvas);
       if (!clickedId) {
-        // Click on canvas blank deselects everything. The cardStyle's
-        // own meta is editable from the cardstyle-list panel, not here.
         State.setSelection(null);
         anchorId = null;
         return;
       }
-      var sel = State.selection();
-      var cur = (sel && sel.kind === 'card_component' && sel.styleKey === styleKey)
-        ? (sel.nodeIds || []) : [];
-      var next;
-      if (ev.shiftKey && anchorId) {
-        var order = collectIds();
-        var i = order.indexOf(anchorId), j = order.indexOf(clickedId);
-        if (i < 0 || j < 0) { next = [clickedId]; anchorId = clickedId; }
-        else { var lo = Math.min(i, j), hi = Math.max(i, j); next = order.slice(lo, hi + 1); }
-      } else if (ev.metaKey || ev.ctrlKey) {
-        var idx = cur.indexOf(clickedId);
-        next = idx >= 0 ? cur.filter(function (x) { return x !== clickedId; }) : cur.concat([clickedId]);
-        anchorId = clickedId;
-      } else {
-        next = [clickedId];
-        anchorId = clickedId;
-      }
-      State.setSelection({ kind: 'card_component', styleKey: styleKey, nodeIds: next });
+      var cs = State.projectCardStyles()[styleKey];
+      if (!cs || !cs.root) return;
+      var next = SceneSelection.click(
+        cs.root,
+        SceneSelection.idsFromSelection(State.selection(), styleKey),
+        anchorId,
+        clickedId,
+        ev
+      );
+      anchorId = next.anchorId;
+      State.setSelection({ kind: 'card_component', styleKey: styleKey, nodeIds: next.ids });
     });
-
-    function collectIds() {
-      var cs = State.projectCardStyles()[styleKey]; if (!cs || !cs.root) return [];
-      var out = [];
-      (function walk(n) { if (!n) return; out.push(n.id); (n.children || []).forEach(walk); })(cs.root);
-      return out;
-    }
 
     // Drop palette components onto canvas. Find target node by hit-testing
     // ancestors with dataset.nodeId; fall back to root.
@@ -244,32 +262,43 @@
       var payload = null; try { payload = JSON.parse(raw); } catch (_) { return; }
       if (!payload || !payload.name) return;
 
+      var insertedId = null;
       State.mutateCardStyle(styleKey, function (clone) {
         // Empty cardStyle: drop becomes the root.
         if (!clone.root) {
           clone.root = nodeFromComponent(payload.name);
           delete clone.root.layout;  // root has no parent layout
+          insertedId = clone.root.id;
           return;
         }
-        // Find the most specific accepting ancestor under cursor.
-        var targetId = clone.root.id;
-        var t = ev.target;
-        while (t && t !== canvas) {
-          if (t.dataset && t.dataset.nodeId) {
-            var hit = findNode(clone.root, t.dataset.nodeId, null, -1);
-            if (hit) {
-              var s; try { s = EF.resolveComponent(hit.node.component); } catch (_) {}
-              if (s && s.acceptsChildren) { targetId = hit.node.id; break; }
-            }
-          }
-          t = t.parentElement;
-        }
-        var hit2 = findNode(clone.root, targetId, null, -1);
+        // Find the most specific scene node under cursor. Every node can own
+        // children; non-layout components use the default overlay child layer.
+        var targetId = SceneDOM.idFromEvent(ev, canvas) || clone.root.id;
+        var hit2 = SceneNode.find(clone.root, targetId);
         if (!hit2) return false;
+        var node = nodeFromComponent(payload.name);
+        var layout = layoutForDrop(hit2.node, payload.name, ev);
+        if (layout) node.layout = layout;
+        else delete node.layout;
         hit2.node.children = hit2.node.children || [];
-        hit2.node.children.push(nodeFromComponent(payload.name));
+        hit2.node.children.push(node);
+        insertedId = node.id;
       });
+      if (insertedId) State.setSelection({ kind: 'card_component', styleKey: styleKey, nodeIds: [insertedId] });
     });
+
+    function layoutForDrop(parentNode, childName, ev) {
+      var spec = null; try { spec = EF.resolveComponent(parentNode.component); } catch (_) {}
+      if (spec && spec.appendChild && parentNode.component !== 'absolute') return null;
+      var parentEl = SceneDOM.layoutElement(canvas, parentNode);
+      if (!parentEl) return null;
+      var rect = parentEl.getBoundingClientRect();
+      var z = getZoom();
+      var size = SceneNode.defaultSize(childName);
+      var x = Math.round((ev.clientX - rect.left) / z - size.w / 2);
+      var y = Math.round((ev.clientY - rect.top) / z - size.h / 2);
+      return SceneNode.defaultLayout(childName, Math.max(0, x), Math.max(0, y));
+    }
 
     // ── WYSIWYG drag / resize ─────────────────────────────────────
     // Each render rebuilds slot elements, so we wire drag handlers per
@@ -285,11 +314,8 @@
     // Each TreeNode has exactly one DOM element tagged with data-node-id;
     // for absolute children this IS the slot wrapper.
     function findSlot(nodeId) {
-      var el = canvas.querySelector('[data-node-id="' + cssEscape(nodeId) + '"]');
-      if (!el || !el.classList.contains('ef-ui-abs-slot')) return null;
-      return el;
+      return SceneDOM.slot(canvas, nodeId);
     }
-    function cssEscape(s) { return String(s).replace(/(["\\])/g, '\\$1'); }
     function getZoom() {
       var m = /scale\(([\d.]+)\)/.exec(canvas.style.transform || '');
       return m ? parseFloat(m[1]) : 1;
@@ -298,18 +324,17 @@
     function applySelectionAffordances() {
       // Clear stale handle wrappers + highlight class.
       Array.from(canvas.querySelectorAll('.gde-cs-handles')).forEach(function (h) { h.remove(); });
-      Array.from(canvas.querySelectorAll('[data-node-id]')).forEach(function (el) {
-        el.classList.remove('is-selected-node');
-      });
-      var sel = State.selection();
-      var ids = (sel && sel.kind === 'card_component' && sel.styleKey === styleKey)
-        ? (sel.nodeIds || []) : [];
-      ids.forEach(function (id) {
-        var inner = canvas.querySelector('[data-node-id="' + cssEscape(id) + '"]');
-        if (inner) inner.classList.add('is-selected-node');
-      });
-      // Single-select with absolute layout → mount 8 resize handles.
-      if (ids.length === 1) mountHandles(ids[0]);
+      var ids = SceneSelection.idsFromSelection(State.selection(), styleKey);
+      SceneDOM.applySelection(canvas, ids);
+      var activeId = activeTransformId(ids);
+      if (activeId) mountHandles(activeId);
+    }
+
+    function activeTransformId(ids) {
+      for (var i = 0; i < (ids || []).length; i++) {
+        if (findSlot(ids[i])) return ids[i];
+      }
+      return null;
     }
 
     function mountHandles(nodeId) {
@@ -328,14 +353,69 @@
         ev.stopPropagation(); ev.preventDefault();
         startResize(ev, slot, nodeId, ev.target.dataset.handle);
       });
-      // Move via the slot body (only when the node is already selected,
-      // which it is here since this handle wrapper is only mounted for
-      // single-selection).
-      slot.addEventListener('pointerdown', function (ev) {
-        if (ev.target.closest && ev.target.closest('.gde-cs-handle')) return;
-        ev.preventDefault();
-        startMove(ev, slot, nodeId);
+    }
+
+    canvas.addEventListener('pointerdown', function (ev) {
+      if (ev.button !== 0) return;
+      if (ev.target.closest && ev.target.closest('.gde-cs-handle')) return;
+      var nodeId = SceneDOM.idFromEvent(ev, canvas);
+      if (!nodeId) {
+        startMarquee(ev);
+        return;
+      }
+      var selected = SceneSelection.idsFromSelection(State.selection(), styleKey);
+      if (selected.indexOf(nodeId) < 0) return;
+      var slot = findSlot(nodeId);
+      if (!slot) return;
+      ev.preventDefault();
+      startMove(ev, slot, nodeId);
+    });
+
+    function startMarquee(ev) {
+      var cs = State.projectCardStyles()[styleKey];
+      if (!cs || !cs.root) return;
+      ev.preventDefault();
+      var baseIds = SceneSelection.idsFromSelection(State.selection(), styleKey);
+      var additive = !!(ev.ctrlKey || ev.metaKey);
+      var start = { x: ev.clientX, y: ev.clientY };
+      if (!marqueeEl.parentNode) stage.appendChild(marqueeEl);
+      paintMarquee(start, start);
+      function move(e) {
+        paintMarquee(start, { x: e.clientX, y: e.clientY });
+      }
+      function up(e) {
+        if (marqueeEl.parentNode) marqueeEl.parentNode.removeChild(marqueeEl);
+        var rect = rectFromPoints(start, { x: e.clientX, y: e.clientY });
+        var hitIds = SceneDOM.idsInRect(canvas, rect);
+        var next = SceneSelection.marquee(cs.root, baseIds, hitIds, additive);
+        if (rect.width > 2 || rect.height > 2) {
+          dragSuppressClick = true;
+          setTimeout(function () { dragSuppressClick = false; }, 0);
+        }
+        anchorId = next.length ? next[next.length - 1] : null;
+        if (next.length) State.setSelection({ kind: 'card_component', styleKey: styleKey, nodeIds: next });
+        else State.setSelection(null);
+      }
+      bindPointerSession(move, up, function () {
+        if (marqueeEl.parentNode) marqueeEl.parentNode.removeChild(marqueeEl);
       });
+    }
+
+    function paintMarquee(a, b) {
+      var rect = rectFromPoints(a, b);
+      var stageRect = stage.getBoundingClientRect();
+      marqueeEl.style.left = (rect.left - stageRect.left) + 'px';
+      marqueeEl.style.top = (rect.top - stageRect.top) + 'px';
+      marqueeEl.style.width = rect.width + 'px';
+      marqueeEl.style.height = rect.height + 'px';
+    }
+
+    function rectFromPoints(a, b) {
+      var left = Math.min(a.x, b.x);
+      var top = Math.min(a.y, b.y);
+      var right = Math.max(a.x, b.x);
+      var bottom = Math.max(a.y, b.y);
+      return { left: left, top: top, right: right, bottom: bottom, width: right - left, height: bottom - top };
     }
 
     // Move + resize share the visual-only / commit-on-up shape: while
@@ -343,60 +423,236 @@
     // re-render every frame. State writes happen once on pointerup.
     function startMove(ev, slot, nodeId) {
       var cs = State.projectCardStyles()[styleKey];
-      var hit = findNode(cs && cs.root, nodeId, null, -1);
-      if (!hit || !hit.node.layout) return;
-      var start = JSON.parse(JSON.stringify(hit.node.layout));
+      if (!cs || !cs.root) return;
+      var selected = SceneSelection.idsFromSelection(State.selection(), styleKey);
+      var movingIds = SceneNode.topLevelIds(cs.root, selected.indexOf(nodeId) >= 0 ? selected : [nodeId]);
+      var moving = movingNodes(cs.root, movingIds);
+      if (!moving.length) return;
+      var primary = moving.filter(function (m) { return m.id === nodeId; })[0] || moving[0];
       var sx = ev.clientX, sy = ev.clientY;
       var z = getZoom();
+      var parentSize = parentSizeForSlot(primary.slot, z);
+      var snapCtx = snapContext(primary.slot, movingIds, parentSize);
+      var groupStartBox = moving.length > 1 ? groupBox(moving) : null;
+      var groupSnapCtx = groupStartBox ? canvasSnapContext(movingIds) : null;
       function move(e) {
-        var dx = (e.clientX - sx) / z;
-        var dy = (e.clientY - sy) / z;
-        previewLayout(slot, withMove(start, dx, dy));
+        var layouts = movedLayouts(primary, moving, e, sx, sy, z, parentSize, snapCtx, groupStartBox, groupSnapCtx);
+        previewLayouts(layouts);
       }
       function up(e) {
-        document.removeEventListener('pointermove', move);
-        document.removeEventListener('pointerup',   up);
-        var dx = (e.clientX - sx) / z;
-        var dy = (e.clientY - sy) / z;
-        if (Math.abs(dx) < 1 && Math.abs(dy) < 1) return;
+        var layouts = movedLayouts(primary, moving, e, sx, sy, z, parentSize, snapCtx, groupStartBox, groupSnapCtx);
+        clearGuides();
+        var startBox = EF.ui.layoutRect.toBox(primary.start, parentSize);
+        var endBox = EF.ui.layoutRect.toBox(layouts[primary.id], parentSize);
+        if (Math.abs(endBox.l - startBox.l) < 1 && Math.abs(endBox.t - startBox.t) < 1) return;
         dragSuppressClick = true;
-        commitLayout(nodeId, withMove(start, Math.round(dx), Math.round(dy)));
+        commitLayouts(layouts);
         setTimeout(function () { dragSuppressClick = false; }, 0);
       }
-      document.addEventListener('pointermove', move);
-      document.addEventListener('pointerup',   up);
+      bindPointerSession(move, up, cancelTransformPreview);
+    }
+    function movingNodes(rootNode, ids) {
+      return ids.map(function (id) {
+        var hit = SceneNode.find(rootNode, id);
+        var slot = findSlot(id);
+        if (!hit || !hit.node.layout || !slot) return null;
+        return { id: id, slot: slot, start: JSON.parse(JSON.stringify(hit.node.layout)) };
+      }).filter(Boolean);
+    }
+    function movedLayouts(primary, moving, e, sx, sy, zoom, parentSize, snapCtx, groupStartBox, groupSnapCtx) {
+      if (groupStartBox) return groupMoveLayouts(moving, groupStartBox, e, sx, sy, zoom, groupSnapCtx);
+      var primaryLayout = snappedMoveLayout(primary.start, e, sx, sy, zoom, parentSize, snapCtx);
+      var a = EF.ui.layoutRect.toBox(primary.start, parentSize);
+      var b = EF.ui.layoutRect.toBox(primaryLayout, parentSize);
+      var dx = Math.round(b.l - a.l);
+      var dy = Math.round(b.t - a.t);
+      var out = {};
+      moving.forEach(function (m) {
+        out[m.id] = m.id === primary.id ? primaryLayout : EF.ui.layoutRect.translate(m.start, dx, dy);
+      });
+      return out;
+    }
+    function groupMoveLayouts(moving, startBox, e, sx, sy, zoom, snapCtx) {
+      var nextBox = snappedGroupMoveBox(startBox, e, sx, sy, zoom, snapCtx);
+      var dx = Math.round(nextBox.l - startBox.l);
+      var dy = Math.round(nextBox.t - startBox.t);
+      var out = {};
+      moving.forEach(function (m) {
+        out[m.id] = EF.ui.layoutRect.translate(m.start, dx, dy);
+      });
+      return out;
+    }
+    function snappedGroupMoveBox(startBox, e, sx, sy, zoom, snapCtx) {
+      var d = dragDelta(e, sx, sy, zoom, true);
+      var raw = { l: startBox.l + d.x, t: startBox.t + d.y, w: startBox.w, h: startBox.h };
+      var res = CardStyleSnapping.computeMove(raw, snapCtx, snapSettings(e, zoom));
+      showGuides(res.guides);
+      return res.box;
     }
     function startResize(ev, slot, nodeId, handle) {
       var cs = State.projectCardStyles()[styleKey];
-      var hit = findNode(cs && cs.root, nodeId, null, -1);
+      var hit = SceneNode.find(cs && cs.root, nodeId);
       if (!hit || !hit.node.layout) return;
       var start = JSON.parse(JSON.stringify(hit.node.layout));
       var sx = ev.clientX, sy = ev.clientY;
       var z = getZoom();
       var parentSize = parentSizeForSlot(slot, z);
+      var snapCtx = snapContext(slot, nodeId, parentSize);
       function move(e) {
-        var dx = (e.clientX - sx) / z;
-        var dy = (e.clientY - sy) / z;
-        previewLayout(slot, withResize(start, dx, dy, handle, parentSize));
+        var layout = snappedResizeLayout(start, e, sx, sy, z, handle, parentSize, snapCtx);
+        previewLayout(slot, layout);
       }
       function up(e) {
-        document.removeEventListener('pointermove', move);
-        document.removeEventListener('pointerup',   up);
-        var dx = (e.clientX - sx) / z;
-        var dy = (e.clientY - sy) / z;
-        if (Math.abs(dx) < 1 && Math.abs(dy) < 1) return;
+        var layout = snappedResizeLayout(start, e, sx, sy, z, handle, parentSize, snapCtx);
+        clearGuides();
+        var startBox = EF.ui.layoutRect.toBox(start, parentSize);
+        var endBox = EF.ui.layoutRect.toBox(layout, parentSize);
+        if (Math.abs(endBox.l - startBox.l) < 1 &&
+            Math.abs(endBox.t - startBox.t) < 1 &&
+            Math.abs(endBox.w - startBox.w) < 1 &&
+            Math.abs(endBox.h - startBox.h) < 1) return;
         dragSuppressClick = true;
-        commitLayout(nodeId, withResize(start, Math.round(dx), Math.round(dy), handle, parentSize));
+        commitLayout(nodeId, layout);
         setTimeout(function () { dragSuppressClick = false; }, 0);
       }
-      document.addEventListener('pointermove', move);
-      document.addEventListener('pointerup',   up);
+      bindPointerSession(move, up, cancelTransformPreview);
     }
 
     // Move + resize work on a LayoutRect (see EF.ui.layoutRect): translation
     // shifts both oMin and oMax; per-edge resize moves only the corresponding
     // corner. Anchors are preserved so the relationship to the parent
     // (fixed point vs. stretched) survives editing.
+    function snappedMoveLayout(start, e, sx, sy, zoom, parentSize, snapCtx) {
+      var d = dragDelta(e, sx, sy, zoom, true);
+      var raw = withMove(start, d.x, d.y);
+      var rawBox = EF.ui.layoutRect.toBox(raw, parentSize);
+      var res = CardStyleSnapping.computeMove(rawBox, snapCtx, snapSettings(e, zoom));
+      showGuides(res.guides);
+      return EF.ui.layoutRect.fromBox(res.box, start, parentSize);
+    }
+    function snappedResizeLayout(start, e, sx, sy, zoom, handle, parentSize, snapCtx) {
+      var d = dragDelta(e, sx, sy, zoom, false);
+      var raw = withResize(start, d.x, d.y, handle, parentSize);
+      var rawBox = EF.ui.layoutRect.toBox(raw, parentSize);
+      var res = CardStyleSnapping.computeResize(rawBox, handle, snapCtx, snapSettings(e, zoom));
+      showGuides(res.guides);
+      return EF.ui.layoutRect.fromBox(res.box, start, parentSize);
+    }
+    function dragDelta(e, sx, sy, zoom, axisLock) {
+      var dx = (e.clientX - sx) / zoom;
+      var dy = (e.clientY - sy) / zoom;
+      if (axisLock && e.shiftKey) {
+        if (Math.abs(dx) >= Math.abs(dy)) dy = 0;
+        else dx = 0;
+      }
+      return { x: Math.round(dx), y: Math.round(dy) };
+    }
+    function snapSettings(e, zoom) {
+      return {
+        enabled: !!snapEnabled.peek(),
+        disabled: !!e.altKey,
+        grid: !!snapGrid.peek(),
+        parent: !!snapParent.peek(),
+        siblings: !!snapSiblings.peek(),
+        gridSize: Math.max(1, Number(gridSize.peek()) || 16),
+        zoom: zoom,
+      };
+    }
+    function snapContext(slot, excludeIds, parentSize) {
+      return {
+        parentSize: parentSize,
+        origin: parentOrigin(slot),
+        siblings: siblingBoxes(slot, excludeIds, parentSize),
+      };
+    }
+    function canvasSnapContext(excludeIds) {
+      return {
+        parentSize: canvasSize(),
+        origin: { x: 0, y: 0 },
+        siblings: sceneBoxes(excludeIds),
+      };
+    }
+    function parentOrigin(slot) {
+      var parent = slot.parentElement;
+      if (!parent) return { x: 0, y: 0 };
+      var pr = parent.getBoundingClientRect();
+      var cr = canvas.getBoundingClientRect();
+      var z = getZoom();
+      return { x: (pr.left - cr.left) / z, y: (pr.top - cr.top) / z };
+    }
+    function siblingBoxes(slot, excludeIds, parentSize) {
+      var parent = slot.parentElement;
+      if (!parent) return [];
+      var pr = parent.getBoundingClientRect();
+      var z = getZoom();
+      var exclude = new Set(Array.isArray(excludeIds) ? excludeIds : [excludeIds]);
+      return Array.from(parent.children).filter(function (el) {
+        return el !== slot && el.classList && el.classList.contains('ef-ui-abs-slot') &&
+          (!el.dataset || !exclude.has(el.dataset.nodeId));
+      }).map(function (el) {
+        var r = el.getBoundingClientRect();
+        return {
+          l: (r.left - pr.left) / z,
+          t: (r.top - pr.top) / z,
+          w: r.width / z,
+          h: r.height / z,
+        };
+      }).filter(function (b) { return b.w > 0 && b.h > 0; });
+    }
+    function sceneBoxes(excludeIds) {
+      var cs = State.projectCardStyles()[styleKey];
+      var rootId = cs && cs.root && cs.root.id;
+      var excludeList = Array.isArray(excludeIds) ? excludeIds : [excludeIds];
+      var exclude = new Set(cs && cs.root ? SceneNode.coveredIds(cs.root, excludeList) : excludeList);
+      var seen = {};
+      return SceneDOM.selectableTargets(canvas).filter(function (el) {
+        var id = el.dataset && el.dataset.nodeId;
+        if (!id || id === rootId || exclude.has(id) || seen[id]) return false;
+        seen[id] = true;
+        return true;
+      }).map(function (el) {
+        return boxForElement(el, canvas);
+      }).filter(function (b) { return b.w > 0 && b.h > 0; });
+    }
+    function showGuides(guides) {
+      guideLayer.innerHTML = '';
+      (guides || []).forEach(function (g) {
+        if (g.source === 'grid') return;
+        var line = ui.h('div', 'gde-cs-guide gde-cs-guide-' + g.axis + ' is-' + g.source);
+        var origin = g.origin || { x: 0, y: 0 };
+        if (g.axis === 'x') line.style.left = (origin.x + g.pos) + 'px';
+        else line.style.top = (origin.y + g.pos) + 'px';
+        guideLayer.appendChild(line);
+      });
+    }
+    function clearGuides() {
+      guideLayer.innerHTML = '';
+    }
+    function bindPointerSession(move, up, cancel) {
+      function cleanup() {
+        document.removeEventListener('pointermove', move);
+        document.removeEventListener('pointerup', onUp);
+        document.removeEventListener('pointercancel', onCancel);
+        window.removeEventListener('blur', onCancel);
+      }
+      function onUp(e) {
+        cleanup();
+        up(e);
+      }
+      function onCancel() {
+        cleanup();
+        if (cancel) cancel();
+      }
+      document.addEventListener('pointermove', move);
+      document.addEventListener('pointerup', onUp);
+      document.addEventListener('pointercancel', onCancel);
+      window.addEventListener('blur', onCancel);
+    }
+    function cancelTransformPreview() {
+      clearGuides();
+      rerender();
+      applySelectionAffordances();
+    }
     function withMove(layout, dx, dy) { return EF.ui.layoutRect.translate(layout, dx, dy); }
     function withResize(layout, dx, dy, edges, parentSize) {
       return EF.ui.layoutRect.resize(layout, edges, dx, dy, parentSize);
@@ -408,17 +664,75 @@
       var z = zoom || 1;
       return { w: r.width / z, h: r.height / z };
     }
+    function canvasSize() {
+      var r = canvas.getBoundingClientRect();
+      var z = getZoom();
+      return { w: r.width / z, h: r.height / z };
+    }
+    function boxForSlot(slot, rootEl) {
+      return boxForElement(slot, rootEl);
+    }
+    function boxForElement(el, rootEl) {
+      var r = el.getBoundingClientRect();
+      var cr = rootEl.getBoundingClientRect();
+      var z = getZoom();
+      return { l: (r.left - cr.left) / z, t: (r.top - cr.top) / z, w: r.width / z, h: r.height / z };
+    }
+    function groupBox(items) {
+      var l = Infinity, t = Infinity, r = -Infinity, b = -Infinity;
+      items.forEach(function (item) {
+        var box = boxForSlot(item.slot, canvas);
+        l = Math.min(l, box.l); t = Math.min(t, box.t);
+        r = Math.max(r, box.l + box.w); b = Math.max(b, box.t + box.h);
+      });
+      return { l: l, t: t, w: r - l, h: b - t };
+    }
+
+    function applyAlign(op) {
+      var cs = State.projectCardStyles()[styleKey];
+      if (!cs || !cs.root) return;
+      var ids = SceneSelection.idsFromSelection(State.selection(), styleKey);
+      var movingIds = SceneNode.topLevelIds(cs.root, ids);
+      var moving = movingNodes(cs.root, movingIds);
+      if (moving.length < 2) return;
+      var items = moving.map(function (m) {
+        var slot = findSlot(m.id);
+        return {
+          id: m.id,
+          layout: m.start,
+          box: boxForSlot(slot, canvas),
+          origin: parentOrigin(slot),
+          parentSize: parentSizeForSlot(slot, getZoom()),
+        };
+      });
+      var layouts = SceneAlign.apply(items, op);
+      if (Object.keys(layouts).length) commitLayouts(layouts);
+    }
 
     // Inline-style preview during drag. Mirrors absolute.js's appendChild
     // path on an existing slot element.
     function previewLayout(slot, layout) {
       EF.ui.layoutRect.applyToSlot(slot, layout);
     }
+    function previewLayouts(layouts) {
+      Object.keys(layouts).forEach(function (id) {
+        var slot = findSlot(id);
+        if (slot) previewLayout(slot, layouts[id]);
+      });
+    }
     function commitLayout(nodeId, layout) {
       State.mutateCardStyle(styleKey, function (clone) {
-        var hit = findNode(clone.root, nodeId, null, -1);
+        var hit = SceneNode.find(clone.root, nodeId);
         if (!hit) return false;
         hit.node.layout = layout;
+      });
+    }
+    function commitLayouts(layouts) {
+      State.mutateCardStyle(styleKey, function (clone) {
+        Object.keys(layouts).forEach(function (id) {
+          var hit = SceneNode.find(clone.root, id);
+          if (hit) hit.node.layout = layouts[id];
+        });
       });
     }
 

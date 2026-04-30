@@ -22,6 +22,10 @@
     State.markDirty();
     EF.bus.emit('assets:changed');
   }
+  function changed() {
+    version.set(version.peek() + 1);
+    EF.bus.emit('assets:changed');
+  }
 
   function importFile(file, kind, ctx) {
     var url = ctx && ctx.mode === 'property'
@@ -311,7 +315,7 @@
         cache(path, file);
       });
     } catch (_) {}
-    version.set(version.peek() + 1);
+    changed();
   }
 
   async function readFolders(dir, prefix) {
@@ -340,7 +344,7 @@
       var path = urlToPath(url);
       cache(path, new Blob([entries[diskPath]], { type: mime(path) }));
     });
-    version.set(version.peek() + 1);
+    changed();
   }
 
   async function writeToDirectory(dir) {

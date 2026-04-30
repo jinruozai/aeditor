@@ -38,19 +38,23 @@
     return null
   }
 
-  // Classify the drop position from the cursor's y-offset within a row.
-  // Thin top/bottom bands (25%) map to sibling-insert; the wide middle
-  // (50%) means "into children". Leaves (or nodes with no 'inside' zone)
-  // fall back to before/after only via an 80/20 split biased on direction.
-  function classifyPosition(rowEl, clientY, zones) {
+  // Classify the drop position from cursor offset within a row.
+  //
+  // Containers should feel easy to drop into, not like a pixel-hunt: when
+  // `inside` is allowed the middle band owns most of the row. Before/after
+  // stay available at the top/bottom edges for deliberate sibling inserts.
+  // Moving right within the label area reinforces "make child" intent,
+  // matching common outliner/file-tree behavior while keeping the API small.
+  function classifyPosition(rowEl, clientX, clientY, zones) {
     const rect = rowEl.getBoundingClientRect()
     const rel = (clientY - rect.top) / rect.height
     const allowBefore = zones.indexOf('before') >= 0
     const allowInside = zones.indexOf('inside') >= 0
     const allowAfter  = zones.indexOf('after')  >= 0
     if (allowInside) {
-      if (rel < 0.25 && allowBefore) return 'before'
-      if (rel > 0.75 && allowAfter)  return 'after'
+      if (rel < 0.16 && allowBefore) return 'before'
+      if (rel > 0.84 && allowAfter)  return 'after'
+      if (clientX > rect.left + 24) return 'inside'
       return 'inside'
     }
     if (allowBefore && allowAfter) return rel < 0.5 ? 'before' : 'after'
@@ -238,7 +242,7 @@
         }
 
         const zones = blockedByCycle ? [] : zonesFor(row.node, row)
-        const position = zones.length ? classifyPosition(rowEl, ev.clientY, zones) : null
+        const position = zones.length ? classifyPosition(rowEl, ev.clientX, ev.clientY, zones) : null
         let allowed = !blockedByCycle && !!position
         if (allowed) allowed = !!canDrop(row.node, position, session.dragData)
 
@@ -281,7 +285,7 @@
         if (!autoExpandDelay) return
         // Only auto-expand when hovering 'inside' a collapsed container —
         // the user's intent ("I want to dive deeper") is clear only then.
-        const wantId = (position === 'inside' && row.hasKids && !row.expanded) ? row.node.id : null
+        const wantId = (position === 'inside' && !row.expanded) ? row.node.id : null
         if (wantId === session.autoExpandId) return
         if (session.autoExpandTimer) { clearTimeout(session.autoExpandTimer); session.autoExpandTimer = 0 }
         session.autoExpandId = wantId
@@ -315,6 +319,12 @@
       function finishSession(session, ev, cancelled) {
         // Commit (or not), then unconditionally clean up to avoid leaks.
         if (!cancelled && session.hover && session.hover.allowed) {
+          if (session.hover.position === 'inside') {
+            const cur = expandedSig.peek()
+            const next = new Set(cur)
+            next.add(session.hover.row.node.id)
+            expandedSig.set(next)
+          }
           try {
             dnd.onDrop(session.hover.row.node, session.hover.position, session.dragData)
           } catch (e) {

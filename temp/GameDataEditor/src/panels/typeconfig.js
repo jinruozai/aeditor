@@ -121,7 +121,7 @@
     var filterSig      = EF.signal('');
     var placeholderSig = EF.signal('');
     var addTitleSig    = EF.signal(t('typeconfig.add'));
-    var searchInput = ui.input({ value: filterSig, placeholder: placeholderSig });
+    var searchInput = ui.searchInput({ value: filterSig, placeholder: placeholderSig });
     searchInput.style.cssText = 'flex:1 1 auto;min-width:0;';
     var addBtn = ui.iconButton({
       icon: 'plus', kind: 'primary', title: addTitleSig,

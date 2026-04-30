@@ -20,6 +20,7 @@
 
     const el = ui.h('img', 'ef-ui-image')
     el.setAttribute('draggable', 'false')
+    el.addEventListener('error', function () { el.removeAttribute('src') })
     ui.bind(el, src, function (v) {
       const s = v == null ? '' : String(v)
       const resolved = s && typeof ui.resolveAssetUrl === 'function' ? (ui.resolveAssetUrl(s) || s) : s

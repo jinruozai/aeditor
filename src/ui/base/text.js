@@ -5,6 +5,7 @@
 // opts: {
 //   value:   string | signal<any>          stringified for display
 //   align?:  'left' | 'center' | 'right' | signal
+//   verticalAlign?: 'top' | 'middle' | 'bottom' | signal
 //   variant?:'body' | 'h1' | 'h2' | 'caption' | signal
 //   size?:   'sm' | 'md' | 'lg' | signal
 //   weight?: 'normal' | 'bold' | signal
@@ -19,6 +20,7 @@
     const o = opts || {}
     const value   = ui.asSig(o.value   != null ? o.value   : '')
     const align   = ui.asSig(o.align   != null ? o.align   : 'left')
+    const vAlign  = ui.asSig(o.verticalAlign != null ? o.verticalAlign : '')
     const variant = ui.asSig(o.variant != null ? o.variant : 'body')
     const size    = ui.asSig(o.size    != null ? o.size    : 'md')
     const weight  = ui.asSig(o.weight  != null ? o.weight  : 'normal')
@@ -30,6 +32,17 @@
     ui.bindClass(el, size,    'ef-ui-text-size-')
     ui.bind(el, value,  function (v) { el.textContent = v == null ? '' : String(v) })
     ui.bind(el, align,  function (v) { el.style.textAlign = v || '' })
+    ui.bind(el, vAlign, function (v) {
+      if (v) {
+        el.style.display = 'flex'
+        el.style.flexDirection = 'column'
+        el.style.justifyContent = v === 'middle' ? 'center' : v === 'bottom' ? 'flex-end' : 'flex-start'
+      } else {
+        el.style.display = ''
+        el.style.flexDirection = ''
+        el.style.justifyContent = ''
+      }
+    })
     ui.bind(el, weight, function (v) { el.style.fontWeight = v || '' })
     ui.bind(el, color,  function (v) { el.style.color = v || '' })
     ui.bind(el, clamp,  function (v) {
@@ -49,7 +62,7 @@
   }
 
   // Visual chrome (background / border / radius / padding / color /
-  // font / textAlign / etc) comes from the shared BOX_STYLE + TEXT_STYLE
+  // font / textAlign / verticalAlign / etc) comes from the shared BOX_STYLE + TEXT_STYLE
   // fragments. The text component owns only the semantic shortcuts
   // (variant, size — preset CSS classes for h1/h2/body/caption +
   // sm/md/lg) and content controls (value, clamp). align / color /

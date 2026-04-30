@@ -33,41 +33,28 @@
       label:    label,
       icon:     (spec && spec.icon) || 'square',
       // Preserve the component name so consumers like contextMenu(node)
-      // can re-resolve the spec (acceptsChildren etc).
+      // can re-resolve the spec.
       component: n.component,
       children: (n.children || []).map(toTreeRow),
     };
   }
 
-  function findNode(root, id, parent, idx) {
-    if (!root) return null;
-    if (root.id === id) return { node: root, parent: parent, index: idx };
-    var kids = root.children || [];
-    for (var i = 0; i < kids.length; i++) {
-      var hit = findNode(kids[i], id, root, i);
-      if (hit) return hit;
+  function expandableIds(node) {
+    var ids = new Set();
+    function walk(n) {
+      var kids = n && n.children ? n.children : [];
+      if (kids.length) ids.add(n.id);
+      kids.forEach(walk);
     }
-    return null;
+    walk(node);
+    return ids;
   }
-
-  var nextId = 1;
-  function uid(prefix) { return (prefix || 'n') + '-' + (nextId++) + '-' + Date.now().toString(36); }
 
   // Module-local node clipboard. Holds JSON-serialized TreeNode objects
   // so paste works across cardStyles too — every TreeNode is the same
   // shape regardless of which cardStyle it came from. Paste deep-clones
-  // and rewrites every id with uid() so duplicates don't collide.
+  // and rewrites every id so duplicates don't collide.
   var clipboard = EF.signal([]);
-  function retagIds(node) {
-    if (!node) return;
-    node.id = uid(node.component);
-    (node.children || []).forEach(retagIds);
-  }
-  function cloneAndRetag(node) {
-    var c = JSON.parse(JSON.stringify(node));
-    retagIds(c);
-    return c;
-  }
 
   function factory(_propsSig, ctx) {
     var root = ui.h('div', 'gde-cs-tree');
@@ -80,7 +67,7 @@
 
     var bar = ui.h('div', 'gde-cs-tree-bar');
     var filterSig = EF.signal('');
-    var search = ui.input({ value: filterSig, placeholder: 'Filter…' });
+    var search = ui.searchInput({ value: filterSig, placeholder: 'Filter…' });
     search.style.cssText = 'flex:1 1 auto;min-width:0;';
     var addBtn = ui.iconButton({
       icon: 'plus', kind: 'primary', size: 'sm', title: 'Add component',
@@ -96,6 +83,7 @@
     var itemsSig    = EF.signal([]);
     var selectedSig = EF.signal([]);
     var expandedSig = EF.signal(new Set());
+    var expandedSeedKey = null;
 
     var tree = ui.tree({
       items:    itemsSig,
@@ -118,22 +106,15 @@
           { label: 'Copy', icon: 'copy', onSelect: function () { copyNodes(); } },
           { label: 'Paste as sibling', disabled: !canPaste,
             onSelect: function () { pasteAsSibling(node.id); } },
-          { label: 'Paste as child', disabled: !canPaste || !(spec && spec.acceptsChildren),
+          { label: 'Paste as child', disabled: !canPaste,
             onSelect: function () { pasteAsChild(node.id); } },
           { type: 'divider' },
           { label: 'Delete', danger: true, onSelect: function () { deleteNode(node.id); } },
         ];
       },
       dnd: {
-        // 'inside' is only allowed when the target component is a container.
-        // Without this, dragging onto a leaf would corrupt the tree (leaves
-        // never grow children at runtime).
         dropZones: function (targetNode) {
-          var spec = null;
-          try { spec = EF.resolveComponent(targetNode.component); } catch (_) {}
-          var zones = ['before', 'after'];
-          if (spec && spec.acceptsChildren) zones.push('inside');
-          return zones;
+          return ['before', 'inside', 'after'];
         },
         onDrop: function (targetNode, position, dragData) {
           reparent(dragData.payload, targetNode.id, position);
@@ -141,6 +122,18 @@
       },
     });
     tree.style.cssText = 'flex:1 1 0;';
+    tree.addEventListener('dragover', function (ev) {
+      if (!hasComponentPayload(ev)) return;
+      ev.preventDefault();
+      ev.dataTransfer.dropEffect = 'copy';
+    });
+    tree.addEventListener('drop', function (ev) {
+      if (!hasComponentPayload(ev)) return;
+      ev.preventDefault();
+      var payload = readComponentPayload(ev);
+      if (!payload || !payload.name) return;
+      addComponent(payload.name, dropTargetNodeId(ev));
+    });
 
     function refresh() {
       var key = State.activeCardStyle();
@@ -151,11 +144,18 @@
         if (root.contains(tree)) root.removeChild(tree);
         if (!root.contains(empty)) root.appendChild(empty);
         itemsSig.set([]);
+        expandedSeedKey = null;
+        expandedSig.set(new Set());
         return;
       }
       if (root.contains(empty)) root.removeChild(empty);
       if (!root.contains(tree)) root.appendChild(tree);
       itemsSig.set(flatten(def.root));
+      var seedKey = key + ':' + def.root.id;
+      if (expandedSeedKey !== seedKey) {
+        expandedSeedKey = seedKey;
+        expandedSig.set(expandableIds(def.root));
+      }
       // Sync selection from State
       var sel = State.selection();
       if (sel && sel.kind === 'card_component' && sel.styleKey === key) {
@@ -175,6 +175,11 @@
       if (!sel || sel.kind !== 'card_component' || sel.styleKey !== key) return [];
       return sel.nodeIds || [];
     }
+    function expandNode(id) {
+      var next = new Set(expandedSig.peek());
+      next.add(id);
+      expandedSig.set(next);
+    }
 
     // Move srcIds into target relative to the targetId. Cut first (so target
      // index stays valid for in-tree moves), then splice in. Cycle prevention
@@ -190,21 +195,24 @@
       State.mutateCardStyle(key, function (clone) {
         var moving = [];
         // Cut in reverse so multiple cuts under the same parent stay correct.
-        var ordered = orderByDepth(clone.root, srcIds);
+        var ordered = SceneNode.orderByDepth(clone.root, srcIds);
         ordered.forEach(function (id) {
-          var hit = findNode(clone.root, id, null, -1);
+          var hit = SceneNode.find(clone.root, id);
           if (hit && hit.parent) {
             moving.unshift(hit.parent.children.splice(hit.index, 1)[0]);
           }
         });
-        var dst = findNode(clone.root, targetId, null, -1);
+        var dst = SceneNode.find(clone.root, targetId);
         if (!dst) return false;
         if (position === 'inside') {
           dst.node.children = dst.node.children || [];
+          moving.forEach(function (n) { n.layout = SceneNode.layoutForParent(dst.node, n.component, n.layout); });
           Array.prototype.push.apply(dst.node.children, moving);
         } else if (position === 'before' && dst.parent) {
+          moving.forEach(function (n) { n.layout = SceneNode.layoutForParent(dst.parent, n.component, n.layout); });
           Array.prototype.splice.apply(dst.parent.children, [dst.index, 0].concat(moving));
         } else if (position === 'after' && dst.parent) {
+          moving.forEach(function (n) { n.layout = SceneNode.layoutForParent(dst.parent, n.component, n.layout); });
           Array.prototype.splice.apply(dst.parent.children, [dst.index + 1, 0].concat(moving));
         } else {
           return false;
@@ -214,16 +222,6 @@
     // Order ids by descending depth so we cut leaves before their parents
     // when both are in the moving set (otherwise the parent cut detaches
     // the descendant before we get to it).
-    function orderByDepth(root, ids) {
-      var depths = {};
-      function walk(n, d) {
-        depths[n.id] = d;
-        (n.children || []).forEach(function (c) { walk(c, d + 1); });
-      }
-      walk(root, 0);
-      return ids.slice().sort(function (a, b) { return (depths[b]||0) - (depths[a]||0); });
-    }
-
     // Build an add-component menu listing every registered component
     // grouped by category. Picking one inserts a fresh node under the
     // currently selected node (if it's a container or its parent if not),
@@ -264,22 +262,25 @@
         maxHeight: 520,
       });
     }
-    function addComponent(name) {
+    function hasComponentPayload(ev) {
+      return ev.dataTransfer && Array.from(ev.dataTransfer.types).indexOf('application/ef.component+json') >= 0;
+    }
+    function readComponentPayload(ev) {
+      var raw = ev.dataTransfer && ev.dataTransfer.getData('application/ef.component+json');
+      if (!raw) return null;
+      try { return JSON.parse(raw); } catch (_) { return null; }
+    }
+    function dropTargetNodeId(ev) {
+      var row = ev.target && ev.target.closest ? ev.target.closest('[data-tree-node-id]') : null;
+      return row ? row.dataset.treeNodeId : null;
+    }
+
+    function addComponent(name, parentId) {
       var key = State.activeCardStyle.peek();
       if (!key) return;
-      var spec = EF.resolveComponent(name);
-      var newNode = {
-        id:        uid(name),
-        component: name,
-        props:     Object.assign({}, spec.defaultProps || {}),
-        bindings:  {},
-        children:  [],
-        layout: {
-          aMin: { x: 0, y: 0 }, aMax: { x: 0, y: 0 },
-          oMin: { x: 8, y: 8 }, oMax: { x: 88, y: 32 },
-        },
-      };
+      var newNode = SceneNode.create(name);
       var selectedNodeId = null;
+      var parentToExpand = null;
       State.mutateCardStyle(key, function (clone) {
         if (!clone.root) {
           delete newNode.layout;
@@ -287,25 +288,25 @@
           selectedNodeId = newNode.id;
           return;
         }
-        // Otherwise: insert under the current selection if it's a container,
-        // else as the next sibling of the selection, else as a child of the
-        // root.
+        // Otherwise insert under the current selection. Every scene node can
+        // own children; layout behavior is resolved by the renderer.
         var selIds = currentSelectedIds() || [];
-        var anchorId = selIds[selIds.length - 1] || clone.root.id;
-        var hit = findNode(clone.root, anchorId, null, -1);
-        var anchorSpec = null;
-        try { anchorSpec = hit && EF.resolveComponent(hit.node.component); } catch (_) {}
-        if (hit && anchorSpec && anchorSpec.acceptsChildren) {
+        var anchorId = parentId || selIds[selIds.length - 1] || clone.root.id;
+        var hit = SceneNode.find(clone.root, anchorId);
+        if (hit) {
           hit.node.children = hit.node.children || [];
+          newNode.layout = SceneNode.layoutForParent(hit.node, newNode.component, newNode.layout);
           hit.node.children.push(newNode);
-        } else if (hit && hit.parent) {
-          hit.parent.children.splice(hit.index + 1, 0, newNode);
+          parentToExpand = hit.node.id;
         } else {
           clone.root.children = clone.root.children || [];
+          newNode.layout = SceneNode.layoutForParent(clone.root, newNode.component, newNode.layout);
           clone.root.children.push(newNode);
+          parentToExpand = clone.root.id;
         }
         selectedNodeId = newNode.id;
       });
+      if (parentToExpand) expandNode(parentToExpand);
       if (selectedNodeId) State.setSelection({ kind: 'card_component', styleKey: key, nodeIds: [selectedNodeId] });
     }
 
@@ -321,7 +322,7 @@
       var ids = (currentSelectedIds() || []).filter(function (id) { return id !== cs.root.id; });
       if (!ids.length) { State.log('warn', 'Nothing to copy (root cannot be copied).'); return; }
       var payloads = ids.map(function (id) {
-        var hit = findNode(cs.root, id, null, -1);
+        var hit = SceneNode.find(cs.root, id);
         return hit ? JSON.parse(JSON.stringify(hit.node)) : null;
       }).filter(Boolean);
       clipboard.set(payloads);
@@ -333,13 +334,15 @@
       if (cs.root.id === targetId) { return pasteAsChild(targetId); }
       var clip = clipboard.peek() || [];
       if (!clip.length) return;
-      var fresh = clip.map(cloneAndRetag);
+      var fresh = clip.map(SceneNode.cloneWithFreshIds);
       var changed = State.mutateCardStyle(key, function (clone) {
-        var hit = findNode(clone.root, targetId, null, -1);
+        var hit = SceneNode.find(clone.root, targetId);
         if (!hit || !hit.parent) return false;
+        fresh.forEach(function (n) { n.layout = SceneNode.layoutForParent(hit.parent, n.component, n.layout); });
         Array.prototype.splice.apply(hit.parent.children, [hit.index + 1, 0].concat(fresh));
       });
       if (!changed) return;
+      expandNode(targetId);
       State.setSelection({ kind: 'card_component', styleKey: key, nodeIds: fresh.map(function (n) { return n.id; }) });
     }
     function pasteAsChild(targetId) {
@@ -347,13 +350,12 @@
       var cs = State.projectCardStyles()[key]; if (!cs || !cs.root) return;
       var clip = clipboard.peek() || [];
       if (!clip.length) return;
-      var fresh = clip.map(cloneAndRetag);
+      var fresh = clip.map(SceneNode.cloneWithFreshIds);
       var changed = State.mutateCardStyle(key, function (clone) {
-        var hit = findNode(clone.root, targetId, null, -1);
+        var hit = SceneNode.find(clone.root, targetId);
         if (!hit) return false;
-        var spec = null; try { spec = EF.resolveComponent(hit.node.component); } catch (_) {}
-        if (!spec || !spec.acceptsChildren) return false;
         hit.node.children = hit.node.children || [];
+        fresh.forEach(function (n) { n.layout = SceneNode.layoutForParent(hit.node, n.component, n.layout); });
         Array.prototype.push.apply(hit.node.children, fresh);
       });
       if (!changed) return;
@@ -373,7 +375,7 @@
         return;
       }
       State.mutateCardStyle(key, function (clone) {
-        var hit = findNode(clone.root, id, null, -1);
+        var hit = SceneNode.find(clone.root, id);
         if (!hit || !hit.parent) return false;
         hit.parent.children.splice(hit.index, 1);
       });

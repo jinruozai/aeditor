@@ -74,16 +74,14 @@
 
     var spacer = document.createElement('div'); spacer.className = 'gde-spacer';
 
-    // Toolbar layout: [add/del] │ [sort field/order] · count · [size] │ [mode →]
-    function divider() { return ui.divider({ orientation: 'vertical' }); }
+    // Toolbar layout: [add/del] [spacer] [sort field/order] · count · [size] [mode]
     var bar = document.createElement('div');
     bar.className = 'gde-panel-toolbar';
     bar.appendChild(addBtn); bar.appendChild(delBtn);
-    bar.appendChild(divider());
+    bar.appendChild(spacer);
     bar.appendChild(sortFieldSel); bar.appendChild(sortOrderSel);
     bar.appendChild(countLabel);
     bar.appendChild(sizeInput);
-    bar.appendChild(spacer);
     bar.appendChild(modeBtn);
 
     // Body: cards or list

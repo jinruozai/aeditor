@@ -21,6 +21,8 @@
                       desc: 'normal · italic.' },
     textAlign:      { type: 'enum_string', type_agv: { options: ['left','center','right','justify'] }, group: 'text',
                       desc: 'Horizontal text alignment.' },
+    verticalAlign:  { type: 'enum_string', type_agv: { options: ['top','middle','bottom'] }, group: 'text',
+                      desc: 'Vertical text alignment inside the component box.' },
     letterSpacing:  { type: 'float',  group: 'text',
                       desc: 'Extra space between characters in pixels (negative = tighter).' },
     lineHeight:     { type: 'float',  group: 'text',
@@ -36,6 +38,7 @@
     fontWeight:     '',
     fontStyle:      '',
     textAlign:      '',
+    verticalAlign:  '',
     letterSpacing:  null,
     lineHeight:     null,
     textDecoration: '',
@@ -45,6 +48,7 @@
     const setStr = ui._styleSetters.setStr
     const setPx  = ui._styleSetters.setPx
     const setNum = ui._styleSetters.setNum
+    let hadVerticalAlign = false
     EF.effect(function () {
       const p = propsSig() || {}
       setStr(el, 'color',          p.color)
@@ -53,6 +57,19 @@
       setStr(el, 'fontWeight',     p.fontWeight)
       setStr(el, 'fontStyle',      p.fontStyle)
       setStr(el, 'textAlign',      p.textAlign)
+      if (p.verticalAlign) {
+        hadVerticalAlign = true
+        el.style.display = 'flex'
+        el.style.flexDirection = 'column'
+        el.style.justifyContent = p.verticalAlign === 'middle' ? 'center'
+          : p.verticalAlign === 'bottom' ? 'flex-end'
+          : 'flex-start'
+      } else if (hadVerticalAlign) {
+        hadVerticalAlign = false
+        el.style.display = ''
+        el.style.flexDirection = ''
+        el.style.justifyContent = ''
+      }
       setPx (el, 'letterSpacing',  p.letterSpacing)
       setNum(el, 'lineHeight',     p.lineHeight)
       setStr(el, 'textDecoration', p.textDecoration)
