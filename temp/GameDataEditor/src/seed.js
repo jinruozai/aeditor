@@ -1,5 +1,5 @@
-/**
- * Seed data — builtin TypeConfig + a small demo project.
+﻿/**
+ * Seed data 锟?builtin TypeConfig + a small demo project.
  * The builtin TypeConfig is the source-of-truth for known types; project-level
  * TypeConfig loaded from gamedata.json overrides individual fields on top.
  */
@@ -8,7 +8,7 @@
 
   // Project-specific compound types only. All primitive types (int/float/
   // string/struct/array/var/bool/color/date/img/snd/id/ref_id/enum_*/range_*/
-  // percent) come from the framework's DEFAULT_BUILTIN — no duplication.
+  // percent) come from the framework's DEFAULT_BUILTIN 锟?no duplication.
   var BUILTIN = {
     "id_num":     { name: "ID+Num",        base_type: "struct", type_render: "struct", default: [0,0],   mem: "Reference id + quantity",       struct_def: { id_num:     { id: "ref_id", num: "int" } } },
     "id_string":  { name: "ID+String",     base_type: "struct", type_render: "struct", default: [0,""],  mem: "Reference id + free text",      struct_def: { id_string:  { id: "ref_id", str: "string" } } },
@@ -19,20 +19,20 @@
     "snd_string": { name: "Audio+String",  base_type: "struct", type_render: "struct", default: ["",""], mem: "Audio asset + label",           struct_def: { snd_string: { snd: "snd", str: "string" } } }
   };
 
-  // ───── Demo project ─────────────────────────────────────
+  // 鈹€鈹€鈹€鈹€鈹€ Demo project 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
   // A tiny RPG-ish dataset so the editor opens with something to click.
   function buildDemo() {
     // Project-level type extensions
     var projectTC = {
       "rarity_enum": {
         name: "Rarity", base_type: "int", type_render: "enum", default: 1,
-        mem: "物品稀有度", type_agv: {
+        mem: "Item rarity tier", type_agv: {
           options: { "1": "Common", "2": "Uncommon", "3": "Rare", "4": "Epic", "5": "Legendary" }
         }
       },
       "item_kind": {
         name: "ItemKind", base_type: "string", type_render: "enum", default: "weapon",
-        mem: "物品大类", type_agv: {
+        mem: "Item category", type_agv: {
           options: { "weapon": "Weapon", "armor": "Armor", "consumable": "Consumable", "material": "Material" }
         }
       }
@@ -102,88 +102,155 @@
     return { projectTC: projectTC, tables: { 'data/items': items, 'data/characters': characters, 'data/shops': shops } };
   }
 
-  // Default cardStyle = 120×120 absolute card with the 'id' field shown
+  // Default cardStyle = 120脳120 absolute card with the 'id' field shown
   // centered at the bottom. Shipped as the fallback every table inherits.
   function buildDemoCardStyles() {
-    // Empty / null visual-style fields let the framework's CSS rules
-    // (theme cascade) apply. The user can override per-cardStyle by
-    // typing a real value into the inspector.
-    // The seed `default` style ships with deliberate visual choices: a
-    // deep-black background and rounded corners so cards look finished
-    // out of the box. New cardstyles created via the list-panel's "+"
-    // button start with empty visual defaults (theme cascade) — see
-    // cardstyle-list.js's emptyRoot. Users can reset these via the
-    // per-row reset buttons to fall back to cascade.
     return {
       'default': {
         name: 'Default',
         root: {
           id: 'root',
           component: 'absolute',
-          props: { width: 120, height: 168, background: 'var(--ef-bg-0)', borderRadius: 6 },
+          props: {
+            width: 120,
+            height: 168,
+            background: 'var(--ef-bg-0)',
+            borderRadius: 10,
+          },
           bindings: {},
           children: [
             {
               id: 'id-text',
               component: 'text',
-              props: { textAlign: 'center', size: 'sm' },
-              bindings: { value: { source: 'field', field: 'id' } },
-              // Stretch horizontally across the bottom, 18px tall, 4px above
-              // the parent's bottom edge — the LayoutRect way.
+              props: {
+                textAlign: 'center',
+                size: 'sm',
+              },
+              bindings: {
+                value: { source: 'field', field: 'id' },
+              },
               layout: {
-                aMin: { x: 0, y: 1 }, aMax: { x: 1, y: 1 },
-                oMin: { x: 0, y: -22 }, oMax: { x: 0, y: -4 },
+                aMin: { x: 0, y: 1 },
+                aMax: { x: 1, y: 1 },
+                oMin: { x: 0, y: -22 },
+                oMax: { x: 0, y: -4 },
               },
               children: [],
+            },
+            {
+              id: 'image-1-moookklv',
+              component: 'image',
+              props: {
+                background: '',
+                borderColor: '',
+                borderWidth: null,
+                borderStyle: 'solid',
+                borderRadius: null,
+                padding: null,
+                opacity: null,
+                shadowX: null,
+                shadowY: null,
+                shadowBlur: null,
+                shadowColor: '',
+                src: '',
+                alt: '',
+                objectFit: 'cover',
+              },
+              bindings: {
+                src: { source: 'field', field: 'icon' },
+              },
+              children: [],
+              layout: {
+                aMin: { x: 0, y: 0 },
+                aMax: { x: 1, y: 1 },
+                oMin: { x: 10, y: 10 },
+                oMax: { x: -10, y: -60 },
+              },
+            },
+            {
+              id: 'text-2-mooolapk',
+              component: 'text',
+              props: {
+                background: '',
+                borderColor: '',
+                borderWidth: null,
+                borderStyle: 'solid',
+                borderRadius: null,
+                padding: null,
+                opacity: null,
+                shadowX: null,
+                shadowY: null,
+                shadowBlur: null,
+                shadowColor: '',
+                color: '',
+                fontFamily: '',
+                fontSize: null,
+                fontWeight: '',
+                fontStyle: '',
+                textAlign: 'center',
+                verticalAlign: 'middle',
+                letterSpacing: null,
+                lineHeight: null,
+                textDecoration: '',
+                value: 'Text',
+                variant: 'body',
+                size: 'md',
+                clamp: null,
+              },
+              bindings: {
+                value: { source: 'field', field: 'name' },
+              },
+              children: [],
+              layout: {
+                aMin: { x: 0, y: 1 },
+                aMax: { x: 1, y: 1 },
+                oMin: { x: 0, y: -45 },
+                oMax: { x: 0, y: -26 },
+              },
             },
           ],
         },
       },
     };
   }
-
   function install() {
     State.setBuiltinTypeConfig(BUILTIN);
     var demo = buildDemo();
-    State.setProjectTypeConfig(demo.projectTC);
-
-    // Seed cardStyles. The 'default' is mandatory — every table that didn't
-    // pick one falls back to it, so the grid always has *something* to show.
-    State.setProjectCardStyles(buildDemoCardStyles());
-
-    var tm = {};
-    var gd = {};
+    var tables = {};
     Object.keys(demo.tables).forEach(function (pathKey) {
       var t = demo.tables[pathKey];
       var ids = [];
+      var entities = {};
       t.entities.forEach(function (e) {
         var id = State.genId();
-        gd[id] = e;
+        entities[id] = e;
         ids.push(id);
       });
-      tm[pathKey] = { struct_def: t.struct_def, id: ids, card_style: 'default' };
+      tables[pathKey] = { struct_def: t.struct_def, id: ids, entities: entities, card_style: 'default' };
     });
-    // Wire first shop's stock[0].id to first item, and starter → Iron Sword
-    var itemIds = tm['data/items'].id;
-    var charIds = tm['data/characters'].id;
-    var shopIds = tm['data/shops'].id;
-    if (itemIds[0] && charIds.length) charIds.forEach(function (cid) { gd[cid].starter = itemIds[0]; });
+
+    // Wire first shop's stock[0].id to first item, and starter -> Iron Sword.
+    var itemIds = tables['data/items'].id;
+    var charIds = tables['data/characters'].id;
+    var shopIds = tables['data/shops'].id;
+    if (itemIds[0] && charIds.length) charIds.forEach(function (cid) { tables['data/characters'].entities[cid].starter = itemIds[0]; });
     if (shopIds[0] && itemIds.length >= 2) {
-      gd[shopIds[0]].stock = [[itemIds[0], 5], [itemIds[1], 2]];
+      tables['data/shops'].entities[shopIds[0]].stock = [[itemIds[0], 5], [itemIds[1], 2]];
     }
     if (shopIds[1] && itemIds.length >= 5) {
-      gd[shopIds[1]].stock = [[itemIds[3], 99], [itemIds[4], 99]];
+      tables['data/shops'].entities[shopIds[1]].stock = [[itemIds[3], 99], [itemIds[4], 99]];
     }
 
-    State.setGameData(gd);
-    State.setTableMap(tm);
-    State.projectName.set('Demo Project');
+    ProjectIO.codec.applySnapshot({
+      project: { name: 'Demo Project', version: 0 },
+      type_config: demo.projectTC,
+      card_styles: buildDemoCardStyles(),
+      tables: tables,
+    }, 'Demo Project');
     State.setWorkspaceInfo({ kind: 'demo', name: 'Demo Project' });
-    Normalize.normalizeAll();
     State.clearDirty();
-    State.log('info', 'Loaded demo project (' +
-      Object.keys(tm).length + ' tables, ' + Object.keys(gd).length + ' entities)');
   }
 
   window.Seed = { install: install, BUILTIN: BUILTIN };
 })();
+

@@ -14,6 +14,7 @@
   var PROTOCOL = 'asset://';
   var files = {};
   var urls = {};
+  var hashes = {};
   var folders = { '': true };
   var version = EF.signal(0);
 
@@ -27,21 +28,27 @@
     EF.bus.emit('assets:changed');
   }
 
-  function importFile(file, kind, ctx) {
+  async function importFile(file, kind, ctx) {
+    var replace = ctx && ctx.replace;
+    var dedupe = ctx && ctx.mode === 'property' && !replace;
+    var hash = dedupe ? await hashBlob(file) : '';
+    if (hash && hashes[hash] && files[hashes[hash]]) {
+      return makeUrl(hashes[hash]);
+    }
     var url = ctx && ctx.mode === 'property'
       ? propertyUrl(file, ctx)
-      : urlInDir((ctx && ctx.dir) || '', file && file.name || ('asset' + extension(file, kind)), ctx && ctx.replace);
-    cache(urlToPath(url), file);
+      : urlInDir((ctx && ctx.dir) || '', file && file.name || ('asset' + extension(file, kind)), replace);
+    cache(urlToPath(url), file, hash);
     bump();
     return url;
   }
 
-  function importFiles(fileList, targetDir) {
+  async function importFiles(fileList, targetDir) {
     var out = [];
     var list = Array.prototype.slice.call(fileList || []);
-    list.forEach(function (file) {
-      out.push(importFile(file, kindFromFile(file), { dir: targetDir || '' }));
-    });
+    for (var i = 0; i < list.length; i++) {
+      out.push(await importFile(list[i], kindFromFile(list[i]), { dir: targetDir || '' }));
+    }
     return out;
   }
 
@@ -104,9 +111,11 @@
     return makeUrl(path.slice(ASSET_DIR.length + 1));
   }
 
-  function cache(path, blob) {
+  function cache(path, blob, hash) {
     path = cleanPath(path);
     addFolder(path.split('/').slice(0, -1).join('/'));
+    var old = files[path];
+    if (old && old.hash && hashes[old.hash] === path) delete hashes[old.hash];
     files[path] = {
       path: path,
       url: makeUrl(path),
@@ -115,7 +124,15 @@
       kind: kindFromPath(path),
       size: blob && blob.size || 0,
       blob: blob,
+      hash: hash || '',
+      ctime: old && old.ctime || Date.now(),
+      mtime: blob && blob.lastModified || Date.now(),
     };
+    if (hash) {
+      hashes[hash] = path;
+    } else {
+      rememberHash(path, blob);
+    }
     if (urls[path]) URL.revokeObjectURL(urls[path]);
     urls[path] = URL.createObjectURL(blob);
   }
@@ -135,6 +152,8 @@
       dir: f.dir,
       kind: f.kind,
       size: f.size,
+      ctime: f.ctime || 0,
+      mtime: f.mtime || 0,
     };
   }
 
@@ -188,7 +207,7 @@
       rows.push(fileInfo(f));
     });
     return Object.keys(childFolders).sort().map(function (path) {
-      return { kind: 'folder', path: path, name: path.split('/').pop(), url: makeUrl(path) };
+      return { kind: 'folder', path: path, name: path.split('/').pop(), size: folderSize(path), ctime: 0, mtime: folderMTime(path) };
     }).concat(rows);
   }
 
@@ -214,6 +233,7 @@
     arr.forEach(function (url) {
       var path = urlToPath(url);
       if (!path || !files[path]) return;
+      if (files[path].hash && hashes[files[path].hash] === path) delete hashes[files[path].hash];
       delete files[path];
       if (urls[path]) URL.revokeObjectURL(urls[path]);
       delete urls[path];
@@ -238,6 +258,80 @@
     bump();
   }
 
+  function moveMany(entries, targetDir) {
+    var out = [];
+    (entries || []).forEach(function (entry) {
+      if (!entry) return;
+      if (entry.kind === 'folder' && entry.path) out.push(moveFolder(entry.path, targetDir));
+      else if (entry.url) out.push(move(entry.url, makeUrl(joinPath(targetDir, fileNameFromUrl(entry.url)))));
+    });
+    return out;
+  }
+
+  function moveFolder(oldDir, targetDir) {
+    oldDir = cleanPath(oldDir);
+    targetDir = cleanPath(targetDir);
+    if (!oldDir || oldDir === targetDir || targetDir.indexOf(oldDir + '/') === 0) return oldDir;
+    var base = oldDir.split('/').pop();
+    var newDir = uniqueFolderPath(joinPath(targetDir, base));
+    var folderPaths = Object.keys(folders).filter(function (folder) {
+      return folder === oldDir || folder.indexOf(oldDir + '/') === 0;
+    }).sort();
+    var filePaths = Object.keys(files).filter(function (path) {
+      return path.indexOf(oldDir + '/') === 0;
+    }).sort();
+    filePaths.forEach(function (path) {
+      var rel = path.slice(oldDir.length + 1);
+      move(makeUrl(path), makeUrl(joinPath(newDir, rel)));
+    });
+    folderPaths.forEach(function (folder) { delete folders[folder]; });
+    folderPaths.forEach(function (folder) {
+      var rel = folder === oldDir ? '' : folder.slice(oldDir.length + 1);
+      addFolder(joinPath(newDir, rel));
+    });
+    bump();
+    return newDir;
+  }
+
+  function renameFolder(oldDir, newName) {
+    oldDir = cleanPath(oldDir);
+    if (!oldDir) return '';
+    var parent = oldDir.split('/').slice(0, -1).join('/');
+    var newDir = joinPath(parent, clean(newName || oldDir.split('/').pop()));
+    if (newDir === oldDir) return oldDir;
+    if (folders[newDir]) newDir = uniqueFolderPath(newDir);
+    var folderPaths = Object.keys(folders).filter(function (folder) {
+      return folder === oldDir || folder.indexOf(oldDir + '/') === 0;
+    }).sort();
+    var filePaths = Object.keys(files).filter(function (path) {
+      return path.indexOf(oldDir + '/') === 0;
+    }).sort();
+    filePaths.forEach(function (path) {
+      var rel = path.slice(oldDir.length + 1);
+      move(makeUrl(path), makeUrl(joinPath(newDir, rel)));
+    });
+    folderPaths.forEach(function (folder) { delete folders[folder]; });
+    folderPaths.forEach(function (folder) {
+      var rel = folder === oldDir ? '' : folder.slice(oldDir.length + 1);
+      addFolder(joinPath(newDir, rel));
+    });
+    bump();
+    return newDir;
+  }
+
+  function removeFolder(dir) {
+    dir = cleanPath(dir);
+    if (!dir) return;
+    var urlsToDelete = Object.keys(files).filter(function (path) {
+      return path.indexOf(dir + '/') === 0;
+    }).map(makeUrl);
+    if (urlsToDelete.length) remove(urlsToDelete);
+    Object.keys(folders).forEach(function (folder) {
+      if (folder === dir || folder.indexOf(dir + '/') === 0) delete folders[folder];
+    });
+    bump();
+  }
+
   function move(oldUrl, newUrl) {
     var oldPath = urlToPath(oldUrl);
     var newPath = urlToPath(newUrl);
@@ -247,6 +341,7 @@
     addFolder(newPath.split('/').slice(0, -1).join('/'));
     var oldFile = files[oldPath];
     delete files[oldPath];
+    if (oldFile.hash && hashes[oldFile.hash] === oldPath) delete hashes[oldFile.hash];
     if (urls[oldPath]) {
       urls[newPath] = urls[oldPath];
       delete urls[oldPath];
@@ -259,7 +354,11 @@
       kind: kindFromPath(newPath),
       size: oldFile.size,
       blob: oldFile.blob,
+      hash: oldFile.hash || '',
+      ctime: oldFile.ctime || Date.now(),
+      mtime: Date.now(),
     };
+    if (oldFile.hash) hashes[oldFile.hash] = newPath;
     replaceReferences(oldUrl, makeUrl(newPath));
     bump();
     return makeUrl(newPath);
@@ -408,8 +507,29 @@
     Object.keys(urls).forEach(function (path) { URL.revokeObjectURL(urls[path]); });
     files = {};
     urls = {};
+    hashes = {};
     folders = { '': true };
     version.set(version.peek() + 1);
+  }
+
+  async function hashBlob(blob) {
+    if (!blob || !blob.arrayBuffer || !window.crypto || !crypto.subtle) return '';
+    try {
+      var buf = await blob.arrayBuffer();
+      var digest = await crypto.subtle.digest('SHA-256', buf);
+      var bytes = Array.from(new Uint8Array(digest));
+      return bytes.map(function (b) { return b.toString(16).padStart(2, '0'); }).join('');
+    } catch (_) {
+      return '';
+    }
+  }
+
+  function rememberHash(path, blob) {
+    hashBlob(blob).then(function (hash) {
+      if (!hash || !files[path] || files[path].blob !== blob) return;
+      files[path].hash = hash;
+      if (!hashes[hash]) hashes[hash] = path;
+    });
   }
 
   function extension(file, kind) {
@@ -454,6 +574,47 @@
     return clean(parts[parts.length - 1] || 'asset');
   }
 
+  function joinPath(a, b) {
+    a = cleanPath(a || '');
+    b = cleanPath(b || '');
+    return a && b ? a + '/' + b : (a || b);
+  }
+
+  function fileNameFromUrl(url) {
+    var path = urlToPath(url);
+    return path.split('/').pop() || 'asset';
+  }
+
+  function folderSize(dir) {
+    dir = cleanPath(dir);
+    var total = 0;
+    Object.keys(files).forEach(function (path) {
+      if (path.indexOf(dir + '/') === 0) total += files[path].size || 0;
+    });
+    return total;
+  }
+
+  function folderMTime(dir) {
+    dir = cleanPath(dir);
+    var t = 0;
+    Object.keys(files).forEach(function (path) {
+      if (path.indexOf(dir + '/') === 0) t = Math.max(t, files[path].mtime || 0);
+    });
+    return t;
+  }
+
+  function uniqueFolderPath(path) {
+    path = cleanPath(path);
+    if (!folders[path]) return path;
+    var parent = path.split('/').slice(0, -1).join('/');
+    var base = path.split('/').pop();
+    for (var i = 2; i < 10000; i++) {
+      var next = joinPath(parent, base + '_' + i);
+      if (!folders[next]) return next;
+    }
+    return joinPath(parent, base + '_' + Date.now());
+  }
+
   function clean(s) {
     return String(s || '')
       .trim()
@@ -486,8 +647,12 @@
     exists: exists,
     get: get,
     remove: remove,
+    removeFolder: removeFolder,
     move: move,
+    moveMany: moveMany,
+    moveFolder: moveFolder,
     rename: rename,
+    renameFolder: renameFolder,
     replaceReferences: replaceReferences,
     urlFor: urlFor,
     isAssetUrl: isAssetUrl,

@@ -210,7 +210,7 @@
     bindable: ['src'],
     defaultProps: Object.assign({}, BOX_D, { src: '', alt: '', objectFit: 'cover' }),
     schema: Object.assign({}, BOX, {
-      src:       { type: 'string', desc: 'Image URL or data URI.' },
+      src:       { type: 'img', desc: 'Image URL, data URI, or asset:// image.' },
       alt:       { type: 'string', desc: 'Accessibility text shown when the image fails to load.' },
       objectFit: { type: 'enum_string', type_agv: { options: ['cover','contain','fill','none'] },
                    desc: 'How the image fills its box: cover crops · contain letterboxes · fill stretches · none keeps native size.' },

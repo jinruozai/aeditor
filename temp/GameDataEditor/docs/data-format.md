@@ -9,22 +9,93 @@
 ```text
 project-root/
   gamedata.json
+  asset/
+  plugin/
   商品.json
   商品/消耗品.json
   角色.json
-  asset/
-    商品/消耗品/154520735508919.png
-    shared/icons/coin.png
+  asset/商品/消耗品/154520735508919.png
+  asset/shared/icons/coin.png
 ```
 
 规则：
 
 - `gamedata.json` 是项目级配置文件，可以没有。
+- 项目根目录只有两个特殊目录：`asset/` 和 `plugin/`。
+- `asset/` 是游戏资源目录，数据里用 `asset://...` 引用。
+- `plugin/` 是 GameDataEditor 项目插件目录，只给编辑器加载，不会当作数据表。
 - 每张表是一个独立 `.json` 文件。
 - 表路径等于文件路径去掉 `.json`。例如 `商品/消耗品.json` 的表路径是 `商品/消耗品`。
-- 只有包含 `_table` 的 `.json` 文件会被当作表；其他 JSON 会被忽略。
-- `asset/` 是资源目录。数据里用 `asset://...` 引用这里的文件。
+- 除 `gamedata.json`、`asset/`、`plugin/` 之外，所有 `.json` 都是数据表，必须包含顶层 `_table`。
+- 不要把普通配置 JSON 放在数据目录里；项目插件配置必须放到 `plugin/`。
 - JSON 必须是标准 JSON，不要写注释、尾逗号、`NaN`、`Infinity`。
+
+## 1.1 plugin 项目插件目录
+
+`plugin/` 跟随具体游戏项目，用来给唯一的 GameDataEditor 实例加载项目专属能力，例如动画预览、技能曲线、战斗公式编辑、项目校验器和 AI 规则。
+
+推荐结构：
+
+```text
+plugin/
+  manifest.json
+  animation/
+    plugin.js
+    plugin.css
+    skill.md
+  battle/
+    plugin.js
+    skill.md
+  ai/
+    project-skill.md
+```
+
+`plugin/manifest.json`：
+
+```json
+{
+  "schema": 1,
+  "plugins": [
+    {
+      "id": "mygame.animation",
+      "name": "Animation Tools",
+      "version": 1,
+      "scripts": ["animation/plugin.js"],
+      "styles": ["animation/plugin.css"],
+      "skills": ["animation/skill.md"]
+    }
+  ],
+  "ai": {
+    "skill": "ai/project-skill.md"
+  }
+}
+```
+
+插件脚本保持零构建 IIFE：
+
+```js
+;(function (GDE) {
+  GDE.plugins.register('mygame.animation', {
+    activate: function (api) {
+      api.registerFieldRenderer('clip', function (args) {
+        return EF.ui.input(args);
+      });
+      api.registerValidator('refs', function (project) {
+        return [];
+      });
+    },
+    deactivate: function () {}
+  });
+})(window.GDE);
+```
+
+规则：
+
+- 插件文件不属于游戏表数据，编辑器扫描表时会跳过整个 `plugin/`。
+- 插件可以注册 panel、field renderer、validator、command、asset viewer 和 AI skill。
+- 插件注册名会自动加上插件 id 前缀，例如 `api.registerFieldRenderer('clip')` 实际得到 `mygame.animation.clip`。
+- `type_config.type_render` 引用项目插件 renderer 时，应写完整命名空间，例如 `"mygame.animation.clip"`。
+- 插件 JS 是项目代码，加载后会执行；只加载可信项目的 `plugin/`。
 
 ## 2. gamedata.json
 
@@ -78,7 +149,7 @@ project-root/
 - `project.version` 是编辑器版本计数，脚本修改时可以保持原值。
 - `type_config` 只写项目自定义类型或覆盖项；内置基础类型不用重复写。
 - `card_styles.default` 推荐保留。表没有指定样式时会回退到 `default`。
-- 如果没有 `gamedata.json`，编辑器仍会加载表；项目类型和卡片样式使用默认值。
+- 如果没有 `gamedata.json`，编辑器仍会加载表；卡片样式使用默认值。导入时会把各表 `_table.struct_def` 中出现、但项目 `type_config` 尚未定义的字段名自动提升为项目类型，保证后续字段名和类型可以收敛到统一字典。
 
 ## 3. 表文件
 
@@ -232,7 +303,7 @@ id_num, id_string, string_num, img_num, snd_num, img_string, snd_string
 }
 ```
 
-不要在 `struct_def` 里引用未定义类型。类型名必须是内置类型、项目 `type_config` 类型，或编辑器已知的复合类型。
+不要在 `struct_def` 里引用未定义类型。类型名必须是内置类型、项目 `type_config` 类型，或编辑器已知的复合类型。导入旧数据时，如果字段定义能通过已有类型解析，编辑器会自动把该字段名补进项目 `type_config`；完全无法解析的类型仍会进入日志提示。
 
 ## 6. 资源格式
 

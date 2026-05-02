@@ -106,7 +106,7 @@
 .ef-ui-btn:hover {
   background: var(--ef-bg-3);
   color: var(--ef-fg-0);
-  border-color: var(--ef-c-07);
+  border-color: var(--ef-border-hover);
   transform: translateY(-1px);
   box-shadow: 0 2px 6px rgba(0,0,0,.28), inset 0 1px 0 rgba(255,255,255,.06);
 }
@@ -226,6 +226,22 @@
   box-shadow: 0 0 0 2px color-mix(in srgb, var(--ef-accent) 36%, transparent);
 }
 .ef-ui-icon-btn[disabled] { opacity: .38; pointer-events: none; }
+.ef-ui-copy-btn {
+  transition: color var(--ef-dur-fast) var(--ef-ease),
+              background var(--ef-dur-fast) var(--ef-ease),
+              border-color var(--ef-dur-fast) var(--ef-ease),
+              transform var(--ef-dur-fast) var(--ef-ease);
+}
+.ef-ui-copy-btn-copied {
+  color: var(--ef-success, #61c47a);
+  background: color-mix(in srgb, var(--ef-success, #61c47a) 18%, transparent);
+  border-color: color-mix(in srgb, var(--ef-success, #61c47a) 42%, transparent);
+}
+.ef-ui-copy-btn-copied:hover {
+  color: var(--ef-success, #61c47a);
+  background: color-mix(in srgb, var(--ef-success, #61c47a) 24%, transparent);
+  border-color: color-mix(in srgb, var(--ef-success, #61c47a) 56%, transparent);
+}
 
 /* ── tooltip ──────────────────────────────────────── */
 .ef-ui-tooltip {

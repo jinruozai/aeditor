@@ -41,7 +41,7 @@
     root.appendChild(list)
 
     const addBtn = ui.button({
-      text: '+ Add', kind: 'ghost', size: 'sm',
+      text: 'Add', kind: 'default', size: 'sm',
       onClick: function () {
         const cur = value.peek() || []
         const next = cur.concat([seed()])

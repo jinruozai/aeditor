@@ -56,39 +56,47 @@
   function asNumericSig(sig, fallback) {
     const fb  = fallback != null ? fallback : 0
     const tap = EF.signal(toNumOr(asPlain(sig), fb))
-    EF.effect(function () { tap.set(toNumOr(sig(), fb)) })
+    tap.dispose = EF.effect(function () { tap.set(toNumOr(sig(), fb)) })
     return tap
+  }
+
+  function collectSignal(el, sig) {
+    if (sig && sig.dispose) ui.collect(el, sig.dispose)
+    return el
   }
 
   ui.registerRenderer('input_int', function (a) {
     const agv = a.fieldDef.type_agv || {}
-    return ui.numberInput({
-      value: asNumericSig(a.sig), onChange: a.write,
+    const sig = asNumericSig(a.sig)
+    return collectSignal(ui.numberInput({
+      value: sig, onChange: a.write,
       step: 1, precision: 0,
       radix: agv.radix || 'dec',
-    })
+    }), sig)
   })
   ui.registerRenderer('input_float', function (a) {
     const agv = a.fieldDef.type_agv || {}
-    return ui.numberInput({
-      value: asNumericSig(a.sig), onChange: a.write,
+    const sig = asNumericSig(a.sig)
+    return collectSignal(ui.numberInput({
+      value: sig, onChange: a.write,
       step: agv.step != null ? agv.step : 0.01,
       precision: agv.decimal_places,
       percent: !!agv.percent,
-    })
+    }), sig)
   })
   ui.registerRenderer('range', function (a) {
     const agv   = a.fieldDef.type_agv || {}
     const isInt = a.fieldDef.base_type === 'int'
     const min   = agv.min != null ? agv.min : 0
-    return ui.slider({
-      value: asNumericSig(a.sig, min),
+    const sig = asNumericSig(a.sig, min)
+    return collectSignal(ui.slider({
+      value: sig,
       onChange: function (v) { a.write(isInt ? Math.trunc(v) : v) },
       min: min,
       max: agv.max != null ? agv.max : 100,
       step: agv.step != null ? agv.step : (isInt ? 1 : 0.01),
       showValue: true,
-    })
+    }), sig)
   })
   ui.registerRenderer('enum', function (a) {
     const agv   = a.fieldDef.type_agv || {}
@@ -102,11 +110,11 @@
   ui.registerRenderer('toggle', function (a) {
     const isInt  = a.fieldDef.base_type === 'int'
     const shimSig = EF.signal(!!asPlain(a.sig))
-    EF.effect(function () { shimSig.set(!!a.sig()) })
-    return ui.switch({
+    shimSig.dispose = EF.effect(function () { shimSig.set(!!a.sig()) })
+    return collectSignal(ui.switch({
       value: shimSig,
       onChange: function (v) { a.write(isInt ? (v ? 1 : 0) : !!v) },
-    })
+    }), shimSig)
   })
   ui.registerRenderer('color', function (a) {
     const agv = a.fieldDef.type_agv || {}

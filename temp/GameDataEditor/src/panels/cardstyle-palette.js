@@ -25,7 +25,7 @@
     var root = ui.h('div', 'gde-palette');
 
     function render() {
-      root.innerHTML = '';
+      GDE.clear(root);
       var all = EF.listComponents();
       CATEGORIES.forEach(function (cat) {
         var entries = all.filter(function (c) { return c.category === cat; });

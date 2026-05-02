@@ -520,8 +520,13 @@
     // window maps to rows; the trade-off is that a pure expand/collapse
     // above the viewport causes rows to re-render (fine at tree scale).
     function discardRow(entry) {
-      if (entry.el.parentNode) entry.el.parentNode.removeChild(entry.el)
-      if (entry.tpl && tier3) tpool.push(entry.tpl)
+      if (entry.tpl && tier3) {
+        if (typeof entry.tpl.reset === 'function') entry.tpl.reset()
+        if (entry.el.parentNode) entry.el.parentNode.removeChild(entry.el)
+        tpool.push(entry.tpl)
+      } else {
+        ui.dispose(entry.el)
+      }
     }
 
     function paint() {
@@ -561,6 +566,18 @@
     }
 
     el.addEventListener('scroll', paint, { passive: true })
+    ui.collect(el, function () {
+      rowCache.forEach(function (entry) {
+        if (entry.tpl && typeof entry.tpl.dispose === 'function') entry.tpl.dispose()
+        else ui.dispose(entry.el)
+      })
+      rowCache.clear()
+      for (let i = 0; i < tpool.length; i++) {
+        if (tpool[i].dispose) tpool[i].dispose()
+        else ui.dispose(tpool[i].root)
+      }
+      tpool.length = 0
+    })
     ui.bind(el, flatSig, rebuild)
     if (selSig) ui.bind(el, selSig, refreshStates)
 

@@ -39,6 +39,10 @@
 
     const cache = new Map()  // index → element
 
+    function discardRow(row) {
+      ui.dispose(row)
+    }
+
     function selectedSet() {
       if (!selected) return null
       return new Set(selected.peek() || [])
@@ -80,7 +84,7 @@
       const want = new Set()
       for (let i = start; i < end; i++) want.add(i)
       cache.forEach(function (row, key) {
-        if (!want.has(key)) { if (row.parentNode) row.parentNode.removeChild(row); cache.delete(key) }
+        if (!want.has(key)) { discardRow(row); cache.delete(key) }
       })
       const sel = selectedSet()
       for (let i = start; i < end; i++) {
@@ -98,8 +102,12 @@
       }
     }
     el.addEventListener('scroll', paint, { passive: true })
+    ui.collect(el, function () {
+      cache.forEach(discardRow)
+      cache.clear()
+    })
     ui.bind(el, items, function () {
-      cache.forEach(function (e) { if (e.parentNode) e.parentNode.removeChild(e) })
+      cache.forEach(discardRow)
       cache.clear(); paint()
     })
     if (selected) ui.bind(el, selected, function () {

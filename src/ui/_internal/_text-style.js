@@ -49,7 +49,7 @@
     const setPx  = ui._styleSetters.setPx
     const setNum = ui._styleSetters.setNum
     let hadVerticalAlign = false
-    EF.effect(function () {
+    ui.collect(el, EF.effect(function () {
       const p = propsSig() || {}
       setStr(el, 'color',          p.color)
       setStr(el, 'fontFamily',     p.fontFamily)
@@ -73,6 +73,6 @@
       setPx (el, 'letterSpacing',  p.letterSpacing)
       setNum(el, 'lineHeight',     p.lineHeight)
       setStr(el, 'textDecoration', p.textDecoration)
-    })
+    }))
   }
 })(window.EF = window.EF || {})

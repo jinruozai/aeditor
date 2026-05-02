@@ -37,6 +37,7 @@
     let lastIndicator = null      // drop-indicator element inside a tab bar
     let dropDockId = null         // resolved drop target dock id (null = reject / outside)
     let dropIndex  = null         // resolved insertion index (null = append)
+    let done = false
 
     function clearHighlights() {
       if (lastDockEl) {
@@ -114,19 +115,24 @@
     }
 
     function cleanup() {
+      if (done) return false
+      done = true
       window.removeEventListener('pointermove', onMove)
       window.removeEventListener('pointerup', onUp)
+      window.removeEventListener('pointercancel', onCancel)
       window.removeEventListener('keydown', onKey)
+      window.removeEventListener('blur', onCancel)
       document.body.classList.remove('ef-dragging')
       if (ghost) ghost.remove()
       clearHighlights()
+      return true
     }
 
     function onUp(ev) {
       const resolvedDock  = dropDockId
       const resolvedIndex = dropIndex
       const wasDragging   = dragging
-      cleanup()
+      if (!cleanup()) return
       if (!wasDragging) return
 
       if (resolvedDock) {
@@ -159,10 +165,13 @@
     }
 
     function onKey(ev) { if (ev.key === 'Escape') { dragging = false; cleanup() } }
+    function onCancel() { dragging = false; cleanup() }
 
     window.addEventListener('pointermove', onMove)
     window.addEventListener('pointerup', onUp)
+    window.addEventListener('pointercancel', onCancel)
     window.addEventListener('keydown', onKey)
+    window.addEventListener('blur', onCancel)
   }
 
   // Find which gap between existing tabs the pointer falls into. Works for

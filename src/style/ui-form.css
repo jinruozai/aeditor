@@ -20,7 +20,7 @@
               box-shadow   var(--ef-dur-med)  var(--ef-ease),
               background   var(--ef-dur-fast) var(--ef-ease);
 }
-.ef-ui-field:hover { border-color: var(--ef-c-07); }
+.ef-ui-field:hover { border-color: var(--ef-border-hover); }
 .ef-ui-field:focus-within {
   border-color: var(--ef-accent);
   background: color-mix(in srgb, var(--ef-bg-2) 92%, var(--ef-accent));
@@ -291,7 +291,7 @@
               border-color var(--ef-dur-med) var(--ef-ease),
               box-shadow var(--ef-dur-med) var(--ef-ease);
 }
-.ef-ui-switch:hover .ef-ui-switch-track { border-color: var(--ef-c-07); }
+.ef-ui-switch:hover .ef-ui-switch-track { border-color: var(--ef-border-hover); }
 .ef-ui-switch-knob {
   position: absolute;
   top: 50%;                       /* vertical centering: independent of knob/track sizes */
@@ -459,7 +459,7 @@
               background var(--ef-dur-fast) var(--ef-ease),
               box-shadow var(--ef-dur-med) var(--ef-ease);
 }
-.ef-ui-select:hover { border-color: var(--ef-c-07); background: var(--ef-bg-3); }
+.ef-ui-select:hover { border-color: var(--ef-border-hover); background: var(--ef-bg-3); }
 .ef-ui-select:focus-visible,
 .ef-ui-select-open {
   outline: none;
@@ -643,7 +643,7 @@
 }
 .ef-ui-enum-btn:hover:not(.ef-ui-enum-on) {
   background: var(--ef-bg-3);
-  border-color: var(--ef-c-07);
+  border-color: var(--ef-border-hover);
   color: var(--ef-fg-0);
 }
 .ef-ui-enum-btn:active { transform: scale(0.94); }
@@ -940,7 +940,13 @@
 .ef-ui-slot > *,
 .ef-ui-struct-input-cell > .ef-ui-slot > * { width: 100%; max-width: 100%; box-sizing: border-box; }
 .ef-ui-array-input-rows { display: flex; flex-direction: column; gap: 2px; }
-.ef-ui-array-input-add { align-self: flex-start; margin-top: var(--ef-space-1); }
+.ef-ui-array-input-add {
+  align-self: stretch;
+  width: 100%;
+  margin-top: var(--ef-space-1);
+  background: var(--ef-bg-2);
+  border-color: var(--ef-border-input);
+}
 
 .ef-ui-property-panel { display: flex; flex-direction: column; min-width: 0; }
 /* Strip struct-input chrome inside the panel — both the unnamed top bucket

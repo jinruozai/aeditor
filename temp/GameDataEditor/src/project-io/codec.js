@@ -52,6 +52,10 @@
 
   function applySnapshot(snapshot, sourceName) {
     var snap = normalizeSnapshot(snapshot);
+    var merged = mergeStructDefsIntoTypeConfig(snap);
+    if (merged.pushed.length) {
+      log('info', 'Import merged struct_def fields into TypeConfig: ' + merged.pushed.join(', '));
+    }
     validateStructTypes(snap.type_config, snap.tables);
     State.setProjectTypeConfig(snap.type_config);
     State.setProjectCardStyles(snap.card_styles);
@@ -74,6 +78,53 @@
       card_styles: cardStyles,
       tables: s.tables || {},
     };
+  }
+
+  function mergeStructDefsIntoTypeConfig(snap) {
+    var projectTC = Object.assign({}, snap.type_config || {});
+    var known = Object.assign({}, EF.ui.getTypeConfig ? EF.ui.getTypeConfig() : {}, projectTC);
+    var pushed = [];
+
+    Object.keys(snap.tables || {}).sort().forEach(function (pathKey) {
+      var table = snap.tables[pathKey] || {};
+      var sd = Object.assign({}, table.struct_def || {});
+      var changed = false;
+
+        Object.keys(sd).forEach(function (field) {
+        if (projectTC[field]) return;
+          var resolved = resolveFieldDefWithConfig(sd[field], known);
+          if (!resolved) return;
+
+        var entry = typeof sd[field] === 'string' ? { type: sd[field] } : (sd[field] || {});
+        var promoted = {
+          name:        entry.name || field,
+          base_type:   resolved.base_type || 'string',
+          type_render: resolved.type_render || 'input_string',
+        };
+        ['default','mem','type_agv','card_style','ref_name','ref_show','support_render','struct_def'].forEach(function (k) {
+          if (resolved[k] !== undefined) promoted[k] = deepClone(resolved[k]);
+        });
+
+          projectTC[field] = promoted;
+          known[field] = promoted;
+        sd[field] = { type: field };
+        changed = true;
+        pushed.push(pathKey + '.' + field);
+      });
+
+      if (changed) table.struct_def = sd;
+    });
+
+    snap.type_config = projectTC;
+    return { pushed: pushed };
+  }
+
+  function resolveFieldDefWithConfig(fieldDef, typeConfig) {
+    var typeName = fieldTypeName(fieldDef);
+    if (!typeName || !typeConfig[typeName]) return null;
+    var base = typeConfig[typeName];
+    if (typeof fieldDef === 'string') return deepClone(base);
+    return Object.assign({}, deepClone(base), deepClone(fieldDef || {}));
   }
 
   function defaultCardStyle() {
@@ -159,7 +210,11 @@
     Object.keys(files).sort().forEach(function (path) {
       if (path === 'gamedata.json' || !/\.json$/i.test(path)) return;
       var raw = parseJson(path, files[path]);
-      if (!raw || !raw._table) return;
+      if (!raw) return;
+      if (!raw._table) {
+        log('error', 'JSON table missing _table: ' + path);
+        return;
+      }
       var tableDef = raw._table || {};
       var entities = {};
       var ids = [];
@@ -193,7 +248,7 @@
   }
 
   function validateStructTypes(projectTypeConfig, tables) {
-    var known = Object.assign({}, State.builtinTypeConfig ? State.builtinTypeConfig() : {}, projectTypeConfig || {});
+    var known = Object.assign({}, EF.ui.getTypeConfig ? EF.ui.getTypeConfig() : {}, projectTypeConfig || {});
     Object.keys(tables || {}).forEach(function (pathKey) {
       var sd = (tables[pathKey] && tables[pathKey].struct_def) || {};
       Object.keys(sd).forEach(function (field) {

@@ -6,16 +6,22 @@
 /* ════ style/theme.css ════ */
 /* editorframe — theme tokens (source of truth for ALL colors / sizes / motion)
  *
- * Three layers (read top → down):
- *   Layer 1 — Primitives  : raw hex / px values, named structurally (--ef-c-04)
- *   Layer 2 — Roles       : semantic mapping onto primitives (--ef-bg-1, --ef-fg-2)
- *   Layer 3 — Components  : the rare per-component tweak that isn't a role
+ * Theme v2 layers (read top → down):
+ *   Authoring  : semantic custom-theme entry (--ef-surface-panel, --ef-brand)
+ *   Primitives : compatibility / advanced ramp (--ef-c-04)
+ *   Roles      : component-facing tokens (--ef-bg-1, --ef-fg-2)
+ *   Components : rare per-component tweaks that are not roles
  *
  * ALL non-token CSS in dock.css / component.css / ui-*.css must reference Layer 2
- * roles, not Layer 1 primitives. Themes (dark / light) only override Layer 1
- * primitives + a few Layer 2 mappings; Layer 3 stays put.
+ * roles, not primitive ramp tokens. Themes override authoring tokens + the
+ * compatibility ramp + a few role mappings; component tokens stay put.
  *
  * Naming convention:
+ *   --ef-surface-* semantic surface authoring tokens
+ *   --ef-text-*    semantic text authoring tokens
+ *   --ef-stroke-*  semantic border/stroke authoring tokens
+ *   --ef-brand*    brand/accent authoring tokens
+ *   --ef-state-*   success / warning / danger / info authoring tokens
  *   --ef-c-NN     12-step grayscale primitive (00 = darkest, 11 = lightest)
  *   --ef-c-NAME   semantic primitive (accent / success / warn / error / info)
  *   --ef-bg-N     background depth ramp role (0 = deepest)
@@ -30,7 +36,8 @@
  *   --ef-font-*   font stacks
  */
 
-:root {
+:root,
+.ef-root[data-ef-theme="dark"] {
   /* ── Layer 1 — Primitives (Dark theme — Godot-minimal default) ───
    *
    * Palette inspired by passivestar/godot-minimal-theme.tres: a neutral
@@ -38,62 +45,95 @@
    * contrast between surface steps; depth communicated by luminance
    * instead of borders / shadows / colored tinting. */
 
+  /* Authoring tokens: recommended custom-theme surface. Theme authors
+   * change these semantic names; components keep consuming the role tokens
+   * below. The numeric --ef-c-* ramp stays as compatibility/advanced API. */
+  --ef-surface-canvas: #141414;
+  --ef-surface-lower:  #1a1a1a;
+  --ef-surface-frame:  #202020;
+  --ef-surface-panel:  #272727;
+  --ef-surface-field:  #1a1a1a;
+  --ef-surface-hover:  #2d2d2d;
+  --ef-surface-active: #333333;
+  --ef-surface-raised: #2d2d2d;
+
+  --ef-text-primary:  #d4d4d4;
+  --ef-text-body:     #bfbfbf;
+  --ef-text-label:    #9a9a9a;
+  --ef-text-muted:    #707070;
+  --ef-text-disabled: #5a5a5a;
+
+  --ef-stroke-subtle: #2d2d2d;
+  --ef-stroke-strong: #3b3b3b;
+  --ef-stroke-field:  #333333;
+  --ef-stroke-hover:  #474747;
+
+  --ef-brand:          #569eff;
+  --ef-brand-hover:    #7fb5ff;
+  --ef-brand-contrast: #ffffff;
+
+  --ef-state-success: #4dcf68;
+  --ef-state-warning: #d4ba6b;
+  --ef-state-danger:  #e07a78;
+  --ef-state-info:    #569eff;
+
   /* 12-step neutral-gray ramp. c-03 is the Godot "surface_base". */
-  --ef-c-00: #141414;   /* deepest — viewport + inset wells */
-  --ef-c-01: #1a1a1a;   /* lower */
-  --ef-c-02: #202020;   /* frame */
-  --ef-c-03: #272727;   /* ★ surface_base — dock body */
-  --ef-c-04: #2d2d2d;   /* hover */
-  --ef-c-05: #333333;   /* active / selected tab */
-  --ef-c-06: #3b3b3b;   /* border-strong */
+  --ef-c-00: var(--ef-surface-canvas);   /* deepest viewport + inset wells */
+  --ef-c-01: var(--ef-surface-lower);    /* lower */
+  --ef-c-02: var(--ef-surface-frame);    /* frame */
+  --ef-c-03: var(--ef-surface-panel);    /* surface_base dock body */
+  --ef-c-04: var(--ef-surface-hover);    /* hover */
+  --ef-c-05: var(--ef-surface-active);   /* active / selected tab */
+  --ef-c-06: var(--ef-stroke-strong);    /* border-strong */
   --ef-c-07: #474747;
-  --ef-c-08: #5a5a5a;
-  --ef-c-09: #707070;   /* muted / placeholder */
-  --ef-c-10: #9a9a9a;   /* labels */
-  --ef-c-11: #d4d4d4;   /* primary text (not pure white — reduces glare) */
+  --ef-c-08: var(--ef-text-disabled);
+  --ef-c-09: var(--ef-text-muted);       /* muted / placeholder */
+  --ef-c-10: var(--ef-text-label);       /* labels */
+  --ef-c-11: var(--ef-text-primary);     /* primary text (not pure white) */
 
   /* Brand accent — Godot's canonical #569eff, with a soft derivative. */
-  --ef-c-accent:      #569eff;
-  --ef-c-accent-soft: #7fb5ff;
+  --ef-c-accent:      var(--ef-brand);
+  --ef-c-accent-soft: var(--ef-brand-hover);
 
   /* Semantic colors — calibrated to the low-contrast chassis. warn uses
    * Godot's khaki (warning_color ≈ 0.83,0.78,0.62); success keeps a more
    * "OK-button" green per design preference; error is a softer red so
    * it reads as "warning" rather than "alarm" against the neutral gray. */
-  --ef-c-success: #4dcf68;
-  --ef-c-warn:    #d4ba6b;
-  --ef-c-error:   #e07a78;
-  --ef-c-info:    #569eff;
+  --ef-c-success: var(--ef-state-success);
+  --ef-c-warn:    var(--ef-state-warning);
+  --ef-c-error:   var(--ef-state-danger);
+  --ef-c-info:    var(--ef-state-info);
 
   /* ── Layer 2 — Roles (semantic, point at primitives) ───────────── */
 
   /* Background depth ramp. Note bg-2 (inputs) is DEEPER than bg-1 (panel)
    * — the Godot "inset well" convention: fields recede, panels rise. */
-  --ef-bg-0: var(--ef-c-00);   /* viewport */
-  --ef-bg-1: var(--ef-c-03);   /* dock body = Godot surface_base */
-  --ef-bg-2: var(--ef-c-01);   /* input fields, inset wells */
-  --ef-bg-3: var(--ef-c-04);   /* hover surfaces, dropdowns */
-  --ef-bg-4: var(--ef-c-05);   /* active surfaces */
+  --ef-bg-0: var(--ef-surface-canvas);   /* viewport */
+  --ef-bg-1: var(--ef-surface-panel);    /* dock body = Godot surface_base */
+  --ef-bg-2: var(--ef-surface-field);    /* input fields, inset wells */
+  --ef-bg-3: var(--ef-surface-hover);    /* hover surfaces, dropdowns */
+  --ef-bg-4: var(--ef-surface-active);   /* active surfaces */
   /* "Raised" surface — one step LIGHTER than dock body (bg-1). Reserved
    * for floating cards that should feel lifted off the panel. Pair with
    * --ef-shadow-raised. Distinct from bg-3 (hover) semantically. */
-  --ef-bg-raised: var(--ef-c-04);
+  --ef-bg-raised: var(--ef-surface-raised);
 
   /* Foreground emphasis ramp (strongest → most muted). */
-  --ef-fg-0: var(--ef-c-11);   /* primary text */
-  --ef-fg-1: #bfbfbf;          /* body text */
-  --ef-fg-2: var(--ef-c-10);   /* labels */
-  --ef-fg-3: var(--ef-c-09);   /* placeholder / disabled */
+  --ef-fg-0: var(--ef-text-primary);   /* primary text */
+  --ef-fg-1: var(--ef-text-body);      /* body text */
+  --ef-fg-2: var(--ef-text-label);     /* labels */
+  --ef-fg-3: var(--ef-text-muted);     /* placeholder / disabled */
 
   /* Borders — low luminance difference, visible but never loud. */
-  --ef-border:        var(--ef-c-04);
-  --ef-border-strong: var(--ef-c-06);
-  --ef-border-input:  var(--ef-c-05);
+  --ef-border:        var(--ef-stroke-subtle);
+  --ef-border-strong: var(--ef-stroke-strong);
+  --ef-border-input:  var(--ef-stroke-field);
+  --ef-border-hover:  var(--ef-stroke-hover);
 
   /* Brand. */
-  --ef-accent:      var(--ef-c-accent);
-  --ef-accent-soft: var(--ef-c-accent-soft);
-  --ef-accent-fg:   #ffffff;
+  --ef-accent:      var(--ef-brand);
+  --ef-accent-soft: var(--ef-brand-hover);
+  --ef-accent-fg:   var(--ef-brand-contrast);
   --ef-accent-bg:   color-mix(in srgb, var(--ef-c-accent) 14%, transparent);
   --ef-accent-bg-strong: color-mix(in srgb, var(--ef-c-accent) 22%, transparent);
 
@@ -102,6 +142,7 @@
   --ef-active:      color-mix(in srgb, var(--ef-c-accent) 18%, transparent);
   --ef-selected:    color-mix(in srgb, var(--ef-c-accent) 22%, transparent);
   --ef-focus-ring:  var(--ef-c-accent);
+  --ef-scrim:       color-mix(in srgb, var(--ef-surface-canvas) 62%, transparent);
 
   /* Semantic state colors as text + bg pairs. */
   --ef-success:    var(--ef-c-success);
@@ -205,7 +246,37 @@
  * "raised input" role mapping (bg-2 LIGHTER than bg-1) that contrasts
  * the default Godot "inset input" convention. Selected via
  * [data-ef-theme="dracula"]. */
-:root[data-ef-theme="dracula"] {
+:root[data-ef-theme="dracula"],
+.ef-root[data-ef-theme="dracula"] {
+  --ef-surface-canvas: #0c0c0e;
+  --ef-surface-lower:  #111113;
+  --ef-surface-frame:  #16161a;
+  --ef-surface-panel:  #111113;
+  --ef-surface-field:  #1c1c20;
+  --ef-surface-hover:  #2a2a30;
+  --ef-surface-active: #38383f;
+  --ef-surface-raised: #1c1c20;
+
+  --ef-text-primary:  #e8e8f0;
+  --ef-text-body:     #c4c4cc;
+  --ef-text-label:    #9494a0;
+  --ef-text-muted:    #72727c;
+  --ef-text-disabled: #5e5e66;
+
+  --ef-stroke-subtle: #1c1c20;
+  --ef-stroke-strong: #2a2a30;
+  --ef-stroke-field:  #2a2a30;
+  --ef-stroke-hover:  #4a4a52;
+
+  --ef-brand:          #7b6ef6;
+  --ef-brand-hover:    #a89ff8;
+  --ef-brand-contrast: #ffffff;
+
+  --ef-state-success: #3ecf8e;
+  --ef-state-warning: #f0a050;
+  --ef-state-danger:  #e05555;
+  --ef-state-info:    #38bdf8;
+
   --ef-c-00: #0c0c0e;
   --ef-c-01: #111113;
   --ef-c-02: #16161a;
@@ -230,17 +301,18 @@
   /* Raised-input role mapping: field sits ABOVE panel, opposite of the
    * Godot default. This is the single substantive layout difference
    * between the two dark themes — everything else is palette. */
-  --ef-bg-1: var(--ef-c-01);   /* dock body */
-  --ef-bg-2: var(--ef-c-03);   /* input (lighter than panel) */
-  --ef-bg-3: var(--ef-c-05);
-  --ef-bg-4: var(--ef-c-06);
-  --ef-bg-raised: var(--ef-c-03);   /* raised cards sit above bg-1 */
+  --ef-bg-1: var(--ef-surface-panel);   /* dock body */
+  --ef-bg-2: var(--ef-surface-field);   /* input (lighter than panel) */
+  --ef-bg-3: var(--ef-surface-hover);
+  --ef-bg-4: var(--ef-surface-active);
+  --ef-bg-raised: var(--ef-surface-raised);   /* raised cards sit above bg-1 */
 
-  --ef-border:        var(--ef-c-03);
-  --ef-border-strong: var(--ef-c-05);
-  --ef-border-input:  var(--ef-c-05);
+  --ef-border:        var(--ef-stroke-subtle);
+  --ef-border-strong: var(--ef-stroke-strong);
+  --ef-border-input:  var(--ef-stroke-field);
+  --ef-border-hover:  var(--ef-stroke-hover);
 
-  --ef-fg-1: #c4c4cc;
+  --ef-fg-1: var(--ef-text-body);
 
   --ef-shadow-1: 0 1px 2px rgba(0,0,0,.4);
   --ef-shadow-2: 0 2px 8px rgba(0,0,0,.5);
@@ -250,7 +322,37 @@
 }
 
 /* ── Light theme — only the primitives flip; roles inherit. ────────── */
-:root[data-ef-theme="light"] {
+:root[data-ef-theme="light"],
+.ef-root[data-ef-theme="light"] {
+  --ef-surface-canvas: #f4f4f7;
+  --ef-surface-lower:  #ffffff;
+  --ef-surface-frame:  #f8f8fa;
+  --ef-surface-panel:  #ffffff;
+  --ef-surface-field:  #e6e6ec;
+  --ef-surface-hover:  #c8c8d2;
+  --ef-surface-active: #b0b0bc;
+  --ef-surface-raised: #f8f8fa;
+
+  --ef-text-primary:  #18181c;
+  --ef-text-body:     #2a2a30;
+  --ef-text-label:    #38383f;
+  --ef-text-muted:    #54545e;
+  --ef-text-disabled: #6e6e7a;
+
+  --ef-stroke-subtle: #e6e6ec;
+  --ef-stroke-strong: #c8c8d2;
+  --ef-stroke-field:  #c8c8d2;
+  --ef-stroke-hover:  #8e8e9c;
+
+  --ef-brand:          #5b4ee0;
+  --ef-brand-hover:    #8278f0;
+  --ef-brand-contrast: #ffffff;
+
+  --ef-state-success: #16a163;
+  --ef-state-warning: #c97a1a;
+  --ef-state-danger:  #c53030;
+  --ef-state-info:    #1e88c4;
+
   --ef-c-00: #f4f4f7;
   --ef-c-01: #ffffff;
   --ef-c-02: #f8f8fa;
@@ -282,20 +384,21 @@
    * mapping — :root uses Godot's "inset-in-dark" convention which, when
    * inherited with light primitives, would invert into "raised-in-light".
    * Light mode reads more naturally with white panels and inset fields. */
-  --ef-bg-1: var(--ef-c-01);   /* dock body = white */
-  --ef-bg-2: var(--ef-c-03);   /* input = light gray (inset) */
-  --ef-bg-3: var(--ef-c-05);
-  --ef-bg-4: var(--ef-c-06);
-  --ef-bg-raised: var(--ef-c-02);   /* slightly off-white to separate from bg-1 */
+  --ef-bg-1: var(--ef-surface-panel);   /* dock body = white */
+  --ef-bg-2: var(--ef-surface-field);   /* input = light gray (inset) */
+  --ef-bg-3: var(--ef-surface-hover);
+  --ef-bg-4: var(--ef-surface-active);
+  --ef-bg-raised: var(--ef-surface-raised);   /* slightly off-white to separate from bg-1 */
 
-  --ef-border:        var(--ef-c-03);
-  --ef-border-strong: var(--ef-c-05);
-  --ef-border-input:  var(--ef-c-05);
+  --ef-border:        var(--ef-stroke-subtle);
+  --ef-border-strong: var(--ef-stroke-strong);
+  --ef-border-input:  var(--ef-stroke-field);
+  --ef-border-hover:  var(--ef-stroke-hover);
 
   --ef-shadow-raised: 0 1px 2px rgba(20,20,40,.08), 0 2px 6px rgba(20,20,40,.10);
 
-  --ef-fg-1: #2a2a30;
-  --ef-accent-fg: #ffffff;
+  --ef-fg-1: var(--ef-text-body);
+  --ef-accent-fg: var(--ef-brand-contrast);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -676,7 +779,7 @@ body.ef-dragging-vertical,   body.ef-dragging-vertical *   { cursor: ns-resize !
 .ef-ui-btn:hover {
   background: var(--ef-bg-3);
   color: var(--ef-fg-0);
-  border-color: var(--ef-c-07);
+  border-color: var(--ef-border-hover);
   transform: translateY(-1px);
   box-shadow: 0 2px 6px rgba(0,0,0,.28), inset 0 1px 0 rgba(255,255,255,.06);
 }
@@ -796,6 +899,22 @@ body.ef-dragging-vertical,   body.ef-dragging-vertical *   { cursor: ns-resize !
   box-shadow: 0 0 0 2px color-mix(in srgb, var(--ef-accent) 36%, transparent);
 }
 .ef-ui-icon-btn[disabled] { opacity: .38; pointer-events: none; }
+.ef-ui-copy-btn {
+  transition: color var(--ef-dur-fast) var(--ef-ease),
+              background var(--ef-dur-fast) var(--ef-ease),
+              border-color var(--ef-dur-fast) var(--ef-ease),
+              transform var(--ef-dur-fast) var(--ef-ease);
+}
+.ef-ui-copy-btn-copied {
+  color: var(--ef-success, #61c47a);
+  background: color-mix(in srgb, var(--ef-success, #61c47a) 18%, transparent);
+  border-color: color-mix(in srgb, var(--ef-success, #61c47a) 42%, transparent);
+}
+.ef-ui-copy-btn-copied:hover {
+  color: var(--ef-success, #61c47a);
+  background: color-mix(in srgb, var(--ef-success, #61c47a) 24%, transparent);
+  border-color: color-mix(in srgb, var(--ef-success, #61c47a) 56%, transparent);
+}
 
 /* ── tooltip ──────────────────────────────────────── */
 .ef-ui-tooltip {
@@ -985,7 +1104,7 @@ body.ef-dragging-vertical,   body.ef-dragging-vertical *   { cursor: ns-resize !
               box-shadow   var(--ef-dur-med)  var(--ef-ease),
               background   var(--ef-dur-fast) var(--ef-ease);
 }
-.ef-ui-field:hover { border-color: var(--ef-c-07); }
+.ef-ui-field:hover { border-color: var(--ef-border-hover); }
 .ef-ui-field:focus-within {
   border-color: var(--ef-accent);
   background: color-mix(in srgb, var(--ef-bg-2) 92%, var(--ef-accent));
@@ -1256,7 +1375,7 @@ body.ef-dragging-vertical,   body.ef-dragging-vertical *   { cursor: ns-resize !
               border-color var(--ef-dur-med) var(--ef-ease),
               box-shadow var(--ef-dur-med) var(--ef-ease);
 }
-.ef-ui-switch:hover .ef-ui-switch-track { border-color: var(--ef-c-07); }
+.ef-ui-switch:hover .ef-ui-switch-track { border-color: var(--ef-border-hover); }
 .ef-ui-switch-knob {
   position: absolute;
   top: 50%;                       /* vertical centering: independent of knob/track sizes */
@@ -1424,7 +1543,7 @@ body.ef-dragging-vertical,   body.ef-dragging-vertical *   { cursor: ns-resize !
               background var(--ef-dur-fast) var(--ef-ease),
               box-shadow var(--ef-dur-med) var(--ef-ease);
 }
-.ef-ui-select:hover { border-color: var(--ef-c-07); background: var(--ef-bg-3); }
+.ef-ui-select:hover { border-color: var(--ef-border-hover); background: var(--ef-bg-3); }
 .ef-ui-select:focus-visible,
 .ef-ui-select-open {
   outline: none;
@@ -1608,7 +1727,7 @@ body.ef-dragging-vertical,   body.ef-dragging-vertical *   { cursor: ns-resize !
 }
 .ef-ui-enum-btn:hover:not(.ef-ui-enum-on) {
   background: var(--ef-bg-3);
-  border-color: var(--ef-c-07);
+  border-color: var(--ef-border-hover);
   color: var(--ef-fg-0);
 }
 .ef-ui-enum-btn:active { transform: scale(0.94); }
@@ -1905,7 +2024,13 @@ body.ef-dragging-vertical,   body.ef-dragging-vertical *   { cursor: ns-resize !
 .ef-ui-slot > *,
 .ef-ui-struct-input-cell > .ef-ui-slot > * { width: 100%; max-width: 100%; box-sizing: border-box; }
 .ef-ui-array-input-rows { display: flex; flex-direction: column; gap: 2px; }
-.ef-ui-array-input-add { align-self: flex-start; margin-top: var(--ef-space-1); }
+.ef-ui-array-input-add {
+  align-self: stretch;
+  width: 100%;
+  margin-top: var(--ef-space-1);
+  background: var(--ef-bg-2);
+  border-color: var(--ef-border-input);
+}
 
 .ef-ui-property-panel { display: flex; flex-direction: column; min-width: 0; }
 /* Strip struct-input chrome inside the panel — both the unnamed top bucket
@@ -2558,7 +2683,7 @@ body.ef-dragging-vertical,   body.ef-dragging-vertical *   { cursor: ns-resize !
    every row click (since the tree is tabIndex=0 to receive key events),
    which reads as a stray outer selection. :focus-visible suppresses that
    path while preserving keyboard accessibility. */
-.ef-ui-tree:focus-visible { box-shadow: 0 0 0 2px var(--ef-accent-soft, var(--ef-accent)); }
+.ef-ui-tree:focus-visible { box-shadow: none; }
 .ef-ui-tree-spacer { position: relative; width: 100%; }
 .ef-ui-tree-window {
   position: absolute;
@@ -2910,6 +3035,176 @@ body.ef-dragging-vertical,   body.ef-dragging-vertical *   { cursor: ns-resize !
   white-space: nowrap;
 }
 
+/* ── asset browser ───────────────────────────────────── */
+.ef-ui-asset-browser {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+  background: var(--ef-bg-1);
+}
+.ef-ui-assetbar {
+  display: flex;
+  align-items: center;
+  gap: var(--ef-space-2);
+  padding: var(--ef-space-1) var(--ef-space-2);
+  border-bottom: 1px solid var(--ef-border);
+  background: var(--ef-bg-2);
+}
+.ef-ui-assetbar .ef-ui-search-field {
+  flex: 1 1 220px;
+  margin: 0;
+}
+.ef-ui-assetbar .ef-ui-input {
+  width: auto;
+  max-width: none;
+  background: transparent;
+  border: 0;
+  padding: 0;
+}
+.ef-ui-assetcrumb {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  height: var(--ef-size-h-md);
+  min-width: 0;
+  max-width: 42%;
+  padding: 0 var(--ef-space-2);
+  border: 1px solid var(--ef-border);
+  border-radius: var(--ef-r-2);
+  background: var(--ef-bg-1);
+  overflow: hidden;
+}
+.ef-ui-assetcrumb button {
+  flex: 0 1 auto;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  color: var(--ef-fg-1);
+  font: var(--ef-fs-sm) var(--ef-font-ui);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.ef-ui-assetcrumb button:hover { color: var(--ef-accent); }
+.ef-ui-assetcrumb-sep { color: var(--ef-fg-3); }
+.ef-ui-assetgrid {
+  flex: 1 1 0;
+  min-height: 0;
+  overflow: auto;
+  position: relative;
+  display: grid;
+  justify-content: start;
+  align-content: start;
+  gap: var(--ef-space-2);
+  padding: var(--ef-space-2);
+  background: var(--ef-bg-1);
+}
+.ef-ui-assetgrid-sm { grid-template-columns: repeat(auto-fill, 72px); --ef-asset-tile: 72px; --ef-asset-thumb: 42px; }
+.ef-ui-assetgrid-md { grid-template-columns: repeat(auto-fill, 96px); --ef-asset-tile: 96px; --ef-asset-thumb: 64px; }
+.ef-ui-assetgrid-lg { grid-template-columns: repeat(auto-fill, 128px); --ef-asset-tile: 128px; --ef-asset-thumb: 92px; }
+.ef-ui-assetgrid-xl { grid-template-columns: repeat(auto-fill, 176px); --ef-asset-tile: 176px; --ef-asset-thumb: 136px; }
+.ef-ui-assetgrid-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.ef-ui-assetitem {
+  width: var(--ef-asset-tile);
+  height: calc(var(--ef-asset-thumb) + 28px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 3px;
+  padding: 3px;
+  box-sizing: border-box;
+  border: 1px solid transparent;
+  border-radius: var(--ef-r-2);
+  color: var(--ef-fg-1);
+  cursor: default;
+  user-select: none;
+}
+.ef-ui-assetgrid-list .ef-ui-assetitem {
+  width: 100%;
+  height: 28px;
+  display: grid;
+  grid-template-columns: 28px minmax(120px, 1fr) 90px 80px 96px;
+  align-items: center;
+  gap: var(--ef-space-2);
+}
+.ef-ui-assetitem:hover {
+  background: var(--ef-bg-2);
+  border-color: var(--ef-border);
+}
+.ef-ui-assetitem.is-selected {
+  background: var(--ef-selected);
+  border-color: var(--ef-accent);
+  color: var(--ef-fg-0);
+}
+.ef-ui-assetthumb {
+  width: var(--ef-asset-thumb);
+  height: var(--ef-asset-thumb);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border: 1px solid var(--ef-border);
+  border-radius: var(--ef-r-2);
+  background: var(--ef-bg-2);
+}
+.ef-ui-assetgrid-list .ef-ui-assetthumb {
+  width: 22px;
+  height: 22px;
+  border: 0;
+  background: transparent;
+}
+.ef-ui-assetthumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.ef-ui-assetname {
+  width: 100%;
+  min-width: 0;
+  text-align: center;
+  font: var(--ef-fs-xs) var(--ef-font-ui);
+  line-height: 15px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ef-ui-assetgrid-list .ef-ui-assetname {
+  text-align: left;
+  font-size: var(--ef-fs-sm);
+}
+.ef-ui-assetmeta {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--ef-fg-3);
+  font: var(--ef-fs-xs) var(--ef-font-ui);
+}
+.ef-ui-asset-empty {
+  grid-column: 1 / -1;
+  padding: var(--ef-space-4);
+  color: var(--ef-fg-3);
+  font: var(--ef-fs-sm) var(--ef-font-ui);
+  text-align: center;
+}
+.ef-ui-asset-marquee {
+  position: absolute;
+  pointer-events: none;
+  z-index: 2;
+  border: 1px solid var(--ef-accent);
+  background: color-mix(in srgb, var(--ef-accent) 16%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--ef-accent) 30%, transparent);
+}
+
 /* ════ style/ui-overlay.css ════ */
 /* editorframe — UI library: overlay widgets
  *
@@ -2973,7 +3268,7 @@ body.ef-dragging-vertical,   body.ef-dragging-vertical *   { cursor: ns-resize !
 .ef-ui-modal-backdrop {
   position: fixed;
   inset: 0;
-  background: color-mix(in srgb, var(--ef-c-00) 60%, transparent);
+  background: var(--ef-scrim);
   z-index: var(--ef-z-modal);
   display: flex;
   align-items: center;
@@ -3050,6 +3345,8 @@ body.ef-dragging-vertical,   body.ef-dragging-vertical *   { cursor: ns-resize !
 .ef-ui-dialog-body {
   min-width: 320px;
   max-width: 460px;
+  max-height: min(360px, 52vh);
+  overflow: auto;
   font: var(--ef-fs-md) var(--ef-font-ui);
   color: var(--ef-fg-1);
   line-height: 1.5;
@@ -3074,7 +3371,7 @@ body.ef-dragging-vertical,   body.ef-dragging-vertical *   { cursor: ns-resize !
 .ef-ui-drawer-backdrop {
   position: fixed;
   inset: 0;
-  background: color-mix(in srgb, var(--ef-c-00) 50%, transparent);
+  background: var(--ef-scrim);
   z-index: var(--ef-z-modal);
   pointer-events: auto;
 }

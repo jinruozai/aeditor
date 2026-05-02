@@ -1,9 +1,9 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8" />
   <title>GameDataEditor</title>
-  <link rel="stylesheet" href="vendor/ef.css?v=47" />
+  <link rel="stylesheet" href="vendor/ef.css?v=58" />
   <style>
     html, body { margin: 0; height: 100%; background: var(--ef-bg-0, #1e1e22); }
     /* #app lives inside .gde-body; must inherit its height, not 100vh.
@@ -28,7 +28,7 @@
     .gde-topbar .gde-brand:hover { background: var(--ef-hover, rgba(255,255,255,0.06)); }
     .gde-topbar .gde-brand-icon {
       width: 18px; height: 18px; border-radius: 4px;
-      background: linear-gradient(135deg, var(--ef-accent, #4a90e2), #8b5cf6);
+      background: url("logo.png") center / contain no-repeat;
     }
     .gde-topbar .gde-sep { flex: 1; }
     .gde-topbar .gde-status {
@@ -38,7 +38,7 @@
     .gde-topbar .gde-status b { color: var(--ef-accent, #4a90e2); font-weight: 600; }
 
     /* Body below topbar */
-    /* width:100% not 100vw — 100vw includes the vertical scrollbar gutter,
+    /* width:100% not 100vw 闁?100vw includes the vertical scrollbar gutter,
        overflowing body.clientWidth by ~10px and triggering a phantom
        horizontal scrollbar. Same reasoning as #app's height above. */
     .gde-body { height: calc(100vh - 36px); width: 100%; }
@@ -131,7 +131,7 @@
       font: 11px var(--ef-font-ui, system-ui); font-style: italic;
     }
 
-    /* Log level dropdown — replaces the 4 filter buttons */
+    /* Log level dropdown 闁?replaces the 4 filter buttons */
     .gde-log-levelsel {
       background: var(--ef-bg-2, #1a1a1a);
       color: var(--ef-fg-0, #d4d4d4);
@@ -141,7 +141,7 @@
       cursor: pointer;
     }
 
-    /* Generic icon button — square, glyph-only, no padding for label text */
+    /* Generic icon button 闁?square, glyph-only, no padding for label text */
     .gde-iconbtn {
       display: inline-flex; align-items: center; justify-content: center;
       width: 24px; height: 24px; padding: 0;
@@ -165,7 +165,7 @@
     .gde-iconbtn.is-primary:hover { background: var(--ef-accent-soft, #7fb5ff); }
     .gde-iconbtn.is-danger { color: var(--ef-error, #e07a78); }
 
-    /* Tab bar component — lives in the center dock's toolbar, NOT outside. */
+    /* Tab bar component 闁?lives in the center dock's toolbar, NOT outside. */
     .gde-tabbar {
       display: flex; align-items: stretch;
       width: 100%; height: 100%;
@@ -179,7 +179,7 @@
       font: 12px var(--ef-font-ui, system-ui);
       font-style: italic;
     }
-    /* Transient-tab italic hint — VSCode convention */
+    /* Transient-tab italic hint 闁?VSCode convention */
     .gde-tabbar .ef-ui-tab-btn-transient .ef-ui-tab-title { font-style: italic; }
 
     /* Card grid */
@@ -192,7 +192,7 @@
       display: grid; gap: 10px; width: 100%;
       position: relative;
     }
-    /* Cards sit on top of the dock body — use --ef-bg-raised (a step lighter
+    /* Cards sit on top of the dock body 闁?use --ef-bg-raised (a step lighter
      * than bg-1) + a subtle shadow so the grid feels "lifted". */
     /* Card dimensions come from the table view's cardSize. card.js scales
        the cardStyle root to fill the actual card while preserving its
@@ -209,7 +209,13 @@
     }
     .gde-card.is-selected {
       border-color: var(--ef-accent, #4a90e2);
-      box-shadow: 0 0 0 1px var(--ef-accent, #4a90e2) inset, var(--ef-shadow-2);
+      background: color-mix(in srgb, var(--ef-accent, #4a90e2) 16%, var(--gde-item-bg, var(--ef-bg-raised)));
+      box-shadow: 0 0 0 2px var(--ef-accent, #4a90e2) inset, 0 0 0 1px color-mix(in srgb, var(--ef-accent) 40%, transparent), var(--ef-shadow-2);
+    }
+    .gde-card.is-selected:hover {
+      border-color: var(--ef-accent-soft, #7fb5ff);
+      background: color-mix(in srgb, var(--ef-accent, #4a90e2) 22%, var(--gde-item-bg, var(--ef-bg-raised)));
+      box-shadow: 0 0 0 2px var(--ef-accent-soft, #7fb5ff) inset, 0 0 0 1px var(--ef-accent, #4a90e2), var(--ef-shadow-2);
     }
     .gde-card.is-dragging { opacity: .4; }
     .gde-card .gde-card-inner { position: absolute; inset: 0; overflow: hidden; }
@@ -326,7 +332,11 @@
       color: var(--ef-fg-3, #8a8a90);
     }
     .gde-inspector-header .gde-name {
+      display: flex; align-items: center; gap: 6px;
       font-size: 14px; font-weight: 600; margin-top: 2px;
+    }
+    .gde-inspector-header .gde-name .ef-ui-copy-btn {
+      flex: 0 0 auto;
     }
     .gde-inspector-ro-badge {
       display: inline-block; margin-left: 6px; vertical-align: middle;
@@ -340,7 +350,7 @@
     .gde-inspector-ro-badge[hidden] { display: none; }
     .ef-ui-property-panel[inert] { opacity: 0.45; }
 
-    /* ── ref_id field (inspector.js ref_id renderer) ────────────── */
+    /* 闁冲厜鍋撻柍鍏夊亾 ref_id field (inspector.js ref_id renderer) 闁冲厜鍋撻柍鍏夊亾闁冲厜鍋撻柍鍏夊亾闁冲厜鍋撻柍鍏夊亾闁冲厜鍋撻柍鍏夊亾闁冲厜鍋撻柍鍏夊亾闁冲厜鍋撻柍鍏夊亾闁冲厜鍋撻柍鍏夊亾 */
     .gde-refid {
       display: flex; align-items: center; gap: 4px;
       padding: 2px 4px; min-width: 0;
@@ -357,7 +367,7 @@
     .gde-refid-face.is-empty { color: var(--ef-fg-3, #8a8a90); font-style: italic; }
     .gde-refid-show { flex: 1 1 auto; min-width: 0; }
 
-    /* ── ref_id picker popover ──────────────────────────────────── */
+    /* 闁冲厜鍋撻柍鍏夊亾 ref_id picker popover 闁冲厜鍋撻柍鍏夊亾闁冲厜鍋撻柍鍏夊亾闁冲厜鍋撻柍鍏夊亾闁冲厜鍋撻柍鍏夊亾闁冲厜鍋撻柍鍏夊亾闁冲厜鍋撻柍鍏夊亾闁冲厜鍋撻柍鍏夊亾闁冲厜鍋撻柍鍏夊亾闁冲厜鍋撻柍鍏夊亾闁冲厜鍋撻柍鍏夊亾闁冲厜鍋撻柍鍏夊亾闁冲厜鍋撻柍鍏夊亾闁冲厜鍋撻柍鍏夊亾闁冲厜鍋撻柍鍏夊亾闁冲厜鍋撻柍鍏夊亾闁冲厜鍋撻柍鍏夊亾闁冲厜鍋撻柍鍏夊亾闁冲厜鍋撻柍鍏夊亾 */
     .gde-refid-picker {
       display: flex; flex-direction: column;
       min-width: 280px; max-width: 420px;
@@ -398,12 +408,16 @@
       color: var(--ef-fg-3, #8a8a90);
     }
 
-    /* ── table_meta form (Inspector kind='table_meta') ──────────── */
+    /* 闁冲厜鍋撻柍鍏夊亾 table_meta form (Inspector kind='table_meta') 闁冲厜鍋撻柍鍏夊亾闁冲厜鍋撻柍鍏夊亾闁冲厜鍋撻柍鍏夊亾闁冲厜鍋撻柍鍏夊亾闁冲厜鍋撻柍鍏夊亾闁冲厜鍋撻柍鍏夊亾 */
     .gde-table-meta { padding: 8px 10px; display: flex; flex-direction: column; gap: 10px; }
     .gde-tm-section-label {
       font-size: 11px; font-weight: 600; letter-spacing: 0.5px;
       text-transform: uppercase; color: var(--ef-fg-3, #8a8a90);
     }
+    .gde-tm-ref-display { display: flex; flex-direction: column; gap: 6px; }
+    .gde-tm-ref-row { display: grid; grid-template-columns: 76px minmax(0, 1fr); align-items: center; gap: 8px; }
+    .gde-tm-ref-label { color: var(--ef-fg-2, #aaa); font-size: 12px; }
+    .gde-tm-ref-row .ef-ui-combobox { width: 100%; }
     .gde-tm-fields { display: flex; flex-direction: column; gap: 4px; }
     .gde-tm-field {
       border: 1px solid var(--ef-border, #3a3a40);
@@ -445,14 +459,14 @@
     }
 
     /* Orange field name when any of its sub-keys is overridden. Row border
-       keeps the default color; only the label turns — keeping the visual
+       keeps the default color; only the label turns 闁?keeping the visual
        weight low so a lot of overrides doesn't become a wall of orange. */
     .gde-tm-field.has-override .gde-tm-field-name {
       color: var(--ef-warn, #d4ba6b);
     }
 
     /* Per-sub-key override row: [label] [editor-component] [action-btn?]
-       The component is whatever ui.editorFor renders (input / select / …),
+       The component is whatever ui.editorFor renders (input / select / 闁?,
        matching the TypeConfig panel 1:1 so the two surfaces look identical. */
     .gde-tm-override-editor {
       display: flex; flex-direction: column; gap: 4px;
@@ -481,7 +495,7 @@
 
     /* Identity rows and inherited-state overridable rows are visually the
        same: muted, non-interactive editor showing the TypeConfig value.
-       Identity has no button at all; inherited has a lock (✎).
+       Identity has no button at all; inherited has a lock (闁?.
        pointer-events:none on the component disables interaction uniformly
        whether it's an <input>, <select>, or richer editor. */
     .gde-tm-override-row.is-identity  .gde-tm-override-component,
@@ -496,7 +510,7 @@
     }
 
     /* Tools row: primary actions (Check / Fix / Merge) flow as equal-width
-       cells — auto-fit keeps them tidy at any panel width (3-across when
+       cells 闁?auto-fit keeps them tidy at any panel width (3-across when
        wide, stacking gracefully when narrow). The destructive "Delete
        table" claims its own row, right-aligned, with extra top margin as
        soft visual separation from the non-destructive group above. */
@@ -514,7 +528,7 @@
       margin-top: 8px;
     }
 
-    /* ── Add-field picker (popover) ─────────────────────────────── */
+    /* 闁冲厜鍋撻柍鍏夊亾 Add-field picker (popover) 闁冲厜鍋撻柍鍏夊亾闁冲厜鍋撻柍鍏夊亾闁冲厜鍋撻柍鍏夊亾闁冲厜鍋撻柍鍏夊亾闁冲厜鍋撻柍鍏夊亾闁冲厜鍋撻柍鍏夊亾闁冲厜鍋撻柍鍏夊亾闁冲厜鍋撻柍鍏夊亾闁冲厜鍋撻柍鍏夊亾闁冲厜鍋撻柍鍏夊亾闁冲厜鍋撻柍鍏夊亾闁冲厜鍋撻柍鍏夊亾闁冲厜鍋撻柍鍏夊亾闁冲厜鍋撻柍鍏夊亾闁冲厜鍋撻柍鍏夊亾闁冲厜鍋?*/
     .gde-tm-picker {
       display: flex; flex-direction: column;
       min-width: 240px; max-width: 380px;
@@ -557,7 +571,7 @@
       color: var(--ef-fg-3, #8a8a90);
     }
 
-    /* ── Fix-preview modal body ─────────────────────────────────── */
+    /* 闁冲厜鍋撻柍鍏夊亾 Fix-preview modal body 闁冲厜鍋撻柍鍏夊亾闁冲厜鍋撻柍鍏夊亾闁冲厜鍋撻柍鍏夊亾闁冲厜鍋撻柍鍏夊亾闁冲厜鍋撻柍鍏夊亾闁冲厜鍋撻柍鍏夊亾闁冲厜鍋撻柍鍏夊亾闁冲厜鍋撻柍鍏夊亾闁冲厜鍋撻柍鍏夊亾闁冲厜鍋撻柍鍏夊亾闁冲厜鍋撻柍鍏夊亾闁冲厜鍋撻柍鍏夊亾闁冲厜鍋撻柍鍏夊亾闁冲厜鍋撻柍鍏夊亾闁冲厜鍋撻柍鍏夊亾闁冲厜鍋撻柍鍏夊亾闁冲厜鍋撻柍鍏夊亾闁冲厜鍋?*/
     .gde-tm-fix-preview { min-width: 420px; max-width: 560px; }
     .gde-tm-fix-summary { font-size: 12px; margin-bottom: 8px; color: var(--ef-fg-1, #d6d6d9); }
     .gde-tm-fix-list {
@@ -672,7 +686,7 @@
       font-size: 11px; padding: 4px 0;
     }
 
-    /* Sidebar list toolbar — shared by TableMap + TypeConfig panels. */
+    /* Sidebar list toolbar 闁?shared by TableMap + TypeConfig panels. */
     .gde-tablemap { padding: 6px; }
     .gde-tm-toolbar {
       display: flex; align-items: center; gap: 4px;
@@ -681,9 +695,22 @@
     }
     .gde-tm-toolbar > .ef-ui-field { flex: 1 1 auto; min-width: 0; }
     .gde-tm-toolbar > .ef-ui-icon-btn { flex: 0 0 auto; }
-    /* Merged Tables panel — entity count badge on table rows */
+    /* Merged Tables panel 闁?entity count badge on table rows */
     .gde-tables { padding: 6px; }
     .gde-tables .gde-tm-toolbar { margin-bottom: 4px; }
+    .gde-tables .ef-ui-tree-row-active,
+    .gde-tables .ef-ui-tree-row-active:hover {
+      background: color-mix(in srgb, var(--ef-accent, #4a90e2) 24%, transparent);
+      color: var(--ef-fg-0, #f0f0f0);
+      box-shadow: inset 2px 0 0 var(--ef-accent, #4a90e2), inset 0 0 0 1px color-mix(in srgb, var(--ef-accent, #4a90e2) 34%, transparent);
+    }
+    .gde-tables .ef-ui-tree-row-active:hover {
+      background: color-mix(in srgb, var(--ef-accent, #4a90e2) 30%, transparent);
+    }
+    .gde-tables .ef-ui-tree-row-active .ef-ui-tree-leading,
+    .gde-tables .ef-ui-tree-row-active .ef-ui-tree-icon {
+      color: var(--ef-accent-soft, #7fb5ff);
+    }
     .gde-tbl-count {
       display: inline-block; min-width: 18px;
       padding: 0 5px; height: 16px; line-height: 16px;
@@ -867,8 +894,8 @@
     /* TypeConfig panel */
     .gde-tc-item {
       position: relative;
-      display: flex; flex-direction: column;
-      padding: 6px 8px 6px 10px;
+      display: flex; align-items: center;
+      padding: 5px 8px 5px 10px;
       border-bottom: 1px solid rgba(255,255,255,0.03);
       cursor: pointer; color: var(--ef-fg-1, #d6d6d9); font-size: 12px;
     }
@@ -882,16 +909,18 @@
       left: 0; top: 4px; bottom: 4px; width: 2px;
       background: var(--ef-accent); border-radius: 0 2px 2px 0;
     }
-    .gde-tc-item .gde-tc-name { font-weight: 600; }
+    .gde-tc-item .gde-tc-name { display: flex; align-items: center; gap: 6px; min-width: 0; white-space: nowrap; overflow: hidden; }
+    .gde-tc-item .gde-tc-key { flex: 0 0 auto; font-weight: 600; }
     .gde-tc-item .gde-tc-desc {
-      font-size: 11px; color: var(--ef-fg-3, #8a8a90); margin-top: 2px;
+      min-width: 0; overflow: hidden; text-overflow: ellipsis;
+      font-size: 11px; font-weight: 400; color: var(--ef-fg-3, #8a8a90);
     }
     .gde-tc-item .gde-tc-badge {
-      display: inline-block; margin-left: 6px; padding: 1px 5px;
+      flex: 0 0 auto; display: inline-block; margin-left: 0; padding: 1px 5px;
       border-radius: 2px; font-size: 10px; font-weight: 600;
       background: rgba(74,144,226,0.2); color: var(--ef-accent, #4a90e2);
     }
-    /* Section headers — clickable to collapse */
+    /* Section headers 闁?clickable to collapse */
     .gde-tc-section-head {
       display: flex; align-items: center; gap: 4px;
       padding: 6px 10px;
@@ -995,7 +1024,7 @@
     *::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 5px; }
     *::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.16); }
 
-    /* ── CardStyle list panel ─────────────────────────────────────── */
+    /* 闁冲厜鍋撻柍鍏夊亾 CardStyle list panel 闁冲厜鍋撻柍鍏夊亾闁冲厜鍋撻柍鍏夊亾闁冲厜鍋撻柍鍏夊亾闁冲厜鍋撻柍鍏夊亾闁冲厜鍋撻柍鍏夊亾闁冲厜鍋撻柍鍏夊亾闁冲厜鍋撻柍鍏夊亾闁冲厜鍋撻柍鍏夊亾闁冲厜鍋撻柍鍏夊亾闁冲厜鍋撻柍鍏夊亾闁冲厜鍋撻柍鍏夊亾闁冲厜鍋撻柍鍏夊亾闁冲厜鍋撻柍鍏夊亾闁冲厜鍋撻柍鍏夊亾闁冲厜鍋撻柍鍏夊亾闁冲厜鍋撻柍鍏夊亾闁冲厜鍋撻柍鍏夊亾闁冲厜鍋撻柍鍏夊亾闁冲厜鍋撻柍鍏夊亾闁冲厜鍋?*/
     .gde-cs-list { display: flex; flex-direction: column; height: 100%; min-height: 0; }
     .gde-cs-list-bar {
       display: flex; padding: 6px 8px;
@@ -1036,7 +1065,7 @@
       white-space: nowrap; text-overflow: ellipsis; overflow: hidden;
     }
 
-    /* ── CardStyle node tree panel ───────────────────────────────── */
+    /* 闁冲厜鍋撻柍鍏夊亾 CardStyle node tree panel 闁冲厜鍋撻柍鍏夊亾闁冲厜鍋撻柍鍏夊亾闁冲厜鍋撻柍鍏夊亾闁冲厜鍋撻柍鍏夊亾闁冲厜鍋撻柍鍏夊亾闁冲厜鍋撻柍鍏夊亾闁冲厜鍋撻柍鍏夊亾闁冲厜鍋撻柍鍏夊亾闁冲厜鍋撻柍鍏夊亾闁冲厜鍋撻柍鍏夊亾闁冲厜鍋撻柍鍏夊亾闁冲厜鍋撻柍鍏夊亾闁冲厜鍋撻柍鍏夊亾闁冲厜鍋撻柍鍏夊亾闁冲厜鍋撻柍鍏夊亾闁冲厜鍋撻柍鍏夊亾闁冲厜鍋?*/
     .gde-cs-tree { display: flex; flex-direction: column; height: 100%; min-height: 0; }
     .gde-cs-tree-header {
       padding: 6px 10px;
@@ -1056,7 +1085,7 @@
       text-align: center; line-height: 1.5;
     }
 
-    /* ── CardStyle palette panel ─────────────────────────────────── */
+    /* 闁冲厜鍋撻柍鍏夊亾 CardStyle palette panel 闁冲厜鍋撻柍鍏夊亾闁冲厜鍋撻柍鍏夊亾闁冲厜鍋撻柍鍏夊亾闁冲厜鍋撻柍鍏夊亾闁冲厜鍋撻柍鍏夊亾闁冲厜鍋撻柍鍏夊亾闁冲厜鍋撻柍鍏夊亾闁冲厜鍋撻柍鍏夊亾闁冲厜鍋撻柍鍏夊亾闁冲厜鍋撻柍鍏夊亾闁冲厜鍋撻柍鍏夊亾闁冲厜鍋撻柍鍏夊亾闁冲厜鍋撻柍鍏夊亾闁冲厜鍋撻柍鍏夊亾闁冲厜鍋撻柍鍏夊亾闁冲厜鍋撻柍鍏夊亾闁冲厜鍋撻柍鍏夊亾闁冲厜鍋?*/
     .gde-palette { padding: 6px; overflow: auto; height: 100%; }
     .gde-palette-section { margin-bottom: 8px; }
     .gde-palette-cat {
@@ -1080,7 +1109,7 @@
     .gde-palette-chip:hover { background: var(--ef-hover); border-color: var(--ef-border-strong); }
     .gde-palette-chip:active { cursor: grabbing; }
 
-    /* ── CardStyle editor panel ──────────────────────────────────── */
+    /* 闁冲厜鍋撻柍鍏夊亾 CardStyle editor panel 闁冲厜鍋撻柍鍏夊亾闁冲厜鍋撻柍鍏夊亾闁冲厜鍋撻柍鍏夊亾闁冲厜鍋撻柍鍏夊亾闁冲厜鍋撻柍鍏夊亾闁冲厜鍋撻柍鍏夊亾闁冲厜鍋撻柍鍏夊亾闁冲厜鍋撻柍鍏夊亾闁冲厜鍋撻柍鍏夊亾闁冲厜鍋撻柍鍏夊亾闁冲厜鍋撻柍鍏夊亾闁冲厜鍋撻柍鍏夊亾闁冲厜鍋撻柍鍏夊亾闁冲厜鍋撻柍鍏夊亾闁冲厜鍋撻柍鍏夊亾闁冲厜鍋撻柍鍏夊亾闁冲厜鍋撻柍鍏夊亾闁冲厜鍋撻柍鍏夊亾 */
     .gde-cs-editor { display: flex; flex-direction: column; height: 100%; min-height: 0; }
     .gde-cs-editor-bar {
       display: flex; align-items: center; gap: 12px;
@@ -1136,14 +1165,14 @@
        expose their handles. The card preview in the table grid keeps
        the runtime overflow:hidden via the .gde-card outer. */
     .gde-cs-canvas .ef-ui-absolute { overflow: visible; }
-    /* Resize-handle overlay — hollow circles centered exactly on the
+    /* Resize-handle overlay 闁?hollow circles centered exactly on the
        slot's edges/corners. Each handle anchors to its named edge/corner
-       (top/bottom/left/right = 0) and uses translate(±50%) to put its
-       own center on that anchor — pixel-perfect without depending on
+       (top/bottom/left/right = 0) and uses translate(閸?0%) to put its
+       own center on that anchor 闁?pixel-perfect without depending on
        the handle's own size, which is the trick mature editors use. */
     .ef-ui-abs-slot:has(.gde-cs-handles) { cursor: move; }
     /* Wrapper extends 3px outside slot edges so handle centers land on the
-       selection ring's center line (ring = 2px outline + 2px offset → its
+       selection ring's center line (ring = 2px outline + 2px offset 闁?its
        midline sits 3px outward from the slot edge). */
     .gde-cs-handles {
       position: absolute; inset: -3px; pointer-events: none;
@@ -1175,7 +1204,7 @@
       box-sizing: border-box;
     }
 
-    /* ── CardStyle inspector form ─────────────────────────────── */
+    /* 闁冲厜鍋撻柍鍏夊亾 CardStyle inspector form 闁冲厜鍋撻柍鍏夊亾闁冲厜鍋撻柍鍏夊亾闁冲厜鍋撻柍鍏夊亾闁冲厜鍋撻柍鍏夊亾闁冲厜鍋撻柍鍏夊亾闁冲厜鍋撻柍鍏夊亾闁冲厜鍋撻柍鍏夊亾闁冲厜鍋撻柍鍏夊亾闁冲厜鍋撻柍鍏夊亾闁冲厜鍋撻柍鍏夊亾闁冲厜鍋撻柍鍏夊亾闁冲厜鍋撻柍鍏夊亾闁冲厜鍋撻柍鍏夊亾闁冲厜鍋撻柍鍏夊亾闁冲厜鍋撻柍鍏夊亾闁冲厜鍋?*/
     .gde-cs-bindings-head {
       margin-top: 12px;
       padding: 4px 8px;
@@ -1194,54 +1223,64 @@
     }
     .gde-cs-binding-row .ef-ui-field { flex: 1 1 auto; }
   </style>
-  <link rel="stylesheet" href="src/app.css?v=47" />
+  <link rel="stylesheet" href="src/app.css?v=49" />
 </head>
 <body>
   <div class="gde-topbar" id="gde-topbar"></div>
   <div class="gde-body"><div id="app"></div></div>
 
-  <script src="vendor/ef.js?v=47"></script>
-  <script src="vendor/fflate.min.js?v=47"></script>
+  <script src="vendor/ef.js?v=58"></script>
+  <script src="vendor/fflate.min.js?v=49"></script>
 
   <!-- i18n (must load before everything else) -->
-  <script src="src/i18n.js?v=47"></script>
+  <script src="src/i18n.js?v=49"></script>
 
   <!-- Core data model & utilities -->
-  <script src="src/state.js?v=47"></script>
-  <script src="src/scene-node.js?v=47"></script>
-  <script src="src/scene-dom.js?v=47"></script>
-  <script src="src/scene-selection.js?v=47"></script>
-  <script src="src/scene-align.js?v=47"></script>
-  <script src="src/normalize.js?v=47"></script>
-  <script src="src/renderers.js?v=47"></script>
-  <script src="src/card.js?v=47"></script>
+  <script src="src/state.js?v=52"></script>
+  <script src="src/scene-node.js?v=49"></script>
+  <script src="src/scene-dom.js?v=49"></script>
+  <script src="src/scene-selection.js?v=49"></script>
+  <script src="src/cardstyle-actions.js?v=59"></script>
+  <script src="src/scene-align.js?v=49"></script>
+  <script src="src/normalize.js?v=49"></script>
+  <script src="src/renderers.js?v=49"></script>
+  <script src="src/app-utils.js?v=52"></script>
+  <script src="src/clipboard.js?v=52"></script>
+  <script src="src/plugins.js?v=49"></script>
+  <script src="src/card.js?v=52"></script>
 
   <!-- Project IO: folder workspace + zip fallback. -->
-  <script src="src/project-io/codec.js?v=47"></script>
-  <script src="src/project-io/assets.js?v=47"></script>
-  <script src="src/project-io/fs-workspace.js?v=47"></script>
-  <script src="src/project-io/zip-workspace.js?v=47"></script>
-  <script src="src/project-io/recent.js?v=47"></script>
+  <script src="src/project-io/codec.js?v=55"></script>
+  <script src="src/project-io/assets.js?v=49"></script>
+  <script src="src/project-io/fs-workspace.js?v=49"></script>
+  <script src="src/project-io/zip-workspace.js?v=49"></script>
+  <script src="src/project-io/recent.js?v=49"></script>
 
   <!-- Panels (one file per panel). Tab bars / panel rails / log header
        are delegated to the framework's built-in tab components (tab-standard
-       / tab-sidebar / tab-collapsible) — no per-project tab component. -->
-  <script src="src/panels/tables.js?v=47"></script>
-  <script src="src/panels/search.js?v=47"></script>
-  <script src="src/panels/assets.js?v=47"></script>
-  <script src="src/panels/inspector.js?v=47"></script>
-  <script src="src/panels/typeconfig.js?v=47"></script>
+       / tab-sidebar / tab-collapsible) 闁?no per-project tab component. -->
+  <script src="src/panels/tables.js?v=53"></script>
+  <script src="src/panels/search.js?v=49"></script>
+  <script src="src/panels/assets.js?v=49"></script>
+  <script src="src/panels/inspector.js?v=55"></script>
+  <script src="src/panels/typeconfig.js?v=55"></script>
   <!-- log panel deleted: using the framework's built-in 'log' component -->
-  <script src="src/panels/tabledata.js?v=47"></script>
-  <script src="src/panels/cardstyle-list.js?v=47"></script>
-  <script src="src/panels/cardstyle-tree.js?v=47"></script>
-  <script src="src/panels/cardstyle-palette.js?v=47"></script>
-  <script src="src/panels/cardstyle-snapping.js?v=47"></script>
-  <script src="src/panels/cardstyle-editor.js?v=47"></script>
-  <script src="src/panels/toolbar.js?v=47"></script>
+  <script src="src/panels/tabledata.js?v=56"></script>
+  <script src="src/panels/cardstyle-list.js?v=49"></script>
+  <script src="src/panels/cardstyle-tree.js?v=59"></script>
+  <script src="src/panels/cardstyle-snapping.js?v=49"></script>
+  <script src="src/panels/cardstyle-editor.js?v=61"></script>
+  <script src="src/panels/toolbar.js?v=49"></script>
 
   <!-- Seed demo data & mount -->
-  <script src="src/seed.js?v=47"></script>
-  <script src="src/main.js?v=47"></script>
+  <script src="src/seed.js?v=61"></script>
+  <script src="src/main.js?v=56"></script>
 </body>
 </html>
+
+
+
+
+
+
+

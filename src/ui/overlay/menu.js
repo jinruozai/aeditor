@@ -104,8 +104,8 @@
         row.addEventListener('mouseenter', closeSubs)
         row.addEventListener('click', function () {
           if (it.disabled) return
-          if (it.onSelect) it.onSelect()
           onSelect && onSelect()
+          if (it.onSelect) it.onSelect()
         })
       }
       list.appendChild(row)

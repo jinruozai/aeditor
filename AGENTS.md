@@ -130,7 +130,7 @@ editor-frame/
   src/
     core/                          # ⚠ 原 src/core/ 已并入这里(重构后的现状)
       signal.js                    # signal / effect / derived / batch / onCleanup
-      errors.js                    # EF.errors signal + reportError + safeCall + 全局 window 兜底
+      log.js                       # EF.log signal + reportError + safeCall + 全局 window 兜底
       bus.js                       # EF.bus pub/sub + auto-unsubscribe
       registry.js                  # registerComponent / resolveComponent / componentDefaults
       context.js                   # ComponentContext 工厂(panel + dock + bus + signals)
@@ -144,7 +144,7 @@ editor-frame/
       migrate.js                   # 跨窗口 BroadcastChannel 协议 + serialize/deserialize
       layout.js                    # createDockLayout 入口胶水 + LayoutHandle(含 promotePanel)
     style/
-      theme.css                    # 三层 token(原子色 → 角色 → 组件)+ dark(Godot)/dracula/light 三主题
+      theme.css                    # 主题 v2 token(authoring → primitive/ramp → role → component)+ dark/dracula/light
       dock.css / component.css        # 框架自己的 dock + tab + toolbar 样式
       ui-base.css / ui-form.css / ui-editor.css / ui-container.css / ui-data.css / ui-overlay.css
     ui/                            # ⭐ UI 组件库(EF.ui.* 命名空间),按类别分目录
@@ -157,7 +157,7 @@ editor-frame/
       data/                        # list / tree / table / breadcrumbs / progressBar(全部虚拟化)
       overlay/                     # menu / modal / drawer / alert / toast
       panel/                       # 能被 registerComponent 注册的 "panel 级" 内置 component
-                                   # dock-tabs(tab-standard/compact/collapsible 三套预设) / log(error-log)
+                                   # dock-tabs(tab-standard/compact/collapsible/sidebar 预设) / log
 
   demo/                            # ⚠ 上一个 Codex 做了一次重构:单文件 ui-showcase.js 拆成 4 份
     catalog.js                     # 全部组件的 catalog(signals / mount / editFor)数据
@@ -187,7 +187,7 @@ editor-frame/
 **框架核心(§ 4 全部条款已落地)**:
 - 不可变 N 叉分割树 + 所有纯函数写接口(addPanel/removePanel/movePanel/splitDock/mergeDocks/...,生成 id 的返回 `{tree, id}` 元组)
 - 响应式核心 signal/effect/derived/batch/onCleanup,带依赖追踪
-- 错误系统 EF.errors / reportError / safeCall + window error/unhandledrejection 全局兜底(§ 4.7)
+- 日志/错误系统 EF.log / reportError / safeCall + window error/unhandledrejection 全局兜底(§ 4.7)
 - 通讯总线 EF.bus(pub/sub + auto-unsubscribe + 每个 handler 独立 safeCall 包裹)(§ 4.13)
 - Component 注册表 + ComponentContext 工厂(§ 4.8 / § 4.9)
 - Dock 多 panel + detached DOM activate(§ 4.3)+ LRU dispose(§ 4.3)
@@ -196,7 +196,7 @@ editor-frame/
 - Blender 角拖 split + sibling merge + dirty 检查 + 3×3 hover(§ 4.1 / § 4.2)
 - Panel 跨 dock 拖放(detach contentEl → re-attach,零重建)(§ 4.14)
 - Pop out 独立窗口 + BroadcastChannel handshake + serialize/deserialize(§ 4.14)
-- 内置 component:`tab-standard` / `tab-compact` / `tab-collapsible` / `error-log`
+- 内置 component:`tab-standard` / `tab-compact` / `tab-collapsible` / `tab-sidebar` / `log`
 
 **UI 组件库(EF.ui.* 50 个组件)**:
 - 全部基于 caller-owned `value: signal<T>` 的"信号优先"设计 —— 组件不持有自己的 state
@@ -206,14 +206,15 @@ editor-frame/
 - 全部 50 个组件 + 内部辅助 + 9 个 CSS 文件 = 已经 100% 编出 dist 并在 demo 里可以点
 
 **主题系统**:
-- `src/style/theme.css` 三层 token:Layer 1 原子(`--ef-c-00..11` + 4 个语义色)→ Layer 2 角色(`--ef-bg-N` / `--ef-fg-N` / `--ef-border*` / `--ef-accent*`) → Layer 3 组件(`--ef-toolbar-h` 之类极少数特例)
-- 派生半透明色统一用 `color-mix(in srgb, var(--ef-c-XX) NN%, transparent)`
-- **三套内置主题**,通过 `:root[data-ef-theme=...]` 切换(缺省属性 = dark):
+- `src/style/theme.css` 采用 v2 分层:Authoring tokens(给主题作者改:`--ef-surface-*` / `--ef-text-*` / `--ef-stroke-*` / `--ef-brand*` / `--ef-state-*`) → primitive/ramp 兼容层(`--ef-c-00..11`) → role tokens(组件消费:`--ef-bg-N` / `--ef-fg-N` / `--ef-border*` / `--ef-accent*`) → 少量 component tokens(`--ef-toolbar-h` 等)
+- 新代码不要直接在组件 CSS 里消费 `--ef-c-*`;组件只读 role tokens。`--ef-c-*` 保留给兼容和高级主题,不是用户自定义主题的主入口
+- 派生半透明色优先从语义/role token 派生,例如 `--ef-scrim`、`--ef-accent-bg`;不要在 overlay / hover 里直接拿某个数字灰阶推断语义
+- **三套内置主题**,通过 `EF.theme.set(mode[, root])` 或 `data-ef-theme` 切换。`:root` 不写属性 = dark;`.ef-root[data-ef-theme=...]` 支持单实例 scoped theme:
   - **dark(默认)** —— Godot Minimal 风:`#272727` 中性炭灰 ramp,`#569eff` 冷蓝 accent,"inset 输入框"角色映射(`--ef-bg-2` 比 `--ef-bg-1` 深)
   - **dracula** —— 冷调深灰 + `#7b6ef6` 紫 accent,"raised 输入框"映射(`--ef-bg-2` 比 `--ef-bg-1` 亮) + 更强阴影
   - **light** —— 白面板 + 浅灰 inset 字段 + `#5b4ee0` 深紫 accent;显式锁定 bg/border 角色映射,不继承 :root 的"inset in dark"约定
 - 每个非默认主题块都**显式声明**自己的 bg/border 角色映射 + shadow 级别 —— 因为 :root 的 Godot"inset input"约定不是中性默认,被光亮 primitives 继承会反过来变成"raised in light"。三套各自独立锁定,零耦合
-- 用户 demo 的 theme-config component 通过 `documentElement.style.setProperty` 写 token,localStorage 持久化
+- 用户 demo 的 theme-config component 编辑 v2 authoring tokens,通过 `EF.theme` / `documentElement.style.setProperty` 写入并用 localStorage 持久化
 
 **UX 微交互(2026-04-15 那一轮专门打磨)**:
 - 按钮:hover 上抬 1px + 阴影,按下 `scale(0.985)` 内阴影,`::before` 伪元素 click flash,3px accent glow 替代实心 outline
@@ -330,22 +331,23 @@ Tab component **就是一个普通 toolbar 组件**,没有任何特殊 API。它
 **Tab component 永远是 static toolbar item**(写在 `dock.toolbar.items[]` 里,不随 panel 切换),因为它订阅的是整个 dock,不属于任何单一 panel。这意味着 tab component 的 ctx **没有 `ctx.panel`**,只有 `ctx.dock`,写代码时按这个约定即可。
 Tab 上的 pointerdown 是 panel drag 会话的起点:tab component 在按钮上挂 pointerdown 监听,识别为 drag 后把控制权交给 `dock/interactions.js`,由它统一处理同 dock reorder / 跨 dock drop / pop out。tab component 自己**不做任何 drag 逻辑**,只负责"起个头"。
 
-### 4.7 错误处理系统
-统一的错误处理 + panel 错误隔离:
-- `EF.errors`:`signal([])`,每条 `{ id, time, source: { scope, dockId?, panelId?, component? }, error, message, stack }`
-- `EF.reportError(source, err)` / `EF.clearErrors()` / `EF.dismissError(id)`
-- `EF.safeCall(source, fn)`:try/catch 包裹,失败 push 到 errors 并返回 `null`
+### 4.7 日志 / 错误处理系统
+统一的日志流 + panel 错误隔离:
+- `EF.log`:`signal([])`,每条 `{ id, time, level, source: { scope, dockId?, panelId?, component?, topic? }, message, error?, stack? }`
+- `EF.log.push(level, source, message, error?)` / `EF.log.clear()` / `EF.log.dismiss(id)`
+- `EF.reportError(source, err)` / `EF.safeCall(source, fn)`
+- `EF.safeCall(source, fn)`:try/catch 包裹,失败 push 到 `EF.log` 的 `level:'error'` 条目并返回 `null`
 - 所有 component `factory` / `dispose` 的调用都走 `safeCall` 包裹(同步边界)
 - 单个 panel 出错只显示红色错误框,**不影响其他 panel**
-- 内置 component `error-log`:订阅 `EF.errors` 渲染错误列表,用户可以把它放进任何 dock 当 "Problems" 面板用
+- 内置 component `log`:订阅 `EF.log` 渲染日志/错误列表,用户可以把它放进任何 dock 当 "Problems" 面板用
 
 **异步错误兜底**:`safeCall` 只抓同步调用栈,component 内部 `setTimeout` / `Promise` / `addEventListener` 抛的错抓不到。框架入口(`createDockLayout` 首次调用时)注册一次性的全局监听:
 - `window.addEventListener('error', e => EF.reportError({ scope: 'global' }, e.error))`
 - `window.addEventListener('unhandledrejection', e => EF.reportError({ scope: 'global' }, e.reason))`
-- source 的 `scope: 'global'` 区分于 `scope: 'component'`,`error-log` component 可以按 scope 分组或过滤
+- source 的 `scope: 'global'` 区分于 `scope: 'component'`,`log` component 可以按 scope 分组或过滤
 - component 作用域的异步错误,component 作者可选地用 `ctx.safeCall(fn)` 手动包裹获得 panel-scoped 归因
 
-**`signal.js` 的 effect cleanup 错误走 `console.error`,不路由 `EF.errors`**。这是架构分层必然的裁决:`errors.js` 用 `signal([])` 定义 `EF.errors`,因此依赖 `signal.js`;反过来若 `signal.js` 调 `EF.reportError`,就成了循环依赖。边界划清 —— **signal.js 是零依赖底层,它的错误路径只走 `console.error`**。语义上也是对的:effect cleanup 失败是框架底层契约破裂(component 的 `onCleanup` 回调崩了),属于"fail-loud 到控制台"的范畴,不是归到某个 panel 的软错误列表里可以慢慢看的事。
+**`signal.js` 的 effect cleanup 错误走 `console.error`,不路由 `EF.log`**。这是架构分层必然的裁决:`log.js` 用 `signal([])` 定义 `EF.log`,因此依赖 `signal.js`;反过来若 `signal.js` 调 `EF.reportError`,就成了循环依赖。边界划清 —— **signal.js 是零依赖底层,它的错误路径只走 `console.error`**。语义上也是对的:effect cleanup 失败是框架底层契约破裂(component 的 `onCleanup` 回调崩了),属于"fail-loud 到控制台"的范畴,不是归到某个 panel 的软日志列表里可以慢慢看的事。
 
 ### 4.8 Component 注册表(一种形态,无妥协)
 **所有 component 必须先注册,panel 和 toolbar item 引用 component 只能用已注册名(string)。** 没有匿名 spec、没有 function 简写、没有未注册 component。这是一条硬规矩 —— 代价换来的是:tree 严格 JSON 可序列化、跨窗口迁移无需特殊分支、`accept` 白名单规则统一、文档只讲一种写法。
@@ -371,7 +373,7 @@ EF.registerComponent(name, {
 - `EF.registerComponent(name, spec)` —— 注册,重名 throw,名字必须是合法 string
 - `EF.resolveComponent(name)` —— 查表返回 spec,未注册 throw
 - `EF.componentDefaults(name)` —— `resolveComponent(name).defaults?.() ?? {}`,调用点不用判空
-- 所有内置 component(`tab-standard` / `tab-compact` / `tab-collapsible` / `error-log`)本身也通过 `registerComponent` 注册,作为示范,不走后门
+- 所有内置 component(`tab-standard` / `tab-compact` / `tab-collapsible` / `tab-sidebar` / `log`)本身也通过 `registerComponent` 注册,作为示范,不走后门
 
 ### 4.9 数据模型(完整,唯一来源)
 本节是整个框架**所有数据结构的唯一定义处**。别的章节只讲行为,结构回这里查。
@@ -721,16 +723,11 @@ EF.bus.emit(topic, payload)
 
 - `topic` 是任意字符串,命名由用户自定(例如 `'file:opened'` / `'selection:changed'` / `'build:done'`),框架不限制也不校验
 - `handler` 同步执行,`emit` 返回后所有订阅者都跑完了
-- **每个 handler 都被 `safeCall` 单独包裹**:某个 handler 抛错只会路由到 `EF.errors`(source 带订阅者所在 panel 的 dockId/panelId),**不会中断同一 emit 的其他订阅者**。这是 § 4.7 错误隔离规则的延伸 —— 一条总线上互不信任的 component 需要有这个保证
+- **每个 handler 都被 `safeCall` 单独包裹**:某个 handler 抛错只会路由到 `EF.log` 的 error 条目;通过 `ctx.bus.on` 订阅时 source 带订阅者所在 panel 的 dockId/panelId/component/topic,**不会中断同一 emit 的其他订阅者**。这是 § 4.7 错误隔离规则的延伸 —— 一条总线上互不信任的 component 需要有这个保证
 - **auto-unsubscribe**:component 通过 `ctx.bus.on(topic, h)` 订阅时,框架自动把退订函数塞进 panel runtime 的 `cleanups` 列表,panel dispose 时一起清,**不存在订阅泄漏**。component 直接用 `EF.bus.on` 就没有自动清理,需要自己管
-- 框架内置几个系统 topic(component 可订阅,也可不订阅):
-  - `ef:panel:activated` → `{ dockId, panelId }`
-  - `ef:panel:removed` → `{ dockId, panelId }`
-  - `ef:panel:moved` → `{ panelId, fromDockId, toDockId }`(跨 dock / 跨窗口都发,跨窗口时 fromDockId 是对端 id,by 约定 prefix 区分)
-  - `ef:dock:focus-changed` → `{ dockId, focused }`
-  - `ef:errors:new` → 新增 `EF.errors` 条目时(`error-log` component 其实就订阅这个)
+- 当前实现不内置系统 topic;应用需要系统事件时自行定义 topic。历史计划里的 `ef:*` topic 不再视为已实现 API
 - **只做单向 emit**,不做 request/response。要"问/答"语义,自己定义两个 topic(`'foo:request'` / `'foo:response'`)+ 自带 correlation id
-- bus 不做持久化,不做离线回放,订阅之前 emit 的事件收不到(这对系统 topic 来说是正确的,因为它们反映的是瞬时状态)
+- bus 不做持久化,不做离线回放,订阅之前 emit 的事件收不到
 
 **Bus vs Signal —— 用哪个?** 框架同时提供两套通讯原语,区分清楚不是教条而是性能和正确性问题:
 
@@ -800,7 +797,7 @@ editorframe/
   src/
     core/
       signal.js        # 响应式核心:signal / effect / derived / batch / onCleanup
-      errors.js        # 全局错误信号 + reportError + safeCall + window 兜底
+      log.js           # 全局日志流 + reportError + safeCall + window 兜底
       bus.js           # EF.bus:pub/sub + auto-unsubscribe(§ 4.13)
 
     tree/
@@ -811,7 +808,7 @@ editorframe/
       context.js       # ComponentContext 工厂(panel + dock + bus + errors 接口)
     ui/panel/
       dock-tabs.js     # 单 tab 组件 + 三套预设(standard/compact/collapsible)
-      log.js           # 内置 error-log component
+      log.js           # 内置 log component
 
     dock/
       runtime.js       # PanelRuntime + activate/transient/focus/collapsed + LRU dispose
@@ -824,13 +821,13 @@ editorframe/
 
     style/
       dock.css         # dock / split / splitter / corner / overlay / focused / collapsed
-      component.css       # toolbar / tab / error-log / panel-error
+      component.css       # toolbar / tab / log / panel-error
 ```
 
 **`<script>` 加载顺序**(依赖自顶向下,无环):
 ```html
 <script src="./src/core/signal.js"></script>
-<script src="./src/core/errors.js"></script>
+<script src="./src/core/log.js"></script>
 <script src="./src/core/bus.js"></script>
 <script src="./src/tree/tree.js"></script>
 <script src="./src/core/registry.js"></script>
@@ -849,13 +846,13 @@ editorframe/
 | 文件 | 上限 |
 |---|---|
 | core/signal.js | 100 |
-| core/errors.js | 100 |
+| core/log.js | 100 |
 | core/bus.js | 80 |
 | tree/tree.js | 450 |
 | core/registry.js | 60 |
 | core/context.js | 200 |
 | components/tab.js | 300 |
-| components/error-log.js | 80 |
+| ui/panel/log.js | 80 |
 | dock/runtime.js | 280 |
 | dock/render.js | 320 |
 | dock/interactions.js | 350 |
@@ -866,24 +863,23 @@ editorframe/
 
 **编码规范(从第一行就遵守,不留债):**
 
-- **CSS 变量前缀 `--ef-*`**:所有颜色、边距、圆角、阴影、字号、时长都走 `var(--ef-*, fallback)` 形式,第一行就开始,不要硬编码散落。这不是主题系统(框架不提供运行时 `setTheme()`),只是命名规范。默认值对齐 `doc/editor_style.html` 的调色板。分类约定:
-  - `--ef-color-bg-*` / `--ef-color-fg-*` / `--ef-color-border` / `--ef-color-accent` / `--ef-color-hover` / `--ef-color-active`
-  - `--ef-space-1..5`(4 / 8 / 12 / 16 / 24)
-  - `--ef-radius-sm / --ef-radius-md`
-  - `--ef-shadow-sm / --ef-shadow-md / --ef-shadow-lg`
+- **CSS 变量前缀 `--ef-*`**:所有颜色、边距、圆角、阴影、字号、时长都走 token,不要硬编码散落。主题作者入口是 `--ef-surface-*` / `--ef-text-*` / `--ef-stroke-*` / `--ef-brand*` / `--ef-state-*`;组件 CSS 消费 `--ef-bg-*` / `--ef-fg-*` / `--ef-border*` / `--ef-accent*` 等 role token。`EF.theme.set/apply/reset/exportCss` 是运行时主题 API。
+  - `--ef-space-1..6`(4 / 8 / 12 / 16 / 24 / 32)
+  - `--ef-r-1..4 / --ef-r-pill`
+  - `--ef-shadow-1..4 / --ef-shadow-raised`
   - `--ef-font-ui / --ef-font-mono`
   - `--ef-dur-fast`(80ms,hover/active)/ `--ef-dur-med`(200ms,面板过渡)
 - **DOM 卫生**:
   - 每个 `.ef-dock` 元素加 `contain: layout style paint`,把布局/绘制隔离在 dock 内,外部变化不 invalidate dock 内部,dock 内部变化不冒泡出去
-  - 所有可交互组件统一四态,由 CSS 变量供色:`hover` → `--ef-color-hover`,`active` → `--ef-color-active`,`focus` → `outline: 2px solid var(--ef-color-accent)`,`disabled` → `opacity: 0.38; pointer-events: none`
+  - 所有可交互组件统一四态,由 CSS 变量供色:`hover` → `--ef-hover` / `--ef-border-hover`,`active` → `--ef-active`,`focus` → `--ef-focus-ring`,`disabled` → `opacity: 0.38; pointer-events: none`
   - 尊重 `@media (prefers-reduced-motion: reduce)` —— 里面把所有 transition 归零
   - 禁止 `filter: drop-shadow` / `text-shadow` / `box-shadow spread > 0`,阴影只用分层预设
 - **拖放视觉反馈**(§ 4.14 的视觉层规约):
   - 被拖的 tab:`opacity: 0.5`
   - 跟手 ghost:`position: fixed` + `will-change: transform` + `--ef-shadow-lg`
-  - 合法 drop zone:`--ef-color-accent` 半透明蒙层;非法(被 `accept` 白名单拒):红色 1px 描边 + 禁入光标
-  - 分割线 hover:`--ef-color-accent` 高亮;拖动时全局 cursor 锁定
-- **不写自动化测试**:没有 vitest、没有 jest、没有 puppeteer。验证完全靠 `index.html` demo + console 断言。数据层变更通过在 demo 里临时跑几行 `console.assert` 验证;UI 变更靠肉眼 + DevTools。零构建、零依赖的承诺排除了测试框架,手动验证足够快
+  - 合法 drop zone:`--ef-accent` 半透明蒙层;非法(被 `accept` 白名单拒):`--ef-error` 1px 描边 + 禁入光标
+  - 分割线 hover:`--ef-accent` 高亮;拖动时全局 cursor 锁定
+- **零依赖自动化测试**:不引入 vitest/jest/puppeteer 等测试框架,但必须保留 Node 内置测试/检查入口。当前基础门禁是 `npm run check`(语法 + signal/tree/theme 纯函数)和 `npm run check:dist`(bundle 顺序 + dist 漂移)。UI 交互仍通过 `index.html` demo + 手动 smoke 验证
 - **Component 引用永远是 string**:`PanelData.component` / `ToolbarItemSpec.component` 必须是已注册的名字。所有读取点统一走 `EF.resolveComponent(name)`,未注册立即 throw,不写 `typeof` 分支,不写 fallback。这是 § 4.8 的延伸编码规范
 
 ---
@@ -896,7 +892,7 @@ editorframe/
 
 1. **Phase 1 — 核心层(零 tree / 零 UI 改动)** ✅
    - `core/signal.js`:加 `derived`(在当前 IIFE 上扩充),其它不动
-   - `core/errors.js`:全局错误系统 —— `reportError` / `safeCall` / `EF.errors` signal(**此时不挂 window 监听**,留到 layout 入口)
+   - `core/log.js`:全局日志/错误系统 —— `EF.log` / `reportError` / `safeCall`(**此时不挂 window 监听**,留到 layout 入口)
    - `core/bus.js`:`EF.bus` 的 on/off/emit + auto-unsubscribe 辅助(见 § 4.13)
    - `core/registry.js`:`registerComponent` / `resolveComponent` / `componentDefaults`(§ 4.8,只接 spec)
    - **此阶段不碰 `tree.js` 和 `dock.js` / `dock.css`** —— 保持现有 demo 行为完全不变
@@ -924,9 +920,9 @@ editorframe/
    - 阶段验证:三种 tab 样式都能用,collapsible 折叠正常;把同一个 tab component 当成 static item 和 dynamic item 分别验证,行为一致
 
 5. **Phase 4 — 错误隔离 + bus 通讯** ✅
-   - `components/error-log.js`:订阅 `EF.errors` 的列表 component,同时订阅 `ef:errors:new` bus topic 以便测试 bus 路径(两条数据源等价)
+   - `ui/panel/log.js`:订阅 `EF.log` 的列表 component,用于查看 component/global/bus 错误
    - Demo 里注册一个 buggy component 抛同步错 → 只影响这个 panel
-   - Demo 里注册一个 async-buggy component 用 `setTimeout(() => { throw })` 抛异步错 → global scope 兜底路由到 error-log
+   - Demo 里注册一个 async-buggy component 用 `setTimeout(() => { throw })` 抛异步错 → global scope 兜底路由到 log
    - Demo 里写两个假 component 互相通过 `ctx.bus.emit('demo:ping', ...)` 通讯,验证 auto-unsubscribe:关一个 panel 后另一个 emit 不再被收
 
 6. **Phase 5 — Panel 拖放(同窗口跨 dock)** ✅
@@ -942,7 +938,7 @@ editorframe/
    - 阶段验证:pop out 后主窗口 panel 消失,独立窗口出现;关闭独立窗口 panel 跟着消失不回流
 
 8. **Phase 7 — Demo 收尾** ✅(实际收尾形态:`demo/components/ui-showcase.js` + `theme-config.js`,而非 fake monaco/preview/terminal —— 用户改了方向,直接做"展示完整 UI 库 + 现场调主题"的双 panel demo)
-   - `index.html`:注册 monaco-fake / preview-fake / terminal-fake / buggy / error-log 等假 component
+   - `index.html`:注册 monaco-fake / preview-fake / terminal-fake / buggy / log 等假 component
    - 多 dock 配多 panel,演示 Focus / Collapsed / Promote Transient / pop out
    - 验证 Split 克隆语义(角拖出新 dock 是默认参数的同 component)
    - 验证空 dock 也能被角拖分裂出空 dock
@@ -971,7 +967,7 @@ editorframe/
 
 **更早的会话(家里)**:
 1. Demo 目录重构:单文件拆成 `demo/catalog.js` + `demo/state.js` + 5 张 panel component
-2. `src/core/` 并入 `src/core/`;tab/error-log 搬到 `src/ui/panel/`
+2. `src/core/` 并入 `src/core/`;tab/log 搬到 `src/ui/panel/`
 3. 修了 sidebar dock toolbar 方向、log 顶栏 Copy/Clear 不可见、bottom dock 折叠
 4. 框架级 transient 预览槽语义(addPanel 自动驱逐同 dock 已有 transient)
 5. 修了 Light 主题 inline 污染 bug(§ 3.3 已知坑 #2)

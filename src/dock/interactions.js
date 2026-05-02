@@ -45,6 +45,7 @@
       const combined = origA + origB
       const min = combined * 0.04
       let committed = sizes
+      let done = false
 
       function onMove(ev) {
         const delta = ((isH ? ev.clientX : ev.clientY) - start) / total
@@ -61,16 +62,30 @@
         committed[idx + 1] = nb
       }
 
-      function onUp() {
+      function cleanup() {
+        if (done) return false
+        done = true
         window.removeEventListener('pointermove', onMove)
         window.removeEventListener('pointerup', onUp)
+        window.removeEventListener('pointercancel', onCancel)
+        window.removeEventListener('blur', onCancel)
+        splitter.removeEventListener('lostpointercapture', onCancel)
         splitter.classList.remove('ef-splitter-active')
         document.body.classList.remove('ef-dragging', 'ef-dragging-horizontal', 'ef-dragging-vertical')
-        treeSig.set(resizeAt(treeSig.peek(), splitPath, committed))
+        return true
       }
+
+      function onUp() {
+        if (cleanup()) treeSig.set(resizeAt(treeSig.peek(), splitPath, committed))
+      }
+
+      function onCancel() { cleanup() }
 
       window.addEventListener('pointermove', onMove)
       window.addEventListener('pointerup', onUp)
+      window.addEventListener('pointercancel', onCancel)
+      window.addEventListener('blur', onCancel)
+      splitter.addEventListener('lostpointercapture', onCancel)
     })
   }
 
@@ -98,6 +113,7 @@
       let mode = null
       let mergeTargetId = null
       let ratio = 0.5
+      let done = false
 
       function onMove(ev) {
         const dx = ev.clientX - startX
@@ -164,13 +180,23 @@
         }
       }
 
-      function onUp() {
+      function cleanup() {
+        if (done) return false
+        done = true
         window.removeEventListener('pointermove', onMove)
         window.removeEventListener('pointerup', onUp)
+        window.removeEventListener('pointercancel', onCancel)
         window.removeEventListener('keydown', onKey)
+        window.removeEventListener('blur', onCancel)
+        handle.removeEventListener('lostpointercapture', onCancel)
         document.body.classList.remove('ef-dragging')
         dockEl.classList.remove('ef-dock-dragging')
         overlay.remove()
+        return true
+      }
+
+      function onUp() {
+        if (!cleanup()) return
         if (!mode) return
         const t = treeSig.peek()
         if (mode === 'split-h') {
@@ -195,12 +221,17 @@
       }
 
       function onKey(ev) {
-        if (ev.key === 'Escape') { mode = null; onUp() }
+        if (ev.key === 'Escape') { mode = null; cleanup() }
       }
+
+      function onCancel() { mode = null; cleanup() }
 
       window.addEventListener('pointermove', onMove)
       window.addEventListener('pointerup', onUp)
+      window.addEventListener('pointercancel', onCancel)
       window.addEventListener('keydown', onKey)
+      window.addEventListener('blur', onCancel)
+      handle.addEventListener('lostpointercapture', onCancel)
     })
   }
 

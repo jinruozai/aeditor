@@ -1,275 +1,162 @@
 /**
- * Asset panel — project-local resource manager for asset:// URLs.
+ * Asset panel — GameDataEditor adapter around EF.ui.assetBrowser.
  */
 (function () {
   'use strict';
 
   function createPanel(propsSig, ctx) {
-    var root = document.createElement('div');
-    root.className = 'gde-assets';
-
-    var toolbar = document.createElement('div');
-    toolbar.className = 'gde-assets-toolbar';
-
-    var searchSig = EF.signal('');
-    var search = EF.ui.searchInput({ value: searchSig, placeholder: 'Search assets...' });
-
-    var addBtn = button('Add Files', 'plus');
-    var folderBtn = button('Folder', 'plus');
-    var renameBtn = button('Rename', 'edit');
-    var deleteBtn = button('Delete', 'trash');
-    var actions = document.createElement('div');
-    actions.className = 'gde-assets-actions';
-
-    toolbar.appendChild(search);
-    actions.appendChild(addBtn);
-    actions.appendChild(folderBtn);
-    actions.appendChild(renameBtn);
-    actions.appendChild(deleteBtn);
-    toolbar.appendChild(actions);
-
-    var crumb = document.createElement('div');
-    crumb.className = 'gde-assets-crumb';
-    toolbar.insertBefore(crumb, search);
-
-    var grid = document.createElement('div');
-    grid.className = 'gde-assets-grid';
-
-    root.appendChild(toolbar);
-    root.appendChild(grid);
-
-    var dir = '';
-    var query = '';
-    var selected = new Set();
-    var last = null;
-
-    EF.ui.bind(root, searchSig, function (v) {
-      query = v || '';
-      selected.clear();
-      render();
-    });
-    addBtn.addEventListener('click', pickFiles);
-    folderBtn.addEventListener('click', function () {
-      var name = prompt('Folder name');
-      if (!name) return;
-      ProjectIO.assets.createFolder(dir, name);
-      render();
-    });
-    renameBtn.addEventListener('click', renameSelected);
-    deleteBtn.addEventListener('click', deleteSelected);
-    grid.addEventListener('click', function (ev) {
-      if (ev.target !== grid) return;
-      selected.clear();
-      last = null;
-      paintSelection();
-    });
-
-    EF.ui.dropzone(grid, {
-      accept: ['Files'],
-      canDrop: function (d) { return !!(d.files || d.fileMimes); },
-      onDrop: function (d) {
-        importDroppedFiles(d.files || []);
+    var browser = EF.ui.assetBrowser({
+      storageKey: 'gde.assets.v2',
+      rootLabel: 'asset',
+      version: ProjectIO.assets.version,
+      children: function (dir, query) {
+        return ProjectIO.assets.children(dir, query);
       },
+      existsDir: function (dir) {
+        return ProjectIO.assets.dirs().indexOf(dir) >= 0;
+      },
+      resolveUrl: function (item) {
+        return item && item.url ? ProjectIO.assets.urlFor(item.url) : '';
+      },
+      importFiles: importFiles,
+      createFolder: function (dir, name) {
+        ProjectIO.assets.createFolder(dir, name);
+        State.log('info', 'Created asset folder: asset://' + joinPath(dir, name));
+      },
+      moveEntries: function (entries, targetDir) {
+        var moved = ProjectIO.assets.moveMany(entries, targetDir);
+        if (moved.length) State.log('info', 'Moved ' + moved.length + ' asset item(s) to asset://' + targetDir);
+      },
+      rename: renameEntry,
+      remove: removeEntries,
+      actions: assetActions,
     });
+    return browser;
+  }
 
-    ctx.bus.on('assets:changed', render);
-
-    function button(label, icon) {
-      var b = document.createElement('button');
-      b.className = 'gde-assets-btn';
-      b.type = 'button';
-      b.appendChild(EF.ui.icon({ name: icon, size: 'sm' }));
-      b.appendChild(document.createTextNode(label));
-      return b;
-    }
-
-    function pickFiles() {
-      var input = document.createElement('input');
-      input.type = 'file';
-      input.multiple = true;
-      input.onchange = function () {
-        if (input.files && input.files.length) {
-          importDroppedFiles(input.files);
-        }
-      };
-      input.click();
-    }
-
-    async function importDroppedFiles(files) {
-      var list = Array.prototype.slice.call(files || []);
-      var replaceAll = false;
-      var keepAll = false;
-      for (var i = 0; i < list.length; i++) {
-        var file = list[i];
-        var target = ProjectIO.assets.makeUrl((dir ? dir + '/' : '') + file.name);
-        var replace = false;
-        if (ProjectIO.assets.exists(target) && !replaceAll && !keepAll) {
-          var ok = await EF.ui.confirm({
-            title: 'Asset already exists',
-            message: target + ' already exists. Replace it? Cancel keeps both.',
-            okLabel: 'Replace',
-          });
-          replace = !!ok;
-          if (list.length > 1) {
-            if (replace) replaceAll = true;
-            else keepAll = true;
-          }
-        } else if (ProjectIO.assets.exists(target)) {
-          replace = replaceAll;
-        }
-        ProjectIO.assets.importFile(file, null, { dir: dir, replace: replace });
-      }
-      State.log('info', 'Imported ' + list.length + ' asset(s) to asset://' + dir);
-      render();
-    }
-
-    function renderCrumb() {
-      crumb.innerHTML = '';
-      var rootBtn = crumbPart('asset', '');
-      crumb.appendChild(rootBtn);
-      var cur = '';
-      cleanParts(dir).forEach(function (p) {
-        cur = cur ? cur + '/' + p : p;
-        crumb.appendChild(document.createTextNode('/'));
-        crumb.appendChild(crumbPart(p, cur));
-      });
-    }
-
-    function crumbPart(label, path) {
-      var b = document.createElement('button');
-      b.type = 'button';
-      b.textContent = label;
-      b.onclick = function () { dir = path; selected.clear(); render(); };
-      return b;
-    }
-
-    function render() {
-      ProjectIO.assets.version();
-      if (dir && ProjectIO.assets.dirs().indexOf(dir) < 0) {
-        dir = '';
-        selected.clear();
-        last = null;
-      }
-      renderCrumb();
-      grid.innerHTML = '';
-      var rows = ProjectIO.assets.children(dir, query);
-      if (!rows.length) {
-        var empty = document.createElement('div');
-        empty.className = 'gde-assets-empty';
-        empty.textContent = query ? 'No matching assets.' : 'Drop files here.';
-        grid.appendChild(empty);
-        return;
-      }
-      rows.forEach(function (item, idx) {
-        var tile = document.createElement('div');
-        tile.className = 'gde-asset-tile';
-        tile.dataset.key = item.kind === 'folder' ? 'folder:' + item.path : item.url;
-        if (selected.has(tile.dataset.key)) tile.classList.add('is-selected');
-
-        var thumb = document.createElement('div');
-        thumb.className = 'gde-asset-thumb';
-        if (item.kind === 'folder') {
-          thumb.appendChild(EF.ui.icon({ name: 'folder', size: 'lg' }));
-        } else if (item.kind === 'image') {
-          var img = document.createElement('img');
-          img.src = ProjectIO.assets.urlFor(item.url);
-          thumb.appendChild(img);
-        } else {
-          thumb.appendChild(EF.ui.icon({ name: item.kind === 'audio' ? 'music' : 'file', size: 'lg' }));
-        }
-        var name = document.createElement('div');
-        name.className = 'gde-asset-name';
-        name.textContent = item.name;
-        tile.appendChild(thumb);
-        tile.appendChild(name);
-
-        tile.addEventListener('click', function (ev) { select(tile.dataset.key, idx, rows, ev); });
-        tile.addEventListener('dblclick', function () {
-          if (item.kind === 'folder') { dir = item.path; selected.clear(); render(); }
+  async function importFiles(files, dir) {
+    var list = Array.prototype.slice.call(files || []);
+    var replaceAll = false;
+    var keepAll = false;
+    for (var i = 0; i < list.length; i++) {
+      var file = list[i];
+      var target = ProjectIO.assets.makeUrl((dir ? dir + '/' : '') + file.name);
+      var replace = false;
+      if (ProjectIO.assets.exists(target) && !replaceAll && !keepAll) {
+        var ok = await EF.ui.confirm({
+          title: 'Asset already exists',
+          message: target + ' already exists. Replace it? Cancel keeps both.',
+          okLabel: 'Replace',
         });
-        if (item.kind !== 'folder') {
-          var dragSpec = {
-            effect: 'copyMove',
-            getData: function () {
-              return {
-                'text/uri-list': item.url,
-                'text/plain': item.url,
-                'application/ef.asset+json': JSON.stringify({ kind: item.kind, value: item.url }),
-              };
-            },
-          };
-          EF.ui.dragsource(tile, dragSpec);
-          EF.ui.dragsource(thumb, dragSpec);
-          EF.ui.dragsource(name, dragSpec);
+        replace = !!ok;
+        if (list.length > 1) {
+          if (replace) replaceAll = true;
+          else keepAll = true;
         }
-        grid.appendChild(tile);
-      });
-    }
-
-    function select(key, idx, rows, ev) {
-      if (ev.shiftKey && last != null) {
-        var a = Math.min(last, idx), b = Math.max(last, idx);
-        if (!(ev.ctrlKey || ev.metaKey)) selected.clear();
-        for (var i = a; i <= b; i++) selected.add(rows[i].kind === 'folder' ? 'folder:' + rows[i].path : rows[i].url);
-      } else if (ev.ctrlKey || ev.metaKey) {
-        if (selected.has(key)) selected.delete(key);
-        else selected.add(key);
-        last = idx;
-      } else {
-        selected.clear();
-        selected.add(key);
-        last = idx;
+      } else if (ProjectIO.assets.exists(target)) {
+        replace = replaceAll;
       }
-      paintSelection();
+      await ProjectIO.assets.importFile(file, null, { dir: dir, replace: replace });
     }
+    State.log('info', 'Imported ' + list.length + ' asset(s) to asset://' + (dir || ''));
+  }
 
-    function paintSelection() {
-      Array.prototype.forEach.call(grid.querySelectorAll('.gde-asset-tile'), function (tile) {
-        tile.classList.toggle('is-selected', selected.has(tile.dataset.key));
-      });
+  function renameEntry(entry) {
+    if (!entry) return;
+    if (entry.kind === 'folder') {
+      var folderName = prompt('Rename folder', entry.name);
+      if (!folderName || folderName === entry.name) return;
+      var nextDir = ProjectIO.assets.renameFolder(entry.path, folderName);
+      State.log('info', 'Renamed folder: asset://' + entry.path + ' -> asset://' + nextDir);
+      return;
     }
+    var info = ProjectIO.assets.get(entry.url);
+    if (!info) return;
+    var name = prompt('Rename asset', info.name);
+    if (!name || name === info.name) return;
+    var next = ProjectIO.assets.rename(entry.url, name);
+    State.log('info', 'Renamed asset: ' + entry.url + ' -> ' + next);
+  }
 
-    function selectedAssetUrls() {
-      return Array.from(selected).filter(function (v) { return v.indexOf('asset://') === 0; });
+  async function removeEntries(entries) {
+    var rows = entries || [];
+    if (!rows.length) return;
+    var urls = urlsForEntries(rows);
+    var refs = State.findAssetReferences(urls);
+    var ok = await EF.ui.confirm({
+      title: 'Delete Asset',
+      message: deleteMessage(rows.length, refs),
+      danger: true,
+      okLabel: 'Delete',
+    });
+    if (!ok) return;
+    var clearedEntities = refs.length ? State.clearAssetReferences(urls) : 0;
+    rows.forEach(function (entry) {
+      if (entry.kind === 'folder') ProjectIO.assets.removeFolder(entry.path);
+    });
+    if (urls.length) ProjectIO.assets.remove(urls);
+    State.log('warn', 'Deleted ' + rows.length + ' asset item(s)' + (refs.length ? ', cleared ' + refs.length + ' reference(s) in ' + clearedEntities + ' entity(s)' : ''));
+  }
+
+  function assetActions(rows) {
+    if (!urlsForEntries(rows).length) return [];
+    return [{
+      label: 'View References',
+      icon: 'search',
+      onSelect: function () {
+        var query = referenceQuery(rows);
+        if (!query) return;
+        State.showSearchPanel(query);
+      },
+    }];
+  }
+
+  function referenceQuery(rows) {
+    rows = rows || [];
+    if (rows.length === 1 && rows[0] && rows[0].kind === 'folder') {
+      return 'asset://' + (rows[0].path ? rows[0].path + '/' : '');
     }
+    var urls = urlsForEntries(rows);
+    return urls[0] || '';
+  }
 
-    function renameSelected() {
-      var urls = selectedAssetUrls();
-      if (urls.length !== 1) return;
-      var info = ProjectIO.assets.get(urls[0]);
-      if (!info) return;
-      var name = prompt('Rename asset', info.name);
-      if (!name || name === info.name) return;
-      var next = ProjectIO.assets.rename(urls[0], name);
-      selected.clear();
-      selected.add(next);
-      State.log('info', 'Renamed asset: ' + urls[0] + ' -> ' + next);
-      render();
-    }
+  function urlsForEntries(rows) {
+    var out = [];
+    (rows || []).forEach(function (entry) {
+      if (!entry) return;
+      if (entry.kind === 'folder') {
+        var prefix = entry.path ? entry.path + '/' : '';
+        ProjectIO.assets.list().forEach(function (item) {
+          if (item.path && item.path.indexOf(prefix) === 0) out.push(item.url);
+        });
+      } else if (entry.url) {
+        out.push(entry.url);
+      }
+    });
+    return unique(out);
+  }
 
-    function deleteSelected() {
-      var urls = selectedAssetUrls();
-      if (!urls.length) return;
-      EF.ui.confirm({
-        title: 'Delete Asset',
-        message: 'Delete ' + urls.length + ' asset(s)? This removes them from the project asset store.',
-        danger: true,
-        okLabel: 'Delete',
-      }).then(function (ok) {
-        if (!ok) return;
-        ProjectIO.assets.remove(urls);
-        selected.clear();
-        State.log('warn', 'Deleted ' + urls.length + ' asset(s)');
-        render();
-      });
-    }
+  function deleteMessage(count, refs) {
+    var msg = 'Delete ' + count + ' asset item(s)? This removes them from the project asset store.';
+    if (!refs.length) return msg + '\n\nNo table data currently references these assets.';
+    return msg + '\n\nReferenced in ' + refs.length + ' place(s). Deleting will clear those references.';
+  }
 
-    function cleanParts(path) {
-      return String(path || '').split('/').filter(Boolean);
-    }
+  function unique(list) {
+    var seen = {};
+    var out = [];
+    list.forEach(function (v) {
+      if (!v || seen[v]) return;
+      seen[v] = true;
+      out.push(v);
+    });
+    return out;
+  }
 
-    render();
-    return root;
+  function joinPath(a, b) {
+    a = String(a || '').replace(/\\/g, '/').replace(/^\/+|\/+$/g, '');
+    b = String(b || '').replace(/\\/g, '/').replace(/^\/+|\/+$/g, '');
+    return a && b ? a + '/' + b : (a || b);
   }
 
   EF.registerComponent('gde-assets', {

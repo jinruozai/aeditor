@@ -35,9 +35,11 @@
     const propsSig = buildPropsSig(node, ctx)
     const bodyEl = spec.factory(propsSig, ctx || {})
     const el = ui.h('div', 'ef-ui-node')
+    if (propsSig.dispose) ui.collect(el, propsSig.dispose)
     el.dataset.efNodeId = node.id || ''
     const body = ui.h('div', 'ef-ui-node-body')
     body.appendChild(bodyEl)
+    ui.collect(el, function () { ui.dispose(bodyEl) })
     el.appendChild(body)
 
     if (node.children && node.children.length) {
@@ -48,6 +50,9 @@
         const child = node.children[i]
         const childEl = renderUITree(child, ctx)
         append(childEl, child.layout || null)
+        ui.collect(el, function (c) {
+          return function () { ui.dispose(c) }
+        }(childEl))
       }
     }
     return el

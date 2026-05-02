@@ -23,7 +23,6 @@
     const placeholder = ui.asSig(o.placeholder != null ? o.placeholder : '')
     const disabled    = ui.asSig(o.disabled    != null ? o.disabled    : false)
     const doWrite = ui.writer(sig, o.onChange, 'ui.combobox')
-    const items = norm(o.options)
     const wrap = ui.h('div', 'ef-ui-field ef-ui-combobox')
     const inp = ui.h('input', 'ef-ui-input', { type: 'text' })
     const arrow = ui.h('span', 'ef-ui-field-suffix', { text: '▾' })
@@ -38,6 +37,7 @@
       if (disabled.peek()) return
       const list = ui.h('div', 'ef-ui-menu')
       const term = inp.value.toLowerCase()
+      const items = norm(ui.isSignal && ui.isSignal(o.options) ? o.options.peek() : o.options)
       const filtered = items.filter(function (it) { return !term || String(it.label).toLowerCase().indexOf(term) >= 0 })
       if (!filtered.length) {
         const empty = ui.h('div', 'ef-ui-menu-empty', { text: 'No matches' })

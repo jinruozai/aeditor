@@ -39,7 +39,7 @@
     const o = opts || {}
     return new Promise(function (resolve) {
       let done = false
-      const finish = function (v) { if (done) return; done = true; resolve(v); modal.close() }
+      const finish = function (v) { if (done) return; done = true; modal.close(); resolve(v) }
       const body = ui.h('div', 'ef-ui-dialog-body', { text: o.message || '' })
       const cancel = ui.button({ text: o.cancelLabel || 'Cancel', onClick: function () { finish(false) } })
       const ok = ui.button({

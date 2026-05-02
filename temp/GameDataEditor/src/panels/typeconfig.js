@@ -1,10 +1,10 @@
-/**
+﻿/**
  * Project TypeConfig panel.
  *
  * The list shows every project + built-in type. Clicking an item selects
  * it through State.selection with kind='typeconfig', which Inspector
  * renders as an editable TypeDef via the provider registered at the
- * bottom of this file. Edits persist into projectTypeConfig — so editing
+ * bottom of this file. Edits persist into projectTypeConfig 鈥?so editing
  * a built-in type implicitly creates a project-level override.
  */
 (function () {
@@ -12,8 +12,8 @@
 
   var ui = EF.ui;
 
-  // ── Inspector provider for kind='typeconfig' ──────────────────
-  // Schema is memoized — propertyPanel only rebuilds its rows when the
+  // 鈹€鈹€ Inspector provider for kind='typeconfig' 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
+  // Schema is memoized 鈥?propertyPanel only rebuilds its rows when the
   // schema *reference* changes (Object.is check inside the schema effect).
   // Returning a fresh object on every refresh() would rebuild every row's
   // DOM on every keystroke, losing focus. One stable reference = focus
@@ -45,7 +45,7 @@
   // TypeDef shape). Any change to the schema here flows to both UIs.
   window.TypeDefSchema = {
     build: buildTypeDefSchema,
-    // Identity keys — those whose values *define the type itself*, hence
+    // Identity keys 鈥?those whose values *define the type itself*, hence
     // not overridable per-table. Consumers hide the edit/revert button
     // and keep the editor disabled for these rows.
     IDENTITY_KEYS: ['key', 'name', 'base_type'],
@@ -98,7 +98,7 @@
     dataTopic: function ()    { return 'typeconfig:changed'; },
   });
 
-  // ── Panel component ──────────────────────────────────────────────
+  // 鈹€鈹€ Panel component 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
   function randomTypeName() {
     var existing = Object.assign({}, State.builtinTypeConfig(), State.projectTypeConfig());
     for (var i = 0; i < 100; i++) {
@@ -154,7 +154,7 @@
       h.className = 'gde-tc-section-head' + (collapsed[id] ? ' is-collapsed' : '');
       var caret = document.createElement('span');
       caret.className = 'gde-tc-section-caret';
-      caret.textContent = '▾';
+      caret.textContent = '>';
       var label = document.createElement('span');
       label.textContent = text;
       h.appendChild(caret); h.appendChild(label);
@@ -173,17 +173,21 @@
       item.className = 'gde-tc-item' + (active ? ' is-active' : '');
       var nameRow = document.createElement('div');
       nameRow.className = 'gde-tc-name';
-      nameRow.textContent = key;
+      var keyEl = document.createElement('span');
+      keyEl.className = 'gde-tc-key';
+      keyEl.textContent = key;
+      nameRow.appendChild(keyEl);
       if (cfg.name) {
         var badge = document.createElement('span');
         badge.className = 'gde-tc-badge';
         badge.textContent = cfg.name;
         nameRow.appendChild(badge);
       }
-      var desc = document.createElement('div');
+      var desc = document.createElement('span');
       desc.className = 'gde-tc-desc';
-      desc.textContent = (cfg.base_type || '?') + ' · ' + (cfg.type_render || '?') + (cfg.mem ? ' — ' + cfg.mem : '');
-      item.appendChild(nameRow); item.appendChild(desc);
+      desc.textContent = (cfg.base_type || '?') + ' / ' + (cfg.type_render || '?') + (cfg.mem ? ' - ' + cfg.mem : '');
+      nameRow.appendChild(desc);
+      item.appendChild(nameRow);
 
       item.addEventListener('click', function () {
         State.setSelection({ kind: 'typeconfig', key: key });
@@ -200,11 +204,11 @@
     }
 
     function render() {
-      list.innerHTML = '';
+      GDE.clear(list);
       var filter    = (filterSig.peek() || '').toLowerCase();
       var proj      = State.projectTypeConfig();
       // All types known to the framework, minus the ones the project
-      // already overrides — the rest are shown as "built-in / read-only".
+      // already overrides 鈥?the rest are shown as "built-in / read-only".
       // Editing one of them creates a project override and moves it to
       // the project section on next render.
       var merged  = ui.getTypeConfig();
@@ -244,7 +248,7 @@
       if (usages.length > 0) {
         title = t('typeconfig.delete_in_use_title') || 'Type is in use';
         msg = t('typeconfig.delete_in_use', { name: key, n: usages.length })
-            + '\n\n' + usages.map(function (u) { return '• ' + u.pathKey + '.' + u.field; }).join('\n');
+            + '\n\n' + usages.map(function (u) { return '-' + u.pathKey + '.' + u.field; }).join('\n');
       } else {
         title = t('typeconfig.delete_confirm_title') || 'Delete type';
         msg = t('typeconfig.delete_confirm', { name: key });
@@ -271,7 +275,7 @@
         });
     }
 
-    EF.effect(function () { filterSig(); render(); });
+    GDE.effect(root, function () { filterSig(); render(); });
     ctx.bus.on('typeconfig:changed', render);
     ctx.bus.on('selection:changed',  render);
 
@@ -295,3 +299,6 @@
     defaults: function () { return { title: 'TypeConfig', props: {} }; },
   });
 })();
+
+
+

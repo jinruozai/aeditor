@@ -1,5 +1,5 @@
 /**
- * Table Data panel component — cards + list, selection, drag-sort, sort dropdown.
+ * Table Data panel component �?cards + list, selection, drag-sort, sort dropdown.
  * Props: { pathKey }
  */
 (function () {
@@ -11,21 +11,23 @@
     var pathKey = props.pathKey;
     var root = document.createElement('div');
     root.style.cssText = 'display:flex;flex-direction:column;height:100%;';
+    root.tabIndex = -1;
+    root.addEventListener('pointerdown', function () { root.focus(); });
 
     // ── Toolbar (built entirely on EF.ui.*) ────────────────────────
     // Signals feed the reactive props of each control.
     var addTitleSig   = EF.signal('Add');
     var delTitleSig   = EF.signal('Delete');
     var delDisabledSig = EF.signal(true);           // hide-in-practice via disabled+opacity
-    var modeIconSig   = EF.signal('▦');
+    var modeIconSig   = EF.signal('grid');
     var modeTitleSig  = EF.signal('Cards / List');
-    var sizeSig       = EF.signal(140);             // cardSize
+    var sizeSig       = EF.signal(100);             // cardSize
     var sortFieldSig  = EF.signal('');
     var sortOrderSig  = EF.signal('asc');
     // ui.select reads `options` at click time, so a plain array that we
     // mutate-in-place is all we need (and signals don't work anyway since
     // select doesn't subscribe to them).
-    var sortFieldOpts = [{ value: '', label: '—' }];
+    var sortFieldOpts = [{ value: '', label: '(none)' }];
     var sortOrderOpts = [
       { value: 'asc',  label: 'Asc' },
       { value: 'desc', label: 'Desc' },
@@ -65,7 +67,7 @@
     // ui.select defaults to width:100% (meant for form rows). In a flex
     // toolbar that reads as "eat all remaining space". Cap each select to
     // what its label actually needs and prevent flex shrinking below that.
-    var sortFieldSel = ui.select({ value: sortFieldSig, options: sortFieldOpts });
+    var sortFieldSel = ui.combobox({ value: sortFieldSig, options: sortFieldOpts, placeholder: '(none)' });
     var sortOrderSel = ui.select({ value: sortOrderSig, options: sortOrderOpts });
     sortFieldSel.style.width = '120px';
     sortFieldSel.style.flexShrink = '0';
@@ -89,14 +91,14 @@
     body.style.cssText = 'flex:1;min-height:0;position:relative;';
     root.appendChild(bar); root.appendChild(body);
 
-    var STORE = 'gde.table.' + pathKey;
+    var STORE = 'gde.table.v2.' + pathKey;
     var state = (function () {
       try { return JSON.parse(localStorage.getItem(STORE) || '') || {}; } catch (_) { return {}; }
     })();
     var mode = state.mode || 'card';
     // Seed signals from persisted state. framework wraps component.factory in
     // EF.untracked so these plain writes don't pollute the reconcile effect.
-    sizeSig.set(state.cardSize || 140);
+    sizeSig.set(state.cardSize || 100);
     sortFieldSig.set(state.sortField || '');
     sortOrderSig.set(state.sortOrder || 'asc');
 
@@ -161,8 +163,15 @@
 
     function T(k, v) { return t(k, v); }
 
+    function disposeGridHandle() {
+      if (!gridHandle) return;
+      gridHandle.dispose();
+      gridHandle = null;
+    }
+
     function renderBody() {
-      body.innerHTML = '';
+      disposeGridHandle();
+      GDE.clear(body);
       var tbl = table();
       if (!tbl) return;
       var ids = sortedIds();
@@ -207,6 +216,8 @@
       body.appendChild(wrap);
 
       gridHandle = Card.attachGrid(wrap, {
+        initialSelection: Array.from(selectedIds),
+        initialLast: lastClicked,
         onSelect: function (ids2, last) {
           selectedIds = new Set(ids2);
           lastClicked = last;
@@ -216,6 +227,7 @@
           reorder(dragged, targetId, side);
         },
       });
+      installCardContextMenu(wrap, ids);
     }
 
     function renderList(ids) {
@@ -311,6 +323,66 @@
       delDisabledSig.set(selectedIds.size === 0);
     }
 
+    function selectedEntityPayload() {
+      var data = gd();
+      return Array.from(selectedIds).map(function (id) {
+        return Object.assign({}, data[id] || {});
+      });
+    }
+
+    function copyCards() {
+      var items = selectedEntityPayload();
+      if (!items.length) return;
+      GDE.clipboard.set('entities', { sourcePathKey: pathKey, entities: items });
+      State.log('info', 'Copied ' + items.length + ' card(s)');
+    }
+
+    function pasteCards() {
+      var clip = GDE.clipboard.get('entities');
+      if (!clip || !clip.data || !clip.data.entities || !clip.data.entities.length) return;
+      var ids = State.pasteEntities(pathKey, clip.data.entities);
+      selectedIds = new Set(ids);
+      lastClicked = ids[ids.length - 1] || null;
+      pushSelection();
+      renderBody();
+      State.log('info', 'Pasted ' + ids.length + ' card(s) into ' + pathKey);
+    }
+
+    function duplicateCards() {
+      if (!selectedIds.size) return;
+      var ids = State.pasteEntities(pathKey, selectedEntityPayload());
+      selectedIds = new Set(ids);
+      lastClicked = ids[ids.length - 1] || null;
+      pushSelection();
+      renderBody();
+      State.log('info', 'Duplicated ' + ids.length + ' card(s) in ' + pathKey);
+    }
+
+    function installCardContextMenu(wrap, ids) {
+      wrap.addEventListener('contextmenu', function (ev) {
+        ev.preventDefault();
+        var card = ev.target.closest && ev.target.closest('.gde-card');
+        if (card && !selectedIds.has(card.dataset.id)) {
+          selectedIds.clear();
+          selectedIds.add(card.dataset.id);
+          lastClicked = card.dataset.id;
+          pushSelection();
+          renderBody();
+        }
+        var items = card ? [
+          { label: 'Copy Card', icon: 'copy', onSelect: copyCards },
+          { label: 'Duplicate Card', icon: 'copy', onSelect: duplicateCards },
+          { label: 'Delete', icon: 'trash', danger: true, onSelect: handleDelete },
+        ] : [
+          { label: 'New Card', icon: 'plus', onSelect: handleAdd },
+        ];
+        if (!card && GDE.clipboard.has('entities')) {
+          items.push({ label: 'Paste Card', icon: 'paste', onSelect: pasteCards });
+        }
+        EF.ui.contextMenu({ x: ev.clientX, y: ev.clientY }, items);
+      });
+    }
+
     function reorder(dragged, targetId, side) {
       var t = table(); if (!t) return;
       var ids = t.id.slice();
@@ -369,6 +441,7 @@
     var offSortF = EF.effect(function () { sortFieldSig(); save(); renderBody() })
     var offSortO = EF.effect(function () { sortOrderSig(); save(); renderBody() })
     ctx.onCleanup(function () {
+      disposeGridHandle();
       try { offSize && offSize(); offSortF && offSortF(); offSortO && offSortO(); } catch (_) {}
     });
 
@@ -377,7 +450,7 @@
       if (ctx.panel && ctx.panel.title() !== pt) ctx.panel.setTitle(pt);
       addTitleSig.set(T('table.add'));
       delTitleSig.set(T('table.delete'));
-      // Toggle icon reflects the mode you're IN — `grid` for card mode,
+      // Toggle icon reflects the mode you're IN �?`grid` for card mode,
       // `list` for list mode. These are framework icon names.
       modeIconSig.set(mode === 'card' ? 'grid' : 'list');
       modeTitleSig.set(mode === 'card' ? T('table.mode_card') : T('table.mode_list'));
@@ -443,10 +516,19 @@
       return true;
     }
 
-    // Each table gets its own panel instance — no more "rebind pathKey on
+    // Each table gets its own panel instance �?no more "rebind pathKey on
     // active-table:changed" hack. This component is pure w.r.t. props.pathKey.
     var offLocale = I18N.onChange(applyLocale);
     ctx.onCleanup(offLocale);
+
+    EF.shortcuts.register({ key: 'c', ctrl: true, when: isActivePanel, run: copyCards }, root);
+    EF.shortcuts.register({ key: 'v', ctrl: true, when: isActivePanel, run: pasteCards }, root);
+    EF.shortcuts.register({ key: 'd', ctrl: true, when: function () { return isActivePanel() && selectedIds.size > 0; }, run: duplicateCards }, root);
+    EF.shortcuts.register({ key: 'Delete', when: function () { return isActivePanel() && selectedIds.size > 0; }, run: handleDelete }, root);
+
+    function isActivePanel() {
+      return State.activeTable.peek && State.activeTable.peek() === pathKey && root.contains(document.activeElement);
+    }
 
     applyLocale();
     return root;
@@ -457,3 +539,8 @@
     defaults: function () { return { title: 'Table', props: { pathKey: '' } }; },
   });
 })();
+
+
+
+
+

@@ -73,6 +73,7 @@
     const innerInput = input.querySelector('input')
     if (innerInput) innerInput.style.border = '0'
     wrap.appendChild(input)
+    ui.collect(wrap, function () { ui.dispose(input) })
 
     // signal ⇄ input bi-sync
     ui.bind(wrap, sig, function (v) {
@@ -81,18 +82,22 @@
       wrap.classList.toggle('is-missing', !!s && typeof o.exists === 'function' && !o.exists(s))
       paintPreview(s)
     })
-    EF.effect(function () {
+    ui.collect(wrap, EF.effect(function () {
       const s = pathSig()
       if (s !== String(sig.peek() || '')) doWrite(s)
-    })
+    }))
 
     // Drop target — the whole frame accepts dragged assets that match
     // our `kind`. Files, URL drops, and other EF asset sources all flow
     // through ui.dnd.extractUrl so the consumer just sees a final string.
     ui.dropzone(wrap, {
-      accept:  ['Files', 'text/uri-list', 'text/plain', 'application/ef.asset+json'],
+      accept:  ['Files', 'text/uri-list', 'text/plain', 'application/ef.asset+json', 'application/ef.asset.' + kind + '+json'],
       canDrop: function (d) { return ui.dnd.matchesKind(d, kind) },
       onDrop:  function (d) {
+        if (d.asset && d.asset.value) {
+          doWrite(ui.dnd.extractUrl(d))
+          return
+        }
         if (d.files && d.files[0] && typeof o.onFile === 'function') {
           const res = o.onFile(d.files[0], sig.peek())
           if (res && typeof res.then === 'function') res.then(function (v) { if (v != null) doWrite(v) })
@@ -115,8 +120,15 @@
           'text/uri-list':              v,
           'text/plain':                 v,
           'application/ef.asset+json':  JSON.stringify({ kind: kind, value: v }),
+          ['application/ef.asset.' + kind + '+json']: JSON.stringify({ kind: kind, value: v }),
         }
       },
+    })
+
+    let browseInput = null
+    ui.collect(wrap, function () {
+      if (browseInput && browseInput.parentNode) browseInput.parentNode.removeChild(browseInput)
+      browseInput = null
     })
 
     function doBrowse() {
@@ -131,11 +143,15 @@
       }
       // Fallback: hidden native file input → object URL.
       const f = document.createElement('input')
+      browseInput = f
       f.type = 'file'
       if (accept) f.accept = accept
       f.style.display = 'none'
       document.body.appendChild(f)
-      function cleanup() { if (f.parentNode) f.parentNode.removeChild(f) }
+      function cleanup() {
+        if (f.parentNode) f.parentNode.removeChild(f)
+        if (browseInput === f) browseInput = null
+      }
       f.addEventListener('change', function () {
         const file = f.files && f.files[0]
         if (file && typeof o.onFile === 'function') {

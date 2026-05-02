@@ -65,7 +65,7 @@
   }
 
   ui.applyBoxStyle = function (el, propsSig) {
-    EF.effect(function () {
+    ui.collect(el, EF.effect(function () {
       const p = propsSig() || {}
       setStr(el, 'background',   p.background)
       const bw = Number(p.borderWidth)
@@ -100,7 +100,7 @@
       } else {
         el.style.boxShadow = ''
       }
-    })
+    }))
   }
 
   function setStr(el, prop, v) { el.style[prop] = (v == null || v === '') ? '' : v }

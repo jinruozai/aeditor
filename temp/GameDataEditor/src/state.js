@@ -55,6 +55,11 @@
     if (centerDockName) _centerDockName = centerDockName;
   }
 
+  function destroy() {
+    stopTypeConfigEffect();
+    _handle = null;
+  }
+
   function _centerDockId() {
     if (!_handle) return null;
     var tree = _handle.tree();
@@ -149,6 +154,16 @@
     if (hit && _handle) _handle.activatePanel(hit.panel.id);
   }
 
+  function showSearchPanel(query) {
+    var hit = _findPanelByComponent('gde-search');
+    if (hit && _handle) _handle.activatePanel(hit.panel.id);
+    if (query != null) {
+      setTimeout(function () {
+        EF.bus.emit('search:set', { query: String(query || '') });
+      }, 0);
+    }
+  }
+
   function _shortName(pathKey) {
     var parts = String(pathKey || '').split('/');
     return parts[parts.length - 1] || pathKey;
@@ -169,13 +184,14 @@
   // Whenever either TypeConfig signal changes, push the merged view into the
   // framework so EF.ui.propertyPanel / propertyEditor / resolveFieldDef pick
   // up project types and overrides automatically.
-  EF.effect(function () {
+  var stopTypeConfigEffect = EF.effect(function () {
     EF.ui.setTypeConfig(builtinTypeConfig(), { overrides: projectTypeConfig() });
   });
 
   // Thin delegations — keep the State.* API for existing callers.
   function resolveType(typeName)     { return EF.ui.resolveType(typeName); }
   function resolveFieldDef(fieldDef) { return EF.ui.resolveFieldDef(fieldDef); }
+  function clone(v) { return v == null ? v : JSON.parse(JSON.stringify(v)); }
 
   // ---------- ID generator ----------
   function genId(maxRetry) {
@@ -430,6 +446,24 @@
     emit('data:changed:' + pathKey);
   }
 
+  function tableDefinition(pathKey) {
+    var t = tableMap()[pathKey];
+    if (!t) return null;
+    return {
+      sourcePathKey: pathKey,
+      struct_def: clone(t.struct_def || {}),
+      card_style: t.card_style || 'default',
+    };
+  }
+
+  function pasteTableDefinition(def, basePathKey) {
+    if (!def || !def.struct_def) return null;
+    var pathKey = uniqueTablePath(basePathKey || def.sourcePathKey || 'new_table', tableMap());
+    addTable(pathKey, clone(def.struct_def || {}));
+    if (def.card_style) setTableCardStyle(pathKey, def.card_style);
+    return pathKey;
+  }
+
   function addEntity(pathKey, seed) {
     var tm = Object.assign({}, tableMap());
     if (!tm[pathKey]) throw new Error('Table not found: ' + pathKey);
@@ -450,6 +484,22 @@
     tableMap.set(tm);
     emit('data:changed:' + pathKey);
     return id;
+  }
+
+  function pasteEntities(pathKey, entities) {
+    var t = tableMap()[pathKey];
+    if (!t) return [];
+    var sd = t.struct_def || {};
+    var out = [];
+    (entities || []).forEach(function (src) {
+      var seed = {};
+      Object.keys(sd).forEach(function (field) {
+        if (field === 'id') return;
+        if (src && Object.prototype.hasOwnProperty.call(src, field)) seed[field] = clone(src[field]);
+      });
+      out.push(addEntity(pathKey, seed));
+    });
+    return out;
   }
   function deleteEntities(pathKey, ids) {
     var tm = Object.assign({}, tableMap());
@@ -507,9 +557,127 @@
     emit('data:changed', {});
   }
 
+  function findAssetReferences(urls) {
+    var urlSet = {};
+    (urls || []).forEach(function (url) { if (url) urlSet[url] = true; });
+    var out = [];
+    var gd = gameData();
+    var tm = tableMap();
+    Object.keys(tm).forEach(function (pk) {
+      (tm[pk].id || []).forEach(function (id) {
+        var entity = gd[id];
+        if (!entity) return;
+        Object.keys(entity).forEach(function (field) {
+          walkAssetValue(entity[field], field, function (url, path) {
+            if (urlSet[url]) out.push({ pathKey: pk, id: id, field: field, path: path, url: url });
+          });
+        });
+      });
+    });
+    return out;
+  }
+
+  function clearAssetReferences(urls) {
+    var urlSet = {};
+    (urls || []).forEach(function (url) { if (url) urlSet[url] = true; });
+    var gd = Object.assign({}, gameData());
+    var touched = {};
+    Object.keys(gd).forEach(function (id) {
+      var entity = gd[id];
+      if (!entity) return;
+      var changed = false;
+      var next = Object.assign({}, entity);
+      Object.keys(entity).forEach(function (field) {
+        var ret = clearAssetValue(entity[field], urlSet, false);
+        if (ret.changed) {
+          next[field] = ret.value;
+          changed = true;
+        }
+      });
+      if (changed) {
+        gd[id] = next;
+        touched[id] = true;
+      }
+    });
+    if (!Object.keys(touched).length) return 0;
+    gameData.set(gd);
+    var tm = tableMap();
+    Object.keys(tm).forEach(function (pk) {
+      var idsInTable = tm[pk].id || [];
+      for (var i = 0; i < idsInTable.length; i++) {
+        if (touched[idsInTable[i]]) { emit('data:changed:' + pk); break; }
+      }
+    });
+    emit('data:changed', {});
+    return Object.keys(touched).length;
+  }
+
+  function walkAssetValue(value, path, visit) {
+    if (typeof value === 'string') {
+      visit(value, path);
+      return;
+    }
+    if (!value || typeof value !== 'object') return;
+    if (Array.isArray(value)) {
+      value.forEach(function (item, i) { walkAssetValue(item, path + '[' + i + ']', visit); });
+      return;
+    }
+    Object.keys(value).forEach(function (key) {
+      walkAssetValue(value[key], path ? path + '.' + key : key, visit);
+    });
+  }
+
+  function clearAssetValue(value, urlSet, inArray) {
+    if (typeof value === 'string') {
+      if (!urlSet[value]) return { value: value, changed: false, remove: false };
+      return inArray ? { value: value, changed: true, remove: true } : { value: '', changed: true, remove: false };
+    }
+    if (!value || typeof value !== 'object') return { value: value, changed: false, remove: false };
+    if (Array.isArray(value)) {
+      var arrChanged = false;
+      var arr = [];
+      value.forEach(function (item) {
+        var ret = clearAssetValue(item, urlSet, true);
+        if (ret.changed) arrChanged = true;
+        if (!ret.remove) arr.push(ret.value);
+      });
+      return { value: arrChanged ? arr : value, changed: arrChanged, remove: false };
+    }
+    var changed = false;
+    var out = {};
+    Object.keys(value).forEach(function (key) {
+      var ret = clearAssetValue(value[key], urlSet, false);
+      out[key] = ret.value;
+      if (ret.changed) changed = true;
+    });
+    return { value: changed ? out : value, changed: changed, remove: false };
+  }
+
   // setActiveTable(pathKey) — selects the panel for pathKey in the center
   // dock. If no such panel exists this is a no-op (use openTable instead).
   // activeTable signal auto-updates via main.js effect (sync from tree).
+  function cleanTablePath(s) {
+    return String(s || 'new_table')
+      .trim()
+      .replace(/\\/g, '/')
+      .replace(/\.\./g, '')
+      .replace(/^\/+|\/+$/g, '')
+      .replace(/[<>:"|?*\x00-\x1f]/g, '_') || 'new_table';
+  }
+
+  function uniqueTablePath(base, tm) {
+    base = cleanTablePath(base);
+    if (!tm[base]) return base;
+    var slash = base.lastIndexOf('/');
+    var dir = slash >= 0 ? base.slice(0, slash + 1) : '';
+    var name = slash >= 0 ? base.slice(slash + 1) : base;
+    for (var i = 2; i < 10000; i++) {
+      var next = dir + name + '_' + i;
+      if (!tm[next]) return next;
+    }
+    return dir + name + '_' + Date.now();
+  }
+
   function setActiveTable(pathKey) {
     if (!_handle || !pathKey) { activeTable.set(pathKey); return; }
     var hit = _findTablePanel(pathKey);
@@ -893,13 +1061,16 @@
 
     // Layout glue — called once from main.js after createDockLayout.
     _setLayout: _setLayout,
+    destroy: destroy,
 
     // resolvers
     resolveType: resolveType,
     resolveFieldDef: resolveFieldDef,
     resolveEntityDisplay: resolveEntityDisplay,
     findTypeUsages: findTypeUsages,
+    findAssetReferences: findAssetReferences,
     genId: genId,
+    tableDefinition: tableDefinition,
 
     // table format tools
     checkTableData: checkTableData,
@@ -909,6 +1080,7 @@
     mergeStructDef: mergeStructDef,
     showLogPanel: showLogPanel,
     showCardStyleTree: showCardStyleTree,
+    showSearchPanel: showSearchPanel,
 
     // mutators
     setBuiltinTypeConfig: setBuiltinTypeConfig,
@@ -932,10 +1104,12 @@
     updateStructDef: updateStructDef,
     setTableIds: setTableIds,
     addEntity: addEntity,
+    pasteEntities: pasteEntities,
     deleteEntities: deleteEntities,
     updateEntity: updateEntity,
     setEntityField: setEntityField,
     setEntityFieldMany: setEntityFieldMany,
+    clearAssetReferences: clearAssetReferences,
     setActiveTable: setActiveTable,
     openTable: openTable,
     openCardStyle: openCardStyle,
@@ -946,6 +1120,7 @@
     markDirty: markDirty,
     clearDirty: clearDirty,
     setWorkspaceInfo: setWorkspaceInfo,
+    pasteTableDefinition: pasteTableDefinition,
     log: log,
     clearLogs: clearLogs,
   };

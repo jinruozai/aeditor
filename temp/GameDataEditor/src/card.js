@@ -63,6 +63,10 @@
       dropIndicator: null,
       dropIndex: -1,
     };
+    if (opts.initialSelection) {
+      state.selected = new Set(opts.initialSelection);
+      state.lastClicked = opts.initialLast || (opts.initialSelection[opts.initialSelection.length - 1] || null);
+    }
 
     function cardAt(ev) {
       var el = ev.target;
@@ -74,10 +78,13 @@
     }
     function cardsList() { return Array.from(container.querySelectorAll('.gde-card')); }
     function commitSelection() {
+      paintSelection();
+      if (opts.onSelect) opts.onSelect(Array.from(state.selected), state.lastClicked);
+    }
+    function paintSelection() {
       cardsList().forEach(function (c) {
         c.classList.toggle('is-selected', state.selected.has(c.dataset.id));
       });
-      if (opts.onSelect) opts.onSelect(Array.from(state.selected), state.lastClicked);
     }
     function setSingle(id) {
       state.selected.clear();
@@ -85,7 +92,20 @@
       commitSelection();
     }
 
-    container.addEventListener('pointerdown', function (ev) {
+    function cleanupArtifacts() {
+      if (state.marquee) { state.marquee.remove(); state.marquee = null; }
+      if (state.ghost) { state.ghost.remove(); state.ghost = null; }
+      if (state.dropIndicator) { state.dropIndicator.remove(); state.dropIndicator = null; }
+      cardsList().forEach(function (c) { c.classList.remove('is-dragging'); });
+      state.marqueeStart = null;
+      state.marqueeBaseSel = null;
+      state.isMouseDown = false;
+      state.isDragging = false;
+      state.dropTargetId = null;
+      state.dropSide = null;
+    }
+
+    function onPointerDown(ev) {
       if (ev.button !== 0) return;
       try { container.setPointerCapture(ev.pointerId); } catch (_) {}
       state.pointerId = ev.pointerId;
@@ -109,9 +129,9 @@
           y: ev.clientY - rect.top + container.scrollTop,
         };
       }
-    });
+    }
 
-    container.addEventListener('pointermove', function (ev) {
+    function onPointerMove(ev) {
       if (!state.isMouseDown) return;
       var dx = ev.clientX - state.downPos.x;
       var dy = ev.clientY - state.downPos.y;
@@ -143,7 +163,7 @@
           else if (!(ev.ctrlKey || ev.metaKey)) next.delete(c.dataset.id);
         });
         state.selected = next;
-        commitSelection();
+        paintSelection();
         return;
       }
 
@@ -199,7 +219,7 @@
           state.dropIndex = -1;
         }
       }
-    });
+    }
 
     function endPointer(ev) {
       if (!state.isMouseDown) return;
@@ -212,6 +232,7 @@
         state.marquee = null;
         state.marqueeStart = null;
         state.marqueeBaseSel = null;
+        commitSelection();
         return;
       }
 
@@ -253,6 +274,8 @@
         commitSelection();
       }
     }
+    container.addEventListener('pointerdown', onPointerDown);
+    container.addEventListener('pointermove', onPointerMove);
     container.addEventListener('pointerup',     endPointer);
     container.addEventListener('pointercancel', endPointer);
 
@@ -264,6 +287,15 @@
       },
       selectOnly: function (id) { setSingle(id); state.lastClicked = id; },
       getSelection: function () { return Array.from(state.selected); },
+      dispose: function () {
+        container.removeEventListener('pointerdown', onPointerDown);
+        container.removeEventListener('pointermove', onPointerMove);
+        container.removeEventListener('pointerup', endPointer);
+        container.removeEventListener('pointercancel', endPointer);
+        try { if (state.pointerId != null) container.releasePointerCapture(state.pointerId); } catch (_) {}
+        state.pointerId = null;
+        cleanupArtifacts();
+      },
     };
   }
 

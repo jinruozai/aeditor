@@ -30,7 +30,7 @@
   }
 
   function mount(host) {
-    host.innerHTML = '';
+    GDE.clear(host);
 
     var brand = document.createElement('div'); brand.className = 'gde-brand';
     var bicon = document.createElement('div'); bicon.className = 'gde-brand-icon';
@@ -96,15 +96,25 @@
       var gd = State.gameData();
       var ws = State.workspaceInfo();
       var wsName = ws ? ws.name : t('toolbar.workspace.memory');
-      status.innerHTML =
-        '<span>' + t('toolbar.status.workspace') + ' <b>' + escapeHtml(wsName) + '</b></span>' +
-        '<span>' + t('toolbar.status.tables') + ' <b>' + Object.keys(tm).length + '</b></span>' +
-        '<span>' + t('toolbar.status.entities') + ' <b>' + Object.keys(gd).length + '</b></span>' +
-        '<span>' + t('toolbar.status.version') + '<b>' + State.version() + '</b></span>';
+      GDE.clear(status);
+      status.appendChild(statusItem(t('toolbar.status.workspace') + ' ', wsName));
+      status.appendChild(statusItem(t('toolbar.status.tables') + ' ', Object.keys(tm).length));
+      status.appendChild(statusItem(t('toolbar.status.entities') + ' ', Object.keys(gd).length));
+      status.appendChild(statusItem(t('toolbar.status.version'), State.version()));
     }
 
-    I18N.onChange(refresh);
-    EF.effect(refresh);
+    function statusItem(label, value) {
+      var span = document.createElement('span');
+      var b = document.createElement('b');
+      span.appendChild(document.createTextNode(label));
+      b.textContent = String(value);
+      span.appendChild(b);
+      return span;
+    }
+
+    brand.__efCleanups = brand.__efCleanups || [];
+    brand.__efCleanups.push(I18N.onChange(refresh));
+    GDE.effect(brand, refresh);
   }
 
   function doNew() {
@@ -115,6 +125,7 @@
       okLabel: 'Discard',
     }).then(function (ok) {
       if (!ok) return;
+      if (window.GDE && GDE.plugins) GDE.plugins.deactivateAll();
       ProjectIO.fsWorkspace.setWorkspace(null);
       ProjectIO.assets.clear();
       State.setWorkspaceInfo(null);
@@ -200,12 +211,6 @@
   async function run(label, fn) {
     try { await fn(); }
     catch (e) { State.log('error', label + ': ' + e.message); State.showLogPanel(); }
-  }
-
-  function escapeHtml(s) {
-    return String(s).replace(/[&<>"']/g, function (c) {
-      return c === '&' ? '&amp;' : c === '<' ? '&lt;' : c === '>' ? '&gt;' : c === '"' ? '&quot;' : '&#39;';
-    });
   }
 
   window.TopBar = { mount: mount };

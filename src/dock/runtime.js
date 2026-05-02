@@ -27,9 +27,14 @@
       lruMax:            (opts && opts.lru && opts.lru.max != null) ? opts.lru.max : -1,
       hooks:             (opts && opts.hooks) || {},
       broadcastChannel:  null,
+      cleanups:          [],
+      disposed:          false,
     }
 
-    layout.setTree = function (t) { treeSig.set(t) }
+    layout.setTree = function (t) {
+      if (layout.disposed) return
+      treeSig.set(t)
+    }
 
     layout.markActivation = function (panelId) {
       const dr = findPanelRuntime(layout, panelId)
@@ -38,12 +43,14 @@
     }
 
     layout.activatePanel = function (panelId) {
+      if (layout.disposed) return
       layout.setTree(EF.activatePanel(treeSig.peek(), panelId))
       layout.markActivation(panelId)
       maybeEvictLRU(layout)
     }
 
     layout.removePanel = function (panelId) {
+      if (layout.disposed) return
       const dr = findOwningDockRuntime(layout, panelId)
       const pr = dr && dr.panelRuntimes.get(panelId)
       layout.setTree(EF.removePanel(treeSig.peek(), panelId))
@@ -57,6 +64,7 @@
     // (ctx.dock.addPanel, the public LayoutHandle, migrate.js) funnels
     // through here, so markActivation + maybeEvictLRU are never skipped.
     layout.addPanel = function (dockId, partial, opts) {
+      if (layout.disposed) return null
       const r = EF.addPanel(treeSig.peek(), dockId, partial, opts)
       layout.setTree(r.tree)
       layout.markActivation(r.panelId)
@@ -69,12 +77,14 @@
     // markActivation is never forgotten. No LRU eviction: move doesn't
     // create new runtimes, only re-homes existing ones.
     layout.movePanel = function (panelId, dstDockId, dstIndex) {
+      if (layout.disposed) return
       layout.setTree(EF.movePanel(treeSig.peek(), panelId, dstDockId, dstIndex))
       layout.markActivation(panelId)
     }
 
     // Preview → permanent promotion. Pure tree rewrite, no runtime impact.
     layout.promotePanel = function (panelId) {
+      if (layout.disposed) return
       layout.setTree(EF.promotePanel(treeSig.peek(), panelId))
     }
 
@@ -112,6 +122,19 @@
     }
   }
 
+  function disposeLayoutRuntime(layout) {
+    if (layout.disposed) return
+    layout.disposed = true
+    while (layout.cleanups.length) {
+      const fn = layout.cleanups.pop()
+      try { fn() } catch (e) { console.error(e) }
+    }
+    layout.dockRuntimes.forEach(disposeDockRuntime)
+    layout.dockRuntimes.clear()
+    layout.container.replaceChildren()
+    layout.container.classList.remove('ef-root')
+  }
+
   function disposeDockRuntime(dockRuntime) {
     dockRuntime.panelRuntimes.forEach(disposePanelRuntime)
     dockRuntime.panelRuntimes.clear()
@@ -119,6 +142,20 @@
       disposeComponentRuntime(dockRuntime.staticToolbarRuntimes[i])
     }
     dockRuntime.staticToolbarRuntimes.length = 0
+  }
+
+  function disposeStalePanelRuntimes(dockRuntime, dockData) {
+    const live = new Set()
+    for (let i = 0; i < dockData.panels.length; i++) live.add(dockData.panels[i].id)
+    const stale = []
+    dockRuntime.panelRuntimes.forEach(function (_, id) {
+      if (!live.has(id)) stale.push(id)
+    })
+    for (let i = 0; i < stale.length; i++) {
+      const pr = dockRuntime.panelRuntimes.get(stale[i])
+      disposePanelRuntime(pr)
+      dockRuntime.panelRuntimes.delete(stale[i])
+    }
   }
 
   // Visual class sync — focused / collapsed live as classes on .ef-dock so
@@ -333,17 +370,20 @@
   }
 
   function disposeComponentRuntime(runtime) {
-    for (let i = 0; i < runtime.cleanups.length; i++) {
-      try { runtime.cleanups[i]() } catch (e) { console.error(e) }
+    while (runtime.cleanups.length) {
+      const fn = runtime.cleanups.pop()
+      try { fn() } catch (e) { console.error(e) }
     }
-    runtime.cleanups = []
     if (runtime.contentEl) {
       const spec = EF.resolveComponent(runtime.component)
       if (spec.dispose) {
         EF.safeCall({ scope: 'component', component: runtime.component },
           function () { spec.dispose(runtime.contentEl) })
+      } else if (EF.ui && EF.ui.dispose) {
+        EF.ui.dispose(runtime.contentEl)
+      } else {
+        runtime.contentEl.remove()
       }
-      runtime.contentEl.remove()
       runtime.contentEl = null
     }
     if (runtime.active) runtime.active.set(false)
@@ -413,12 +453,14 @@
 
   EF._dock = EF._dock || {}
   EF._dock.createLayoutRuntime         = createLayoutRuntime
+  EF._dock.disposeLayoutRuntime        = disposeLayoutRuntime
   EF._dock.createDockRuntime           = createDockRuntime
   EF._dock.updateDockRuntime           = updateDockRuntime
   EF._dock.disposeDockRuntime          = disposeDockRuntime
   EF._dock.createStaticToolbarRuntimes = createStaticToolbarRuntimes
   EF._dock.syncActivePanel             = syncActivePanel
   EF._dock.syncDockClasses             = syncDockClasses
+  EF._dock.disposeStalePanelRuntimes   = disposeStalePanelRuntimes
   EF._dock.disposePanelRuntime         = disposePanelRuntime
   EF._dock.findPanelRuntime            = findPanelRuntime
 })(window.EF = window.EF || {})

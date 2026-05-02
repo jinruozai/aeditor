@@ -30,11 +30,15 @@
     }
 
     const body = ui.h('div', 'ef-ui-modal-body')
-    if (o.content) body.appendChild(o.content)
+    if (o.content) {
+      body.appendChild(o.content)
+      ui.collect(box, function () { ui.dispose(o.content) })
+    }
     box.appendChild(body)
     if (o.footer) {
       const foot = ui.h('div', 'ef-ui-modal-foot')
       foot.appendChild(o.footer)
+      ui.collect(box, function () { ui.dispose(o.footer) })
       box.appendChild(foot)
     }
     back.appendChild(box)
@@ -47,6 +51,7 @@
       ariaLabelledBy: titleId || undefined,
       ariaLabel:      titleId ? undefined : (o.ariaLabel || 'Dialog'),
       onDismiss: function () {
+        ui.dispose(box)
         unmount()
         o.onClose && o.onClose()
       },

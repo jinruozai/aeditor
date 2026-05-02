@@ -29,8 +29,16 @@
   // frame that got hold of our handle — from driving the migration protocol.
   // Note file:// gives 'null' for both sides, which still matches.
   function targetOriginFor(w) {
-    try { return w.location.origin || window.location.origin }
-    catch (e) { return window.location.origin }
+    let origin = ''
+    try { origin = w.location.origin || window.location.origin }
+    catch (e) { origin = window.location.origin }
+    if (!origin || origin === 'null' || window.location.protocol === 'file:') return '*'
+    return origin
+  }
+
+  function safePost(target, msg) {
+    try { target.postMessage(msg, targetOriginFor(target)) }
+    catch (e) { EF.reportError({ scope: 'global' }, e) }
   }
 
   function isTrustedEvent(ev, expectedSource) {
@@ -97,15 +105,18 @@
           component: panelData.component,
           title:  panelData.title,
           icon:   panelData.icon,
+          dirty:  panelData.dirty,
+          badge:  panelData.badge,
+          name:   panelData.name,
           props:  panelData.props,
           toolbarItems: panelData.toolbarItems,
         }
-        w.postMessage({
+        safePost(w, {
           efAction:  'migrate',
           txId:      txId,
           panelData: cleanData,
           state:     state,
-        }, targetOriginFor(w))
+        })
       } else if (msg.efAction === 'migrate-ack' && msg.txId === txId) {
         cleanup()
         layout.removePanel(panelId)
@@ -123,19 +134,24 @@
   // popup-side of the protocol: announce ready, then accept migrations.
   function bindMigrationReceiver(layout) {
     if (!window.opener) return // not a popup, nothing to do
+    if (window.location.search.indexOf('ef-popup=1') < 0) return
 
-    window.addEventListener('message', function (ev) {
+    function onMessage(ev) {
       if (!isTrustedEvent(ev, window.opener)) return
       const msg = ev.data
       if (!msg || msg.efAction !== 'migrate') return
       acceptMigration(layout, msg, window.opener)
-    })
+    }
+
+    window.addEventListener('message', onMessage)
+    if (layout.cleanups) {
+      layout.cleanups.push(function () { window.removeEventListener('message', onMessage) })
+    }
 
     // Tell opener we're ready to receive. postMessage queues if no listener
     // yet, but the source registers its listener synchronously before this
     // runs in the popup, so ordering is fine.
-    try { window.opener.postMessage({ efAction: 'ready' }, targetOriginFor(window.opener)) }
-    catch (e) { /* opener may have closed */ }
+    safePost(window.opener, { efAction: 'ready' })
   }
 
   function acceptMigration(layout, msg, opener) {
@@ -152,8 +168,7 @@
     })
 
     if (!targetId) {
-      try { opener.postMessage({ efAction: 'migrate-reject', txId: msg.txId }, targetOriginFor(opener)) }
-      catch (e) {}
+      safePost(opener, { efAction: 'migrate-reject', txId: msg.txId })
       return
     }
 
@@ -161,6 +176,9 @@
       component: component,
       title:  msg.panelData.title,
       icon:   msg.panelData.icon,
+      dirty:  msg.panelData.dirty,
+      badge:  msg.panelData.badge,
+      name:   msg.panelData.name,
       props:  msg.panelData.props,
       toolbarItems: msg.panelData.toolbarItems,
     })
@@ -179,8 +197,7 @@
       }
     }
 
-    try { opener.postMessage({ efAction: 'migrate-ack', txId: msg.txId }, targetOriginFor(opener)) }
-    catch (e) {}
+    safePost(opener, { efAction: 'migrate-ack', txId: msg.txId })
   }
 
   function walkDocks(node, fn) {

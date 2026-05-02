@@ -2,7 +2,7 @@
 //
 // A panel that lets the user live-edit the editorframe theme tokens. Writes
 // to documentElement.style.setProperty so the change reflects everywhere
-// instantly. State persists to localStorage under 'ef-theme-overrides'.
+// instantly. State persists to localStorage under a versioned override key.
 //
 // Tabs: Palette / Spacing / Sizing / Radius / Typography / Motion. Each row
 // is built from the actual UI library, so this panel doubles as a real-world
@@ -11,38 +11,44 @@
   'use strict'
   const ui = EF.ui
 
-  const STORAGE_KEY = 'ef-theme-overrides'
+  const STORAGE_KEY = 'ef-theme-overrides-v2'
   const THEME_KEY   = 'ef-theme-mode'
 
   // ── token catalog ─────────────────────────────────────────────────
   // [name, label, type, opts?]   type: color | px | num | text
   const PALETTE = [
-    ['--ef-c-00', '00 (deepest)'],
-    ['--ef-c-01', '01'],
-    ['--ef-c-02', '02'],
-    ['--ef-c-03', '03'],
-    ['--ef-c-04', '04'],
-    ['--ef-c-05', '05'],
-    ['--ef-c-06', '06'],
-    ['--ef-c-07', '07'],
-    ['--ef-c-08', '08'],
-    ['--ef-c-09', '09'],
-    ['--ef-c-10', '10'],
-    ['--ef-c-11', '11 (text)'],
-    ['--ef-c-accent',      'Accent'],
-    ['--ef-c-accent-soft', 'Accent soft'],
-    ['--ef-c-success',     'Success'],
-    ['--ef-c-warn',        'Warn'],
-    ['--ef-c-error',       'Error'],
-    ['--ef-c-info',        'Info'],
+    ['--ef-surface-canvas', 'Surface / Canvas'],
+    ['--ef-surface-lower',  'Surface / Lower'],
+    ['--ef-surface-frame',  'Surface / Frame'],
+    ['--ef-surface-panel',  'Surface / Panel'],
+    ['--ef-surface-field',  'Surface / Field'],
+    ['--ef-surface-hover',  'Surface / Hover'],
+    ['--ef-surface-active', 'Surface / Active'],
+    ['--ef-surface-raised', 'Surface / Raised'],
+    ['--ef-text-primary',   'Text / Primary'],
+    ['--ef-text-body',      'Text / Body'],
+    ['--ef-text-label',     'Text / Label'],
+    ['--ef-text-muted',     'Text / Muted'],
+    ['--ef-text-disabled',  'Text / Disabled'],
+    ['--ef-stroke-subtle',  'Stroke / Subtle'],
+    ['--ef-stroke-strong',  'Stroke / Strong'],
+    ['--ef-stroke-field',   'Stroke / Field'],
+    ['--ef-stroke-hover',   'Stroke / Hover'],
+    ['--ef-brand',          'Brand / Accent'],
+    ['--ef-brand-hover',    'Brand / Hover'],
+    ['--ef-brand-contrast', 'Brand / Contrast'],
+    ['--ef-state-success',  'State / Success'],
+    ['--ef-state-warning',  'State / Warning'],
+    ['--ef-state-danger',   'State / Danger'],
+    ['--ef-state-info',     'State / Info'],
   ]
   const SPACING = [
-    ['--ef-space-1', '1', 0, 32],
-    ['--ef-space-2', '2', 0, 32],
-    ['--ef-space-3', '3', 0, 64],
-    ['--ef-space-4', '4', 0, 64],
-    ['--ef-space-5', '5', 0, 96],
-    ['--ef-space-6', '6', 0, 128],
+    ['--ef-space-1', 'Tight gap', 0, 32],
+    ['--ef-space-2', 'Control gap', 0, 32],
+    ['--ef-space-3', 'Row gap', 0, 64],
+    ['--ef-space-4', 'Panel padding', 0, 64],
+    ['--ef-space-5', 'Section gap', 0, 96],
+    ['--ef-space-6', 'Large gap', 0, 128],
   ]
   const SIZING = [
     ['--ef-size-h-xs', 'Control height xs', 12, 40],
@@ -53,10 +59,10 @@
     ['--ef-tab-h',     'Tab height',        16, 60],
   ]
   const RADIUS = [
-    ['--ef-r-1', '1', 0, 24],
-    ['--ef-r-2', '2', 0, 24],
-    ['--ef-r-3', '3', 0, 24],
-    ['--ef-r-4', '4', 0, 24],
+    ['--ef-r-1', 'Tiny radius', 0, 24],
+    ['--ef-r-2', 'Control radius', 0, 24],
+    ['--ef-r-3', 'Panel radius', 0, 24],
+    ['--ef-r-4', 'Floating radius', 0, 24],
   ]
   const TYPO_PX = [
     ['--ef-fs-xs', 'Font size xs',  8, 24],
@@ -101,8 +107,7 @@
   // 'dark' is the implicit default (no attribute); any other mode sets
   // data-ef-theme=<mode> for the theme.css rule to key off.
   function applyThemeMode(mode) {
-    if (mode === 'dark') document.documentElement.removeAttribute('data-ef-theme')
-    else document.documentElement.setAttribute('data-ef-theme', mode)
+    EF.theme.set(mode)
     localStorage.setItem(THEME_KEY, mode)
   }
   function pxNum(s) {
@@ -142,7 +147,7 @@
         allSigs.push({ sig: sig, name: name, parse: parse, format: format })
       }
       function bindWriter(sig, name, format) {
-        EF.effect(function () {
+        const stop = EF.effect(function () {
           const v = sig()
           const literal = format ? format(v) : v
           // getPropertyValue on documentElement.style returns the INLINE value
@@ -154,6 +159,7 @@
           if (effective === literal) return
           writeToken(name, literal)
         })
+        ctx.onCleanup(stop)
       }
       function refreshAll() {
         // Remove every tracked inline override first so getComputedStyle
@@ -226,11 +232,7 @@
       const exportBtn = ui.button({
         text: 'Export', kind: 'ghost', size: 'sm',
         onClick: function () {
-          const o = readPersisted()
-          const lines = [':root {']
-          for (const k in o) lines.push('  ' + k + ': ' + o[k] + ';')
-          lines.push('}')
-          const text = lines.join('\n')
+          const text = EF.theme.exportCss()
           navigator.clipboard && navigator.clipboard.writeText(text)
           ui.toast({ kind: 'info', title: 'CSS copied', message: text })
         },

@@ -2,6 +2,7 @@
 //
 // opts:
 //   anchor: HTMLElement
+//   pos?: { x, y }              // optional zero-size viewport anchor
 //   items:  [{ label, value?, icon?, group?, onSelect? }]
 //   placeholder?: string
 //   side?, align?, width?, maxHeight?
@@ -77,17 +78,30 @@
       if (ev.key === 'Escape')    { ev.preventDefault(); close(); return }
     })
 
-    const r = o.anchor.getBoundingClientRect()
+    let anchor = o.anchor
+    let tempAnchor = null
+    if (!anchor && o.pos) {
+      tempAnchor = ui.h('div', null, {
+        style: 'position:fixed;width:0;height:0;left:' + (o.pos.x || 0) + 'px;top:' + (o.pos.y || 0) + 'px;pointer-events:none;',
+      })
+      document.body.appendChild(tempAnchor)
+      anchor = tempAnchor
+    }
+    function disposeAnchor() {
+      if (tempAnchor && tempAnchor.parentNode) tempAnchor.parentNode.removeChild(tempAnchor)
+      tempAnchor = null
+    }
+    const r = anchor.getBoundingClientRect()
     root.style.width = (o.width || Math.max(260, Math.min(420, r.width || 0))) + 'px'
     list.style.maxHeight = (o.maxHeight || 360) + 'px'
     paint()
     pop = ui.popover({
-      anchor: o.anchor,
+      anchor: anchor,
       content: root,
       side: o.side || 'bottom',
       align: o.align || 'start',
       role: 'menu',
-      onDismiss: function () { pop = null },
+      onDismiss: function () { disposeAnchor(); pop = null },
     })
     setTimeout(function () {
       const inner = input.querySelector('input')

@@ -14,6 +14,8 @@
 //   text/uri-list                    single URL (image/audio/doc paths)
 //   text/plain                       fallback for plain strings
 //   application/ef.asset+json        { kind:'image'|'audio'|'file', value, meta? }
+//   application/ef.asset.<kind>+json  same payload, hover-readable kind hint
+//   application/ef.asset.entry+json   [{ kind, path?, url?, name? }]
 //   application/ef.entity+json       { id, pathKey }  — game-entity reference
 //
 // dropzone unpacks all of the above into a flat `data` object so handlers
@@ -71,6 +73,8 @@
     if (full) {
       const asset = safeRead(dt, 'application/ef.asset+json')
       if (asset) { try { data.asset = JSON.parse(asset) } catch (_) {} }
+      const assetEntries = safeRead(dt, 'application/ef.asset.entry+json')
+      if (assetEntries) { try { data.assetEntries = JSON.parse(assetEntries) } catch (_) {} }
       const entity = safeRead(dt, 'application/ef.entity+json')
       if (entity) { try { data.entity = JSON.parse(entity) } catch (_) {} }
     }
@@ -233,6 +237,7 @@
     // Prefer the most specific signal that's actually readable at this
     // phase: files (drop) → fileMimes (hover via dt.items) → uri/text → asset.
     if (kind === 'image') {
+      if (data.types && data.types.indexOf('application/ef.asset.image+json') >= 0) return true
       if (anyFileMatches(data.files, /^image\//))      return true
       if (anyMimeMatches(data.fileMimes, /^image\//))  return true
       if (urlMatches(data.uri, IMG_RE))  return true
@@ -241,6 +246,7 @@
       return false
     }
     if (kind === 'audio') {
+      if (data.types && data.types.indexOf('application/ef.asset.audio+json') >= 0) return true
       if (anyFileMatches(data.files, /^audio\//))      return true
       if (anyMimeMatches(data.fileMimes, /^audio\//))  return true
       if (urlMatches(data.uri, AUD_RE))  return true

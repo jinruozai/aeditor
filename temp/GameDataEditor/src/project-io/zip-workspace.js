@@ -15,9 +15,18 @@
     var entries = zip.unzipSync(bytes);
     var dec = new TextDecoder();
     var files = {};
-    Object.keys(entries).forEach(function (path) {
-      if (/\.json$/i.test(path)) files[path] = dec.decode(entries[path]);
+    var pluginFiles = {};
+    Object.keys(entries).forEach(function (rawPath) {
+      var path = cleanZipPath(rawPath);
+      if (!path) return;
+      if (path.indexOf('plugin/') === 0) {
+        if (/\.(json|js|css|md|txt)$/i.test(path)) pluginFiles[path] = dec.decode(entries[rawPath]);
+        return;
+      }
+      if (path.indexOf('asset/') === 0) return;
+      if (/\.json$/i.test(path)) files[path] = dec.decode(entries[rawPath]);
     });
+    if (window.GDE && GDE.plugins) await GDE.plugins.loadProject(pluginFiles, file.name.replace(/\.zip$/i, ''));
     ProjectIO.assets.loadFromZip(entries);
     ProjectIO.codec.applySnapshot(ProjectIO.codec.filesToSnapshot(files), file.name.replace(/\.zip$/i, ''));
   }
@@ -33,10 +42,23 @@
     });
     var assets = await ProjectIO.assets.zipEntries();
     Object.keys(assets).forEach(function (path) { entries[path] = assets[path]; });
+    var pluginFiles = window.GDE && GDE.plugins ? GDE.plugins.files() : {};
+    Object.keys(pluginFiles).sort().forEach(function (path) {
+      entries[path] = enc.encode(pluginFiles[path]);
+    });
     var out = zip.zipSync(entries, { level: 6 });
     var blob = new Blob([out], { type: 'application/zip' });
     var name = (State.projectName() || 'gamedata').replace(/[\\/:*?"<>|]+/g, '_') + '.zip';
     downloadBlob(name, blob);
+  }
+
+  function cleanZipPath(path) {
+    return String(path || '')
+      .replace(/\\/g, '/')
+      .replace(/^\/+/, '')
+      .split('/')
+      .filter(function (p) { return p && p !== '.' && p !== '..'; })
+      .join('/');
   }
 
   function downloadBlob(name, blob) {

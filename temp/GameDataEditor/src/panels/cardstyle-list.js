@@ -67,7 +67,7 @@
     function buildTile(key, def) {
       var tile = ui.h('div', 'gde-cs-tile');
       tile.dataset.key = key;
-      EF.effect(function () {
+      GDE.effect(tile, function () {
         var sel = State.selection();
         var active = sel && ((sel.kind === 'card_style' && sel.key === key)
           || (sel.kind === 'card_component' && sel.styleKey === key));
@@ -145,12 +145,12 @@
         });
     }
     function paint() {
-      grid.innerHTML = '';
+      GDE.clear(grid);
       var cs = State.projectCardStyles();
       Object.keys(cs).forEach(function (k) { grid.appendChild(buildTile(k, cs[k])); });
     }
 
-    EF.effect(paint);
+    GDE.effect(root, paint);
     ctx.bus.on('cardstyles:changed', paint);
     ctx.bus.on('selection:changed',  function () {
       // Just re-flag the active tile; cheap.

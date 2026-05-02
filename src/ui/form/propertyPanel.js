@@ -169,12 +169,12 @@
     // undefined / null / '' are treated as the same "empty" state so a
     // freshly-created node (where the field was never set) reads as
     // "at default" even when the default literal is ''.
-    EF.effect(function () {
+    ui.collect(btn, EF.effect(function () {
       const v = slotSig()
       const atDefault = isAtDefault(v, defaultValue)
       btn.style.opacity = atDefault ? '0.3' : '1'
       btn.style.cursor  = atDefault ? 'default' : ''
-    })
+    }))
     return btn
   }
   function isAtDefault(v, def) {

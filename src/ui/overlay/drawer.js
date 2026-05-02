@@ -33,7 +33,10 @@
     }
 
     const body = ui.h('div', 'ef-ui-drawer-body')
-    if (o.content) body.appendChild(o.content)
+    if (o.content) {
+      body.appendChild(o.content)
+      ui.collect(panel, function () { ui.dispose(o.content) })
+    }
     panel.appendChild(body)
     back.appendChild(panel)
 
@@ -49,7 +52,7 @@
       onDismiss: function () {
         panel.classList.remove('ef-ui-drawer-open')
         // Slide-out transition uses --ef-dur-slow; unmount after it finishes.
-        setTimeout(function () { unmount(); o.onClose && o.onClose() },
+        setTimeout(function () { ui.dispose(panel); unmount(); o.onClose && o.onClose() },
           ui.readNum('--ef-dur-slow', 240))
       },
     })

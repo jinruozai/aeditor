@@ -60,7 +60,7 @@
 .ef-ui-modal-backdrop {
   position: fixed;
   inset: 0;
-  background: color-mix(in srgb, var(--ef-c-00) 60%, transparent);
+  background: var(--ef-scrim);
   z-index: var(--ef-z-modal);
   display: flex;
   align-items: center;
@@ -137,6 +137,8 @@
 .ef-ui-dialog-body {
   min-width: 320px;
   max-width: 460px;
+  max-height: min(360px, 52vh);
+  overflow: auto;
   font: var(--ef-fs-md) var(--ef-font-ui);
   color: var(--ef-fg-1);
   line-height: 1.5;
@@ -161,7 +163,7 @@
 .ef-ui-drawer-backdrop {
   position: fixed;
   inset: 0;
-  background: color-mix(in srgb, var(--ef-c-00) 50%, transparent);
+  background: var(--ef-scrim);
   z-index: var(--ef-z-modal);
   pointer-events: auto;
 }

@@ -32,11 +32,16 @@
       layout.dockRuntimes.delete(toDelete[i])
     }
 
-    // Mount active panels + sync visual classes.
+    // Mount active panels + sync visual classes. Stale panel runtime GC runs
+    // after every dock has had a chance to re-home moved panel runtimes.
     layout.dockRuntimes.forEach(function (dr) {
       const data = dr.dataSig.peek()
       RT.syncActivePanel(dr, data, layout)
       RT.syncDockClasses(dr, data)
+    })
+    layout.dockRuntimes.forEach(function (dr) {
+      const data = dr.dataSig.peek()
+      RT.disposeStalePanelRuntimes(dr, data)
     })
   }
 

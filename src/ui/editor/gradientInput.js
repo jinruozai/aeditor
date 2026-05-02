@@ -180,7 +180,9 @@
     }))
 
     const editorRow = ui.h('div', 'ef-ui-gradient-editor')
-    editorRow.appendChild(ui.colorInput({ value: colorSig }))
+    const colorEditor = ui.colorInput({ value: colorSig })
+    editorRow.appendChild(colorEditor)
+    ui.collect(el, function () { ui.dispose(colorEditor) })
     const delBtn = ui.h('button', 'ef-ui-gradient-delete', {
       type: 'button', text: '✕', title: 'Delete stop (double-click a stop)',
     })

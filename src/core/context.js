@@ -16,6 +16,12 @@
   const signal  = EF.signal
   const derived = EF.derived
 
+  function scopedDerived(runtime, fn) {
+    const sig = derived(fn)
+    runtime.cleanups.push(sig.dispose)
+    return sig
+  }
+
   function makeContext(runtime, layout) {
     const ctx = {}
 
@@ -38,7 +44,9 @@
     // raw `off(topic, handler)` surface can use EF.bus.off directly.
     ctx.bus = {
       on: function (topic, handler) {
-        const rawOff = EF.bus.on(topic, handler)
+        const rawOff = EF.bus.on(topic, function (payload) {
+          EF.safeCall(busSource(runtime, topic), function () { handler(payload) })
+        })
         let done = false
         const dispose = function () {
           if (done) return
@@ -76,16 +84,16 @@
     }
 
     return {
-      id:          derived(function () { return dockIdSig() }),
-      panels:      derived(function () { const d = lookupDock(); return d ? d.panels   : [] }),
-      activeId:    derived(function () { const d = lookupDock(); return d ? d.activeId : null }),
-      collapsed:   derived(function () { const d = lookupDock(); return d ? !!d.collapsed : false }),
-      focused:     derived(function () { const d = lookupDock(); return d ? !!d.focused   : false }),
+      id:          scopedDerived(runtime, function () { return dockIdSig() }),
+      panels:      scopedDerived(runtime, function () { const d = lookupDock(); return d ? d.panels   : [] }),
+      activeId:    scopedDerived(runtime, function () { const d = lookupDock(); return d ? d.activeId : null }),
+      collapsed:   scopedDerived(runtime, function () { const d = lookupDock(); return d ? !!d.collapsed : false }),
+      focused:     scopedDerived(runtime, function () { const d = lookupDock(); return d ? !!d.focused   : false }),
       // Pure topology check — false when the dock has no toolbar, is root,
       // or its parent split direction doesn't match the collapse axis. The
       // collapsed bit in tree is a user-intent flag; this signal tells you
       // whether render.js will actually honor it at the current position.
-      canCollapse: derived(function () { return EF.canCollapseDock(treeSig(), dockIdSig()) }),
+      canCollapse: scopedDerived(runtime, function () { return EF.canCollapseDock(treeSig(), dockIdSig()) }),
 
       activatePanel: function (id) { layout.activatePanel(id) },
       removePanel:   function (id) { layout.removePanel(id) },
@@ -111,11 +119,11 @@
 
     return {
       id:    panelId,
-      title: derived(function () { return data().title || data().component }),
-      icon:  derived(function () { return data().icon || '' }),
-      dirty: derived(function () { return !!data().dirty }),
-      badge: derived(function () { return data().badge || null }),
-      props: derived(function () { return data().props || {} }),
+      title: scopedDerived(runtime, function () { return data().title || data().component }),
+      icon:  scopedDerived(runtime, function () { return data().icon || '' }),
+      dirty: scopedDerived(runtime, function () { return !!data().dirty }),
+      badge: scopedDerived(runtime, function () { return data().badge || null }),
+      props: scopedDerived(runtime, function () { return data().props || {} }),
 
       setTitle: function (s) { patch({ title: s }) },
       setIcon:  function (s) { patch({ icon: s }) },
@@ -140,6 +148,13 @@
       src.panelId = runtime.panelId
     }
     if (runtime.dockRef) src.dockId = runtime.dockRef.peek()
+    return src
+  }
+
+  function busSource(runtime, topic) {
+    const src = runtimeSource(runtime)
+    src.scope = 'bus'
+    src.topic = topic
     return src
   }
 

@@ -11,7 +11,10 @@
   ui.popover = function (opts) {
     const o = opts || {}
     const el = ui.h('div', 'ef-ui-popover')
-    if (o.content) el.appendChild(o.content)
+    if (o.content) {
+      el.appendChild(o.content)
+      ui.collect(el, function () { ui.dispose(o.content) })
+    }
 
     const unmount = ui.portal(el)
     ui.place(o.anchor, el, { side: o.side || 'bottom', align: o.align || 'start' })
@@ -20,6 +23,7 @@
       anchor:   o.anchor,
       role:     o.role || 'dialog',
       onDismiss: function () {
+        ui.dispose(el)
         unmount()
         o.onDismiss && o.onDismiss()
       },

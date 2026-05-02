@@ -1,8 +1,8 @@
-/**
- * CardStyle node tree — left dock panel that shows the active cardStyle's
- * tree (root → descendants). Subscribes to State.activeCardStyle.
+﻿/**
+ * CardStyle node tree 閳?left dock panel that shows the active cardStyle's
+ * tree (root 閳?descendants). Subscribes to State.activeCardStyle.
  *
- * Selection in the tree → State.setSelection({kind:'card_component',
+ * Selection in the tree 閳?State.setSelection({kind:'card_component',
  * styleKey, nodeId(s)}) so Inspector reflects the chosen node(s).
  *
  * Empty state when no cardStyle is active.
@@ -14,7 +14,7 @@
 
   var ui = EF.ui;
 
-  // Walk a TreeNode → flat ui.tree input (id/label/icon/children).
+  // Walk a TreeNode 閳?flat ui.tree input (id/label/icon/children).
   function flatten(node) {
     if (!node) return [];
     return [toTreeRow(node)];
@@ -26,7 +26,7 @@
     var bound = n.bindings && Object.keys(n.bindings).length;
     if (bound) {
       var b = n.bindings[Object.keys(n.bindings)[0]];
-      label = n.component + ' · ' + (b && b.field ? '🔗 ' + b.field : '');
+      label = n.component + (b && b.field ? ' -> ' + b.field : '');
     }
     return {
       id:       n.id,
@@ -51,15 +51,16 @@
   }
 
   // Module-local node clipboard. Holds JSON-serialized TreeNode objects
-  // so paste works across cardStyles too — every TreeNode is the same
+  // so paste works across cardStyles too 閳?every TreeNode is the same
   // shape regardless of which cardStyle it came from. Paste deep-clones
   // and rewrites every id so duplicates don't collide.
-  var clipboard = EF.signal([]);
+  var Actions = GDE.cardStyleActions;
+  var clipboard = Actions.clipboard;
 
   function factory(_propsSig, ctx) {
     var root = ui.h('div', 'gde-cs-tree');
 
-    // ── Header: title + filter input + add button ──────────────────
+    // 閳光偓閳光偓 Header: title + filter input + add button 閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓
     var header = ui.h('div', 'gde-cs-tree-header');
     var titleEl = ui.h('span', 'gde-cs-tree-title', { text: '(no cardStyle selected)' });
     header.appendChild(titleEl);
@@ -67,7 +68,7 @@
 
     var bar = ui.h('div', 'gde-cs-tree-bar');
     var filterSig = EF.signal('');
-    var search = ui.searchInput({ value: filterSig, placeholder: 'Filter…' });
+    var search = ui.searchInput({ value: filterSig, placeholder: 'Filter...' });
     search.style.cssText = 'flex:1 1 auto;min-width:0;';
     var addBtn = ui.iconButton({
       icon: 'plus', kind: 'primary', size: 'sm', title: 'Add component',
@@ -104,12 +105,16 @@
         var canPaste = (clipboard.peek() || []).length > 0;
         return [
           { label: 'Copy', icon: 'copy', onSelect: function () { copyNodes(); } },
-          { label: 'Paste as sibling', disabled: !canPaste,
+          { label: 'Paste', icon: 'paste', disabled: !canPaste, onSelect: function () { Actions.paste(keyFromState()); } },
+          { label: 'Duplicate', icon: 'copy', onSelect: function () { duplicateNodes(); } },
+          { label: 'Copy Scene Text', icon: 'copy', onSelect: function () { copySceneText(); } },
+          { label: 'Copy Subtree Text', icon: 'copy', onSelect: function () { copySceneText(node.id); } },
+          { label: 'Paste as sibling', disabled: !canPaste, icon: 'paste',
             onSelect: function () { pasteAsSibling(node.id); } },
-          { label: 'Paste as child', disabled: !canPaste,
+          { label: 'Paste as child', disabled: !canPaste, icon: 'paste',
             onSelect: function () { pasteAsChild(node.id); } },
           { type: 'divider' },
-          { label: 'Delete', danger: true, onSelect: function () { deleteNode(node.id); } },
+          { label: 'Delete', icon: 'trash', danger: true, onSelect: function () { deleteNode(node.id); } },
         ];
       },
       dnd: {
@@ -122,6 +127,10 @@
       },
     });
     tree.style.cssText = 'flex:1 1 0;';
+    var lastPointer = null;
+    root.tabIndex = -1;
+    tree.addEventListener('pointerdown', function (ev) { root.focus(); lastPointer = { x: ev.clientX, y: ev.clientY }; });
+    tree.addEventListener('pointermove', function (ev) { lastPointer = { x: ev.clientX, y: ev.clientY }; });
     tree.addEventListener('dragover', function (ev) {
       if (!hasComponentPayload(ev)) return;
       ev.preventDefault();
@@ -133,6 +142,27 @@
       var payload = readComponentPayload(ev);
       if (!payload || !payload.name) return;
       addComponent(payload.name, dropTargetNodeId(ev));
+    });
+    tree.addEventListener('contextmenu', function (ev) {
+      if (ev.target.closest && ev.target.closest('.ef-ui-tree-row')) return;
+      ev.preventDefault();
+      root.focus();
+      var key = State.activeCardStyle.peek();
+      var def = key ? State.projectCardStyles()[key] : null;
+      var items = [];
+      if (key) items.push({ label: 'Add Node...', icon: 'plus', onSelect: function () { openAddMenu({ x: ev.clientX, y: ev.clientY }, null); } });
+      if (def && def.root && (clipboard.peek() || []).length) {
+        items.push({ label: 'Paste', icon: 'paste', onSelect: function () { Actions.paste(key); } });
+        items.push({ label: 'Paste as child of Root', icon: 'paste', onSelect: function () { pasteAsChild(def.root.id); } });
+      }
+      if (def && def.root) {
+        if (items.length) items.push({ type: 'divider' });
+        items.push({ label: 'Copy Scene Text', icon: 'copy', onSelect: function () { copySceneText(); } });
+        items.push({ label: 'Copy', icon: 'copy', disabled: !currentSelectedIds().length, onSelect: function () { Actions.copy(key); } });
+        items.push({ label: 'Duplicate', icon: 'copy', disabled: !currentSelectedIds().length, onSelect: function () { Actions.duplicate(key); } });
+      }
+      if (!items.length) items.push({ label: 'No cardStyle selected', disabled: true });
+      EF.ui.contextMenu({ x: ev.clientX, y: ev.clientY }, items);
     });
 
     function refresh() {
@@ -167,13 +197,16 @@
     }
 
     // The local selectedSig (the one ui.tree writes only when no onSelect
-    // is provided) is read-only here — our onSelect routes through State.
+    // is provided) is read-only here 閳?our onSelect routes through State.
     // So always source the live selection from State.selection().
     function currentSelectedIds() {
       var key = State.activeCardStyle.peek();
       var sel = State.selection();
       if (!sel || sel.kind !== 'card_component' || sel.styleKey !== key) return [];
       return sel.nodeIds || [];
+    }
+    function keyFromState() {
+      return State.activeCardStyle.peek();
     }
     function expandNode(id) {
       var next = new Set(expandedSig.peek());
@@ -228,9 +261,11 @@
     // or as a root if the cardStyle is empty.
     var ADD_CATS = ['layout', 'display', 'base', 'form', 'editor'];
     function showAddMenu(ev) {
+      openAddMenu({ x: ev.clientX, y: ev.clientY }, null);
+    }
+    function openAddMenu(point, parentId) {
       var key = State.activeCardStyle.peek();
       if (!key) { State.log('warn', 'Pick a cardStyle first.'); return; }
-      var rect = ev.target.getBoundingClientRect();
       var groups = {};
       EF.listComponents().forEach(function (c) {
         if (!c.category || ADD_CATS.indexOf(c.category) < 0) return;
@@ -248,15 +283,15 @@
             value: spec.name,
             icon:  spec.icon  || 'square',
             group: cat,
-            onSelect: function () { addComponent(spec.name); },
+            onSelect: function () { addComponent(spec.name, parentId); },
           });
         });
       });
       ui.searchMenu({
-        anchor: ev.target,
+        pos: point,
         items: items,
         placeholder: 'Search components...',
-        side: 'right',
+        side: 'bottom',
         align: 'start',
         width: 300,
         maxHeight: 520,
@@ -313,8 +348,56 @@
     // Copy the current tree-multi-selection (or fall back to the right-
     // clicked node if nothing is multi-selected) into the module clipboard.
     // We snapshot `JSON.stringify` payloads so the clipboard survives later
-    // edits to the source cardStyle. Root cannot be copied — copying root
+    // edits to the source cardStyle. Root cannot be copied 閳?copying root
     // and pasting back would overwrite or duplicate the entire style.
+    function sceneText(nodeId) {
+      var key = State.activeCardStyle.peek();
+      if (!key) return '';
+      var cs = State.projectCardStyles()[key];
+      if (!cs || !cs.root) return '';
+      var rootNode = cs.root;
+      if (nodeId) {
+        var hit = SceneNode.find(cs.root, nodeId);
+        if (!hit) return '';
+        rootNode = hit.node;
+      }
+      return JSON.stringify({
+        format: 'gde.cardStyle.scene',
+        version: 1,
+        cardStyle: key,
+        name: cs.name || key,
+        scope: nodeId ? 'subtree' : 'scene',
+        root: JSON.parse(JSON.stringify(rootNode)),
+      }, null, 2);
+    }
+    function copySceneText(nodeId) {
+      var text = sceneText(nodeId);
+      if (!text) return;
+      copyText(text).then(function () {
+        State.log('info', nodeId ? 'Copied subtree scene text.' : 'Copied cardStyle scene text.');
+      });
+    }
+    function copyText(text) {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        return navigator.clipboard.writeText(text).catch(function () { fallbackCopyText(text); });
+      }
+      fallbackCopyText(text);
+      return Promise.resolve();
+    }
+    function fallbackCopyText(text) {
+      var ta = document.createElement('textarea');
+      ta.value = text;
+      ta.setAttribute('readonly', '');
+      ta.style.cssText = 'position:fixed;left:-9999px;top:0;';
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      ta.remove();
+    }
+    function duplicateNodes() {
+      Actions.duplicate(State.activeCardStyle.peek());
+    }
+
     function copyNodes() {
       var key = State.activeCardStyle.peek();
       if (!key) return;
@@ -367,7 +450,7 @@
       if (!key) return;
       var cs = State.projectCardStyles();
       var def = cs[key]; if (!def) return;
-      // Don't allow deleting the root via the context menu — that would
+      // Don't allow deleting the root via the context menu 閳?that would
       // leave an inconsistent CardStyleDef. Use the inspector's "clear root"
       // affordance for that.
       if (def.root && def.root.id === id) {
@@ -381,7 +464,19 @@
       });
     }
 
-    EF.effect(refresh);
+    function isTreeActive() {
+      return root.isConnected && root.contains(document.activeElement);
+    }
+    EF.shortcuts.register({ key: 'a', shift: true, when: isTreeActive, run: function () { openAddMenu(lastPointer || treeCenterPoint(), null); } }, root);
+    EF.shortcuts.register({ key: 'c', ctrl: true, when: isTreeActive, run: function () { Actions.copy(State.activeCardStyle.peek()); } }, root);
+    EF.shortcuts.register({ key: 'v', ctrl: true, when: isTreeActive, run: function () { Actions.paste(State.activeCardStyle.peek()); } }, root);
+    EF.shortcuts.register({ key: 'd', shift: true, when: isTreeActive, run: function () { Actions.duplicate(State.activeCardStyle.peek()); } }, root);
+    function treeCenterPoint() {
+      var r = tree.getBoundingClientRect();
+      return { x: r.left + r.width / 2, y: r.top + Math.min(120, Math.max(24, r.height / 3)) };
+    }
+
+    GDE.effect(root, refresh);
     ctx.bus.on('cardstyles:changed', refresh);
     ctx.bus.on('selection:changed',  refresh);
 

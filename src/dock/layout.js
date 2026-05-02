@@ -35,10 +35,11 @@
       hooks: config.hooks,
     })
 
-    effect(function () {
+    const stopReconcile = effect(function () {
       const t = tree()
-      RT.reconcile(layout, t)
+      if (!layout.disposed) RT.reconcile(layout, t)
     })
+    layout.cleanups.push(stopReconcile)
 
     // Phase 6 — popup mode handshake. No-op in regular windows.
     if (RT.bindMigrationReceiver) RT.bindMigrationReceiver(layout)
@@ -46,7 +47,7 @@
     // ── LayoutHandle ───────────────────────────────────
     const handle = {
       tree:      function ()  { return tree.peek() },
-      setTree:   function (t) { tree.set(t) },
+      setTree:   function (t) { layout.setTree(t) },
       subscribe: function (fn) { return effect(function () { fn(tree()) }) },
 
       addPanel: function (dockId, partial, opts) {
@@ -58,21 +59,23 @@
       movePanel:     function (panelId, dstDockId, dstIndex) { layout.movePanel(panelId, dstDockId, dstIndex) },
 
       splitDock: function (dockId, dir, side, ratio, opts) {
+        if (layout.disposed) return { newDockId: null, newPanelId: null }
         // § 4.1 — seed new dock from active panel component defaults.
         const seed = computeSplitSeed(tree.peek(), dockId)
         const r = EF.splitDock(tree.peek(), dockId, dir, side, ratio, { seedPanels: seed })
-        tree.set(r.tree)
+        layout.setTree(r.tree)
         return { newDockId: r.newDockId, newPanelId: r.newPanelId }
       },
 
       mergeDocks: function (winnerId, loserId) {
+        if (layout.disposed) return false
         const r = EF.mergeDocks(tree.peek(), winnerId, loserId)
         if (r.discardedPanels.some(function (p) { return p.dirty })) {
           const hook = layout.hooks.onDirtyDiscard
           const choice = hook ? hook(r.discardedPanels) : 'cancel'
           if (choice !== 'discard') return false
         }
-        tree.set(r.tree)
+        layout.setTree(r.tree)
         return true
       },
 
@@ -80,10 +83,15 @@
       // `name` (assigned via EF.dock({ name: 'log' })) as a sugar — the
       // names are more stable across layouts than framework-generated ids.
       setDockCollapsed: function (idOrName, bool) {
+        if (layout.disposed) return false
         const id = resolveDockId(tree.peek(), idOrName)
         if (!id) return false
-        tree.set(EF.setCollapsed(tree.peek(), id, !!bool))
+        layout.setTree(EF.setCollapsed(tree.peek(), id, !!bool))
         return true
+      },
+
+      destroy: function () {
+        RT.disposeLayoutRuntime(layout)
       },
     }
 

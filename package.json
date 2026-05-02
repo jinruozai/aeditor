@@ -8,7 +8,9 @@
     "dist",
     "src",
     "tools",
+    "tests",
     "README.md",
+    "AGENTS.md",
     "CLAUDE.md",
     "LICENSE"
   ],
@@ -38,7 +40,10 @@
   "license": "MIT",
   "scripts": {
     "build": "node tools/build.mjs",
-    "watch": "node tools/build.mjs --watch"
+    "watch": "node tools/build.mjs --watch",
+    "check": "node tools/check-syntax.mjs && node tests/signal.test.mjs && node tests/tree.test.mjs && node tests/theme.test.mjs",
+    "check:dist": "node tools/check-bundle.mjs",
+    "check:gde": "node tools/check-gde.mjs"
   },
   "sideEffects": [
     "dist/ef.css",

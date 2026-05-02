@@ -23,7 +23,7 @@
     var query = '';
 
     function search() {
-      results.innerHTML = '';
+      GDE.clear(results);
       if (!query) {
         countLine.textContent = '';
         var empty = document.createElement('div');
@@ -61,7 +61,14 @@
         var row = document.createElement('div');
         row.className = 'gde-search-result';
         var line1 = document.createElement('div');
-        line1.innerHTML = '<b>' + h.id + '</b> <span class="gde-sr-match">· ' + h.field + '</span>';
+        var idLabel = document.createElement('b');
+        idLabel.textContent = h.id;
+        var match = document.createElement('span');
+        match.className = 'gde-sr-match';
+        match.textContent = '· ' + h.field;
+        line1.appendChild(idLabel);
+        line1.appendChild(document.createTextNode(' '));
+        line1.appendChild(match);
         var line2 = document.createElement('div');
         line2.className = 'gde-sr-path';
         line2.textContent = h.pathKey + ' — ' + (h.value.length > 80 ? h.value.slice(0, 80) + '…' : h.value);
@@ -84,6 +91,11 @@
     var offLocale = I18N.onChange(applyLocale);
     ctx.onCleanup(offLocale);
     ctx.bus.on('data:changed', search);
+    ctx.bus.on('search:set', function (payload) {
+      inputSig.set((payload && payload.query) || '');
+      var inner = input.querySelector('input');
+      if (inner) inner.focus();
+    });
 
     applyLocale();
     return root;
