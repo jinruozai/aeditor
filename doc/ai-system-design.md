@@ -413,6 +413,16 @@ Agent-targeted tools preserve the agent permission boundary:
 
 Groups are pure UI folders and do not carry runtime permissions. Group mutation tools are therefore bounded by the tool call/apply permission on the calling agent; they do not grant access to any agent runtime state.
 
+The built-in orchestration skill should prefer a shallow delegation tree. A root/top-level agent may create child agents when delegation materially helps. An agent that is already a child agent must not create another child agent unless the user explicitly asks for deeper delegation or names that hierarchy. This keeps ordinary workflows to a main-agent plus child-agent model while preserving deeper paths as an advanced capability.
+
+Final delegation rules:
+
+- Top-level agents may create direct child agents for clearly separable work.
+- Child agents may report, ask for context, and send messages back to their parent.
+- Child agents must not create grandchildren by default.
+- A child agent may create a deeper child only when the user explicitly asks for nested delegation or names that hierarchy.
+- Delegation does not bypass tool permissions, resource permissions, approval requirements, or patch preview requirements.
+
 ## 12. Skills, Templates, Plugins
 
 Skills are prompt/runtime packages:
@@ -469,6 +479,16 @@ Plugin code cannot bypass permission checks.
 ## 13. Panels
 
 Framework provides generic panel components:
+
+Final component IDs:
+
+| ID | Purpose |
+| --- | --- |
+| `ai-agents-list` | Agent/group browser and management |
+| `ai-chatinput` | Active agent composer, target chips, provider/model/mode/permission controls |
+| `ai-messages` | Active agent transcript, tool calls, patch previews, and results |
+
+No old AI panel component IDs or aliases are supported.
 
 ### AI Agents
 

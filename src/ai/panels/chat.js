@@ -228,33 +228,52 @@
     ui.menu({ anchor: anchor, items: items, side: 'top', align: 'start' })
   }
 
-  function renderResourceChips(parent, agent) {
+  function chipImage(item) {
+    const meta = item.meta || {}
+    if (item.kind === 'file.image' && meta.dataUrl) return meta.dataUrl
+    return ''
+  }
+
+  function appendResourceChip(parent, item, opts) {
+    opts = opts || {}
+    const title = opts.title ? opts.title(item) : refTitle(item)
+    const kind = opts.kind ? opts.kind(item) : refKind(item)
+    const chip = ui.h('button', 'ef-ai-resource-chip', { type: 'button', title: title })
+    const img = chipImage(item)
+    if (img) chip.appendChild(ui.h('img', 'ef-ai-resource-thumb', { src: img, alt: '' }))
+    else chip.appendChild(ui.h('span', 'ef-ai-resource-kind', { text: kind }))
+    chip.appendChild(ui.h('span', 'ef-ai-resource-title', { text: title }))
+    chip.appendChild(ui.h('span', 'ef-ai-resource-remove', { text: 'x' }))
+    chip.addEventListener('click', function (ev) {
+      ev.preventDefault()
+      if (opts.remove) opts.remove(item)
+    })
+    parent.appendChild(chip)
+  }
+
+  function renderAllChips(parent, agent, pendingSig) {
     clearChildren(parent)
     parent.classList.remove('ef-ai-resource-chips-visible')
     const refs = agent ? (agent.contextRefs || []) : []
-    if (!agent || !refs.length) return
+    const pending = pendingSig()
+    if ((!agent || !refs.length) && !pending.length) return
     parent.classList.add('ef-ai-resource-chips-visible')
     for (let i = 0; i < refs.length; i++) {
       const item = resolveRef(refs[i])
-      const chip = ui.h('button', 'ef-ai-resource-chip', { type: 'button', title: refTitle(item) })
-      chip.appendChild(ui.h('span', 'ef-ai-resource-kind', { text: refKind(item) }))
-      chip.appendChild(ui.h('span', 'ef-ai-resource-title', { text: refTitle(item) }))
-      const close = ui.h('span', 'ef-ai-resource-remove', { text: 'x' })
-      chip.appendChild(close)
-      chip.addEventListener('click', function (ev) {
-        ev.preventDefault()
-        removeContextRef(item.ref)
+      appendResourceChip(parent, item, {
+        remove: function (res) { removeContextRef(res.ref) },
       })
-      parent.appendChild(chip)
     }
-  }
-
-  function targetTitle(item) {
-    return item.title || item.label || item.name || item.uri || 'Target'
-  }
-
-  function targetKind(item) {
-    return item.kind || item.resolver || 'target'
+    for (let j = 0; j < pending.length; j++) {
+      const item = pending[j]
+      appendResourceChip(parent, item, {
+        title: targetTitle,
+        kind: targetKind,
+        remove: function (target) {
+          pendingSig.set(pendingSig.peek().filter(function (item) { return !sameTarget(item, target) }))
+        },
+      })
+    }
   }
 
   function sameTarget(a, b) {
@@ -272,25 +291,12 @@
     sig.set(list)
   }
 
-  function renderPendingTargetChips(parent, sig) {
-    clearChildren(parent)
-    parent.classList.remove('ef-ai-resource-chips-visible')
-    const list = sig()
-    if (!list.length) return
-    parent.classList.add('ef-ai-resource-chips-visible')
-    for (let i = 0; i < list.length; i++) {
-      const item = list[i]
-      const chip = ui.h('button', 'ef-ai-resource-chip ef-ai-target-chip', { type: 'button', title: item.uri })
-      chip.appendChild(ui.h('span', 'ef-ai-resource-kind', { text: targetKind(item) }))
-      chip.appendChild(ui.h('span', 'ef-ai-resource-title', { text: targetTitle(item) }))
-      chip.appendChild(ui.h('span', 'ef-ai-resource-remove', { text: 'x' }))
-      chip.addEventListener('click', function (ev) {
-        ev.preventDefault()
-        const next = sig.peek().filter(function (target) { return !sameTarget(target, item) })
-        sig.set(next)
-      })
-      parent.appendChild(chip)
-    }
+  function targetTitle(item) {
+    return item.title || item.label || item.name || item.uri || 'Target'
+  }
+
+  function targetKind(item) {
+    return item.kind || item.resolver || 'target'
   }
 
   function openPermissionMenu(anchor, permSig) {
@@ -322,7 +328,7 @@
       return !!(a && (a.status === 'running' || a.status === 'queued'))
     })
     const controlDisabled = EF.derived(function () { return !hasTarget() })
-    const sendDisabled = EF.derived(function () { return !hasTarget() || (!busy() && !input().trim()) })
+    const sendDisabled = EF.derived(function () { return !hasTarget() || (!busy() && !input().trim() && !pendingTargets().length) })
     const sendIcon = EF.derived(function () { return busy() ? 'square' : 'arrow-up' })
 
     const root = ui.h('div', 'ef-ai-panel ef-ai-chat')
@@ -341,12 +347,13 @@
 
     const chips = ui.h('div', 'ef-ai-resource-chips')
     composer.appendChild(chips)
-    const targetChips = ui.h('div', 'ef-ai-resource-chips ef-ai-pending-targets')
-    composer.appendChild(targetChips)
 
     const editorWrap = ui.h('div', 'ef-ai-chat-input-wrap')
     const editor = ui.textarea({ value: input, rows: 4, placeholder: 'Message current agent...', mono: false, disabled: controlDisabled })
     editor.classList.add('ef-ai-chat-input')
+    editor.setAttribute('autocomplete', 'off')
+    editor.setAttribute('autocapitalize', 'off')
+    editor.setAttribute('spellcheck', 'false')
     editorWrap.appendChild(editor)
     composer.appendChild(editorWrap)
 
@@ -467,8 +474,7 @@
       }))
     }))
 
-    ui.collect(root, EF.effect(function () { renderResourceChips(chips, activeAgent()) }))
-    ui.collect(root, EF.effect(function () { renderPendingTargetChips(targetChips, pendingTargets) }))
+    ui.collect(root, EF.effect(function () { renderAllChips(chips, activeAgent(), pendingTargets) }))
 
     return root
 
@@ -479,9 +485,9 @@
         EF.ai.stopAgent(agent.id)
         return
       }
-      const text = input().trim()
-      if (!text) return
       const targets = pendingTargets.peek()
+      const text = input().trim() || (targets.length ? 'Inspect the attached file(s).' : '')
+      if (!text) return
       let nextAgent = agent
       if (targets.length && EF.ai.attachTargetsToAgent) {
         nextAgent = EF.ai.attachTargetsToAgent(agent.id, targets) || agent
@@ -507,8 +513,8 @@
     }
   }
 
-  EF.registerComponent('ai-chat', {
-    defaults: function () { return { title: 'AI Chat', icon: 'AI', props: { mode: 'chat' } } },
+  EF.registerComponent('ai-chatinput', {
+    defaults: function () { return { title: 'AI Send', icon: 'message-circle', props: { mode: 'chat' } } },
     factory: factory,
     dispose: disposeTree,
   })

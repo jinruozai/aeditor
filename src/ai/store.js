@@ -296,24 +296,51 @@
   function moveAgent(id, opts, orderArg) {
     const agent = findAgent(id)
     const o = (opts && typeof opts === 'object') ? opts : { groupId: opts, order: orderArg }
-    return updateAgent(id, { groupId: o.groupId || null, order: cleanOrder(o.order, agent ? agent.order : 0) })
+    if (!agent) return null
+    return moveAgentSubtree(id, agent.path, o.groupId || null, o.order)
   }
 
   function setAgentPath(id, path) {
-    return updateAgent(id, { path: normalizePath(path) })
+    const agent = findAgent(id)
+    if (!agent) return null
+    return moveAgentSubtree(id, normalizePath(path), agent.groupId || null, agent.order)
+  }
+
+  function moveAgentSubtree(id, nextPath, nextGroupId, order) {
+    const agent = findAgent(id)
+    if (!agent) return null
+    const oldPath = normalizePath(agent.path)
+    const rootPath = normalizePath(nextPath)
+    const groupId = nextGroupId || null
+    let moved = null
+    agentsSig.update(function (agents) {
+      return agents.map(function (item) {
+        if (item.id !== id && !isDescendant(oldPath, item.path)) return item
+        const suffix = item.id === id ? '' : normalizePath(item.path).slice(oldPath.length).replace(/^\/+/, '')
+        const path = suffix ? normalizePath(rootPath + '/' + suffix) : rootPath
+        const patch = {
+          path: path,
+          groupId: groupId,
+          updatedAt: now(),
+        }
+        if (item.id === id) {
+          patch.order = cleanOrder(order, item.order)
+          moved = Object.assign({}, item, patch)
+          return moved
+        }
+        return Object.assign({}, item, patch)
+      })
+    })
+    return moved
   }
 
   function reparentAgent(id, parentAgentId, order) {
     const agent = findAgent(id)
     const parent = findAgent(parentAgentId)
     if (!agent || !parent || agent.id === parent.id) return null
+    if (isDescendant(agent.path, parent.path)) return null
     const name = agentNameFromPath(agent.path)
-    const path = normalizePath(parent.path + '/' + name)
-    return updateAgent(id, {
-      path: path,
-      groupId: parent.groupId || null,
-      order: cleanOrder(order, agent.order),
-    })
+    return moveAgentSubtree(id, normalizePath(parent.path + '/' + name), parent.groupId || null, order)
   }
 
   function deleteAgent(id) {
@@ -406,10 +433,14 @@
     return {
       version: 1,
       groups: groupsSig.peek(),
-      agents: agentsSig.peek(),
+      agents: agentsSig.peek().map(snapshotAgent),
       resources: resourcesSig.peek(),
       activeAgentId: activeAgentIdSig.peek(),
     }
+  }
+
+  function snapshotAgent(agent) {
+    return Object.assign({}, agent, { contextRefs: [] })
   }
 
   function save() {
@@ -442,9 +473,18 @@
 
   function configurePersistence(opts) {
     opts = opts || {}
+    const prevKey = persistenceKey
     if (opts.key) persistenceKey = opts.key
     if (opts.enabled != null) persistenceEnabled = opts.enabled !== false
-    if (opts.load !== false) restore()
+    if (opts.load !== false) {
+      const restored = restore()
+      if (!restored && prevKey !== persistenceKey) {
+        groupsSig.set([])
+        agentsSig.set([])
+        resourcesSig.set([])
+        activeAgentIdSig.set(null)
+      }
+    }
     return snapshot()
   }
 

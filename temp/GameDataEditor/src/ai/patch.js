@@ -72,7 +72,58 @@
     if (op.op === 'upsertCardStyle' && (!op.key || !op.cardStyle || typeof op.cardStyle !== 'object')) {
       errors.push(err(p + '.cardStyle', 'Expected key and cardStyle object'));
     }
+    if (op.op === 'updateCardNode') validateUpdateCardNode(op, p, errors);
+    if (op.op === 'addCardNode') validateAddCardNode(op, p, errors);
+    if (op.op === 'deleteCardNode') validateDeleteCardNode(op, p, errors);
     if (!knownOp(op.op)) errors.push(err(p + '.op', 'Unsupported op: ' + op.op));
+  }
+
+  function validateUpdateCardNode(op, path, errors) {
+    var style = requireCardStyle(op.styleKey, path, errors);
+    if (!op.nodeId) errors.push(err(path + '.nodeId', 'Expected nodeId'));
+    var hit = style && findCardNode(style.root, op.nodeId);
+    if (style && !hit) errors.push(err(path + '.nodeId', 'Card node not found: ' + op.nodeId));
+    if (op.props != null && (!isObject(op.props))) errors.push(err(path + '.props', 'Expected object props'));
+    if (op.bindings != null && (!isObject(op.bindings))) errors.push(err(path + '.bindings', 'Expected object bindings'));
+    if (op.layout != null && (!isObject(op.layout))) errors.push(err(path + '.layout', 'Expected object layout'));
+    if (op.component != null && typeof op.component !== 'string') errors.push(err(path + '.component', 'Expected component string'));
+  }
+
+  function validateAddCardNode(op, path, errors) {
+    var style = requireCardStyle(op.styleKey, path, errors);
+    if (!op.parentId) errors.push(err(path + '.parentId', 'Expected parentId'));
+    if (style && !findCardNode(style.root, op.parentId)) errors.push(err(path + '.parentId', 'Parent card node not found: ' + op.parentId));
+    validateCardNodeSpec(op.node, path + '.node', errors);
+    if (style && op.node && op.node.id && findCardNode(style.root, op.node.id)) errors.push(err(path + '.node.id', 'Duplicate card node id: ' + op.node.id));
+  }
+
+  function validateDeleteCardNode(op, path, errors) {
+    var style = requireCardStyle(op.styleKey, path, errors);
+    if (!op.nodeId) errors.push(err(path + '.nodeId', 'Expected nodeId'));
+    if (op.nodeId === 'root') errors.push(err(path + '.nodeId', 'Cannot delete root card node'));
+    if (style && op.nodeId && !findCardNode(style.root, op.nodeId)) errors.push(err(path + '.nodeId', 'Card node not found: ' + op.nodeId));
+  }
+
+  function requireCardStyle(styleKey, path, errors) {
+    var style = styleKey && State.projectCardStyles()[styleKey];
+    if (!style) errors.push(err(path + '.styleKey', 'CardStyle not found: ' + styleKey));
+    return style;
+  }
+
+  function validateCardNodeSpec(node, path, errors) {
+    if (!isObject(node)) {
+      errors.push(err(path, 'Expected card node object'));
+      return;
+    }
+    if (!node.id || typeof node.id !== 'string') errors.push(err(path + '.id', 'Expected node id'));
+    if (!node.component || typeof node.component !== 'string') errors.push(err(path + '.component', 'Expected component string'));
+    if (node.props != null && !isObject(node.props)) errors.push(err(path + '.props', 'Expected object props'));
+    if (node.bindings != null && !isObject(node.bindings)) errors.push(err(path + '.bindings', 'Expected object bindings'));
+    if (node.layout != null && !isObject(node.layout)) errors.push(err(path + '.layout', 'Expected object layout'));
+    if (!Array.isArray(node.children)) errors.push(err(path + '.children', 'Expected array children'));
+    (node.children || []).forEach(function (child, i) {
+      validateCardNodeSpec(child, path + '.children[' + i + ']', errors);
+    });
   }
 
   function validateStructDef(structDef, path, errors, knownTypes) {
@@ -215,6 +266,9 @@
     else if (op.op === 'deleteType') State.deleteProjectType(op.name);
     else if (op.op === 'setTableCardStyle') State.setTableCardStyle(op.table, op.styleKey);
     else if (op.op === 'upsertCardStyle') State.upsertCardStyle(op.key, clone(op.cardStyle));
+    else if (op.op === 'updateCardNode') updateCardNodeOp(op);
+    else if (op.op === 'addCardNode') addCardNodeOp(op);
+    else if (op.op === 'deleteCardNode') deleteCardNodeOp(op);
     else if (op.op === 'setAssetReference') setFieldOp(String(op.id), op.field, op.url);
     else if (op.op === 'clearAssetReference') setFieldOp(String(op.id), op.field, '');
   }
@@ -275,6 +329,39 @@
     if (src) State.addEntity(op.table, clone(src));
   }
 
+  function updateCardNodeOp(op) {
+    mutateCardStyle(op.styleKey, function (style) {
+      var hit = findCardNode(style.root, op.nodeId);
+      if (op.component != null) hit.node.component = op.component;
+      if (op.props != null) hit.node.props = mergeObject(hit.node.props || {}, op.props);
+      if (op.bindings != null) hit.node.bindings = mergeObject(hit.node.bindings || {}, op.bindings);
+      if (op.layout != null) hit.node.layout = mergeObject(hit.node.layout || {}, op.layout);
+    });
+  }
+
+  function addCardNodeOp(op) {
+    mutateCardStyle(op.styleKey, function (style) {
+      var parent = findCardNode(style.root, op.parentId).node;
+      parent.children = (parent.children || []).concat([clone(op.node)]);
+    });
+  }
+
+  function deleteCardNodeOp(op) {
+    mutateCardStyle(op.styleKey, function (style) {
+      removeCardNode(style.root, op.nodeId);
+    });
+  }
+
+  function mutateCardStyle(styleKey, fn) {
+    if (State.mutateCardStyle) {
+      State.mutateCardStyle(styleKey, fn);
+      return;
+    }
+    var style = clone(State.projectCardStyles()[styleKey]);
+    fn(style);
+    State.upsertCardStyle(styleKey, style);
+  }
+
   function readTarget(op) {
     var tm = State.tableMap();
     var gd = State.gameData();
@@ -286,6 +373,8 @@
     if (op.op === 'updateStructDef' || op.op === 'setTableCardStyle' || op.op === 'deleteTable' || op.op === 'reorderEntities') return clone(tm[op.table] || null);
     if (op.op === 'upsertType' || op.op === 'deleteType') return clone(State.projectTypeConfig()[op.name] || null);
     if (op.op === 'upsertCardStyle') return clone(State.projectCardStyles()[op.key] || null);
+    if (op.op === 'updateCardNode' || op.op === 'deleteCardNode') return clone(cardNode(op.styleKey, op.nodeId));
+    if (op.op === 'addCardNode') return clone(cardNode(op.styleKey, op.parentId));
     return null;
   }
 
@@ -311,6 +400,13 @@
     if (op.op === 'reorderEntities') return Object.assign({}, before || {}, { id: (op.ids || []).map(String) });
     if (op.op === 'upsertType') return clone(op.config || {});
     if (op.op === 'upsertCardStyle') return clone(op.cardStyle || {});
+    if (op.op === 'updateCardNode') return previewUpdatedCardNode(before, op);
+    if (op.op === 'addCardNode') {
+      var parent = clone(before || {});
+      parent.children = (parent.children || []).concat([clone(op.node)]);
+      return parent;
+    }
+    if (op.op === 'deleteCardNode') return null;
     if (op.op === 'setAssetReference') return op.url || '';
     if (op.op === 'clearAssetReference') return '';
     return clone(op);
@@ -322,6 +418,9 @@
     if (op.op === 'setFields') return op.table + '/' + op.id + ' set ' + Object.keys(op.fields || {}).join(', ');
     if (op.op === 'setFieldsMany') return op.table + ' set ' + Object.keys(op.fields || {}).join(', ') + ' on ' + (op.ids || []).length + ' entities';
     if (op.op === 'deleteEntities') return op.table + ' delete ' + (op.ids || []).length + ' entities';
+    if (op.op === 'updateCardNode') return op.styleKey + '/' + op.nodeId + ' update card node';
+    if (op.op === 'addCardNode') return op.styleKey + '/' + op.parentId + ' add card node ' + (op.node && op.node.id || '');
+    if (op.op === 'deleteCardNode') return op.styleKey + '/' + op.nodeId + ' delete card node';
     return op.op;
   }
 
@@ -334,7 +433,7 @@
   }
 
   function knownOp(op) {
-    return ['setField','setFieldMany','setFields','setFieldsMany','addEntity','updateEntity','deleteEntity','deleteEntities','duplicateEntity','reorderEntities','addTable','renameTable','deleteTable','updateStructDef','upsertType','deleteType','setTableCardStyle','upsertCardStyle','setAssetReference','clearAssetReference'].indexOf(op) >= 0;
+    return ['setField','setFieldMany','setFields','setFieldsMany','addEntity','updateEntity','deleteEntity','deleteEntities','duplicateEntity','reorderEntities','addTable','renameTable','deleteTable','updateStructDef','upsertType','deleteType','setTableCardStyle','upsertCardStyle','updateCardNode','addCardNode','deleteCardNode','setAssetReference','clearAssetReference'].indexOf(op) >= 0;
   }
 
   function rootField(field) {
@@ -370,6 +469,56 @@
     var out = clone(entity || {});
     Object.keys(fields || {}).forEach(function (field) {
       setEntityFieldValue(out, field, clone(fields[field]));
+    });
+    return out;
+  }
+
+  function previewUpdatedCardNode(before, op) {
+    var out = clone(before || {});
+    if (op.component != null) out.component = op.component;
+    if (op.props != null) out.props = mergeObject(out.props || {}, op.props);
+    if (op.bindings != null) out.bindings = mergeObject(out.bindings || {}, op.bindings);
+    if (op.layout != null) out.layout = mergeObject(out.layout || {}, op.layout);
+    return out;
+  }
+
+  function cardNode(styleKey, nodeId) {
+    var style = State.projectCardStyles()[styleKey];
+    var hit = style && findCardNode(style.root, nodeId);
+    return hit && hit.node || null;
+  }
+
+  function findCardNode(node, nodeId, parent) {
+    if (!node) return null;
+    if (String(node.id) === String(nodeId)) return { node: node, parent: parent || null };
+    var children = node.children || [];
+    for (var i = 0; i < children.length; i++) {
+      var hit = findCardNode(children[i], nodeId, node);
+      if (hit) return hit;
+    }
+    return null;
+  }
+
+  function removeCardNode(root, nodeId) {
+    var children = root.children || [];
+    for (var i = 0; i < children.length; i++) {
+      if (String(children[i].id) === String(nodeId)) {
+        children.splice(i, 1);
+        return true;
+      }
+      if (removeCardNode(children[i], nodeId)) return true;
+    }
+    return false;
+  }
+
+  function isObject(value) {
+    return value && typeof value === 'object' && !Array.isArray(value);
+  }
+
+  function mergeObject(base, patch) {
+    var out = clone(base || {});
+    Object.keys(patch || {}).forEach(function (key) {
+      out[key] = isObject(out[key]) && isObject(patch[key]) ? mergeObject(out[key], patch[key]) : clone(patch[key]);
     });
     return out;
   }

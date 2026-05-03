@@ -53,4 +53,25 @@ assert.equal(requestSeen.messages.some(function (m) {
   return String(m.content || '').indexOf('Secret One') >= 0 || String(m.content || '').indexOf('secret://one') >= 0
 }), false)
 
+ai.setPermissionResolver(null)
+const imageAgent = ai.createAgent({
+  name: 'Image Target',
+  path: 'image-target',
+  provider: 'capture',
+  messages: [{ role: 'user', content: 'read image' }],
+})
+const image = ai.addResource({
+  resolver: 'file',
+  uri: 'file://upload/icon.png',
+  kind: 'file.image',
+  title: 'icon.png',
+  meta: { dataUrl: 'data:image/png;base64,aGVsbG8=', type: 'image/png' },
+})
+ai.updateAgent(imageAgent.id, { contextRefs: [image.id] })
+await ai.runAgent(imageAgent.id).promise
+assert.equal(requestSeen.messages[0].role, 'system')
+assert.equal(String(requestSeen.messages[0].content).includes('data:image/png;base64'), false)
+assert.equal(String(requestSeen.messages[0].content).includes('hasImageData'), true)
+assert.equal(requestSeen.resources[0].meta.dataUrl, 'data:image/png;base64,aGVsbG8=')
+
 console.log('ai resource permission tests ok')

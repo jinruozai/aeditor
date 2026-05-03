@@ -283,6 +283,16 @@
   text-transform: uppercase;
 }
 
+.ef-ai-resource-thumb {
+  flex: 0 0 auto;
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  object-fit: cover;
+  background: var(--ef-bg-0);
+  box-shadow: inset 0 0 0 1px var(--ef-border);
+}
+
 .ef-ai-resource-title {
   min-width: 0;
   overflow: hidden;
@@ -871,6 +881,177 @@
   color: var(--ef-error);
 }
 
+.ef-ai-gde-patch {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ef-space-2);
+  padding: var(--ef-space-2);
+  background: var(--ef-bg-0);
+}
+
+.ef-ai-gde-patch-head,
+.ef-ai-gde-patch-change-meta,
+.ef-ai-gde-patch-diff,
+.ef-ai-gde-patch-chip {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+
+.ef-ai-gde-patch-head {
+  justify-content: space-between;
+  gap: var(--ef-space-2);
+}
+
+.ef-ai-gde-patch-title {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--ef-fg-0);
+  font-weight: 700;
+}
+
+.ef-ai-gde-patch-status {
+  flex: 0 0 auto;
+  padding: 1px 6px;
+  border: 1px solid var(--ef-border);
+  border-radius: 999px;
+  font: var(--ef-fs-xs) var(--ef-font-mono);
+}
+
+.ef-ai-gde-patch-status-ok {
+  border-color: color-mix(in srgb, var(--ef-success) 42%, var(--ef-border));
+  color: var(--ef-success);
+  background: color-mix(in srgb, var(--ef-success) 10%, var(--ef-bg-1));
+}
+
+.ef-ai-gde-patch-status-error {
+  border-color: color-mix(in srgb, var(--ef-error) 42%, var(--ef-border));
+  color: var(--ef-error);
+  background: color-mix(in srgb, var(--ef-error) 10%, var(--ef-bg-1));
+}
+
+.ef-ai-gde-patch-errors {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ef-space-1);
+}
+
+.ef-ai-gde-patch-error {
+  padding: 3px 6px;
+  border: 1px solid color-mix(in srgb, var(--ef-error) 38%, var(--ef-border));
+  border-radius: var(--ef-r-1);
+  color: var(--ef-error);
+  background: color-mix(in srgb, var(--ef-error) 10%, var(--ef-bg-1));
+  font: var(--ef-fs-xs) var(--ef-font-mono);
+  overflow-wrap: anywhere;
+}
+
+.ef-ai-gde-patch-changes {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ef-space-1);
+}
+
+.ef-ai-gde-patch-change {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ef-space-1);
+  padding: var(--ef-space-1);
+  border: 1px solid var(--ef-border);
+  border-radius: var(--ef-r-1);
+  background: var(--ef-bg-1);
+}
+
+.ef-ai-gde-patch-change-meta {
+  flex-wrap: wrap;
+  gap: var(--ef-space-1);
+}
+
+.ef-ai-gde-patch-change-index,
+.ef-ai-gde-patch-chip {
+  flex: 0 0 auto;
+  border: 1px solid var(--ef-border);
+  border-radius: 999px;
+  background: var(--ef-bg-2);
+  font: var(--ef-fs-xs) var(--ef-font-mono);
+  line-height: 17px;
+}
+
+.ef-ai-gde-patch-change-index {
+  padding: 0 6px;
+  color: var(--ef-fg-3);
+}
+
+.ef-ai-gde-patch-chip {
+  gap: 4px;
+  max-width: 100%;
+  padding: 0 6px;
+}
+
+.ef-ai-gde-patch-chip-label {
+  color: var(--ef-accent);
+}
+
+.ef-ai-gde-patch-chip-value {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--ef-fg-1);
+}
+
+.ef-ai-gde-patch-summary {
+  color: var(--ef-fg-1);
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.ef-ai-gde-patch-diff {
+  align-items: stretch;
+  gap: var(--ef-space-1);
+}
+
+.ef-ai-gde-patch-value {
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr);
+  align-items: start;
+  flex: 1 1 0;
+  min-width: 0;
+  border: 1px solid var(--ef-border);
+  border-radius: var(--ef-r-1);
+  overflow: hidden;
+}
+
+.ef-ai-gde-patch-value-before {
+  border-color: color-mix(in srgb, var(--ef-error) 24%, var(--ef-border));
+}
+
+.ef-ai-gde-patch-value-after {
+  border-color: color-mix(in srgb, var(--ef-success) 24%, var(--ef-border));
+}
+
+.ef-ai-gde-patch-value-label {
+  height: 100%;
+  padding: 4px 6px;
+  color: var(--ef-fg-3);
+  background: var(--ef-bg-2);
+  font: var(--ef-fs-xs) var(--ef-font-mono);
+  text-transform: uppercase;
+  box-sizing: border-box;
+}
+
+.ef-ai-gde-patch-value-text {
+  min-width: 0;
+  padding: 4px 6px;
+  color: var(--ef-fg-1);
+  background: var(--ef-bg-0);
+  font: var(--ef-fs-xs) var(--ef-font-mono);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
 @media (max-width: 520px) {
   .ef-ai-chat {
     padding: var(--ef-space-1);
@@ -898,5 +1079,8 @@
   }
   .ef-ai-message-row-user .ef-ai-message-stack {
     max-width: 92%;
+  }
+  .ef-ai-gde-patch-diff {
+    flex-direction: column;
   }
 }

@@ -165,10 +165,89 @@
     if (value == null) return
     const block = ui.h('div', 'ef-ai-tool-call-block ' + className)
     block.appendChild(ui.h('div', 'ef-ai-tool-call-block-title', { text: title }))
-      const pre = ui.h('pre', 'ef-ai-tool-call-code ef-ui-scrollarea')
+    if (isPatchPreview(value)) {
+      appendPatchPreview(block, value)
+      parent.appendChild(block)
+      return
+    }
+    const pre = ui.h('pre', 'ef-ai-tool-call-code ef-ui-scrollarea')
     pre.textContent = displayText(value)
     block.appendChild(pre)
     parent.appendChild(block)
+  }
+
+  function isPatchPreview(value) {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return false
+    const patch = value.patch || value
+    return patch && patch.type === 'gde.patch' && Array.isArray(value.changes) && value.validation
+  }
+
+  function appendPatchPreview(parent, preview) {
+    const wrap = ui.h('div', 'ef-ai-gde-patch')
+    const head = ui.h('div', 'ef-ai-gde-patch-head')
+    head.appendChild(ui.h('div', 'ef-ai-gde-patch-title', { text: preview.title || 'GDE patch' }))
+    const ok = preview.ok !== false && (!preview.validation || preview.validation.ok !== false)
+    head.appendChild(ui.h('span', 'ef-ai-gde-patch-status ef-ai-gde-patch-status-' + (ok ? 'ok' : 'error'), {
+      text: ok ? 'OK' : 'ERRORS',
+    }))
+    wrap.appendChild(head)
+
+    const errors = preview.validation && preview.validation.errors
+    if (errors && errors.length) {
+      const list = ui.h('div', 'ef-ai-gde-patch-errors')
+      for (let i = 0; i < errors.length; i++) {
+        const item = errors[i]
+        const text = (item.path ? item.path + ': ' : '') + (item.message || displayText(item))
+        list.appendChild(ui.h('div', 'ef-ai-gde-patch-error', { text: text }))
+      }
+      wrap.appendChild(list)
+    }
+
+    const changes = ui.h('div', 'ef-ai-gde-patch-changes')
+    for (let i = 0; i < preview.changes.length; i++) changes.appendChild(renderPatchChange(preview.changes[i], i))
+    wrap.appendChild(changes)
+    parent.appendChild(wrap)
+  }
+
+  function renderPatchChange(change, index) {
+    const item = ui.h('div', 'ef-ai-gde-patch-change')
+    const meta = ui.h('div', 'ef-ai-gde-patch-change-meta')
+    meta.appendChild(ui.h('span', 'ef-ai-gde-patch-change-index', { text: '#' + String(change.index != null ? change.index + 1 : index + 1) }))
+    appendPatchChip(meta, 'op', change.op)
+    appendPatchChip(meta, 'table', change.table)
+    appendPatchChip(meta, 'id', change.id)
+    appendPatchChip(meta, 'field', change.field)
+    item.appendChild(meta)
+    if (change.summary) item.appendChild(ui.h('div', 'ef-ai-gde-patch-summary', { text: change.summary }))
+    const diff = ui.h('div', 'ef-ai-gde-patch-diff')
+    diff.appendChild(renderPatchValue('before', change.before))
+    diff.appendChild(renderPatchValue('after', change.after))
+    item.appendChild(diff)
+    return item
+  }
+
+  function appendPatchChip(parent, label, value) {
+    if (value == null || value === '') return
+    const chip = ui.h('span', 'ef-ai-gde-patch-chip')
+    chip.appendChild(ui.h('span', 'ef-ai-gde-patch-chip-label', { text: label }))
+    chip.appendChild(ui.h('span', 'ef-ai-gde-patch-chip-value', { text: String(value) }))
+    parent.appendChild(chip)
+  }
+
+  function renderPatchValue(label, value) {
+    const row = ui.h('div', 'ef-ai-gde-patch-value ef-ai-gde-patch-value-' + label)
+    row.appendChild(ui.h('span', 'ef-ai-gde-patch-value-label', { text: label }))
+    row.appendChild(ui.h('code', 'ef-ai-gde-patch-value-text', { text: briefValue(value) }))
+    return row
+  }
+
+  function briefValue(value) {
+    if (value === undefined) return 'undefined'
+    if (value === null) return 'null'
+    if (typeof value === 'string') return JSON.stringify(value)
+    if (typeof value === 'number' || typeof value === 'boolean') return String(value)
+    const text = JSON.stringify(value)
+    return text.length > 180 ? text.slice(0, 177) + '...' : text
   }
 
   function appendToolButton(parent, text, enabled, fn, kind) {
@@ -326,13 +405,8 @@
     return root
   }
 
-  EF.registerComponent('ai-transcript', {
-    defaults: function () { return { title: 'AI Transcript', icon: 'AI', props: {} } },
-    factory: factory,
-    dispose: disposeTree,
-  })
-  EF.registerComponent('ai-conversation', {
-    defaults: function () { return { title: 'AI Chat', icon: 'AI', props: {} } },
+  EF.registerComponent('ai-messages', {
+    defaults: function () { return { title: 'AI Messages', icon: 'message-circle', props: {} } },
     factory: factory,
     dispose: disposeTree,
   })

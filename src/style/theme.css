@@ -184,11 +184,11 @@
   /* ── Layer 1 — Typography ──────────────────────────────────────── */
   --ef-font-ui:   -apple-system, BlinkMacSystemFont, 'Geist', 'Inter', system-ui, sans-serif;
   --ef-font-mono: 'Geist Mono', 'JetBrains Mono', 'SF Mono', 'Cascadia Code', Consolas, monospace;
-  --ef-fs-xs: 10px;
-  --ef-fs-sm: 11px;
-  --ef-fs-md: 12px;   /* default body */
-  --ef-fs-lg: 13px;
-  --ef-fs-xl: 14px;
+  --ef-fs-xs: 11px;
+  --ef-fs-sm: 12px;
+  --ef-fs-md: 13px;   /* default body */
+  --ef-fs-lg: 14px;
+  --ef-fs-xl: 16px;
   --ef-lh-tight: 1.2;
   --ef-lh-base:  1.5;
 
@@ -249,6 +249,24 @@
  * "raised input" role mapping (bg-2 LIGHTER than bg-1) that contrasts
  * the default Godot "inset input" convention. Selected via
  * [data-ef-theme="dracula"]. */
+:root[data-ef-density="compact"],
+.ef-root[data-ef-density="compact"] {
+  --ef-fs-xs: 10px;
+  --ef-fs-sm: 11px;
+  --ef-fs-md: 12px;
+  --ef-fs-lg: 13px;
+  --ef-fs-xl: 14px;
+}
+
+:root[data-ef-density="comfortable"],
+.ef-root[data-ef-density="comfortable"] {
+  --ef-fs-xs: 12px;
+  --ef-fs-sm: 13px;
+  --ef-fs-md: 14px;
+  --ef-fs-lg: 16px;
+  --ef-fs-xl: 18px;
+}
+
 :root[data-ef-theme="dracula"],
 .ef-root[data-ef-theme="dracula"] {
   --ef-surface-canvas: #0c0c0e;

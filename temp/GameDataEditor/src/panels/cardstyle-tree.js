@@ -104,7 +104,16 @@
       contextMenu: function (node) {
         var spec = null; try { spec = EF.resolveComponent(node.component); } catch (_) {}
         var canPaste = (clipboard.peek() || []).length > 0;
-        return [
+        var key = keyFromState();
+        var items = [];
+        if (key && GDE.ai && GDE.ai.sendTargetsToAI) {
+          items.push({
+            label: t('common.add_to_chat'),
+            icon: 'message-circle',
+            onSelect: function () { GDE.ai.sendTargetsToAI([GDE.ai.cardNodeTarget(key, node.id)], 'Inspect this card style node.'); },
+          });
+        }
+        items.push.apply(items, [
           { label: t('common.copy'), icon: 'copy', onSelect: function () { copyNodes(); } },
           { label: t('common.paste'), icon: 'paste', disabled: !canPaste, onSelect: function () { Actions.paste(keyFromState()); } },
           { label: t('common.duplicate'), icon: 'copy', onSelect: function () { duplicateNodes(); } },
@@ -116,7 +125,8 @@
             onSelect: function () { pasteAsChild(node.id); } },
           { type: 'divider' },
           { label: 'Delete', icon: 'trash', danger: true, onSelect: function () { deleteNode(node.id); } },
-        ];
+        ]);
+        return items;
       },
       dnd: {
         dropZones: function (targetNode) {

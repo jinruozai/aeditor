@@ -25,6 +25,19 @@
       description: 'Active EditorFrame theme.',
       order: 10,
     },
+    {
+      key: 'theme.density',
+      label: 'Density',
+      type: 'select',
+      default: 'default',
+      options: [
+        { value: 'compact', label: 'Compact' },
+        { value: 'default', label: 'Default' },
+        { value: 'comfortable', label: 'Comfortable' },
+      ],
+      description: 'Typography density and default UI text scale.',
+      order: 20,
+    },
   ])
 
   EF.settings.registerPage('theme-editor', {
@@ -39,6 +52,8 @@
   EF.effect(function () {
     const mode = EF.settings.get('theme.mode')
     if (EF.theme && EF.theme.set) EF.theme.set(mode || 'dark')
+    const density = EF.settings.get('theme.density')
+    if (EF.theme && EF.theme.setDensity) EF.theme.setDensity(density || 'default')
   })
 
   EF.settings.registerSection('ai', {
@@ -123,6 +138,7 @@
 
   const THEME_STORAGE_KEY = 'ef-theme-overrides-v2'
   const THEME_MODE_KEY = 'ef-theme-mode'
+  const THEME_DENSITY_KEY = 'ef-theme-density'
   const THEME_TABS = [
     { value: 'palette', label: 'Palette' },
     { value: 'spacing', label: 'Spacing' },
@@ -200,6 +216,7 @@
     const bar = ui.h('div', 'ef-settings-theme-bar')
     const tabSig = EF.signal('palette')
     const modeSig = EF.signal(EF.settings.get('theme.mode') || localStorage.getItem(THEME_MODE_KEY) || 'dark')
+    const densitySig = EF.signal(EF.settings.get('theme.density') || localStorage.getItem(THEME_DENSITY_KEY) || 'default')
     const tabs = ui.segmented({ value: tabSig, options: THEME_TABS })
     tabs.classList.add('ef-settings-theme-tabs')
     const mode = ui.select({
@@ -208,6 +225,16 @@
         { value: 'dark', label: 'Dark' },
         { value: 'dracula', label: 'Dracula' },
         { value: 'light', label: 'Light' },
+      ],
+      variant: 'minimal',
+      autoWidth: true,
+    })
+    const density = ui.select({
+      value: densitySig,
+      options: [
+        { value: 'compact', label: 'Compact' },
+        { value: 'default', label: 'Default' },
+        { value: 'comfortable', label: 'Comfortable' },
       ],
       variant: 'minimal',
       autoWidth: true,
@@ -234,6 +261,7 @@
     })
     bar.appendChild(tabs)
     bar.appendChild(mode)
+    bar.appendChild(density)
     bar.appendChild(reset)
     bar.appendChild(exportBtn)
     root.appendChild(bar)
@@ -277,6 +305,13 @@
       }
       clearThemeOverrides()
       refreshAll()
+    }))
+
+    ui.collect(root, EF.effect(function () {
+      const value = densitySig()
+      EF.settings.set('theme.density', value)
+      localStorage.setItem(THEME_DENSITY_KEY, value)
+      if (EF.theme && EF.theme.setDensity) EF.theme.setDensity(value)
     }))
 
     const panes = {}

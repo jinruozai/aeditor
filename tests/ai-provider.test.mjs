@@ -112,6 +112,21 @@ assert.equal(openAiBody.model, 'model-a')
 assert.equal(openAiBody.stream, true)
 assert.deepEqual(openAiBody.messages, [{ role: 'user', content: 'hello' }])
 
+const imageDataUrl = 'data:image/png;base64,aGVsbG8='
+await ai.getProvider('openai-compatible').send({
+  model: '',
+  stream: false,
+  messages: [{ role: 'user', content: 'see image' }],
+  resourceRefs: [{ kind: 'file.image', title: 'icon.png', meta: { dataUrl: imageDataUrl } }],
+  resources: [{ dataUrl: imageDataUrl }],
+  toolSpecs: [],
+}, { signal: null })
+const openAiImageBody = JSON.parse(calls.at(-1).opts.body)
+assert.deepEqual(openAiImageBody.messages[0].content, [
+  { type: 'text', text: 'see image' },
+  { type: 'image_url', image_url: { url: imageDataUrl } },
+])
+
 const openAiToolReply = await ai.getProvider('openai-compatible').send({
   model: '',
   stream: true,
@@ -162,6 +177,19 @@ assert.equal(anthropicCall.opts.headers['anthropic-version'], '2023-06-01')
 assert.equal(anthropicBody.model, 'claude-test')
 assert.equal(anthropicBody.system, 'be brief')
 assert.deepEqual(anthropicBody.messages, [{ role: 'user', content: 'hello' }])
+
+await ai.getProvider('anthropic-compatible').send({
+  model: '',
+  stream: false,
+  messages: [{ role: 'user', content: 'see image' }],
+  resourceRefs: [{ kind: 'file.image', title: 'icon.png', meta: { dataUrl: imageDataUrl } }],
+  resources: [{ dataUrl: imageDataUrl }],
+}, { signal: null })
+const anthropicImageBody = JSON.parse(calls.at(-1).opts.body)
+assert.deepEqual(anthropicImageBody.messages[0].content, [
+  { type: 'text', text: 'see image' },
+  { type: 'image', source: { type: 'base64', media_type: 'image/png', data: 'aGVsbG8=' } },
+])
 
 EF.settings.set('ai.local-bridge.baseUrl', 'http://bridge.test/')
 EF.settings.set('ai.local-bridge.defaultModel', 'local-test')

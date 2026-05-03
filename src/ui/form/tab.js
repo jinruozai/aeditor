@@ -213,8 +213,10 @@
       if (items.length < minShow) {
         entries.forEach(function (e) { if (e.btn.parentNode) e.btn.remove() })
         if (addBtn && addBtn.parentNode) addBtn.remove()
+        root.hidden = true
         return
       }
+      root.hidden = false
 
       // 1. Prune stale entries.
       const live = new Set()

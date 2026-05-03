@@ -267,6 +267,10 @@
       ctx:      function (field) { return { source: 'gde-inspector', field: field, selectionSig: State.selection }; },
     });
 
+    function currentFieldTargets(field) {
+      return fieldTargetsForSelection(State.selection(), field);
+    }
+
     // Dynamic bus subscription �?the current kind decides which topic should
     // trigger a refresh (e.g., 'data:changed:<pathKey>' for card_data,
     // 'typeconfig:changed' for typeconfig). Swap whenever kind/sel changes.
@@ -284,10 +288,10 @@
       var empty = document.createElement('div');
       empty.className = 'gde-inspector-empty';
       var title = document.createElement('div');
-      title.style.cssText = 'font-size:13px;font-weight:600;margin-bottom:4px;';
+      title.style.cssText = 'font-size:var(--ef-fs-md);font-weight:600;margin-bottom:4px;';
       title.textContent = t('inspector.empty_title');
       var hint  = document.createElement('div');
-      hint.style.cssText = 'font-size:12px;';
+      hint.style.cssText = 'font-size:var(--ef-fs-sm);';
       hint.textContent  = t('inspector.empty_hint');
       empty.appendChild(title); empty.appendChild(hint);
       root.appendChild(empty);
@@ -299,6 +303,7 @@
         root.appendChild(header);
         root.appendChild(form);
       }
+      decorateFieldRows(form, schemaSig.peek(), currentFieldTargets);
     }
 
     // Custom-render path. A kind that declares `render(sel, ctx) -> el`
@@ -452,7 +457,59 @@
     if (typeof def === 'string') return def;
     return def && typeof def === 'object' ? String(def.type || '') : '';
   }
-
+  function fieldTargetsForSelection(sel, field) {
+    if (!sel || sel.kind !== 'card_data' || !window.GDE || !GDE.ai || !GDE.ai.fieldTarget) return [];
+    var tm = State.tableMap();
+    return selectedEntityRefs(sel).filter(function (ref) {
+      var sd = (tm[ref.pathKey] || {}).struct_def || {};
+      return Object.prototype.hasOwnProperty.call(sd, field);
+    }).map(function (ref) {
+      return GDE.ai.fieldTarget(ref.pathKey, ref.id, field);
+    });
+  }
+  function decorateFieldRows(form, schema, targetFn) {
+    if (!window.GDE || !GDE.ai || !GDE.ai.bindTarget) return;
+    var fields = orderedSchemaFields(schema || {});
+    var rows = form.querySelectorAll('.ef-ui-struct-input-row');
+    Array.prototype.forEach.call(rows, function (row, i) {
+      var field = row.dataset.efFieldKey || fields[i];
+      if (!field || !Object.prototype.hasOwnProperty.call(schema || {}, field) || row.dataset.gdeAiField === field) return;
+      row.dataset.gdeAiField = field;
+      row.title = row.title || t('inspector.field_drag_hint');
+      GDE.ai.bindTarget(row, function () { return targetFn(field); }, { draggable: true });
+      row.addEventListener('contextmenu', function (ev) {
+        var targets = targetFn(field);
+        if (!targets.length || !EF.ui || !EF.ui.contextMenu) return;
+        ev.preventDefault();
+        EF.ui.contextMenu({ x: ev.clientX, y: ev.clientY }, [{
+          label: t('common.add_to_chat'),
+          icon: 'message-circle',
+          onSelect: function () {
+            if (GDE.ai && GDE.ai.sendTargetsToAI) {
+              GDE.ai.sendTargetsToAI(targets, t('inspector.ask_ai_field_prompt'));
+            }
+          },
+        }]);
+      });
+    });
+  }
+  function orderedSchemaFields(schema) {
+    var buckets = Object.create(null);
+    var seen = [];
+    Object.keys(schema || {}).forEach(function (k) {
+      var fd = schema[k] || {};
+      var tag = fd.group || '';
+      if (!buckets[tag]) { buckets[tag] = []; seen.push(tag); }
+      buckets[tag].push(k);
+    });
+    var order = [];
+    if (buckets['']) order.push('');
+    (ui.PROP_GROUPS || []).forEach(function (g) { if (buckets[g]) order.push(g); });
+    seen.forEach(function (g) { if (g && order.indexOf(g) < 0) order.push(g); });
+    var out = [];
+    order.forEach(function (g) { out = out.concat(buckets[g] || []); });
+    return out;
+  }
   // ── Built-in provider: editing the table itself ──────────────
   // Uses the `render` escape hatch instead of the propertyPanel
   // pipeline because the form mixes a path input, a dynamic list of

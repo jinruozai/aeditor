@@ -30,7 +30,7 @@
   justify-content: center;
   width: 16px;
   color: var(--ef-fg-2);
-  font-size: 13px;
+  font-size: var(--ef-fs-md);
   line-height: 1;
 }
 .ef-ui-section-title { flex: 1 1 auto; }

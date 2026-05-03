@@ -55,4 +55,39 @@ ai.writeTargetDragData(dragEvent, [captured])
 assert.equal(JSON.parse(dragPayload['application/x-ef-ai-target']).uri, captured.uri)
 assert.equal(ai.readTargetFromDragEvent(dragEvent)[0].uri, captured.uri)
 
+const textFileTarget = await ai.fileToTarget({
+  name: 'note.txt',
+  size: 11,
+  type: 'text/plain',
+  lastModified: 123,
+  text: () => Promise.resolve('hello world'),
+})
+assert.equal(textFileTarget.resolver, 'file')
+assert.equal(textFileTarget.kind, 'file.text')
+assert.equal(textFileTarget.title, 'note.txt')
+assert.equal(textFileTarget.meta.text, 'hello world')
+
+let dropped = null
+const dropEl = {
+  classList: { add: () => {}, remove: () => {} },
+  addEventListener: function (type, fn) { this[type] = fn },
+  removeEventListener: function () {},
+}
+ai.installTargetDrop(dropEl, { onDrop: (targets) => { dropped = targets } })
+const fileDropEvent = {
+  preventDefault: () => {},
+  dataTransfer: {
+    dropEffect: '',
+    types: ['Files'],
+    files: [{ name: 'drop.md', size: 4, type: 'text/markdown', lastModified: 456, text: () => Promise.resolve('test') }],
+    getData: () => '',
+  },
+}
+dropEl.dragover(fileDropEvent)
+dropEl.drop(fileDropEvent)
+await new Promise((resolve) => setTimeout(resolve, 0))
+assert.equal(dropped.length, 1)
+assert.equal(dropped[0].uri.startsWith('file://upload/drop.md'), true)
+assert.equal(dropped[0].meta.text, 'test')
+
 console.log('ai target tests ok')

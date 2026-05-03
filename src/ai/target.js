@@ -147,6 +147,154 @@
     return false
   }
 
+  function hasFileDrag(ev) {
+    const types = ev && ev.dataTransfer && ev.dataTransfer.types
+    if (!types) return false
+    for (let i = 0; i < types.length; i++) if (types[i] === 'Files') return true
+    return false
+  }
+
+  function fileKind(file) {
+    const type = String(file.type || '')
+    if (type.indexOf('image/') === 0) return 'file.image'
+    if (type.indexOf('text/') === 0 || /\.(json|txt|md|csv|js|css|html|xml|yml|yaml)$/i.test(file.name || '')) return 'file.text'
+    return 'file.binary'
+  }
+
+  function fileUri(file) {
+    return 'file://upload/' + encodeURIComponent(file.name || 'file') + '?size=' + String(file.size || 0) + '&mtime=' + String(file.lastModified || 0)
+  }
+
+  function readFileText(file) {
+    if (typeof file.text === 'function') return file.text()
+    return Promise.resolve('')
+  }
+
+  function readFileDataUrl(file) {
+    if (typeof FileReader === 'undefined') return Promise.resolve('')
+    return new Promise(function (resolve) {
+      const reader = new FileReader()
+      reader.onload = function () { resolve(String(reader.result || '')) }
+      reader.onerror = function () { resolve('') }
+      reader.readAsDataURL(file)
+    })
+  }
+
+  function loadImageFromFile(file) {
+    if (typeof createImageBitmap === 'function') return createImageBitmap(file)
+    if (typeof Image === 'undefined' || typeof URL === 'undefined') return Promise.resolve(null)
+    return new Promise(function (resolve) {
+      const url = URL.createObjectURL(file)
+      const img = new Image()
+      img.onload = function () {
+        URL.revokeObjectURL(url)
+        resolve(img)
+      }
+      img.onerror = function () {
+        URL.revokeObjectURL(url)
+        resolve(null)
+      }
+      img.src = url
+    })
+  }
+
+  function compressImageFile(file) {
+    if (typeof document === 'undefined') return Promise.resolve('')
+    return loadImageFromFile(file).then(function (img) {
+      if (!img) return ''
+      const maxSide = 1600
+      const width = img.width || img.naturalWidth || 0
+      const height = img.height || img.naturalHeight || 0
+      if (!width || !height) return ''
+      const scale = Math.min(1, maxSide / Math.max(width, height))
+      const canvas = document.createElement('canvas')
+      canvas.width = Math.max(1, Math.round(width * scale))
+      canvas.height = Math.max(1, Math.round(height * scale))
+      const ctx = canvas.getContext('2d')
+      if (!ctx) return ''
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
+      if (img.close) img.close()
+      let out = ''
+      try { out = canvas.toDataURL('image/webp', 0.82) } catch (_) {}
+      if (!out || out.indexOf('data:image/webp') !== 0) {
+        try { out = canvas.toDataURL('image/jpeg', 0.84) } catch (_) {}
+      }
+      return out || ''
+    })
+  }
+
+  function fileToTarget(file) {
+    const kind = fileKind(file)
+    const maxText = 128 * 1024
+    const maxImage = 2 * 1024 * 1024
+    const meta = {
+      name: file.name || 'file',
+      size: Number(file.size || 0),
+      type: file.type || '',
+      lastModified: file.lastModified || 0,
+    }
+    const finish = function () {
+      return normalizeTarget({
+        resolver: 'file',
+        uri: fileUri(file),
+        kind: kind,
+        title: file.name || 'File',
+        summary: meta.type ? meta.type + ' · ' + meta.size + ' bytes' : meta.size + ' bytes',
+        meta: meta,
+      })
+    }
+    if (kind === 'file.text' && meta.size <= maxText) {
+      return readFileText(file).then(function (text) {
+        meta.text = text
+        meta.encoding = 'utf8'
+        return finish()
+      })
+    }
+    if (kind === 'file.image' && meta.size <= maxImage) {
+      return readFileDataUrl(file).then(function (dataUrl) {
+        if (dataUrl) meta.dataUrl = dataUrl
+        return finish()
+      })
+    }
+    if (kind === 'file.image') {
+      return compressImageFile(file).then(function (dataUrl) {
+        if (dataUrl) {
+          meta.dataUrl = dataUrl
+          meta.compressed = true
+          meta.originalSize = meta.size
+          meta.encodedSize = dataUrl.length
+          return finish()
+        }
+        meta.truncated = true
+        return finish()
+      })
+    }
+    meta.truncated = true
+    return Promise.resolve(finish())
+  }
+
+  function filesFromDragEvent(ev) {
+    const files = ev && ev.dataTransfer && ev.dataTransfer.files
+    const out = []
+    for (let i = 0; files && i < files.length; i++) out.push(files[i])
+    return out
+  }
+
+  if (ai.registerResourceResolver) {
+    ai.registerResourceResolver('file', {
+      resolve: function (ref) {
+        return {
+          name: ref.meta && ref.meta.name || ref.title || '',
+          size: ref.meta && ref.meta.size || 0,
+          type: ref.meta && ref.meta.type || '',
+          text: ref.meta && ref.meta.text || '',
+          dataUrl: ref.meta && ref.meta.dataUrl || '',
+          truncated: !!(ref.meta && ref.meta.truncated),
+        }
+      },
+    })
+  }
+
   function addCleanup(el, fn) {
     el.__efCleanups = el.__efCleanups || []
     el.__efCleanups.push(fn)
@@ -194,7 +342,7 @@
   function installTargetDrop(el, opts) {
     opts = opts || {}
     const onDragOver = function (ev) {
-      if (!hasTargetDrag(ev)) return
+      if (!hasTargetDrag(ev) && !hasFileDrag(ev)) return
       ev.preventDefault()
       if (ev.dataTransfer) ev.dataTransfer.dropEffect = 'copy'
       el.classList.add('ef-ai-target-drop-active')
@@ -204,9 +352,18 @@
     }
     const onDrop = function (ev) {
       const targets = readTargetFromDragEvent(ev)
-      if (!targets.length) return
+      const files = filesFromDragEvent(ev)
+      if (!targets.length && !files.length) return
       ev.preventDefault()
       el.classList.remove('ef-ai-target-drop-active')
+      if (files.length) {
+        Promise.all(files.map(fileToTarget)).then(function (fileTargets) {
+          const all = targets.concat(fileTargets.filter(Boolean))
+          if (opts.onDrop) opts.onDrop(all, ev)
+          else attachTargetsToAgent(null, all)
+        })
+        return
+      }
       if (opts.onDrop) opts.onDrop(targets, ev)
       else attachTargetsToAgent(null, targets)
     }
@@ -233,4 +390,5 @@
   ai.installTargetDrop = installTargetDrop
   ai.readTargetFromDragEvent = readTargetFromDragEvent
   ai.writeTargetDragData = writeDragData
+  ai.fileToTarget = fileToTarget
 })(window.EF = window.EF || {})

@@ -167,6 +167,13 @@
             data['application/ef.asset+json'] = JSON.stringify({ kind: item.kind, value: item.url })
             data['application/ef.asset.' + (item.kind || 'file') + '+json'] = JSON.stringify({ kind: item.kind, value: item.url })
           }
+          if (typeof o.aiTargets === 'function') {
+            const targets = o.aiTargets(payload, item) || []
+            if (targets.length) {
+              data['application/x-ef-ai-target-list'] = JSON.stringify(targets)
+              data['application/x-ef-ai-target'] = JSON.stringify(targets[0])
+            }
+          }
           return data
         },
       })

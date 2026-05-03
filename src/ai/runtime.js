@@ -325,14 +325,15 @@
     const items = []
     for (let i = 0; i < resourceRefs.length; i++) {
       const ref = resourceRefs[i]
+      const resolved = resolvedResources[i] == null ? null : sanitizeResourcePayload(resolvedResources[i])
       items.push({
         id: ref.id || null,
         uri: ref.uri || '',
         kind: ref.kind || ref.resolver || 'resource',
         title: ref.title || '',
         summary: ref.summary || '',
-        meta: ref.meta || {},
-        payload: resolvedResources[i] == null ? null : compactJson(resolvedResources[i], 1400),
+        meta: sanitizeResourceMeta(ref.meta || {}),
+        payload: resolved == null ? null : compactJson(resolved, 1400),
       })
     }
     return {
@@ -342,6 +343,26 @@
       status: 'done',
       content: 'Attached editor context resources. Use their uri/kind/meta to choose precise tools. Large payloads are summarized; call tools for full data.\n' + compactJson(items, 6000),
     }
+  }
+
+  function sanitizeResourceMeta(meta) {
+    const out = Object.assign({}, meta || {})
+    if (out.dataUrl) {
+      out.hasImageData = true
+      delete out.dataUrl
+    }
+    return out
+  }
+
+  function sanitizeResourcePayload(payload) {
+    if (!payload || typeof payload !== 'object' || Array.isArray(payload)) return payload
+    const out = Object.assign({}, payload)
+    if (out.dataUrl) {
+      out.hasImageData = true
+      delete out.dataUrl
+    }
+    if (out.meta) out.meta = sanitizeResourceMeta(out.meta)
+    return out
   }
 
   function requestMessages(agent, resourceRefs, resolvedResources) {

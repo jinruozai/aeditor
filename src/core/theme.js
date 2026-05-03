@@ -7,7 +7,9 @@
   'use strict'
 
   const ATTR = 'data-ef-theme'
+  const DENSITY_ATTR = 'data-ef-density'
   const DEFAULT = 'dark'
+  const DEFAULT_DENSITY = 'default'
 
   const authoringTokens = [
     '--ef-surface-canvas',
@@ -56,6 +58,18 @@
     return target(root).getAttribute(ATTR) || DEFAULT
   }
 
+  function setDensity(density, root) {
+    const el = target(root)
+    const next = density || DEFAULT_DENSITY
+    if (next === DEFAULT_DENSITY) el.removeAttribute(DENSITY_ATTR)
+    else el.setAttribute(DENSITY_ATTR, next)
+    return next
+  }
+
+  function getDensity(root) {
+    return target(root).getAttribute(DENSITY_ATTR) || DEFAULT_DENSITY
+  }
+
   function apply(tokens, root) {
     const el = target(root)
     for (const k in tokens) el.style.setProperty(k, tokens[k])
@@ -86,10 +100,14 @@
 
   EF.theme = {
     attr: ATTR,
+    densityAttr: DENSITY_ATTR,
     default: DEFAULT,
+    defaultDensity: DEFAULT_DENSITY,
     authoringTokens: authoringTokens.slice(),
     set: set,
     get: get,
+    setDensity: setDensity,
+    getDensity: getDensity,
     apply: apply,
     reset: reset,
     read: read,

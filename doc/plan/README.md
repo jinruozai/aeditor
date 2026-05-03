@@ -20,6 +20,7 @@ This directory tracks the route from the current working framework to the target
 | [2026-05-perfect-state/05-test-and-ci.md](./2026-05-perfect-state/05-test-and-ci.md) | Zero-dependency test strategy and CI gates | Draft |
 | [2026-05-perfect-state/06-docs-package-boundaries.md](./2026-05-perfect-state/06-docs-package-boundaries.md) | Design authority, README/package boundary, temp/GameDataEditor boundary | Draft |
 | [2026-05-perfect-state/07-parallel-execution.md](./2026-05-perfect-state/07-parallel-execution.md) | Multi-agent work split, ownership boundaries, dependency order | Draft |
+| [2026-05-ai-gde-final/00-overview.md](./2026-05-ai-gde-final/00-overview.md) | Final AI + GameDataEditor integration route | Active |
 
 ## Planning rules
 

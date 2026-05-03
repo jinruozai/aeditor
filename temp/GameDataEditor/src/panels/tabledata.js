@@ -184,7 +184,7 @@
 
       if (ids.length === 0) {
         var empty = document.createElement('div');
-        empty.style.cssText = 'display:flex;align-items:center;justify-content:center;height:100%;color:var(--ef-fg-3);font-size:13px;';
+        empty.style.cssText = 'display:flex;align-items:center;justify-content:center;height:100%;color:var(--ef-fg-3);font-size:var(--ef-fs-md);';
         empty.textContent = T('table.empty');
         body.appendChild(empty);
         return;
@@ -377,7 +377,7 @@
         }
         var items = card ? [
           {
-            label: 'Ask AI',
+            label: t('common.add_to_chat'),
             icon: 'message-circle',
             onSelect: function () {
               GDE.ai.sendTargetsToAI(Array.from(selectedIds).map(function (id) {
@@ -390,7 +390,7 @@
           { label: t('common.delete'), icon: 'trash', danger: true, onSelect: handleDelete },
         ] : [
           {
-            label: 'Ask AI about Table',
+            label: t('common.add_to_chat'),
             icon: 'message-circle',
             onSelect: function () { GDE.ai.sendTargetsToAI([GDE.ai.tableTarget(pathKey)], 'Inspect this table.'); },
           },

@@ -29,7 +29,7 @@
 .ef-ui-menu-item-sub {
   margin-left: var(--ef-space-2);
   color: var(--ef-fg-3);
-  font-size: 13px;
+  font-size: var(--ef-fs-md);
   line-height: 1;
 }
 .ef-ui-menu-item[data-open="true"] {
@@ -243,7 +243,7 @@
   .ef-ui-modal-backdrop, .ef-ui-modal, .ef-ui-banner, .ef-ui-toast { animation: none; }
 }
 .ef-ui-banner-icon {
-  font-size: 14px;
+  font-size: var(--ef-fs-lg);
   line-height: 1.3;
   flex-shrink: 0;
 }
@@ -317,7 +317,7 @@
 .ef-ui-toast-in  { transform: translateX(0); opacity: 1; }
 .ef-ui-toast-out { transform: translateX(120%); opacity: 0; }
 .ef-ui-toast-icon {
-  font-size: 14px;
+  font-size: var(--ef-fs-lg);
   line-height: 1.3;
   flex-shrink: 0;
 }

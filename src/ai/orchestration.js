@@ -350,6 +350,7 @@
       'Read target agents before changing them.',
       'Use preview/apply tools for create, delete, and reparent operations.',
       'Use agent.send for delegated work and agent.stop only for agents you can manage.',
+      'If you are already running as a child agent, do not create further child agents unless the user explicitly requests deeper delegation.',
     ],
     tools: [
       'group.read',

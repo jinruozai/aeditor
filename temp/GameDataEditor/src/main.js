@@ -1,14 +1,14 @@
 /**
- * Main entry �?mounts the EditorFrame layout and the top toolbar.
+ * Main entry �?mounts the EditorFrame layout and the top toolbar.
  *
- *   ┌────────────────────────────────────────────────────────────�?
- *   �?                      top toolbar (DOM)                     �?
- *   ├────────┬───────────────────────────────────┬───────────────�?
- *   �?left   �?       center (tab-standard)      �? right        �?
- *   �?tab-   �?       table data × N             �? inspector    �?
- *   �?side-  ├───────────────────────────────────�? (no tabs)    �?
- *   �?bar    �?        log (tab-collapsible)     �?              �?
- *   └────────┴───────────────────────────────────┴───────────────�?
+ *   ┌────────────────────────────────────────────────────────────�?
+ *   �?                      top toolbar (DOM)                     �?
+ *   ├────────┬───────────────────────────────────┬───────────────�?
+ *   �?left   �?       center (tab-standard)      �? right        �?
+ *   �?tab-   �?       table data × N             �? inspector    �?
+ *   �?side-  ├───────────────────────────────────�? (no tabs)    �?
+ *   �?bar    �?        log (tab-collapsible)     �?              �?
+ *   └────────┴───────────────────────────────────┴───────────────�?
  *
  * Tab management is delegated to the framework:
  *   - left  : tab-sidebar     (icon rail, click-again collapses)
@@ -72,7 +72,7 @@
     });
   }
 
-  // 1. Seed the demo dataset (synchronous �?keeps file:// double-click working).
+  // 1. Seed the demo dataset (synchronous �?keeps file:// double-click working).
   Seed.install();
 
   // 2. Build the initial layout tree.
@@ -82,13 +82,14 @@
       direction: 'left',
       items: [{ component: 'tab-sidebar' }],
     },
-    // Icons here are framework registered names (see EF.ui icon set) �?they
+    // Icons here are framework registered names (see EF.ui icon set) �?they
     // render as flat monochrome SVG, not emoji. Fallback to the glyph
     // rendering path kicks in automatically if a name isn't registered.
     panels: [
       EF.panel({ component: 'gde-tables',          title: I18N.t('panel.tablemap'),   icon: 'table'    }),
       EF.panel({ component: 'gde-typeconfig',      title: I18N.t('panel.typeconfig'), icon: 'settings' }),
       EF.panel({ component: 'gde-cardstyle-tree',  title: 'Object Tree',              icon: 'list'     }),
+      EF.panel({ component: 'ai-agents-list',      title: I18N.t('panel.ai_agents'),  icon: 'user'     }),
       EF.panel({ component: 'gde-search',          title: I18N.t('panel.search'),     icon: 'search'   }),
     ],
   });
@@ -102,37 +103,52 @@
     },
   });
 
+  var assetDock = EF.dock({
+    name: 'assets',
+    toolbar: {
+      direction: 'top',
+      items: [{ component: 'tab-compact' }],
+    },
+    panels: [
+      EF.panel({ component: 'gde-assets', title: I18N.t('panel.assets'), icon: 'folder' }),
+    ],
+  });
+
   var logDock = EF.dock({
     name:      'log',
     collapsed: false,
     // Bottom-aligned toolbar: when the dock is collapsed only the tab strip
-    // remains visible, anchored to the very bottom of the center column �?
+    // remains visible, anchored to the very bottom of the center column �?
     // exactly how VS Code's status/output panel behaves.
     toolbar: {
       direction: 'bottom',
       items: [{ component: 'tab-collapsible', props: { closable: false } }],
     },
     // Use the built-in 'log' component (EF.log signal). Project writes go
-    // through State.log �?EF.log.push, so framework + app messages share
+    // through State.log �?EF.log.push, so framework + app messages share
     // one stream.
     panels: [
-      EF.panel({ component: 'gde-assets',             title: 'Assets',     icon: 'folder'  }),
-      EF.panel({ component: 'gde-cardstyle-list',     title: 'Card Styles', icon: 'columns' }),
-      EF.panel({ component: 'gde-history',            title: 'History',    icon: 'clock'   }),
-      EF.panel({ component: 'log',                    title: 'Log',        icon: 'list'    }),
+      EF.panel({ component: 'ai-chatinput',           title: I18N.t('panel.ai_send'), icon: 'message-circle' }),
+      EF.panel({ component: 'gde-cardstyle-list',     title: I18N.t('panel.cardstyles'), icon: 'columns' }),
+      EF.panel({ component: 'gde-history',            title: I18N.t('panel.history'),    icon: 'clock'   }),
+      EF.panel({ component: 'log',                    title: I18N.t('panel.log'),        icon: 'list'    }),
     ],
   });
 
   var rightDock = EF.dock({
     name: 'right',
-    // No toolbar = single fixed panel, no tab bar.
+    toolbar: {
+      direction: 'top',
+      items: [{ component: 'tab-compact' }],
+    },
     panels: [
       EF.panel({ component: 'gde-inspector', title: I18N.t('panel.inspector') }),
+      EF.panel({ component: 'ai-messages', title: I18N.t('panel.ai_messages'), icon: 'message-circle' }),
     ],
   });
 
   var tree = EF.split('horizontal', [
-    leftDock,
+    EF.split('vertical', [leftDock, assetDock], [0.62, 0.38]),
     EF.split('vertical', [centerDock, logDock], [0.72, 0.28]),
     rightDock,
   ], [0.2, 0.56, 0.24]);
@@ -149,6 +165,9 @@
     var titleKeys = {
       'gde-tables': 'panel.tablemap',
       'gde-typeconfig': 'panel.typeconfig',
+      'ai-agents-list': 'panel.ai_agents',
+      'ai-chatinput': 'panel.ai_send',
+      'ai-messages': 'panel.ai_messages',
       'gde-cardstyle-tree': 'panel.object_tree',
       'gde-search': 'panel.search',
       'gde-assets': 'panel.assets',
@@ -200,7 +219,7 @@
 
   window.__gde = { handle: handle, destroy: destroy };   // kept for top-bar debugging only
 
-  // 4. Wire State �?Layout.
+  // 4. Wire State �?Layout.
   State._setLayout(handle, 'center');
 
   // 5. Seed one pinned table panel so the center doesn't start empty.
@@ -208,7 +227,7 @@
   if (firstTable) State.openTable(firstTable, { transient: false });
 
   // 6. Sync State.activeTable FROM the center dock's activeId. This is the
-  //    single source of truth for "which table is being edited" �?every
+  //    single source of truth for "which table is being edited" �?every
   //    component subscribes to State.activeTable, not to the layout tree.
   //    handle.subscribe re-fires whenever the layout tree changes; peek on
   //    activeTable so this callback never subscribes to its own writes.
@@ -235,7 +254,7 @@
     }
   });
 
-  // 8. Struct editing entry �?forwarded to global hook (if any).
+  // 8. Struct editing entry �?forwarded to global hook (if any).
   onBus('ui:editStruct', function (payload) {
     if (payload && payload.pathKey && typeof window.openStructEditor === 'function') {
       window.openStructEditor(payload.pathKey);

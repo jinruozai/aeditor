@@ -37,6 +37,23 @@
     return wrap
   }
 
+  function normalizedPath(path) {
+    return EF.ai && EF.ai.normalizePath ? EF.ai.normalizePath(path) : String(path || '').replace(/\\/g, '/').replace(/\/+/g, '/').replace(/^\/+/, '').replace(/\/+$/, '')
+  }
+
+  function parentAgentPath(path) {
+    if (EF.ai && EF.ai.parentPath) return EF.ai.parentPath(path)
+    const parts = normalizedPath(path).split('/').filter(Boolean)
+    parts.pop()
+    return parts.join('/')
+  }
+
+  function agentLeafName(agent) {
+    if (EF.ai && EF.ai.agentNameFromPath) return EF.ai.agentNameFromPath(agent.path || agent.name || agent.id)
+    const parts = normalizedPath(agent.path || agent.name || agent.id).split('/').filter(Boolean)
+    return parts.length ? parts[parts.length - 1] : labelOf(agent, agent.id)
+  }
+
   function countAgents(groupId, agents, groups) {
     const childGroups = {}
     for (let i = 0; i < groups.length; i++) {
@@ -57,6 +74,10 @@
 
   function parentGroupIdOf(item) {
     return item.parentId || item.groupId || item.parentGroupId || null
+  }
+
+  function agentKey(groupId, path) {
+    return String(groupId || '') + '::' + normalizedPath(path).toLowerCase()
   }
 
   function orderOf(item, index) {
@@ -100,6 +121,8 @@
       else roots.push(node)
     }
 
+    const byAgentPath = {}
+    const agentNodes = []
     for (let i = 0; i < agents.length; i++) {
       const agent = agents[i]
       const node = {
@@ -109,6 +132,9 @@
         kind: 'agent',
         agentId: agent.id,
         groupId: parentGroupIdOf(agent),
+        path: normalizedPath(agent.path || agent.name || agent.id),
+        parentAgentPath: parentAgentPath(agent.path || agent.name || agent.id),
+        parentAgentId: null,
         provider: agent.provider || '',
         model: agent.model || '',
         mode: agent.mode || 'chat',
@@ -117,8 +143,20 @@
         sortOrder: orderOf(agent, i),
         children: [],
       }
-      const parent = node.groupId ? byGroup[node.groupId] : null
-      if (parent) parent.children.push(node)
+      byAgentPath[agentKey(node.groupId, node.path)] = node
+      agentNodes.push(node)
+    }
+
+    for (let i = 0; i < agentNodes.length; i++) {
+      const node = agentNodes[i]
+      const parentAgent = node.parentAgentPath ? byAgentPath[agentKey(node.groupId, node.parentAgentPath)] : null
+      if (parentAgent && parentAgent !== node) {
+        node.parentAgentId = parentAgent.agentId
+        parentAgent.children.push(node)
+        continue
+      }
+      const parentGroup = node.groupId ? byGroup[node.groupId] : null
+      if (parentGroup) parentGroup.children.push(node)
       else roots.push(node)
     }
 
@@ -230,8 +268,18 @@
   }
 
   function commitAgentDrop(source, target, position) {
+    const sourceAgent = EF.ai.findAgent ? EF.ai.findAgent(source.agentId) : null
+    const name = sourceAgent ? agentLeafName(sourceAgent) : source.label
+    function moveAsRoot(groupId) {
+      if (EF.ai.setAgentPath) {
+        const updated = EF.ai.setAgentPath(source.agentId, name)
+        if (updated && updated.groupId !== (groupId || null)) EF.ai.moveAgent(source.agentId, { groupId: groupId || null, order: updated.order })
+      } else {
+        EF.ai.updateAgent(source.agentId, { path: name, groupId: groupId || null })
+      }
+    }
     if (target.kind === 'group' && position === 'inside') {
-      EF.ai.moveAgent(source.agentId, { groupId: target.groupId })
+      moveAsRoot(target.groupId)
       return
     }
     if (target.kind === 'agent' && position === 'inside') {
@@ -239,10 +287,11 @@
       return
     }
     if (target.kind === 'agent') {
-      EF.ai.moveAgent(source.agentId, { groupId: target.groupId || null })
+      if (target.parentAgentId) EF.ai.reparentAgent(source.agentId, target.parentAgentId)
+      else moveAsRoot(target.groupId || null)
       return
     }
-    EF.ai.moveAgent(source.agentId, { groupId: target.parentGroupId || null })
+    moveAsRoot(target.parentGroupId || null)
   }
 
   function commitDrop(target, position, data) {
@@ -268,9 +317,6 @@
     const wrap = ui.h('span', 'ef-ai-agent-meta')
     if (node.status && node.status !== 'idle') {
       wrap.appendChild(ui.h('span', 'ef-ai-status-pill ef-ai-status-' + node.status, { text: statusLabel(node.status) }))
-    }
-    if (node.model || node.provider) {
-      wrap.appendChild(ui.h('span', 'ef-ai-agent-model', { text: node.model || node.provider }))
     }
     return wrap
   }
@@ -332,10 +378,7 @@
         return makeStatus(node)
       },
       leadingSlot: function (node) {
-        if (node.kind !== 'agent') return null
-        const ic = ui.h('span', 'ef-ui-tree-icon')
-        ic.appendChild(ui.icon({ name: node.icon, size: 'sm' }))
-        return ic
+        return null
       },
       labelSlot: function (node) {
         if (node.kind !== 'agent') return null
@@ -353,13 +396,6 @@
             icon: 'user',
             title: 'New agent',
             onClick: function () { promptAgent(node.groupId) },
-          })
-        }
-        if (node.kind === 'agent') {
-          actions.push({
-            icon: 'user',
-            title: 'New child agent',
-            onClick: function () { promptAgent(node.groupId || null, node.agentId) },
           })
         }
         actions.push({
@@ -426,8 +462,8 @@
     return root
   }
 
-  EF.registerComponent('ai-agents', {
-    defaults: function () { return { title: 'AI Agents', icon: 'AI', props: {} } },
+  EF.registerComponent('ai-agents-list', {
+    defaults: function () { return { title: 'AI Agents', icon: 'user', props: {} } },
     factory: factory,
     dispose: disposeTree,
   })

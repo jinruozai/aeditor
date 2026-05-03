@@ -30,6 +30,7 @@
       rename: renameEntry,
       remove: removeEntries,
       actions: assetActions,
+      aiTargets: assetAiTargets,
     });
     return browser;
   }
@@ -111,13 +112,22 @@
   function assetActions(rows) {
     if (!urlsForEntries(rows).length) return [];
     return [{
-      label: t('assets.ask_ai'),
+      label: t('common.add_to_chat'),
       icon: 'message-circle',
       onSelect: function () {
         if (!GDE.ai || !GDE.ai.sendTargetsToAI) return;
         GDE.ai.sendTargetsToAI(urlsForEntries(rows).map(function (url) {
           return GDE.ai.assetTarget(url);
         }), t('assets.ask_ai_prompt'));
+      },
+    }, {
+      label: t('assets.add_to_chat_res'),
+      icon: 'image',
+      onSelect: function () {
+        if (!GDE.ai || !GDE.ai.sendTargetsToAI) return;
+        assetResourceTargets(rows).then(function (targets) {
+          if (targets.length) GDE.ai.sendTargetsToAI(targets, t('assets.ask_ai_prompt'));
+        });
       },
     }, {
       label: t('assets.view_refs'),
@@ -128,6 +138,56 @@
         State.showSearchPanel(query);
       },
     }];
+  }
+
+  function assetAiTargets(rows) {
+    if (!GDE.ai || !GDE.ai.assetTarget) return [];
+    return urlsForEntries(rows).map(function (url) {
+      return GDE.ai.assetTarget(url);
+    });
+  }
+
+  function assetResourceTargets(rows) {
+    if (!EF.ai || !EF.ai.fileToTarget) return Promise.resolve([]);
+    return Promise.all(urlsForEntries(rows).map(assetResourceTarget)).then(function (items) {
+      return items.filter(Boolean);
+    });
+  }
+
+  async function assetResourceTarget(url) {
+    var info = ProjectIO.assets.get(url);
+    if (!info) return null;
+    var objectUrl = ProjectIO.assets.urlFor(url);
+    if (!objectUrl) return null;
+    var res = await fetch(objectUrl);
+    var blob = await res.blob();
+    var file = typeof File === 'function'
+      ? new File([blob], info.name || url, { type: blob.type || mimeFromName(info.name), lastModified: info.mtime || Date.now() })
+      : Object.assign(blob, { name: info.name || url, lastModified: info.mtime || Date.now(), type: blob.type || mimeFromName(info.name) });
+    var target = await EF.ai.fileToTarget(file);
+    if (!target) return null;
+    target.uri = url;
+    target.title = url;
+    target.summary = (target.summary ? target.summary + ' · ' : '') + 'project asset';
+    target.meta = Object.assign({}, target.meta || {}, {
+      url: url,
+      assetUrl: url,
+      assetPath: ProjectIO.assets.urlToPath(url),
+      projectAsset: true,
+    });
+    return target;
+  }
+
+  function mimeFromName(name) {
+    name = String(name || '').toLowerCase();
+    if (/\.(png)$/.test(name)) return 'image/png';
+    if (/\.(jpe?g)$/.test(name)) return 'image/jpeg';
+    if (/\.(webp)$/.test(name)) return 'image/webp';
+    if (/\.(gif)$/.test(name)) return 'image/gif';
+    if (/\.(svg)$/.test(name)) return 'image/svg+xml';
+    if (/\.(json)$/.test(name)) return 'application/json';
+    if (/\.(txt|md|csv|js|css|html|xml|yml|yaml)$/.test(name)) return 'text/plain';
+    return 'application/octet-stream';
   }
 
   function referenceQuery(rows) {

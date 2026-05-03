@@ -33,6 +33,7 @@ const stored = JSON.parse(window.localStorage.getItem('test.ai'))
 assert.equal(stored.groups.length, 1)
 assert.equal(stored.agents.length, 1)
 assert.equal(stored.resources.length, 1)
+assert.deepEqual(stored.agents[0].contextRefs, [])
 
 global.window.EF = {}
 vm.runInThisContext(readFileSync('src/core/signal.js', 'utf8'), { filename: 'signal.js#2' })
@@ -43,6 +44,7 @@ ai.configurePersistence({ key: 'test.ai' })
 assert.equal(ai.groups()[0].name, 'Saved Group')
 assert.equal(ai.agents()[0].name, 'Saved Agent')
 assert.equal(ai.agents()[0].messages[0].content, 'hello')
+assert.deepEqual(ai.agents()[0].contextRefs, [])
 assert.equal(ai.resources()[0].uri, 'case://one')
 assert.equal(ai.activeAgentId(), agent.id)
 

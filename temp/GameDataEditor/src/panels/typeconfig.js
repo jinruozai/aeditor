@@ -192,14 +192,23 @@
       item.addEventListener('click', function () {
         State.setSelection({ kind: 'typeconfig', key: key });
       });
-      if (editable) {
-        item.addEventListener('contextmenu', function (e) {
-          e.preventDefault();
-          EF.ui.contextMenu({ x: e.clientX, y: e.clientY }, [
-            { label: t('typeconfig.ctx.delete'), danger: true, onSelect: function () { deleteType(key); } },
-          ]);
-        });
+      if (GDE.ai && GDE.ai.bindTarget) {
+        GDE.ai.bindTarget(item, function () { return GDE.ai.typeTarget(key); }, { draggable: true });
       }
+      item.addEventListener('contextmenu', function (e) {
+        var items = [];
+        if (GDE.ai && GDE.ai.sendTargetsToAI) {
+          items.push({
+            label: t('common.add_to_chat'),
+            icon: 'message-circle',
+            onSelect: function () { GDE.ai.sendTargetsToAI([GDE.ai.typeTarget(key)], 'Inspect this TypeConfig entry.'); },
+          });
+        }
+        if (editable) items.push({ label: t('typeconfig.ctx.delete'), danger: true, onSelect: function () { deleteType(key); } });
+        if (!items.length) return;
+        e.preventDefault();
+        EF.ui.contextMenu({ x: e.clientX, y: e.clientY }, items);
+      });
       return item;
     }
 
@@ -236,7 +245,7 @@
       }
       if (!projKeys.length && !biKeys.length) {
         var empty = document.createElement('div');
-        empty.style.cssText = 'padding:16px;color:var(--ef-fg-3);font-size:12px;text-align:center;';
+        empty.style.cssText = 'padding:16px;color:var(--ef-fg-3);font-size:var(--ef-fs-sm);text-align:center;';
         empty.textContent = t('typeconfig.empty');
         list.appendChild(empty);
       }

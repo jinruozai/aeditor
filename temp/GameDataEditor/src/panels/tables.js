@@ -314,14 +314,29 @@
 
     function nodeMenu(node) {
       if (node.kind === 'table') {
-        var items = [{ label: t('tablemap.ctx.copy_table'), icon: 'copy', onSelect: function () { copyTable(node); } }];
+        var items = [];
+        if (GDE.ai && GDE.ai.sendTargetsToAI) {
+          items.push({
+            label: t('common.add_to_chat'),
+            icon: 'message-circle',
+            onSelect: function () { GDE.ai.sendTargetsToAI([GDE.ai.tableTarget(node.pk)], 'Inspect this table.'); },
+          });
+        }
+        items.push({ label: t('tablemap.ctx.copy_table'), icon: 'copy', onSelect: function () { copyTable(node); } });
         if (GDE.clipboard.has('tableDef')) items.push({ label: t('tablemap.ctx.paste_table'), icon: 'paste', onSelect: function () { pasteTable(node); } });
         if (GDE.clipboard.has('entities')) items.push({ label: t('tablemap.ctx.paste_card'), icon: 'paste', onSelect: function () { pasteCard(node); } });
         return items;
       }
-      return [
-        { label: t('tablemap.ctx.copy_card'), icon: 'copy', onSelect: function () { copyEntity(node); } },
-      ];
+      var entityItems = [];
+      if (GDE.ai && GDE.ai.sendTargetsToAI) {
+        entityItems.push({
+          label: t('common.add_to_chat'),
+          icon: 'message-circle',
+          onSelect: function () { GDE.ai.sendTargetsToAI([GDE.ai.entityTarget(node.pk, node.entityId)], 'Inspect this table card.'); },
+        });
+      }
+      entityItems.push({ label: t('tablemap.ctx.copy_card'), icon: 'copy', onSelect: function () { copyEntity(node); } });
+      return entityItems;
     }
     // Context menu is intentionally empty on the table tree â€?rename /
     // delete / edit struct now live in the Inspector's table_meta form

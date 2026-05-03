@@ -441,6 +441,6 @@ body {
 .gde-tc-section-caret,
 .gde-tm-caret {
   width: 16px;
-  font-size: 13px;
+  font-size: var(--ef-fs-md);
   line-height: 1;
 }

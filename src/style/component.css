@@ -16,6 +16,7 @@
   user-select: none;
   min-height: var(--ef-toolbar-h);
 }
+.ef-toolbar[hidden] { display: none; }
 .ef-toolbar-top    { border-bottom: 1px solid var(--ef-border); }
 .ef-toolbar-bottom { border-top:    1px solid var(--ef-border); }
 .ef-toolbar-left {

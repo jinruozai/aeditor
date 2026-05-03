@@ -35,6 +35,7 @@
 
     fields.forEach(function (f) {
       const row   = ui.h('div', 'ef-ui-struct-input-row')
+      row.dataset.efFieldKey = String(f.key)
       const label = ui.h('div', 'ef-ui-struct-input-label', { text: f.label || f.key })
       // Tooltip surfaces the field's purpose on hover. The `data-has-tip`
       // marker is a CSS hook for the help cursor; we don't paint that

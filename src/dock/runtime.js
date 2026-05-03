@@ -101,9 +101,11 @@
       toolbarEl:             (toolbarParts && toolbarParts.toolbarEl)      || null,
       toolbarStartEl:        (toolbarParts && toolbarParts.toolbarStartEl) || null,
       toolbarEndEl:          (toolbarParts && toolbarParts.toolbarEndEl)   || null,
+      toolbarObserver:       null,
       panelRuntimes:         new Map(),
       staticToolbarRuntimes: [],
     }
+    initToolbarVisibility(runtime)
     return runtime
   }
 
@@ -142,6 +144,10 @@
       disposeComponentRuntime(dockRuntime.staticToolbarRuntimes[i])
     }
     dockRuntime.staticToolbarRuntimes.length = 0
+    if (dockRuntime.toolbarObserver) {
+      dockRuntime.toolbarObserver.disconnect()
+      dockRuntime.toolbarObserver = null
+    }
   }
 
   function disposeStalePanelRuntimes(dockRuntime, dockData) {
@@ -189,6 +195,7 @@
       mountToolbarItem(sr, dockRuntime)
       dockRuntime.staticToolbarRuntimes.push(sr)
     }
+    syncToolbarVisibility(dockRuntime)
   }
 
   function mountToolbarItem(itemRuntime, dockRuntime) {
@@ -199,6 +206,46 @@
     if (itemRuntime.contentEl && itemRuntime.contentEl.parentNode !== slot) {
       slot.appendChild(itemRuntime.contentEl)
     }
+    syncToolbarVisibility(dockRuntime)
+  }
+
+  function initToolbarVisibility(dockRuntime) {
+    if (!dockRuntime.toolbarEl) return
+    const sync = function () { syncToolbarVisibility(dockRuntime) }
+    const mo = new MutationObserver(sync)
+    mo.observe(dockRuntime.toolbarEl, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: ['hidden', 'style', 'class'],
+    })
+    dockRuntime.toolbarObserver = mo
+    sync()
+  }
+
+  function syncToolbarVisibility(dockRuntime) {
+    if (!dockRuntime.toolbarEl) return
+    const visible = hasVisibleToolbarChild(dockRuntime.toolbarStartEl) ||
+      hasVisibleToolbarChild(dockRuntime.toolbarEndEl)
+    if (dockRuntime.toolbarEl.hidden === visible) dockRuntime.toolbarEl.hidden = !visible
+    dockRuntime.dockEl.classList.toggle('ef-dock-toolbar-empty', !visible)
+  }
+
+  function hasVisibleToolbarChild(slot) {
+    if (!slot) return false
+    for (let n = slot.firstElementChild; n; n = n.nextElementSibling) {
+      if (isVisibleToolbarNode(n)) return true
+    }
+    return false
+  }
+
+  function isVisibleToolbarNode(el) {
+    if (el.hidden) return false
+    if (el.style && el.style.display === 'none') return false
+    if (el.classList.contains('ef-toolbar-item') && el.children.length === 1) {
+      return isVisibleToolbarNode(el.firstElementChild)
+    }
+    return true
   }
 
   // ── PanelRuntime ──────────────────────────────────────
@@ -327,15 +374,25 @@
       if (tr.contentEl.parentNode !== slot) slot.appendChild(tr.contentEl)
       tr.active.set(true)
     }
+    syncToolbarVisibility(dockRuntime)
   }
 
   function detachDynamicToolbar(panelRuntime) {
     const items = panelRuntime.dynamicToolbarRuntimes
+    let dockRuntime = null
     for (let i = 0; i < items.length; i++) {
       const tr = items[i]
+      if (!dockRuntime && tr.contentEl && tr.contentEl.parentNode) {
+        const dockEl = tr.contentEl.closest('.ef-dock')
+        const dockId = dockEl && dockEl.dataset && dockEl.dataset.dockId
+        if (dockId && panelRuntime._layout) {
+          dockRuntime = panelRuntime._layout.dockRuntimes.get(dockId)
+        }
+      }
       if (tr.contentEl) tr.contentEl.remove()
       tr.active.set(false)
     }
+    if (dockRuntime) syncToolbarVisibility(dockRuntime)
   }
 
   // Generic component materialization — used by panel, static toolbar, and

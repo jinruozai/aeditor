@@ -101,16 +101,27 @@
 
       tile.addEventListener('click',    function () { select(key, false); });
       tile.addEventListener('dblclick', function () { select(key, true); });
+      if (GDE.ai && GDE.ai.bindTarget) {
+        GDE.ai.bindTarget(tile, function () { return GDE.ai.cardStyleTarget(key); }, { draggable: true });
+      }
 
       tile.addEventListener('contextmenu', function (ev) {
         ev.preventDefault();
-        var items = [
+        var items = [];
+        if (GDE.ai && GDE.ai.sendTargetsToAI) {
+          items.push({
+            label: t('common.add_to_chat'),
+            icon: 'message-circle',
+            onSelect: function () { GDE.ai.sendTargetsToAI([GDE.ai.cardStyleTarget(key)], 'Inspect this card style.'); },
+          });
+        }
+        items.push.apply(items, [
           { label: t('cardstyle.rename'),    onSelect: function () { renameStyle(key); } },
           { label: t('cardstyle.duplicate'), onSelect: function () { duplicateStyle(key); } },
           { type: 'divider' },
           { label: t('cardstyle.delete'), danger: true, disabled: key === 'default',
             onSelect: function () { deleteStyle(key); } },
-        ];
+        ]);
         ui.contextMenu({ x: ev.clientX, y: ev.clientY }, items);
       });
 

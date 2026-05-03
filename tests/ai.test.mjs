@@ -93,6 +93,17 @@ function assertAgentRuntimeState(seedAgent, targetGroup) {
   assert.equal(moved.groupId, targetGroup.id)
   assert.equal(moved.order, 4)
 
+  const child = ai.createAgent({ name: 'Child Agent', path: moved.path + '/child', groupId: targetGroup.id })
+  const nested = ai.createAgent({ name: 'Nested Agent', path: moved.path + '/child/nested', groupId: targetGroup.id })
+  const rootMoved = ai.setAgentPath(seedAgent.id, 'runtime-root')
+  assert.equal(rootMoved.path, 'runtime-root')
+  assert.equal(byId(ai.agents(), child.id).path, 'runtime-root/child')
+  assert.equal(byId(ai.agents(), nested.id).path, 'runtime-root/child/nested')
+
+  const reparented = ai.reparentAgent(child.id, seedAgent.id)
+  assert.equal(reparented.path, 'runtime-root/child')
+  assert.equal(byId(ai.agents(), nested.id).path, 'runtime-root/child/nested')
+
   const updated = ai.updateAgent(seedAgent.id, {
     contextRefs: ['ctx-2'],
     memory: { facts: ['changed'] },
@@ -308,5 +319,128 @@ const removedSeed = ai.deleteAgent(seed.agent.id)
 assert.equal(removedSeed.id, seed.agent.id)
 assert.deepEqual(ai.agents(), [])
 assert.equal(ai.activeAgentId(), null)
+
+function makeElement(tag) {
+  return {
+    tagName: tag.toUpperCase(),
+    className: '',
+    attributes: {},
+    children: [],
+    parentNode: null,
+    textContent: '',
+    scrollTop: 0,
+    clientHeight: 200,
+    scrollHeight: 200,
+    style: {},
+    classList: {
+      add: function (name) {
+        this.el.className = this.el.className ? this.el.className + ' ' + name : name
+      },
+      el: null,
+    },
+    appendChild: function (child) {
+      this.children.push(child)
+      child.parentNode = this
+      return child
+    },
+    removeChild: function (child) {
+      this.children = this.children.filter(function (item) { return item !== child })
+      child.parentNode = null
+      return child
+    },
+    remove: function () {
+      if (this.parentNode) this.parentNode.removeChild(this)
+    },
+    setAttribute: function (name, value) {
+      this.attributes[name] = value
+    },
+    addEventListener: function () {},
+    get firstChild() {
+      return this.children[0] || null
+    },
+  }
+}
+
+function collectText(el) {
+  let out = el.textContent || ''
+  ;(el.children || []).forEach(function (child) { out += '\n' + collectText(child) })
+  return out
+}
+
+function assertGdePatchPreviewRendering() {
+  const components = {}
+  global.document = {
+    createElement: function (tag) {
+      const el = makeElement(tag)
+      el.classList.el = el
+      return el
+    },
+  }
+  global.requestAnimationFrame = function (fn) { fn() }
+  window.EF.ui = {
+    isSignal: function (v) { return typeof v === 'function' && typeof v.peek === 'function' },
+    h: function (tag, cls, attrs) {
+      const el = document.createElement(tag)
+      if (cls) el.className = cls
+      if (attrs) Object.keys(attrs).forEach(function (key) {
+        if (key === 'text') el.textContent = attrs[key]
+        else el.setAttribute(key, attrs[key])
+      })
+      return el
+    },
+    dispose: function (el) { if (el && el.remove) el.remove() },
+    collect: function () {},
+    button: function (opts) { return this.h('button', 'ef-ui-btn', { text: opts.text || '' }) },
+    copyButton: function () { return this.h('button', 'ef-ui-copy-btn', { text: 'Copy' }) },
+    scrollArea: function () { return this.h('div', 'ef-ui-scrollarea') },
+  }
+  window.EF.registerComponent = function (name, spec) { components[name] = spec }
+  vm.runInThisContext(readFileSync('src/ai/panels/transcript.js', 'utf8'), { filename: 'ai/panels/transcript.js' })
+
+  const previewAgent = ai.createAgent({
+    name: 'Patch Viewer',
+    messages: [{
+      role: 'assistant',
+      content: 'preview',
+      toolCalls: [{
+        id: 'call-1',
+        name: 'gde.patch',
+        preview: {
+          ok: false,
+          title: 'Tune swords',
+          patch: { type: 'gde.patch', ops: [] },
+          validation: { ok: false, errors: [{ path: 'ops[0].field', message: 'Field not in struct_def: missing' }] },
+          changes: [{
+            index: 0,
+            op: 'setField',
+            table: 'data/items',
+            id: '100',
+            field: 'price',
+            summary: 'data/items/100.price = 25',
+            before: 20,
+            after: 25,
+          }],
+        },
+        result: { ok: true, value: 1 },
+      }],
+    }],
+  })
+  ai.activeAgentId.set(previewAgent.id)
+
+  const root = components['ai-messages'].factory(null, {})
+  const text = collectText(root)
+  assert.match(text, /Tune swords/)
+  assert.match(text, /ERRORS/)
+  assert.match(text, /ops\[0\]\.field: Field not in struct_def: missing/)
+  assert.match(text, /setField/)
+  assert.match(text, /data\/items/)
+  assert.match(text, /100/)
+  assert.match(text, /price/)
+  assert.match(text, /before\s+20/)
+  assert.match(text, /after\s+25/)
+  assert.match(text, /"value": 1/)
+}
+
+assertGdePatchPreviewRendering()
 
 console.log('ai tests ok')

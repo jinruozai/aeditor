@@ -195,7 +195,9 @@
   'use strict'
 
   const ATTR = 'data-ef-theme'
+  const DENSITY_ATTR = 'data-ef-density'
   const DEFAULT = 'dark'
+  const DEFAULT_DENSITY = 'default'
 
   const authoringTokens = [
     '--ef-surface-canvas',
@@ -244,6 +246,18 @@
     return target(root).getAttribute(ATTR) || DEFAULT
   }
 
+  function setDensity(density, root) {
+    const el = target(root)
+    const next = density || DEFAULT_DENSITY
+    if (next === DEFAULT_DENSITY) el.removeAttribute(DENSITY_ATTR)
+    else el.setAttribute(DENSITY_ATTR, next)
+    return next
+  }
+
+  function getDensity(root) {
+    return target(root).getAttribute(DENSITY_ATTR) || DEFAULT_DENSITY
+  }
+
   function apply(tokens, root) {
     const el = target(root)
     for (const k in tokens) el.style.setProperty(k, tokens[k])
@@ -274,10 +288,14 @@
 
   EF.theme = {
     attr: ATTR,
+    densityAttr: DENSITY_ATTR,
     default: DEFAULT,
+    defaultDensity: DEFAULT_DENSITY,
     authoringTokens: authoringTokens.slice(),
     set: set,
     get: get,
+    setDensity: setDensity,
+    getDensity: getDensity,
     apply: apply,
     reset: reset,
     read: read,
@@ -2017,24 +2035,51 @@
   function moveAgent(id, opts, orderArg) {
     const agent = findAgent(id)
     const o = (opts && typeof opts === 'object') ? opts : { groupId: opts, order: orderArg }
-    return updateAgent(id, { groupId: o.groupId || null, order: cleanOrder(o.order, agent ? agent.order : 0) })
+    if (!agent) return null
+    return moveAgentSubtree(id, agent.path, o.groupId || null, o.order)
   }
 
   function setAgentPath(id, path) {
-    return updateAgent(id, { path: normalizePath(path) })
+    const agent = findAgent(id)
+    if (!agent) return null
+    return moveAgentSubtree(id, normalizePath(path), agent.groupId || null, agent.order)
+  }
+
+  function moveAgentSubtree(id, nextPath, nextGroupId, order) {
+    const agent = findAgent(id)
+    if (!agent) return null
+    const oldPath = normalizePath(agent.path)
+    const rootPath = normalizePath(nextPath)
+    const groupId = nextGroupId || null
+    let moved = null
+    agentsSig.update(function (agents) {
+      return agents.map(function (item) {
+        if (item.id !== id && !isDescendant(oldPath, item.path)) return item
+        const suffix = item.id === id ? '' : normalizePath(item.path).slice(oldPath.length).replace(/^\/+/, '')
+        const path = suffix ? normalizePath(rootPath + '/' + suffix) : rootPath
+        const patch = {
+          path: path,
+          groupId: groupId,
+          updatedAt: now(),
+        }
+        if (item.id === id) {
+          patch.order = cleanOrder(order, item.order)
+          moved = Object.assign({}, item, patch)
+          return moved
+        }
+        return Object.assign({}, item, patch)
+      })
+    })
+    return moved
   }
 
   function reparentAgent(id, parentAgentId, order) {
     const agent = findAgent(id)
     const parent = findAgent(parentAgentId)
     if (!agent || !parent || agent.id === parent.id) return null
+    if (isDescendant(agent.path, parent.path)) return null
     const name = agentNameFromPath(agent.path)
-    const path = normalizePath(parent.path + '/' + name)
-    return updateAgent(id, {
-      path: path,
-      groupId: parent.groupId || null,
-      order: cleanOrder(order, agent.order),
-    })
+    return moveAgentSubtree(id, normalizePath(parent.path + '/' + name), parent.groupId || null, order)
   }
 
   function deleteAgent(id) {
@@ -2127,10 +2172,14 @@
     return {
       version: 1,
       groups: groupsSig.peek(),
-      agents: agentsSig.peek(),
+      agents: agentsSig.peek().map(snapshotAgent),
       resources: resourcesSig.peek(),
       activeAgentId: activeAgentIdSig.peek(),
     }
+  }
+
+  function snapshotAgent(agent) {
+    return Object.assign({}, agent, { contextRefs: [] })
   }
 
   function save() {
@@ -2163,9 +2212,18 @@
 
   function configurePersistence(opts) {
     opts = opts || {}
+    const prevKey = persistenceKey
     if (opts.key) persistenceKey = opts.key
     if (opts.enabled != null) persistenceEnabled = opts.enabled !== false
-    if (opts.load !== false) restore()
+    if (opts.load !== false) {
+      const restored = restore()
+      if (!restored && prevKey !== persistenceKey) {
+        groupsSig.set([])
+        agentsSig.set([])
+        resourcesSig.set([])
+        activeAgentIdSig.set(null)
+      }
+    }
     return snapshot()
   }
 
@@ -2559,6 +2617,32 @@
     return content == null ? '' : String(content)
   }
 
+  function dataUrlInfo(dataUrl) {
+    const match = String(dataUrl || '').match(/^data:([^;,]+);base64,(.*)$/)
+    return match ? { mediaType: match[1], base64: match[2], url: dataUrl } : null
+  }
+
+  function imageResources(request) {
+    const refs = request.resourceRefs || []
+    const resolved = request.resources || request.resolvedResources || []
+    const out = []
+    for (let i = 0; i < refs.length; i++) {
+      const ref = refs[i] || {}
+      const payload = resolved[i] || {}
+      const dataUrl = (payload && payload.dataUrl) || (ref.meta && ref.meta.dataUrl)
+      const info = dataUrlInfo(dataUrl)
+      if (info && ((ref.kind || payload.kind) === 'file.image' || String(info.mediaType).indexOf('image/') === 0)) {
+        out.push({
+          title: ref.title || ref.uri || 'image',
+          mediaType: info.mediaType,
+          base64: info.base64,
+          url: info.url,
+        })
+      }
+    }
+    return out
+  }
+
   function jsonSchema(schema) {
     if (!schema) return { type: 'object', properties: {} }
     if (schema.type) return schema
@@ -2614,8 +2698,8 @@
     })
   }
 
-  function openAiMessages(messages) {
-    return (messages || []).map(function (m) {
+  function openAiMessages(messages, request) {
+    const outMessages = (messages || []).map(function (m) {
       if (m.role === 'tool') {
         return {
           role: 'tool',
@@ -2639,16 +2723,51 @@
       }
       return out
     })
+    const images = imageResources(request || {})
+    if (!images.length) return outMessages
+    for (let i = outMessages.length - 1; i >= 0; i--) {
+      if (outMessages[i].role !== 'user') continue
+      const text = messageText(outMessages[i].content)
+      const content = []
+      if (text) content.push({ type: 'text', text: text })
+      for (let j = 0; j < images.length; j++) {
+        content.push({ type: 'image_url', image_url: { url: images[j].url } })
+      }
+      outMessages[i] = Object.assign({}, outMessages[i], { content: content })
+      return outMessages
+    }
+    return outMessages
   }
 
-  function anthropicPayloadMessages(messages) {
+  function anthropicPayloadMessages(messages, request) {
     const out = []
+    const images = imageResources(request || {})
+    let imagesAttached = false
     for (let i = 0; i < (messages || []).length; i++) {
       const m = messages[i]
       if (m.role === 'system') continue
+      const role = m.role === 'assistant' ? 'assistant' : 'user'
+      let content = messageText(m.content)
+      if (role === 'user' && images.length && !imagesAttached) {
+        const blocks = []
+        if (content) blocks.push({ type: 'text', text: content })
+        for (let j = 0; j < images.length; j++) {
+          blocks.push({
+            type: 'image',
+            source: {
+              type: 'base64',
+              media_type: images[j].mediaType,
+              data: images[j].base64,
+            },
+          })
+        }
+        out.push({ role: role, content: blocks })
+        imagesAttached = true
+        continue
+      }
       out.push({
-        role: m.role === 'assistant' ? 'assistant' : 'user',
-        content: messageText(m.content),
+        role: role,
+        content: content,
       })
     }
     return out
@@ -2705,7 +2824,7 @@
         const stream = !!(request.stream && config.stream && !tools.length)
         const body = {
           model: model,
-          messages: openAiMessages(request.messages),
+          messages: openAiMessages(request.messages, request),
           stream: stream,
           stream_options: stream ? { include_usage: true } : undefined,
         }
@@ -2793,7 +2912,7 @@
       const system = anthropicSystem(request.messages)
       const body = {
         model: request.model || config.defaultModel,
-        messages: anthropicPayloadMessages(request.messages),
+        messages: anthropicPayloadMessages(request.messages, request),
         max_tokens: 4096,
         stream: !!(request.stream && config.stream),
       }
@@ -3381,6 +3500,154 @@
     return false
   }
 
+  function hasFileDrag(ev) {
+    const types = ev && ev.dataTransfer && ev.dataTransfer.types
+    if (!types) return false
+    for (let i = 0; i < types.length; i++) if (types[i] === 'Files') return true
+    return false
+  }
+
+  function fileKind(file) {
+    const type = String(file.type || '')
+    if (type.indexOf('image/') === 0) return 'file.image'
+    if (type.indexOf('text/') === 0 || /\.(json|txt|md|csv|js|css|html|xml|yml|yaml)$/i.test(file.name || '')) return 'file.text'
+    return 'file.binary'
+  }
+
+  function fileUri(file) {
+    return 'file://upload/' + encodeURIComponent(file.name || 'file') + '?size=' + String(file.size || 0) + '&mtime=' + String(file.lastModified || 0)
+  }
+
+  function readFileText(file) {
+    if (typeof file.text === 'function') return file.text()
+    return Promise.resolve('')
+  }
+
+  function readFileDataUrl(file) {
+    if (typeof FileReader === 'undefined') return Promise.resolve('')
+    return new Promise(function (resolve) {
+      const reader = new FileReader()
+      reader.onload = function () { resolve(String(reader.result || '')) }
+      reader.onerror = function () { resolve('') }
+      reader.readAsDataURL(file)
+    })
+  }
+
+  function loadImageFromFile(file) {
+    if (typeof createImageBitmap === 'function') return createImageBitmap(file)
+    if (typeof Image === 'undefined' || typeof URL === 'undefined') return Promise.resolve(null)
+    return new Promise(function (resolve) {
+      const url = URL.createObjectURL(file)
+      const img = new Image()
+      img.onload = function () {
+        URL.revokeObjectURL(url)
+        resolve(img)
+      }
+      img.onerror = function () {
+        URL.revokeObjectURL(url)
+        resolve(null)
+      }
+      img.src = url
+    })
+  }
+
+  function compressImageFile(file) {
+    if (typeof document === 'undefined') return Promise.resolve('')
+    return loadImageFromFile(file).then(function (img) {
+      if (!img) return ''
+      const maxSide = 1600
+      const width = img.width || img.naturalWidth || 0
+      const height = img.height || img.naturalHeight || 0
+      if (!width || !height) return ''
+      const scale = Math.min(1, maxSide / Math.max(width, height))
+      const canvas = document.createElement('canvas')
+      canvas.width = Math.max(1, Math.round(width * scale))
+      canvas.height = Math.max(1, Math.round(height * scale))
+      const ctx = canvas.getContext('2d')
+      if (!ctx) return ''
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
+      if (img.close) img.close()
+      let out = ''
+      try { out = canvas.toDataURL('image/webp', 0.82) } catch (_) {}
+      if (!out || out.indexOf('data:image/webp') !== 0) {
+        try { out = canvas.toDataURL('image/jpeg', 0.84) } catch (_) {}
+      }
+      return out || ''
+    })
+  }
+
+  function fileToTarget(file) {
+    const kind = fileKind(file)
+    const maxText = 128 * 1024
+    const maxImage = 2 * 1024 * 1024
+    const meta = {
+      name: file.name || 'file',
+      size: Number(file.size || 0),
+      type: file.type || '',
+      lastModified: file.lastModified || 0,
+    }
+    const finish = function () {
+      return normalizeTarget({
+        resolver: 'file',
+        uri: fileUri(file),
+        kind: kind,
+        title: file.name || 'File',
+        summary: meta.type ? meta.type + ' · ' + meta.size + ' bytes' : meta.size + ' bytes',
+        meta: meta,
+      })
+    }
+    if (kind === 'file.text' && meta.size <= maxText) {
+      return readFileText(file).then(function (text) {
+        meta.text = text
+        meta.encoding = 'utf8'
+        return finish()
+      })
+    }
+    if (kind === 'file.image' && meta.size <= maxImage) {
+      return readFileDataUrl(file).then(function (dataUrl) {
+        if (dataUrl) meta.dataUrl = dataUrl
+        return finish()
+      })
+    }
+    if (kind === 'file.image') {
+      return compressImageFile(file).then(function (dataUrl) {
+        if (dataUrl) {
+          meta.dataUrl = dataUrl
+          meta.compressed = true
+          meta.originalSize = meta.size
+          meta.encodedSize = dataUrl.length
+          return finish()
+        }
+        meta.truncated = true
+        return finish()
+      })
+    }
+    meta.truncated = true
+    return Promise.resolve(finish())
+  }
+
+  function filesFromDragEvent(ev) {
+    const files = ev && ev.dataTransfer && ev.dataTransfer.files
+    const out = []
+    for (let i = 0; files && i < files.length; i++) out.push(files[i])
+    return out
+  }
+
+  if (ai.registerResourceResolver) {
+    ai.registerResourceResolver('file', {
+      resolve: function (ref) {
+        return {
+          name: ref.meta && ref.meta.name || ref.title || '',
+          size: ref.meta && ref.meta.size || 0,
+          type: ref.meta && ref.meta.type || '',
+          text: ref.meta && ref.meta.text || '',
+          dataUrl: ref.meta && ref.meta.dataUrl || '',
+          truncated: !!(ref.meta && ref.meta.truncated),
+        }
+      },
+    })
+  }
+
   function addCleanup(el, fn) {
     el.__efCleanups = el.__efCleanups || []
     el.__efCleanups.push(fn)
@@ -3428,7 +3695,7 @@
   function installTargetDrop(el, opts) {
     opts = opts || {}
     const onDragOver = function (ev) {
-      if (!hasTargetDrag(ev)) return
+      if (!hasTargetDrag(ev) && !hasFileDrag(ev)) return
       ev.preventDefault()
       if (ev.dataTransfer) ev.dataTransfer.dropEffect = 'copy'
       el.classList.add('ef-ai-target-drop-active')
@@ -3438,9 +3705,18 @@
     }
     const onDrop = function (ev) {
       const targets = readTargetFromDragEvent(ev)
-      if (!targets.length) return
+      const files = filesFromDragEvent(ev)
+      if (!targets.length && !files.length) return
       ev.preventDefault()
       el.classList.remove('ef-ai-target-drop-active')
+      if (files.length) {
+        Promise.all(files.map(fileToTarget)).then(function (fileTargets) {
+          const all = targets.concat(fileTargets.filter(Boolean))
+          if (opts.onDrop) opts.onDrop(all, ev)
+          else attachTargetsToAgent(null, all)
+        })
+        return
+      }
       if (opts.onDrop) opts.onDrop(targets, ev)
       else attachTargetsToAgent(null, targets)
     }
@@ -3467,6 +3743,7 @@
   ai.installTargetDrop = installTargetDrop
   ai.readTargetFromDragEvent = readTargetFromDragEvent
   ai.writeTargetDragData = writeDragData
+  ai.fileToTarget = fileToTarget
 })(window.EF = window.EF || {})
 
 /* ════ ai/orchestration.js ════ */
@@ -3822,6 +4099,7 @@
       'Read target agents before changing them.',
       'Use preview/apply tools for create, delete, and reparent operations.',
       'Use agent.send for delegated work and agent.stop only for agents you can manage.',
+      'If you are already running as a child agent, do not create further child agents unless the user explicitly requests deeper delegation.',
     ],
     tools: [
       'group.read',
@@ -4166,14 +4444,15 @@
     const items = []
     for (let i = 0; i < resourceRefs.length; i++) {
       const ref = resourceRefs[i]
+      const resolved = resolvedResources[i] == null ? null : sanitizeResourcePayload(resolvedResources[i])
       items.push({
         id: ref.id || null,
         uri: ref.uri || '',
         kind: ref.kind || ref.resolver || 'resource',
         title: ref.title || '',
         summary: ref.summary || '',
-        meta: ref.meta || {},
-        payload: resolvedResources[i] == null ? null : compactJson(resolvedResources[i], 1400),
+        meta: sanitizeResourceMeta(ref.meta || {}),
+        payload: resolved == null ? null : compactJson(resolved, 1400),
       })
     }
     return {
@@ -4183,6 +4462,26 @@
       status: 'done',
       content: 'Attached editor context resources. Use their uri/kind/meta to choose precise tools. Large payloads are summarized; call tools for full data.\n' + compactJson(items, 6000),
     }
+  }
+
+  function sanitizeResourceMeta(meta) {
+    const out = Object.assign({}, meta || {})
+    if (out.dataUrl) {
+      out.hasImageData = true
+      delete out.dataUrl
+    }
+    return out
+  }
+
+  function sanitizeResourcePayload(payload) {
+    if (!payload || typeof payload !== 'object' || Array.isArray(payload)) return payload
+    const out = Object.assign({}, payload)
+    if (out.dataUrl) {
+      out.hasImageData = true
+      delete out.dataUrl
+    }
+    if (out.meta) out.meta = sanitizeResourceMeta(out.meta)
+    return out
   }
 
   function requestMessages(agent, resourceRefs, resolvedResources) {
@@ -4456,9 +4755,11 @@
       toolbarEl:             (toolbarParts && toolbarParts.toolbarEl)      || null,
       toolbarStartEl:        (toolbarParts && toolbarParts.toolbarStartEl) || null,
       toolbarEndEl:          (toolbarParts && toolbarParts.toolbarEndEl)   || null,
+      toolbarObserver:       null,
       panelRuntimes:         new Map(),
       staticToolbarRuntimes: [],
     }
+    initToolbarVisibility(runtime)
     return runtime
   }
 
@@ -4497,6 +4798,10 @@
       disposeComponentRuntime(dockRuntime.staticToolbarRuntimes[i])
     }
     dockRuntime.staticToolbarRuntimes.length = 0
+    if (dockRuntime.toolbarObserver) {
+      dockRuntime.toolbarObserver.disconnect()
+      dockRuntime.toolbarObserver = null
+    }
   }
 
   function disposeStalePanelRuntimes(dockRuntime, dockData) {
@@ -4544,6 +4849,7 @@
       mountToolbarItem(sr, dockRuntime)
       dockRuntime.staticToolbarRuntimes.push(sr)
     }
+    syncToolbarVisibility(dockRuntime)
   }
 
   function mountToolbarItem(itemRuntime, dockRuntime) {
@@ -4554,6 +4860,46 @@
     if (itemRuntime.contentEl && itemRuntime.contentEl.parentNode !== slot) {
       slot.appendChild(itemRuntime.contentEl)
     }
+    syncToolbarVisibility(dockRuntime)
+  }
+
+  function initToolbarVisibility(dockRuntime) {
+    if (!dockRuntime.toolbarEl) return
+    const sync = function () { syncToolbarVisibility(dockRuntime) }
+    const mo = new MutationObserver(sync)
+    mo.observe(dockRuntime.toolbarEl, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: ['hidden', 'style', 'class'],
+    })
+    dockRuntime.toolbarObserver = mo
+    sync()
+  }
+
+  function syncToolbarVisibility(dockRuntime) {
+    if (!dockRuntime.toolbarEl) return
+    const visible = hasVisibleToolbarChild(dockRuntime.toolbarStartEl) ||
+      hasVisibleToolbarChild(dockRuntime.toolbarEndEl)
+    if (dockRuntime.toolbarEl.hidden === visible) dockRuntime.toolbarEl.hidden = !visible
+    dockRuntime.dockEl.classList.toggle('ef-dock-toolbar-empty', !visible)
+  }
+
+  function hasVisibleToolbarChild(slot) {
+    if (!slot) return false
+    for (let n = slot.firstElementChild; n; n = n.nextElementSibling) {
+      if (isVisibleToolbarNode(n)) return true
+    }
+    return false
+  }
+
+  function isVisibleToolbarNode(el) {
+    if (el.hidden) return false
+    if (el.style && el.style.display === 'none') return false
+    if (el.classList.contains('ef-toolbar-item') && el.children.length === 1) {
+      return isVisibleToolbarNode(el.firstElementChild)
+    }
+    return true
   }
 
   // ── PanelRuntime ──────────────────────────────────────
@@ -4682,15 +5028,25 @@
       if (tr.contentEl.parentNode !== slot) slot.appendChild(tr.contentEl)
       tr.active.set(true)
     }
+    syncToolbarVisibility(dockRuntime)
   }
 
   function detachDynamicToolbar(panelRuntime) {
     const items = panelRuntime.dynamicToolbarRuntimes
+    let dockRuntime = null
     for (let i = 0; i < items.length; i++) {
       const tr = items[i]
+      if (!dockRuntime && tr.contentEl && tr.contentEl.parentNode) {
+        const dockEl = tr.contentEl.closest('.ef-dock')
+        const dockId = dockEl && dockEl.dataset && dockEl.dataset.dockId
+        if (dockId && panelRuntime._layout) {
+          dockRuntime = panelRuntime._layout.dockRuntimes.get(dockId)
+        }
+      }
       if (tr.contentEl) tr.contentEl.remove()
       tr.active.set(false)
     }
+    if (dockRuntime) syncToolbarVisibility(dockRuntime)
   }
 
   // Generic component materialization — used by panel, static toolbar, and
@@ -9084,8 +9440,10 @@
       if (items.length < minShow) {
         entries.forEach(function (e) { if (e.btn.parentNode) e.btn.remove() })
         if (addBtn && addBtn.parentNode) addBtn.remove()
+        root.hidden = true
         return
       }
+      root.hidden = false
 
       // 1. Prune stale entries.
       const live = new Set()
@@ -9320,6 +9678,7 @@
 
     fields.forEach(function (f) {
       const row   = ui.h('div', 'ef-ui-struct-input-row')
+      row.dataset.efFieldKey = String(f.key)
       const label = ui.h('div', 'ef-ui-struct-input-label', { text: f.label || f.key })
       // Tooltip surfaces the field's purpose on hover. The `data-has-tip`
       // marker is a CSS hook for the help cursor; we don't paint that
@@ -13062,6 +13421,13 @@
             data['application/ef.asset+json'] = JSON.stringify({ kind: item.kind, value: item.url })
             data['application/ef.asset.' + (item.kind || 'file') + '+json'] = JSON.stringify({ kind: item.kind, value: item.url })
           }
+          if (typeof o.aiTargets === 'function') {
+            const targets = o.aiTargets(payload, item) || []
+            if (targets.length) {
+              data['application/x-ef-ai-target-list'] = JSON.stringify(targets)
+              data['application/x-ef-ai-target'] = JSON.stringify(targets[0])
+            }
+          }
           return data
         },
       })
@@ -14023,6 +14389,23 @@
     return wrap
   }
 
+  function normalizedPath(path) {
+    return EF.ai && EF.ai.normalizePath ? EF.ai.normalizePath(path) : String(path || '').replace(/\\/g, '/').replace(/\/+/g, '/').replace(/^\/+/, '').replace(/\/+$/, '')
+  }
+
+  function parentAgentPath(path) {
+    if (EF.ai && EF.ai.parentPath) return EF.ai.parentPath(path)
+    const parts = normalizedPath(path).split('/').filter(Boolean)
+    parts.pop()
+    return parts.join('/')
+  }
+
+  function agentLeafName(agent) {
+    if (EF.ai && EF.ai.agentNameFromPath) return EF.ai.agentNameFromPath(agent.path || agent.name || agent.id)
+    const parts = normalizedPath(agent.path || agent.name || agent.id).split('/').filter(Boolean)
+    return parts.length ? parts[parts.length - 1] : labelOf(agent, agent.id)
+  }
+
   function countAgents(groupId, agents, groups) {
     const childGroups = {}
     for (let i = 0; i < groups.length; i++) {
@@ -14043,6 +14426,10 @@
 
   function parentGroupIdOf(item) {
     return item.parentId || item.groupId || item.parentGroupId || null
+  }
+
+  function agentKey(groupId, path) {
+    return String(groupId || '') + '::' + normalizedPath(path).toLowerCase()
   }
 
   function orderOf(item, index) {
@@ -14086,6 +14473,8 @@
       else roots.push(node)
     }
 
+    const byAgentPath = {}
+    const agentNodes = []
     for (let i = 0; i < agents.length; i++) {
       const agent = agents[i]
       const node = {
@@ -14095,6 +14484,9 @@
         kind: 'agent',
         agentId: agent.id,
         groupId: parentGroupIdOf(agent),
+        path: normalizedPath(agent.path || agent.name || agent.id),
+        parentAgentPath: parentAgentPath(agent.path || agent.name || agent.id),
+        parentAgentId: null,
         provider: agent.provider || '',
         model: agent.model || '',
         mode: agent.mode || 'chat',
@@ -14103,8 +14495,20 @@
         sortOrder: orderOf(agent, i),
         children: [],
       }
-      const parent = node.groupId ? byGroup[node.groupId] : null
-      if (parent) parent.children.push(node)
+      byAgentPath[agentKey(node.groupId, node.path)] = node
+      agentNodes.push(node)
+    }
+
+    for (let i = 0; i < agentNodes.length; i++) {
+      const node = agentNodes[i]
+      const parentAgent = node.parentAgentPath ? byAgentPath[agentKey(node.groupId, node.parentAgentPath)] : null
+      if (parentAgent && parentAgent !== node) {
+        node.parentAgentId = parentAgent.agentId
+        parentAgent.children.push(node)
+        continue
+      }
+      const parentGroup = node.groupId ? byGroup[node.groupId] : null
+      if (parentGroup) parentGroup.children.push(node)
       else roots.push(node)
     }
 
@@ -14216,8 +14620,18 @@
   }
 
   function commitAgentDrop(source, target, position) {
+    const sourceAgent = EF.ai.findAgent ? EF.ai.findAgent(source.agentId) : null
+    const name = sourceAgent ? agentLeafName(sourceAgent) : source.label
+    function moveAsRoot(groupId) {
+      if (EF.ai.setAgentPath) {
+        const updated = EF.ai.setAgentPath(source.agentId, name)
+        if (updated && updated.groupId !== (groupId || null)) EF.ai.moveAgent(source.agentId, { groupId: groupId || null, order: updated.order })
+      } else {
+        EF.ai.updateAgent(source.agentId, { path: name, groupId: groupId || null })
+      }
+    }
     if (target.kind === 'group' && position === 'inside') {
-      EF.ai.moveAgent(source.agentId, { groupId: target.groupId })
+      moveAsRoot(target.groupId)
       return
     }
     if (target.kind === 'agent' && position === 'inside') {
@@ -14225,10 +14639,11 @@
       return
     }
     if (target.kind === 'agent') {
-      EF.ai.moveAgent(source.agentId, { groupId: target.groupId || null })
+      if (target.parentAgentId) EF.ai.reparentAgent(source.agentId, target.parentAgentId)
+      else moveAsRoot(target.groupId || null)
       return
     }
-    EF.ai.moveAgent(source.agentId, { groupId: target.parentGroupId || null })
+    moveAsRoot(target.parentGroupId || null)
   }
 
   function commitDrop(target, position, data) {
@@ -14254,9 +14669,6 @@
     const wrap = ui.h('span', 'ef-ai-agent-meta')
     if (node.status && node.status !== 'idle') {
       wrap.appendChild(ui.h('span', 'ef-ai-status-pill ef-ai-status-' + node.status, { text: statusLabel(node.status) }))
-    }
-    if (node.model || node.provider) {
-      wrap.appendChild(ui.h('span', 'ef-ai-agent-model', { text: node.model || node.provider }))
     }
     return wrap
   }
@@ -14318,10 +14730,7 @@
         return makeStatus(node)
       },
       leadingSlot: function (node) {
-        if (node.kind !== 'agent') return null
-        const ic = ui.h('span', 'ef-ui-tree-icon')
-        ic.appendChild(ui.icon({ name: node.icon, size: 'sm' }))
-        return ic
+        return null
       },
       labelSlot: function (node) {
         if (node.kind !== 'agent') return null
@@ -14339,13 +14748,6 @@
             icon: 'user',
             title: 'New agent',
             onClick: function () { promptAgent(node.groupId) },
-          })
-        }
-        if (node.kind === 'agent') {
-          actions.push({
-            icon: 'user',
-            title: 'New child agent',
-            onClick: function () { promptAgent(node.groupId || null, node.agentId) },
           })
         }
         actions.push({
@@ -14412,8 +14814,8 @@
     return root
   }
 
-  EF.registerComponent('ai-agents', {
-    defaults: function () { return { title: 'AI Agents', icon: 'AI', props: {} } },
+  EF.registerComponent('ai-agents-list', {
+    defaults: function () { return { title: 'AI Agents', icon: 'user', props: {} } },
     factory: factory,
     dispose: disposeTree,
   })
@@ -14650,33 +15052,52 @@
     ui.menu({ anchor: anchor, items: items, side: 'top', align: 'start' })
   }
 
-  function renderResourceChips(parent, agent) {
+  function chipImage(item) {
+    const meta = item.meta || {}
+    if (item.kind === 'file.image' && meta.dataUrl) return meta.dataUrl
+    return ''
+  }
+
+  function appendResourceChip(parent, item, opts) {
+    opts = opts || {}
+    const title = opts.title ? opts.title(item) : refTitle(item)
+    const kind = opts.kind ? opts.kind(item) : refKind(item)
+    const chip = ui.h('button', 'ef-ai-resource-chip', { type: 'button', title: title })
+    const img = chipImage(item)
+    if (img) chip.appendChild(ui.h('img', 'ef-ai-resource-thumb', { src: img, alt: '' }))
+    else chip.appendChild(ui.h('span', 'ef-ai-resource-kind', { text: kind }))
+    chip.appendChild(ui.h('span', 'ef-ai-resource-title', { text: title }))
+    chip.appendChild(ui.h('span', 'ef-ai-resource-remove', { text: 'x' }))
+    chip.addEventListener('click', function (ev) {
+      ev.preventDefault()
+      if (opts.remove) opts.remove(item)
+    })
+    parent.appendChild(chip)
+  }
+
+  function renderAllChips(parent, agent, pendingSig) {
     clearChildren(parent)
     parent.classList.remove('ef-ai-resource-chips-visible')
     const refs = agent ? (agent.contextRefs || []) : []
-    if (!agent || !refs.length) return
+    const pending = pendingSig()
+    if ((!agent || !refs.length) && !pending.length) return
     parent.classList.add('ef-ai-resource-chips-visible')
     for (let i = 0; i < refs.length; i++) {
       const item = resolveRef(refs[i])
-      const chip = ui.h('button', 'ef-ai-resource-chip', { type: 'button', title: refTitle(item) })
-      chip.appendChild(ui.h('span', 'ef-ai-resource-kind', { text: refKind(item) }))
-      chip.appendChild(ui.h('span', 'ef-ai-resource-title', { text: refTitle(item) }))
-      const close = ui.h('span', 'ef-ai-resource-remove', { text: 'x' })
-      chip.appendChild(close)
-      chip.addEventListener('click', function (ev) {
-        ev.preventDefault()
-        removeContextRef(item.ref)
+      appendResourceChip(parent, item, {
+        remove: function (res) { removeContextRef(res.ref) },
       })
-      parent.appendChild(chip)
     }
-  }
-
-  function targetTitle(item) {
-    return item.title || item.label || item.name || item.uri || 'Target'
-  }
-
-  function targetKind(item) {
-    return item.kind || item.resolver || 'target'
+    for (let j = 0; j < pending.length; j++) {
+      const item = pending[j]
+      appendResourceChip(parent, item, {
+        title: targetTitle,
+        kind: targetKind,
+        remove: function (target) {
+          pendingSig.set(pendingSig.peek().filter(function (item) { return !sameTarget(item, target) }))
+        },
+      })
+    }
   }
 
   function sameTarget(a, b) {
@@ -14694,25 +15115,12 @@
     sig.set(list)
   }
 
-  function renderPendingTargetChips(parent, sig) {
-    clearChildren(parent)
-    parent.classList.remove('ef-ai-resource-chips-visible')
-    const list = sig()
-    if (!list.length) return
-    parent.classList.add('ef-ai-resource-chips-visible')
-    for (let i = 0; i < list.length; i++) {
-      const item = list[i]
-      const chip = ui.h('button', 'ef-ai-resource-chip ef-ai-target-chip', { type: 'button', title: item.uri })
-      chip.appendChild(ui.h('span', 'ef-ai-resource-kind', { text: targetKind(item) }))
-      chip.appendChild(ui.h('span', 'ef-ai-resource-title', { text: targetTitle(item) }))
-      chip.appendChild(ui.h('span', 'ef-ai-resource-remove', { text: 'x' }))
-      chip.addEventListener('click', function (ev) {
-        ev.preventDefault()
-        const next = sig.peek().filter(function (target) { return !sameTarget(target, item) })
-        sig.set(next)
-      })
-      parent.appendChild(chip)
-    }
+  function targetTitle(item) {
+    return item.title || item.label || item.name || item.uri || 'Target'
+  }
+
+  function targetKind(item) {
+    return item.kind || item.resolver || 'target'
   }
 
   function openPermissionMenu(anchor, permSig) {
@@ -14744,7 +15152,7 @@
       return !!(a && (a.status === 'running' || a.status === 'queued'))
     })
     const controlDisabled = EF.derived(function () { return !hasTarget() })
-    const sendDisabled = EF.derived(function () { return !hasTarget() || (!busy() && !input().trim()) })
+    const sendDisabled = EF.derived(function () { return !hasTarget() || (!busy() && !input().trim() && !pendingTargets().length) })
     const sendIcon = EF.derived(function () { return busy() ? 'square' : 'arrow-up' })
 
     const root = ui.h('div', 'ef-ai-panel ef-ai-chat')
@@ -14763,12 +15171,13 @@
 
     const chips = ui.h('div', 'ef-ai-resource-chips')
     composer.appendChild(chips)
-    const targetChips = ui.h('div', 'ef-ai-resource-chips ef-ai-pending-targets')
-    composer.appendChild(targetChips)
 
     const editorWrap = ui.h('div', 'ef-ai-chat-input-wrap')
     const editor = ui.textarea({ value: input, rows: 4, placeholder: 'Message current agent...', mono: false, disabled: controlDisabled })
     editor.classList.add('ef-ai-chat-input')
+    editor.setAttribute('autocomplete', 'off')
+    editor.setAttribute('autocapitalize', 'off')
+    editor.setAttribute('spellcheck', 'false')
     editorWrap.appendChild(editor)
     composer.appendChild(editorWrap)
 
@@ -14889,8 +15298,7 @@
       }))
     }))
 
-    ui.collect(root, EF.effect(function () { renderResourceChips(chips, activeAgent()) }))
-    ui.collect(root, EF.effect(function () { renderPendingTargetChips(targetChips, pendingTargets) }))
+    ui.collect(root, EF.effect(function () { renderAllChips(chips, activeAgent(), pendingTargets) }))
 
     return root
 
@@ -14901,9 +15309,9 @@
         EF.ai.stopAgent(agent.id)
         return
       }
-      const text = input().trim()
-      if (!text) return
       const targets = pendingTargets.peek()
+      const text = input().trim() || (targets.length ? 'Inspect the attached file(s).' : '')
+      if (!text) return
       let nextAgent = agent
       if (targets.length && EF.ai.attachTargetsToAgent) {
         nextAgent = EF.ai.attachTargetsToAgent(agent.id, targets) || agent
@@ -14929,8 +15337,8 @@
     }
   }
 
-  EF.registerComponent('ai-chat', {
-    defaults: function () { return { title: 'AI Chat', icon: 'AI', props: { mode: 'chat' } } },
+  EF.registerComponent('ai-chatinput', {
+    defaults: function () { return { title: 'AI Send', icon: 'message-circle', props: { mode: 'chat' } } },
     factory: factory,
     dispose: disposeTree,
   })
@@ -15104,10 +15512,89 @@
     if (value == null) return
     const block = ui.h('div', 'ef-ai-tool-call-block ' + className)
     block.appendChild(ui.h('div', 'ef-ai-tool-call-block-title', { text: title }))
-      const pre = ui.h('pre', 'ef-ai-tool-call-code ef-ui-scrollarea')
+    if (isPatchPreview(value)) {
+      appendPatchPreview(block, value)
+      parent.appendChild(block)
+      return
+    }
+    const pre = ui.h('pre', 'ef-ai-tool-call-code ef-ui-scrollarea')
     pre.textContent = displayText(value)
     block.appendChild(pre)
     parent.appendChild(block)
+  }
+
+  function isPatchPreview(value) {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return false
+    const patch = value.patch || value
+    return patch && patch.type === 'gde.patch' && Array.isArray(value.changes) && value.validation
+  }
+
+  function appendPatchPreview(parent, preview) {
+    const wrap = ui.h('div', 'ef-ai-gde-patch')
+    const head = ui.h('div', 'ef-ai-gde-patch-head')
+    head.appendChild(ui.h('div', 'ef-ai-gde-patch-title', { text: preview.title || 'GDE patch' }))
+    const ok = preview.ok !== false && (!preview.validation || preview.validation.ok !== false)
+    head.appendChild(ui.h('span', 'ef-ai-gde-patch-status ef-ai-gde-patch-status-' + (ok ? 'ok' : 'error'), {
+      text: ok ? 'OK' : 'ERRORS',
+    }))
+    wrap.appendChild(head)
+
+    const errors = preview.validation && preview.validation.errors
+    if (errors && errors.length) {
+      const list = ui.h('div', 'ef-ai-gde-patch-errors')
+      for (let i = 0; i < errors.length; i++) {
+        const item = errors[i]
+        const text = (item.path ? item.path + ': ' : '') + (item.message || displayText(item))
+        list.appendChild(ui.h('div', 'ef-ai-gde-patch-error', { text: text }))
+      }
+      wrap.appendChild(list)
+    }
+
+    const changes = ui.h('div', 'ef-ai-gde-patch-changes')
+    for (let i = 0; i < preview.changes.length; i++) changes.appendChild(renderPatchChange(preview.changes[i], i))
+    wrap.appendChild(changes)
+    parent.appendChild(wrap)
+  }
+
+  function renderPatchChange(change, index) {
+    const item = ui.h('div', 'ef-ai-gde-patch-change')
+    const meta = ui.h('div', 'ef-ai-gde-patch-change-meta')
+    meta.appendChild(ui.h('span', 'ef-ai-gde-patch-change-index', { text: '#' + String(change.index != null ? change.index + 1 : index + 1) }))
+    appendPatchChip(meta, 'op', change.op)
+    appendPatchChip(meta, 'table', change.table)
+    appendPatchChip(meta, 'id', change.id)
+    appendPatchChip(meta, 'field', change.field)
+    item.appendChild(meta)
+    if (change.summary) item.appendChild(ui.h('div', 'ef-ai-gde-patch-summary', { text: change.summary }))
+    const diff = ui.h('div', 'ef-ai-gde-patch-diff')
+    diff.appendChild(renderPatchValue('before', change.before))
+    diff.appendChild(renderPatchValue('after', change.after))
+    item.appendChild(diff)
+    return item
+  }
+
+  function appendPatchChip(parent, label, value) {
+    if (value == null || value === '') return
+    const chip = ui.h('span', 'ef-ai-gde-patch-chip')
+    chip.appendChild(ui.h('span', 'ef-ai-gde-patch-chip-label', { text: label }))
+    chip.appendChild(ui.h('span', 'ef-ai-gde-patch-chip-value', { text: String(value) }))
+    parent.appendChild(chip)
+  }
+
+  function renderPatchValue(label, value) {
+    const row = ui.h('div', 'ef-ai-gde-patch-value ef-ai-gde-patch-value-' + label)
+    row.appendChild(ui.h('span', 'ef-ai-gde-patch-value-label', { text: label }))
+    row.appendChild(ui.h('code', 'ef-ai-gde-patch-value-text', { text: briefValue(value) }))
+    return row
+  }
+
+  function briefValue(value) {
+    if (value === undefined) return 'undefined'
+    if (value === null) return 'null'
+    if (typeof value === 'string') return JSON.stringify(value)
+    if (typeof value === 'number' || typeof value === 'boolean') return String(value)
+    const text = JSON.stringify(value)
+    return text.length > 180 ? text.slice(0, 177) + '...' : text
   }
 
   function appendToolButton(parent, text, enabled, fn, kind) {
@@ -15265,13 +15752,8 @@
     return root
   }
 
-  EF.registerComponent('ai-transcript', {
-    defaults: function () { return { title: 'AI Transcript', icon: 'AI', props: {} } },
-    factory: factory,
-    dispose: disposeTree,
-  })
-  EF.registerComponent('ai-conversation', {
-    defaults: function () { return { title: 'AI Chat', icon: 'AI', props: {} } },
+  EF.registerComponent('ai-messages', {
+    defaults: function () { return { title: 'AI Messages', icon: 'message-circle', props: {} } },
     factory: factory,
     dispose: disposeTree,
   })
@@ -15572,6 +16054,19 @@
       description: 'Active EditorFrame theme.',
       order: 10,
     },
+    {
+      key: 'theme.density',
+      label: 'Density',
+      type: 'select',
+      default: 'default',
+      options: [
+        { value: 'compact', label: 'Compact' },
+        { value: 'default', label: 'Default' },
+        { value: 'comfortable', label: 'Comfortable' },
+      ],
+      description: 'Typography density and default UI text scale.',
+      order: 20,
+    },
   ])
 
   EF.settings.registerPage('theme-editor', {
@@ -15586,6 +16081,8 @@
   EF.effect(function () {
     const mode = EF.settings.get('theme.mode')
     if (EF.theme && EF.theme.set) EF.theme.set(mode || 'dark')
+    const density = EF.settings.get('theme.density')
+    if (EF.theme && EF.theme.setDensity) EF.theme.setDensity(density || 'default')
   })
 
   EF.settings.registerSection('ai', {
@@ -15670,6 +16167,7 @@
 
   const THEME_STORAGE_KEY = 'ef-theme-overrides-v2'
   const THEME_MODE_KEY = 'ef-theme-mode'
+  const THEME_DENSITY_KEY = 'ef-theme-density'
   const THEME_TABS = [
     { value: 'palette', label: 'Palette' },
     { value: 'spacing', label: 'Spacing' },
@@ -15747,6 +16245,7 @@
     const bar = ui.h('div', 'ef-settings-theme-bar')
     const tabSig = EF.signal('palette')
     const modeSig = EF.signal(EF.settings.get('theme.mode') || localStorage.getItem(THEME_MODE_KEY) || 'dark')
+    const densitySig = EF.signal(EF.settings.get('theme.density') || localStorage.getItem(THEME_DENSITY_KEY) || 'default')
     const tabs = ui.segmented({ value: tabSig, options: THEME_TABS })
     tabs.classList.add('ef-settings-theme-tabs')
     const mode = ui.select({
@@ -15755,6 +16254,16 @@
         { value: 'dark', label: 'Dark' },
         { value: 'dracula', label: 'Dracula' },
         { value: 'light', label: 'Light' },
+      ],
+      variant: 'minimal',
+      autoWidth: true,
+    })
+    const density = ui.select({
+      value: densitySig,
+      options: [
+        { value: 'compact', label: 'Compact' },
+        { value: 'default', label: 'Default' },
+        { value: 'comfortable', label: 'Comfortable' },
       ],
       variant: 'minimal',
       autoWidth: true,
@@ -15781,6 +16290,7 @@
     })
     bar.appendChild(tabs)
     bar.appendChild(mode)
+    bar.appendChild(density)
     bar.appendChild(reset)
     bar.appendChild(exportBtn)
     root.appendChild(bar)
@@ -15824,6 +16334,13 @@
       }
       clearThemeOverrides()
       refreshAll()
+    }))
+
+    ui.collect(root, EF.effect(function () {
+      const value = densitySig()
+      EF.settings.set('theme.density', value)
+      localStorage.setItem(THEME_DENSITY_KEY, value)
+      if (EF.theme && EF.theme.setDensity) EF.theme.setDensity(value)
     }))
 
     const panes = {}
@@ -16271,6 +16788,8 @@
     const filter = EF.signal(((propsSig.peek() || {}).level) || 'all')
     const bar = ui.h('div', 'ef-ui-errlog-bar')
     bar.appendChild(ui.select({ value: filter, options: LEVEL_OPTS }))
+    const summary = ui.h('div', 'ef-ui-errlog-summary')
+    bar.appendChild(summary)
     bar.appendChild(ui.h('div', 'ef-ui-errlog-spacer'))
     const copyBtn = ui.button({ text: 'Copy', kind: 'ghost', size: 'sm' })
     copyBtn.addEventListener('click', function () {
@@ -16294,7 +16813,7 @@
     root.appendChild(bar)
 
     const empty = ui.h('div', 'ef-ui-errlog-empty', {
-      text: 'No log entries.',
+      text: 'No log entries',
     })
 
     const scroll = ui.scrollArea()
@@ -16304,6 +16823,7 @@
       const list = EF.log()
       const lvl = filter()
       const visible = lvl === 'all' ? list : list.filter(function (e) { return e.level === lvl })
+      summary.textContent = visible.length + ' visible / ' + list.length + ' total'
       scroll.replaceChildren()
       if (visible.length === 0) {
         scroll.appendChild(empty)
@@ -16320,9 +16840,13 @@
 
   function buildRow(entry) {
     const row = ui.h('div', 'ef-ui-errlog-row ef-ui-errlog-row-' + entry.level)
-    row.appendChild(ui.h('span', 'ef-ui-errlog-level ef-ui-errlog-level-' + entry.level, { text: entry.level.toUpperCase() }))
-    row.appendChild(ui.h('span', 'ef-ui-errlog-src',  { text: formatSource(entry.source) }))
-    row.appendChild(ui.h('span', 'ef-ui-errlog-msg',  { text: entry.message }))
+    const head = ui.h('div', 'ef-ui-errlog-row-head')
+    head.appendChild(ui.h('span', 'ef-ui-errlog-level ef-ui-errlog-level-' + entry.level, { text: entry.level.toUpperCase() }))
+    head.appendChild(ui.h('span', 'ef-ui-errlog-src',  { text: formatSource(entry.source) }))
+    const time = entry.time ? new Date(entry.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : ''
+    head.appendChild(ui.h('span', 'ef-ui-errlog-time', { text: time }))
+    row.appendChild(head)
+    row.appendChild(ui.h('div', 'ef-ui-errlog-msg',  { text: entry.message }))
     // Stack trace lives in the entry data (and console.error fallback) but is
     // not rendered — the log panel is a one-line scan, not a debugger.
     row.title = entry.stack ? entry.message + '\n\n' + entry.stack : entry.message

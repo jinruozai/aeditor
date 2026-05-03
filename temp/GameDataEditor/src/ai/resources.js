@@ -97,6 +97,32 @@
     };
   }
 
+  function typePayload(name) {
+    var builtin = State.builtinTypeConfig()[name] || null;
+    var project = State.projectTypeConfig()[name] || null;
+    return {
+      name: name,
+      builtin: clone(builtin),
+      project: clone(project),
+      resolved: clone(project || builtin),
+      usages: State.findTypeUsages ? clone(State.findTypeUsages(name)) : [],
+    };
+  }
+
+  function cardStyleNodePayload(styleKey, nodeId) {
+    var cs = State.projectCardStyles()[styleKey];
+    if (!cs || !cs.root) return null;
+    var found = findNode(cs.root, nodeId, null);
+    if (!found) return null;
+    return {
+      styleKey: styleKey,
+      nodeId: String(nodeId),
+      node: clone(found.node),
+      parentId: found.parent ? found.parent.id : null,
+      selected: selectedCardNodes(styleKey).indexOf(String(nodeId)) >= 0,
+    };
+  }
+
   function selectedCardNodes(styleKey) {
     var sel = State.selection();
     if (!sel || sel.kind !== 'card_component' || sel.styleKey !== styleKey) return [];
@@ -131,8 +157,12 @@
     if (m) return fieldPayload(decodeURIComponent(m[1]), decodeURIComponent(m[2]), decodeURIComponent(m[3]));
     m = uri.match(/^gde:\/\/asset\/(.+)$/);
     if (m) return assetPayload(decodeURIComponent(m[1]));
+    m = uri.match(/^gde:\/\/card-style\/(.+)\/node\/([^/]+)$/);
+    if (m) return cardStyleNodePayload(decodeURIComponent(m[1]), decodeURIComponent(m[2]));
     m = uri.match(/^gde:\/\/card-style\/(.+)$/);
     if (m) return cardStylePayload(decodeURIComponent(m[1]));
+    m = uri.match(/^gde:\/\/type\/(.+)$/);
+    if (m) return typePayload(decodeURIComponent(m[1]));
     return { uri: uri, missing: true };
   }
 
@@ -177,6 +207,8 @@
   GDE.ai.fieldPayload = fieldPayload;
   GDE.ai.queryRows = queryRows;
   GDE.ai.cardStylePayload = cardStylePayload;
+  GDE.ai.typePayload = typePayload;
+  GDE.ai.cardStyleNodePayload = cardStyleNodePayload;
   GDE.ai.registerResourceResolvers = registerResourceResolvers;
   GDE.ai.registerContextProviders = registerContextProviders;
 
@@ -243,5 +275,16 @@
       value = value == null ? undefined : value[parts[i]];
     }
     return value;
+  }
+
+  function findNode(node, nodeId, parent) {
+    if (!node) return null;
+    if (String(node.id) === String(nodeId)) return { node: node, parent: parent };
+    var children = node.children || [];
+    for (var i = 0; i < children.length; i++) {
+      var hit = findNode(children[i], nodeId, node);
+      if (hit) return hit;
+    }
+    return null;
   }
 })();

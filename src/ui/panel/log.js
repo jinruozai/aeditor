@@ -29,6 +29,8 @@
     const filter = EF.signal(((propsSig.peek() || {}).level) || 'all')
     const bar = ui.h('div', 'ef-ui-errlog-bar')
     bar.appendChild(ui.select({ value: filter, options: LEVEL_OPTS }))
+    const summary = ui.h('div', 'ef-ui-errlog-summary')
+    bar.appendChild(summary)
     bar.appendChild(ui.h('div', 'ef-ui-errlog-spacer'))
     const copyBtn = ui.button({ text: 'Copy', kind: 'ghost', size: 'sm' })
     copyBtn.addEventListener('click', function () {
@@ -52,7 +54,7 @@
     root.appendChild(bar)
 
     const empty = ui.h('div', 'ef-ui-errlog-empty', {
-      text: 'No log entries.',
+      text: 'No log entries',
     })
 
     const scroll = ui.scrollArea()
@@ -62,6 +64,7 @@
       const list = EF.log()
       const lvl = filter()
       const visible = lvl === 'all' ? list : list.filter(function (e) { return e.level === lvl })
+      summary.textContent = visible.length + ' visible / ' + list.length + ' total'
       scroll.replaceChildren()
       if (visible.length === 0) {
         scroll.appendChild(empty)
@@ -78,9 +81,13 @@
 
   function buildRow(entry) {
     const row = ui.h('div', 'ef-ui-errlog-row ef-ui-errlog-row-' + entry.level)
-    row.appendChild(ui.h('span', 'ef-ui-errlog-level ef-ui-errlog-level-' + entry.level, { text: entry.level.toUpperCase() }))
-    row.appendChild(ui.h('span', 'ef-ui-errlog-src',  { text: formatSource(entry.source) }))
-    row.appendChild(ui.h('span', 'ef-ui-errlog-msg',  { text: entry.message }))
+    const head = ui.h('div', 'ef-ui-errlog-row-head')
+    head.appendChild(ui.h('span', 'ef-ui-errlog-level ef-ui-errlog-level-' + entry.level, { text: entry.level.toUpperCase() }))
+    head.appendChild(ui.h('span', 'ef-ui-errlog-src',  { text: formatSource(entry.source) }))
+    const time = entry.time ? new Date(entry.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : ''
+    head.appendChild(ui.h('span', 'ef-ui-errlog-time', { text: time }))
+    row.appendChild(head)
+    row.appendChild(ui.h('div', 'ef-ui-errlog-msg',  { text: entry.message }))
     // Stack trace lives in the entry data (and console.error fallback) but is
     // not rendered — the log panel is a one-line scan, not a debugger.
     row.title = entry.stack ? entry.message + '\n\n' + entry.stack : entry.message

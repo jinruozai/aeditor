@@ -13,7 +13,7 @@
     var input = EF.ui.searchInput({ value: inputSig, placeholder: t('search.placeholder') });
 
     var countLine = document.createElement('div');
-    countLine.style.cssText = 'font-size:11px;color:var(--ef-fg-3);margin-bottom:4px;';
+    countLine.style.cssText = 'font-size:var(--ef-fs-xs);color:var(--ef-fg-3);margin-bottom:4px;';
 
     var results = document.createElement('div');
     results.style.cssText = 'flex:1;overflow:auto;margin-top:4px;';
@@ -27,7 +27,7 @@
       if (!query) {
         countLine.textContent = '';
         var empty = document.createElement('div');
-        empty.style.cssText = 'padding:16px;color:var(--ef-fg-3);font-size:12px;text-align:center;';
+        empty.style.cssText = 'padding:16px;color:var(--ef-fg-3);font-size:var(--ef-fs-sm);text-align:center;';
         empty.textContent = t('search.empty');
         results.appendChild(empty);
         return;

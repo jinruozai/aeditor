@@ -227,6 +227,23 @@
       SceneDOM.annotate(inner, cs.root);
       canvas.appendChild(inner);
       canvas.appendChild(guideLayer);
+      bindCanvasNodeTargets();
+    }
+
+    function bindCanvasNodeTargets() {
+      if (!GDE.ai || !GDE.ai.bindTarget) return;
+      SceneDOM.selectableTargets(canvas).forEach(function (el) {
+        var nodeId = el.dataset && el.dataset.nodeId;
+        GDE.ai.bindTarget(el, function () {
+          return GDE.ai.cardNodeTarget(styleKey, nodeId);
+        }, { draggable: true });
+      });
+    }
+
+    function selectedNodeTargets(targetId) {
+      var selected = SceneSelection.idsFromSelection(State.selection(), styleKey);
+      if (targetId && selected.indexOf(targetId) < 0) selected = [targetId];
+      return selected.map(function (id) { return GDE.ai.cardNodeTarget(styleKey, id); });
     }
 
     var anchorId = null;
@@ -393,14 +410,32 @@
       lastPointer = { x: ev.clientX, y: ev.clientY };
       var targetId = SceneDOM.idFromEvent(ev, canvas);
       var selected = SceneSelection.idsFromSelection(State.selection(), styleKey);
+      if (targetId && selected.indexOf(targetId) < 0) {
+        selected = [targetId];
+        anchorId = targetId;
+        State.setSelection({ kind: 'card_component', styleKey: styleKey, nodeIds: selected });
+      }
       var hasSelection = selected.length > 0;
-      var items = [
+      var items = [];
+      if (targetId && GDE.ai && GDE.ai.sendTargetsToAI) {
+        items.push(
+          {
+            label: t('common.add_to_chat'),
+            icon: 'message-circle',
+            onSelect: function () {
+              GDE.ai.sendTargetsToAI(selectedNodeTargets(targetId), t('cardstyle.ask_ai_prompt'));
+            },
+          },
+          { type: 'divider' }
+        );
+      }
+      items.push.apply(items, [
         { label: t('cardstyle.add_node'), icon: 'plus', onSelect: function () { openAddMenu({ x: ev.clientX, y: ev.clientY }, targetId || null); } },
         { type: 'divider' },
         { label: t('common.copy'), icon: 'copy', disabled: !hasSelection, onSelect: function () { GDE.cardStyleActions.copy(styleKey); } },
         { label: t('common.paste'), icon: 'paste', disabled: !GDE.cardStyleActions.canPaste(), onSelect: function () { GDE.cardStyleActions.paste(styleKey); } },
         { label: t('common.duplicate'), icon: 'copy', disabled: !hasSelection, onSelect: function () { GDE.cardStyleActions.duplicate(styleKey); } },
-      ];
+      ]);
       EF.ui.contextMenu({ x: ev.clientX, y: ev.clientY }, items);
     });
     // ── WYSIWYG drag / resize ─────────────────────────────────────

@@ -245,6 +245,32 @@
     return content == null ? '' : String(content)
   }
 
+  function dataUrlInfo(dataUrl) {
+    const match = String(dataUrl || '').match(/^data:([^;,]+);base64,(.*)$/)
+    return match ? { mediaType: match[1], base64: match[2], url: dataUrl } : null
+  }
+
+  function imageResources(request) {
+    const refs = request.resourceRefs || []
+    const resolved = request.resources || request.resolvedResources || []
+    const out = []
+    for (let i = 0; i < refs.length; i++) {
+      const ref = refs[i] || {}
+      const payload = resolved[i] || {}
+      const dataUrl = (payload && payload.dataUrl) || (ref.meta && ref.meta.dataUrl)
+      const info = dataUrlInfo(dataUrl)
+      if (info && ((ref.kind || payload.kind) === 'file.image' || String(info.mediaType).indexOf('image/') === 0)) {
+        out.push({
+          title: ref.title || ref.uri || 'image',
+          mediaType: info.mediaType,
+          base64: info.base64,
+          url: info.url,
+        })
+      }
+    }
+    return out
+  }
+
   function jsonSchema(schema) {
     if (!schema) return { type: 'object', properties: {} }
     if (schema.type) return schema
@@ -300,8 +326,8 @@
     })
   }
 
-  function openAiMessages(messages) {
-    return (messages || []).map(function (m) {
+  function openAiMessages(messages, request) {
+    const outMessages = (messages || []).map(function (m) {
       if (m.role === 'tool') {
         return {
           role: 'tool',
@@ -325,16 +351,51 @@
       }
       return out
     })
+    const images = imageResources(request || {})
+    if (!images.length) return outMessages
+    for (let i = outMessages.length - 1; i >= 0; i--) {
+      if (outMessages[i].role !== 'user') continue
+      const text = messageText(outMessages[i].content)
+      const content = []
+      if (text) content.push({ type: 'text', text: text })
+      for (let j = 0; j < images.length; j++) {
+        content.push({ type: 'image_url', image_url: { url: images[j].url } })
+      }
+      outMessages[i] = Object.assign({}, outMessages[i], { content: content })
+      return outMessages
+    }
+    return outMessages
   }
 
-  function anthropicPayloadMessages(messages) {
+  function anthropicPayloadMessages(messages, request) {
     const out = []
+    const images = imageResources(request || {})
+    let imagesAttached = false
     for (let i = 0; i < (messages || []).length; i++) {
       const m = messages[i]
       if (m.role === 'system') continue
+      const role = m.role === 'assistant' ? 'assistant' : 'user'
+      let content = messageText(m.content)
+      if (role === 'user' && images.length && !imagesAttached) {
+        const blocks = []
+        if (content) blocks.push({ type: 'text', text: content })
+        for (let j = 0; j < images.length; j++) {
+          blocks.push({
+            type: 'image',
+            source: {
+              type: 'base64',
+              media_type: images[j].mediaType,
+              data: images[j].base64,
+            },
+          })
+        }
+        out.push({ role: role, content: blocks })
+        imagesAttached = true
+        continue
+      }
       out.push({
-        role: m.role === 'assistant' ? 'assistant' : 'user',
-        content: messageText(m.content),
+        role: role,
+        content: content,
       })
     }
     return out
@@ -391,7 +452,7 @@
         const stream = !!(request.stream && config.stream && !tools.length)
         const body = {
           model: model,
-          messages: openAiMessages(request.messages),
+          messages: openAiMessages(request.messages, request),
           stream: stream,
           stream_options: stream ? { include_usage: true } : undefined,
         }
@@ -479,7 +540,7 @@
       const system = anthropicSystem(request.messages)
       const body = {
         model: request.model || config.defaultModel,
-        messages: anthropicPayloadMessages(request.messages),
+        messages: anthropicPayloadMessages(request.messages, request),
         max_tokens: 4096,
         stream: !!(request.stream && config.stream),
       }

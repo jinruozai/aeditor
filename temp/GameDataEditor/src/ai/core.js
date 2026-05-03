@@ -146,6 +146,30 @@
     };
   }
 
+  function typeTarget(name) {
+    return {
+      resolver: 'gde',
+      uri: 'gde://type/' + String(name),
+      kind: 'gde.type',
+      title: String(name),
+      meta: { type: String(name) },
+      capabilities: ['read', 'patch', 'references'],
+      tools: ['gde.getTypeConfig', 'gde.findUnknownStructFields', 'gde.proposePatch'],
+    };
+  }
+
+  function cardNodeTarget(styleKey, nodeId) {
+    return {
+      resolver: 'gde',
+      uri: 'gde://card-style/' + String(styleKey) + '/node/' + String(nodeId),
+      kind: 'gde.card_node',
+      title: String(styleKey) + ' / ' + String(nodeId),
+      meta: { cardStyle: String(styleKey), nodeId: String(nodeId) },
+      capabilities: ['read', 'patch'],
+      tools: ['gde.getCardStyleNode', 'gde.proposePatch'],
+    };
+  }
+
   function selectionTargets() {
     var ctx = selectionContext();
     return (ctx.refs || []).map(function (ref) {
@@ -172,6 +196,8 @@
         if (source && source.gdeTarget === 'field') return fieldTarget(source.pathKey, source.id, source.field);
         if (source && source.gdeTarget === 'asset') return assetTarget(source.assetUrl || source.url);
         if (source && source.gdeTarget === 'card_style') return cardStyleTarget(source.cardStyle || source.key);
+        if (source && source.gdeTarget === 'type') return typeTarget(source.type || source.name || source.key);
+        if (source && source.gdeTarget === 'card_node') return cardNodeTarget(source.cardStyle || source.key || source.styleKey, source.nodeId || source.id);
         return null;
       },
     });
@@ -223,19 +249,58 @@
     }, 'user');
   }
 
+  function persistenceKey() {
+    var name = State.projectName ? State.projectName() : 'Untitled';
+    return 'gamedataeditor.ai.project.' + encodeURIComponent(String(name || 'Untitled'));
+  }
+
+  function configureProjectPersistence(ai) {
+    if (!ai || !ai.configurePersistence) return;
+    var key = persistenceKey();
+    if (GDE.ai._persistenceKey === key) return;
+    GDE.ai._persistenceKey = key;
+    ai.configurePersistence({ key: key });
+    ensureDefaultAgent(ai);
+  }
+
   function install() {
     if (GDE.ai._installed) return true;
     var ai = ensureAI();
     if (!ai) return false;
+    configureProjectPersistence(ai);
     if (GDE.ai.registerResourceResolvers) GDE.ai.registerResourceResolvers();
     registerTargetProviders();
     if (GDE.ai.registerContextProviders) GDE.ai.registerContextProviders();
     if (GDE.ai.registerTools) GDE.ai.registerTools();
     if (GDE.ai.registerSkills) GDE.ai.registerSkills();
     if (GDE.ai.registerAgentTemplates) GDE.ai.registerAgentTemplates();
+    if (EF.effect) {
+      GDE.ai._projectEffect = EF.effect(function () {
+        State.projectName();
+        configureProjectPersistence(ai);
+      });
+    }
     GDE.ai._installed = true;
     State.log('info', 'GDE AI adapter installed');
     return true;
+  }
+
+  function ensureDefaultAgent(ai) {
+    if (!ai || !ai.createAgent || (ai.agents && ai.agents().length)) return;
+    ai.createAgent({
+      id: 'gde-main',
+      name: 'main',
+      path: 'main',
+      mode: 'chat',
+      provider: ai.defaultProvider || 'mock',
+      permissionMode: 'full',
+      skillRefs: ['gde.game-data-designer'],
+      contextRefs: [
+        { resolver: 'gde', uri: 'gde://project', kind: 'gde.project', title: 'Project summary' },
+        { resolver: 'gde', uri: 'gde://type-config', kind: 'gde.type_config', title: 'TypeConfig' },
+      ],
+      permissions: { paths: [{ path: 'gde', mode: 'readwrite' }] },
+    });
   }
 
   window.GDE = window.GDE || {};
@@ -249,6 +314,8 @@
     fieldTarget: fieldTarget,
     assetTarget: assetTarget,
     cardStyleTarget: cardStyleTarget,
+    typeTarget: typeTarget,
+    cardNodeTarget: cardNodeTarget,
     selectionTargets: selectionTargets,
     bindTarget: bindTarget,
     sendTargetsToAI: sendTargetsToAI,
