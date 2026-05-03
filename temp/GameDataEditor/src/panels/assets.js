@@ -157,10 +157,13 @@
   async function assetResourceTarget(url) {
     var info = ProjectIO.assets.get(url);
     if (!info) return null;
-    var objectUrl = ProjectIO.assets.urlFor(url);
-    if (!objectUrl) return null;
-    var res = await fetch(objectUrl);
-    var blob = await res.blob();
+    var blob = ProjectIO.assets.blobFor ? ProjectIO.assets.blobFor(url) : null;
+    if (!blob) {
+      var objectUrl = ProjectIO.assets.urlFor(url);
+      if (!objectUrl) return null;
+      var res = await fetch(objectUrl);
+      blob = await res.blob();
+    }
     var file = typeof File === 'function'
       ? new File([blob], info.name || url, { type: blob.type || mimeFromName(info.name), lastModified: info.mtime || Date.now() })
       : Object.assign(blob, { name: info.name || url, lastModified: info.mtime || Date.now(), type: blob.type || mimeFromName(info.name) });

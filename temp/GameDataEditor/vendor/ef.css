@@ -2573,6 +2573,90 @@ body.ef-dragging-vertical,   body.ef-dragging-vertical *   { cursor: ns-resize !
   border-color: var(--ef-accent);
 }
 
+/* ─── ui.richPromptInput — inline atom prompt editor ───────────────────── */
+.ef-richprompt {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+}
+
+.ef-richprompt-editor {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 62px;
+  padding: 15px;
+  color: var(--ef-fg-0);
+  font: var(--ef-fs-md)/var(--ef-lh-base) var(--ef-font-ui);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  overflow: auto;
+  outline: none;
+  caret-color: var(--ef-accent);
+  box-sizing: border-box;
+}
+
+.ef-richprompt-editor:empty::before {
+  content: attr(data-placeholder);
+  color: var(--ef-fg-3);
+  pointer-events: none;
+}
+
+.ef-richprompt-token {
+  display: inline-flex;
+  align-items: center;
+  max-width: 220px;
+  height: 21px;
+  line-height: 19px;
+  margin: 0 2px;
+  padding: 0 6px;
+  gap: 4px;
+  vertical-align: middle;
+  border: 1px solid color-mix(in srgb, var(--ef-accent) 34%, var(--ef-border));
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--ef-accent) 12%, var(--ef-bg-2));
+  color: var(--ef-fg-0);
+  font: var(--ef-fs-xs) var(--ef-font-ui);
+  cursor: default;
+}
+
+.ef-richprompt-token:hover {
+  border-color: color-mix(in srgb, var(--ef-accent) 58%, var(--ef-border));
+  background: color-mix(in srgb, var(--ef-accent) 18%, var(--ef-bg-2));
+}
+
+.ef-richprompt-token-thumb {
+  flex: 0 0 auto;
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  object-fit: cover;
+  background: var(--ef-bg-0);
+  box-shadow: inset 0 0 0 1px var(--ef-border);
+}
+
+.ef-richprompt-token-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ef-richprompt-token-remove {
+  flex: 0 0 auto;
+  color: var(--ef-fg-3);
+  font-weight: 700;
+}
+
+.ef-richprompt-caret {
+  display: inline-block;
+  width: 0;
+  min-width: 0;
+  overflow: hidden;
+  color: transparent;
+  user-select: none;
+}
+
 /* ════ style/ui-container.css ════ */
 /* editorframe — UI library: containers */
 
@@ -3956,75 +4040,9 @@ body.ef-dragging-vertical,   body.ef-dragging-vertical *   { cursor: ns-resize !
   text-transform: uppercase;
 }
 
-.ef-ai-resource-chips {
-  display: none;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: var(--ef-space-1);
-  min-height: 0;
-  padding: 0 var(--ef-space-3) var(--ef-space-1);
-  border-bottom: 1px solid var(--ef-border);
-  background: transparent;
-}
-
-.ef-ai-resource-chips-visible {
-  display: flex;
-}
-
 .ef-ai-chat-empty {
   color: var(--ef-fg-3);
   font: var(--ef-fs-xs) var(--ef-font-ui);
-}
-
-.ef-ai-resource-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--ef-space-1);
-  max-width: 260px;
-  min-width: 0;
-  height: 24px;
-  padding: 0 6px;
-  border: 1px solid var(--ef-border);
-  border-radius: 999px;
-  background: var(--ef-bg-2);
-  color: var(--ef-fg-1);
-  font: var(--ef-fs-xs) var(--ef-font-ui);
-  cursor: pointer;
-}
-
-.ef-ai-resource-chip:hover {
-  border-color: color-mix(in srgb, var(--ef-accent) 42%, var(--ef-border));
-  background: color-mix(in srgb, var(--ef-accent) 10%, var(--ef-bg-2));
-}
-
-.ef-ai-resource-kind {
-  flex: 0 0 auto;
-  color: var(--ef-accent);
-  font: var(--ef-fs-xs) var(--ef-font-mono);
-  text-transform: uppercase;
-}
-
-.ef-ai-resource-thumb {
-  flex: 0 0 auto;
-  width: 18px;
-  height: 18px;
-  border-radius: 4px;
-  object-fit: cover;
-  background: var(--ef-bg-0);
-  box-shadow: inset 0 0 0 1px var(--ef-border);
-}
-
-.ef-ai-resource-title {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.ef-ai-resource-remove {
-  flex: 0 0 auto;
-  color: var(--ef-fg-3);
-  font: 700 var(--ef-fs-xs) var(--ef-font-ui);
 }
 
 .ef-ai-chat-input-wrap {
@@ -4032,7 +4050,7 @@ body.ef-dragging-vertical,   body.ef-dragging-vertical *   { cursor: ns-resize !
   flex: 1 1 auto;
   min-height: 62px;
   max-height: none;
-  padding-top: 20px;
+  padding: 0;
   box-sizing: border-box;
 }
 

@@ -49,6 +49,9 @@
   function displayText(v) {
     if (v == null) return ''
     if (typeof v === 'string') return v
+    if (v && typeof v === 'object' && v.type === 'rich-prompt') {
+      return v.renderedText || (EF.ai.richPrompt && EF.ai.richPrompt.toModelText ? EF.ai.richPrompt.toModelText(v) : '')
+    }
     return JSON.stringify(v, null, 2)
   }
 
@@ -320,7 +323,7 @@
 
   function renderPayload(msg) {
     const content = msg.content != null ? msg.content : msg.text
-    if (content && typeof content === 'object') {
+    if (content && typeof content === 'object' && content.type !== 'rich-prompt') {
       const pre = ui.h('pre', 'ef-ai-message-code ef-ui-scrollarea')
       pre.textContent = JSON.stringify(content, null, 2)
       return pre

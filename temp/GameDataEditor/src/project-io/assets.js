@@ -278,6 +278,12 @@
     return urls[path] || '';
   }
 
+  function blobFor(value) {
+    if (!isAssetUrl(value)) return null;
+    var f = files[urlToPath(value)];
+    return f ? f.blob : null;
+  }
+
   function remove(urlsToDelete) {
     var arr = Array.isArray(urlsToDelete) ? urlsToDelete : [urlsToDelete];
     arr.forEach(function (url) {
@@ -705,6 +711,7 @@
     renameFolder: renameFolder,
     replaceReferences: replaceReferences,
     urlFor: urlFor,
+    blobFor: blobFor,
     isAssetUrl: isAssetUrl,
     urlToPath: urlToPath,
     makeUrl: makeUrl,

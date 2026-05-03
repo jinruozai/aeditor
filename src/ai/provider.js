@@ -239,6 +239,9 @@
   }
 
   function messageText(content) {
+    if (content && typeof content === 'object' && content.type === 'rich-prompt') {
+      return content.renderedText || (ai.richPrompt && ai.richPrompt.toModelText ? ai.richPrompt.toModelText(content) : '')
+    }
     if (Array.isArray(content)) {
       return content.map(function (item) { return typeof item === 'string' ? item : (item.text || item.content || '') }).join('')
     }
@@ -498,12 +501,12 @@
         order: 100,
       },
     ],
-    send: function (request, ctx) {
-      if (ctx.signal && ctx.signal.aborted) throw new Error('aborted')
-      const last = request.messages[request.messages.length - 1]
-      const text = last && last.content ? last.content : ''
-      const prefix = EF.settings ? EF.settings.get('ai.mock.responsePrefix') : 'Echo:'
-      return {
+      send: function (request, ctx) {
+        if (ctx.signal && ctx.signal.aborted) throw new Error('aborted')
+        const last = request.messages[request.messages.length - 1]
+        const text = last && last.content ? messageText(last.content) : ''
+        const prefix = EF.settings ? EF.settings.get('ai.mock.responsePrefix') : 'Echo:'
+        return {
         role: 'assistant',
         content: text ? prefix + ' ' + text : 'Mock assistant response.',
       }

@@ -254,9 +254,24 @@
     return ref
   }
 
-  function resolveResources(agent, baseCtx) {
+  function effectiveContextRefs(agent, input) {
+    const refs = []
+    const seen = {}
+    function add(ref) {
+      const id = typeof ref === 'string' ? ref : (ref && (ref.resourceId || ref.id))
+      if (!id || seen[id]) return
+      seen[id] = true
+      refs.push(ref)
+    }
+    const agentRefs = agent.contextRefs || []
+    const inputRefs = input && input.contextRefs || []
+    for (let i = 0; i < agentRefs.length; i++) add(agentRefs[i])
+    for (let j = 0; j < inputRefs.length; j++) add(inputRefs[j])
+    return refs
+  }
+
+  function resolveResources(refs, baseCtx) {
     const out = []
-    const refs = agent.contextRefs || []
     const all = ai.resources ? ai.resources.peek() : []
     for (let i = 0; i < refs.length; i++) {
       const ref = resolveResourceRef(refs[i], all)
@@ -268,8 +283,7 @@
     return out
   }
 
-  function describeResources(agent) {
-    const refs = agent.contextRefs || []
+  function describeResources(refs) {
     const all = ai.resources ? ai.resources.peek() : []
     return refs.map(function (ref) {
       const item = resolveResourceRef(ref, all)
@@ -384,8 +398,9 @@
   function makeRequest(agent, input, runId, actor, turn) {
     const baseCtx = { ai: ai, agent: agent, actor: actor || 'user', runId: runId }
     const allowedResources = ai.canRead(actor || 'user', agent.id, 'resources.read')
-    const resolvedResources = allowedResources ? resolveResources(agent, baseCtx) : []
-    const resourceRefs = allowedResources ? describeResources(agent) : []
+    const contextRefs = effectiveContextRefs(agent, input)
+    const resolvedResources = allowedResources ? resolveResources(contextRefs, baseCtx) : []
+    const resourceRefs = allowedResources ? describeResources(contextRefs) : []
     return {
       runId: runId,
       agent: agent,
@@ -395,7 +410,7 @@
       model: agent.model || '',
       input: input || null,
       messages: requestMessages(agent, resourceRefs, resolvedResources),
-      contextRefs: agent.contextRefs.slice(),
+      contextRefs: contextRefs.slice(),
       resourceRefs: resourceRefs,
       resources: resolvedResources,
       resolvedResources: resolvedResources,

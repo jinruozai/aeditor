@@ -111,6 +111,15 @@
     return ai.updateAgent(agent.id, { contextRefs: refs })
   }
 
+  function addTargetsToChat(targets) {
+    const list = normalizeTargets(targets)
+    if (!list.length) return []
+    if (typeof window !== 'undefined' && typeof CustomEvent !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('ef-ai-add-to-chat', { detail: { targets: list } }))
+    }
+    return list
+  }
+
   function resolveTarget(targetOrFn, ev) {
     const value = typeof targetOrFn === 'function' ? targetOrFn(ev) : targetOrFn
     return normalizeTargets(value)
@@ -386,6 +395,7 @@
   ai.addTarget = addTarget
   ai.attachTargetToAgent = attachTargetToAgent
   ai.attachTargetsToAgent = attachTargetsToAgent
+  ai.addTargetsToChat = addTargetsToChat
   ai.bindTarget = bindTarget
   ai.installTargetDrop = installTargetDrop
   ai.readTargetFromDragEvent = readTargetFromDragEvent

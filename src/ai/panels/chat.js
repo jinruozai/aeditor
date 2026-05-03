@@ -29,10 +29,6 @@
     ui.dispose(el)
   }
 
-  function clearChildren(el) {
-    while (el.firstChild) disposeTree(el.firstChild)
-  }
-
   function optionsFrom(items) {
     const list = readList(items)
     const out = []
@@ -169,134 +165,20 @@
     return 'Permissions'
   }
 
-  function resolveRef(ref) {
-    const id = typeof ref === 'string' ? ref : (ref.resourceId || ref.id)
-    const all = resources()
-    for (let i = 0; i < all.length; i++) {
-      if (all[i].id === id) return Object.assign({}, all[i], { ref: ref, id: id })
-    }
-    return typeof ref === 'string' ? { id: ref, title: ref, ref: ref } : Object.assign({ id: id, ref: ref }, ref)
-  }
-
   function refTitle(item) {
     return item.title || item.label || item.name || item.uri || item.id || 'Resource'
   }
 
-  function refKind(item) {
-    return item.kind || item.resolver || 'ref'
-  }
-
-  function removeContextRef(ref) {
-    const agent = activeAgent()
-    const id = typeof ref === 'string' ? ref : (ref.resourceId || ref.id)
-    const next = (agent.contextRefs || []).filter(function (item) {
-      const itemId = typeof item === 'string' ? item : (item.resourceId || item.id)
-      return itemId !== id
-    })
-    EF.ai.updateAgent(agent.id, { contextRefs: next })
-  }
-
-  function hasContextRef(agent, ref) {
-    const id = typeof ref === 'string' ? ref : (ref.resourceId || ref.id)
-    const refs = agent.contextRefs || []
-    for (let i = 0; i < refs.length; i++) {
-      const itemId = typeof refs[i] === 'string' ? refs[i] : (refs[i].resourceId || refs[i].id)
-      if (itemId === id) return true
-    }
-    return false
-  }
-
-  function toggleContextRef(ref) {
-    const agent = activeAgent()
-    if (hasContextRef(agent, ref)) {
-      removeContextRef(ref)
-      return
-    }
-    EF.ai.updateAgent(agent.id, { contextRefs: (agent.contextRefs || []).concat([ref.id]) })
-  }
-
-  function openResourceMenu(anchor) {
-    const agent = activeAgent()
+  function openResourceMenu(anchor, insertResources) {
     const all = resources()
     const items = all.length ? all.map(function (res) {
       return {
         label: refTitle(res),
-        icon: hasContextRef(agent, res) ? 'check' : 'plus',
-        onSelect: function () { toggleContextRef(res) },
+        icon: 'plus',
+        onSelect: function () { insertResources([res]) },
       }
     }) : [{ type: 'header', label: 'No resources available' }]
     ui.menu({ anchor: anchor, items: items, side: 'top', align: 'start' })
-  }
-
-  function chipImage(item) {
-    const meta = item.meta || {}
-    if (item.kind === 'file.image' && meta.dataUrl) return meta.dataUrl
-    return ''
-  }
-
-  function appendResourceChip(parent, item, opts) {
-    opts = opts || {}
-    const title = opts.title ? opts.title(item) : refTitle(item)
-    const kind = opts.kind ? opts.kind(item) : refKind(item)
-    const chip = ui.h('button', 'ef-ai-resource-chip', { type: 'button', title: title })
-    const img = chipImage(item)
-    if (img) chip.appendChild(ui.h('img', 'ef-ai-resource-thumb', { src: img, alt: '' }))
-    else chip.appendChild(ui.h('span', 'ef-ai-resource-kind', { text: kind }))
-    chip.appendChild(ui.h('span', 'ef-ai-resource-title', { text: title }))
-    chip.appendChild(ui.h('span', 'ef-ai-resource-remove', { text: 'x' }))
-    chip.addEventListener('click', function (ev) {
-      ev.preventDefault()
-      if (opts.remove) opts.remove(item)
-    })
-    parent.appendChild(chip)
-  }
-
-  function renderAllChips(parent, agent, pendingSig) {
-    clearChildren(parent)
-    parent.classList.remove('ef-ai-resource-chips-visible')
-    const refs = agent ? (agent.contextRefs || []) : []
-    const pending = pendingSig()
-    if ((!agent || !refs.length) && !pending.length) return
-    parent.classList.add('ef-ai-resource-chips-visible')
-    for (let i = 0; i < refs.length; i++) {
-      const item = resolveRef(refs[i])
-      appendResourceChip(parent, item, {
-        remove: function (res) { removeContextRef(res.ref) },
-      })
-    }
-    for (let j = 0; j < pending.length; j++) {
-      const item = pending[j]
-      appendResourceChip(parent, item, {
-        title: targetTitle,
-        kind: targetKind,
-        remove: function (target) {
-          pendingSig.set(pendingSig.peek().filter(function (item) { return !sameTarget(item, target) }))
-        },
-      })
-    }
-  }
-
-  function sameTarget(a, b) {
-    return a && b && a.resolver === b.resolver && a.uri === b.uri
-  }
-
-  function addPendingTargets(sig, targets) {
-    const list = sig.peek().slice()
-    const incoming = EF.ai.normalizeTarget ? targets.map(EF.ai.normalizeTarget).filter(Boolean) : targets
-    for (let i = 0; i < incoming.length; i++) {
-      let exists = false
-      for (let j = 0; j < list.length; j++) exists = exists || sameTarget(list[j], incoming[i])
-      if (!exists) list.push(incoming[i])
-    }
-    sig.set(list)
-  }
-
-  function targetTitle(item) {
-    return item.title || item.label || item.name || item.uri || 'Target'
-  }
-
-  function targetKind(item) {
-    return item.kind || item.resolver || 'target'
   }
 
   function openPermissionMenu(anchor, permSig) {
@@ -320,15 +202,14 @@
     const model = EF.signal(props.model || defaultModel(provider.peek()))
     const mode = EF.signal(props.mode || 'chat')
     const permissionMode = EF.signal(props.permissionMode || 'full')
-    const input = EF.signal('')
-    const pendingTargets = EF.signal([])
+    const draft = EF.signal(EF.ai.richPrompt.empty())
     const hasTarget = EF.derived(function () { return !!activeAgent() })
     const busy = EF.derived(function () {
       const a = activeAgent()
       return !!(a && (a.status === 'running' || a.status === 'queued'))
     })
     const controlDisabled = EF.derived(function () { return !hasTarget() })
-    const sendDisabled = EF.derived(function () { return !hasTarget() || (!busy() && !input().trim() && !pendingTargets().length) })
+    const sendDisabled = EF.derived(function () { return !hasTarget() || (!busy() && EF.ai.richPrompt.isEmpty(draft())) })
     const sendIcon = EF.derived(function () { return busy() ? 'square' : 'arrow-up' })
 
     const root = ui.h('div', 'ef-ai-panel ef-ai-chat')
@@ -341,30 +222,26 @@
     const composer = ui.h('div', 'ef-ai-composer')
     if (EF.ai.installTargetDrop) {
       EF.ai.installTargetDrop(composer, {
-        onDrop: function (targets) { addPendingTargets(pendingTargets, targets) },
+        onDrop: function (targets) { insertTargets(targets) },
       })
     }
-
-    const chips = ui.h('div', 'ef-ai-resource-chips')
-    composer.appendChild(chips)
+    const onAddToChat = function (ev) {
+      const targets = ev.detail && ev.detail.targets
+      if (targets && targets.length) insertTargets(targets)
+    }
+    window.addEventListener('ef-ai-add-to-chat', onAddToChat)
+    ui.collect(root, function () { window.removeEventListener('ef-ai-add-to-chat', onAddToChat) })
 
     const editorWrap = ui.h('div', 'ef-ai-chat-input-wrap')
-    const editor = ui.textarea({ value: input, rows: 4, placeholder: 'Message current agent...', mono: false, disabled: controlDisabled })
+    const editor = ui.richPromptInput({
+      value: draft,
+      placeholder: 'Message current agent...',
+      disabled: controlDisabled,
+      onSubmit: sendClick,
+    })
     editor.classList.add('ef-ai-chat-input')
-    editor.setAttribute('autocomplete', 'off')
-    editor.setAttribute('autocapitalize', 'off')
-    editor.setAttribute('spellcheck', 'false')
     editorWrap.appendChild(editor)
     composer.appendChild(editorWrap)
-
-    const nativeEditor = editor.tagName === 'TEXTAREA' ? editor : editor.querySelector('textarea')
-    if (nativeEditor) {
-      nativeEditor.addEventListener('keydown', function (ev) {
-        if (ev.key !== 'Enter' || ev.shiftKey) return
-        ev.preventDefault()
-        sendClick()
-      })
-    }
 
     const actions = ui.h('div', 'ef-ai-chat-actions')
     const leftActions = ui.h('div', 'ef-ai-chat-actions-left')
@@ -374,7 +251,7 @@
       title: 'Add context',
       kind: 'ghost',
       disabled: controlDisabled,
-      onClick: function (ev) { openResourceMenu(ev.currentTarget) },
+      onClick: function (ev) { openResourceMenu(ev.currentTarget, insertResources) },
     })
     const permissionText = EF.derived(function () { return permissionLabel(permissionMode()) })
     ui.collect(root, permissionText.dispose)
@@ -474,9 +351,22 @@
       }))
     }))
 
-    ui.collect(root, EF.effect(function () { renderAllChips(chips, activeAgent(), pendingTargets) }))
-
     return root
+
+    function insertResources(list) {
+      if (!list || !list.length) return
+      if (editor.__efRichPromptInsertRefs) editor.__efRichPromptInsertRefs(list)
+      if (editor.__efRichPromptFocus) editor.__efRichPromptFocus()
+    }
+
+    function insertTargets(targets) {
+      const stored = []
+      for (let i = 0; i < (targets || []).length; i++) {
+        const res = EF.ai.addTarget ? EF.ai.addTarget(targets[i]) : null
+        if (res) stored.push(res)
+      }
+      insertResources(stored)
+    }
 
     function sendClick() {
       const agent = activeAgent()
@@ -485,13 +375,10 @@
         EF.ai.stopAgent(agent.id)
         return
       }
-      const targets = pendingTargets.peek()
-      const text = input().trim() || (targets.length ? 'Inspect the attached file(s).' : '')
-      if (!text) return
-      let nextAgent = agent
-      if (targets.length && EF.ai.attachTargetsToAgent) {
-        nextAgent = EF.ai.attachTargetsToAgent(agent.id, targets) || agent
-      }
+      const currentDraft = EF.ai.richPrompt.normalize(draft.peek())
+      if (EF.ai.richPrompt.isEmpty(currentDraft)) return
+      const refs = EF.ai.richPrompt.refs(currentDraft)
+      const content = EF.ai.richPrompt.content(currentDraft)
       EF.ai.updateAgent(agent.id, {
         provider: provider.peek(),
         model: model.peek() || defaultModel(provider.peek()),
@@ -504,12 +391,11 @@
         model: model.peek() || defaultModel(provider.peek()),
         mode: mode.peek(),
         permissionMode: permissionMode.peek(),
-        targets: targets,
+        resourceRefs: refs,
+        renderedText: content.renderedText,
       }
-      EF.ai.sendMessage(agent.id, { content: text, contextRefs: nextAgent.contextRefs || [], meta: meta }, 'user')
-      pendingTargets.set([])
-      input.set('')
-      if (nativeEditor) nativeEditor.value = ''
+      EF.ai.sendMessage(agent.id, { content: content, contextRefs: refs, meta: meta }, 'user')
+      draft.set(EF.ai.richPrompt.empty())
     }
   }
 

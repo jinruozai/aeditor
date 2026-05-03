@@ -405,3 +405,87 @@
   outline: none;
   border-color: var(--ef-accent);
 }
+
+/* ─── ui.richPromptInput — inline atom prompt editor ───────────────────── */
+.ef-richprompt {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+}
+
+.ef-richprompt-editor {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 62px;
+  padding: 15px;
+  color: var(--ef-fg-0);
+  font: var(--ef-fs-md)/var(--ef-lh-base) var(--ef-font-ui);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  overflow: auto;
+  outline: none;
+  caret-color: var(--ef-accent);
+  box-sizing: border-box;
+}
+
+.ef-richprompt-editor:empty::before {
+  content: attr(data-placeholder);
+  color: var(--ef-fg-3);
+  pointer-events: none;
+}
+
+.ef-richprompt-token {
+  display: inline-flex;
+  align-items: center;
+  max-width: 220px;
+  height: 21px;
+  line-height: 19px;
+  margin: 0 2px;
+  padding: 0 6px;
+  gap: 4px;
+  vertical-align: middle;
+  border: 1px solid color-mix(in srgb, var(--ef-accent) 34%, var(--ef-border));
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--ef-accent) 12%, var(--ef-bg-2));
+  color: var(--ef-fg-0);
+  font: var(--ef-fs-xs) var(--ef-font-ui);
+  cursor: default;
+}
+
+.ef-richprompt-token:hover {
+  border-color: color-mix(in srgb, var(--ef-accent) 58%, var(--ef-border));
+  background: color-mix(in srgb, var(--ef-accent) 18%, var(--ef-bg-2));
+}
+
+.ef-richprompt-token-thumb {
+  flex: 0 0 auto;
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  object-fit: cover;
+  background: var(--ef-bg-0);
+  box-shadow: inset 0 0 0 1px var(--ef-border);
+}
+
+.ef-richprompt-token-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ef-richprompt-token-remove {
+  flex: 0 0 auto;
+  color: var(--ef-fg-3);
+  font-weight: 700;
+}
+
+.ef-richprompt-caret {
+  display: inline-block;
+  width: 0;
+  min-width: 0;
+  overflow: hidden;
+  color: transparent;
+  user-select: none;
+}

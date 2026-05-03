@@ -45,6 +45,7 @@ const JS_ORDER = [
   'ai/provider.js',
   'ai/context.js',
   'ai/target.js',
+  'ai/rich-prompt.js',
   'ai/orchestration.js',
   'ai/runtime.js',
 
@@ -117,6 +118,7 @@ const JS_ORDER = [
   'ui/editor/codeInput.js',
   'ui/editor/pathInput.js',
   'ui/editor/fileInput.js',
+  'ui/editor/richPromptInput.js',
   'ui/editor/assetPicker.js',
 
   // Layer 9 �?UI library: containers

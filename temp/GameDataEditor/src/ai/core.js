@@ -241,12 +241,8 @@
     var ai = ensureAI();
     var agent = ai && (agentId ? ai.findAgent(agentId) : ai.getActiveAgent());
     if (!agent) return null;
-    if (ai.attachTargetsToAgent) agent = ai.attachTargetsToAgent(agent.id, targets) || agent;
-    return ai.sendMessage(agent.id, {
-      content: message || 'Inspect the attached GameDataEditor target(s).',
-      contextRefs: agent.contextRefs || [],
-      meta: { targets: targets || [] },
-    }, 'user');
+    if (ai.addTargetsToChat) return ai.addTargetsToChat(targets || []);
+    return ai.attachTargetsToAgent ? ai.attachTargetsToAgent(agent.id, targets || []) : agent;
   }
 
   function persistenceKey() {
