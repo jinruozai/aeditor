@@ -84,7 +84,7 @@
             const subFd = ui.resolveFieldDef(typeof raw === 'string' ? { type: raw } : raw)
             return {
               key:     fname,
-              label:   fname,
+              label:   raw.label || fname,
               tooltip: subFd.desc || '',
               editor:  function (slotSig, write, innerCtx) {
                 return slotEditor(slotSig, write, fieldCtx(innerCtx, fname), subFd, fname, defaults)

@@ -47,6 +47,7 @@
     if (window.GDE && GDE.plugins) await GDE.plugins.loadProject(pluginFiles, dir.name);
     await ProjectIO.assets.loadFromDirectory(dir);
     c().applySnapshot(c().filesToSnapshot(files), dir.name);
+    if (window.GDE && GDE.history) GDE.history.reset(t('history.open_project', { name: dir.name }), { saved: true });
   }
 
   async function ensurePermission(handle) {

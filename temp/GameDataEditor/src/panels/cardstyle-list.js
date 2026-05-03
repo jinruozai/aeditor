@@ -34,7 +34,7 @@
 
     var bar = ui.h('div', 'gde-cs-list-bar');
     var addBtn = ui.iconButton({
-      icon: 'plus', kind: 'primary', title: 'Add cardStyle',
+      icon: 'plus', kind: 'primary', title: I18N.text('cardstyle.add'),
       onClick: function () {
         var cs = State.projectCardStyles();
         var key = suggestKey(cs);
@@ -105,10 +105,10 @@
       tile.addEventListener('contextmenu', function (ev) {
         ev.preventDefault();
         var items = [
-          { label: 'Rename',    onSelect: function () { renameStyle(key); } },
-          { label: 'Duplicate', onSelect: function () { duplicateStyle(key); } },
+          { label: t('cardstyle.rename'),    onSelect: function () { renameStyle(key); } },
+          { label: t('cardstyle.duplicate'), onSelect: function () { duplicateStyle(key); } },
           { type: 'divider' },
-          { label: 'Delete', danger: true, disabled: key === 'default',
+          { label: t('cardstyle.delete'), danger: true, disabled: key === 'default',
             onSelect: function () { deleteStyle(key); } },
         ];
         ui.contextMenu({ x: ev.clientX, y: ev.clientY }, items);
@@ -118,7 +118,7 @@
     }
 
     function renameStyle(key) {
-      ui.prompt({ title: 'Rename cardStyle', message: 'New key', default: key })
+      ui.prompt({ title: t('cardstyle.rename_title'), message: t('cardstyle.new_key'), default: key })
         .then(function (nk) {
           if (!nk || nk === key) return;
           if (key === 'default') { State.log('warn', 'Cannot rename built-in default'); return; }
@@ -137,7 +137,7 @@
       select(nk, true);
     }
     function deleteStyle(key) {
-      ui.confirm({ title: 'Delete cardStyle', message: 'Delete "' + key + '"? Tables using it fall back to default.', danger: true, okLabel: 'Delete' })
+      ui.confirm({ title: t('cardstyle.delete_title'), message: t('cardstyle.delete_message', { key: key }), danger: true, okLabel: t('common.delete') })
         .then(function (ok) {
           if (!ok) return;
           try { State.deleteCardStyle(key); }
@@ -167,7 +167,7 @@
   }
 
   EF.registerComponent('gde-cardstyle-list', {
-    defaults: function () { return { title: 'Card Styles', icon: 'columns' }; },
+    defaults: function () { return { title: t('panel.cardstyles'), icon: 'columns' }; },
     factory:  factory,
   });
 })();

@@ -43,7 +43,8 @@
   function asPlain(v) { return ui.isSignal(v) ? v.peek() : v }
 
   ui.registerRenderer('input_string', function (a) {
-    return ui.input({ value: a.sig, onChange: a.write })
+    const agv = a.fieldDef.type_agv || {}
+    return ui.input({ value: a.sig, onChange: a.write, type: agv.password ? 'password' : 'text' })
   })
   ui.registerRenderer('textarea', function (a) {
     return ui.textarea({ value: a.sig, onChange: a.write })

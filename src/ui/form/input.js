@@ -8,6 +8,7 @@
 //   readOnly    : boolean | signal<boolean>
 //   prefix      : string | HTMLElement        visual icon/label inside the well
 //   suffix      : string | HTMLElement
+//   type        : input type                  default "text"
 //   onCommit    : (v) => void                 fired on Enter / blur
 ;(function (EF) {
   'use strict'
@@ -23,7 +24,7 @@
 
     const wrap = ui.h('div', 'ef-ui-field')
     if (o.prefix != null) wrap.appendChild(slot(o.prefix, 'prefix'))
-    const el = ui.h('input', 'ef-ui-input', { type: 'text' })
+    const el = ui.h('input', 'ef-ui-input', { type: o.type || 'text' })
     wrap.appendChild(el)
     if (o.suffix != null) wrap.appendChild(slot(o.suffix, 'suffix'))
 

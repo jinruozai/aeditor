@@ -320,7 +320,7 @@
 .ef-ui-switch-on .ef-ui-switch-knob {
   left: auto;
   right: 1px;
-  background: #fff;
+  background: var(--ef-accent-fg);
 }
 .ef-ui-switch-box:focus-visible + .ef-ui-switch-track {
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--ef-accent) 30%, transparent);
@@ -472,9 +472,43 @@
   color: var(--ef-fg-2);
   margin-left: var(--ef-space-2);
   display: inline-block;
+  font-size: 1.12em;
+  line-height: 1;
   transition: transform var(--ef-dur-med) var(--ef-ease);
 }
 .ef-ui-select-open .ef-ui-select-arrow { transform: rotate(180deg); }
+.ef-ui-select-auto {
+  width: auto;
+  max-width: 100%;
+}
+.ef-ui-select-minimal {
+  height: 26px;
+  width: auto;
+  min-width: 0;
+  padding: 0 var(--ef-space-2);
+  border-color: transparent;
+  border-radius: var(--ef-r-1);
+  background: transparent;
+  color: var(--ef-fg-1);
+  box-shadow: none;
+}
+.ef-ui-select-minimal:hover {
+  border-color: transparent;
+  background: var(--ef-hover);
+}
+.ef-ui-select-minimal:focus-visible,
+.ef-ui-select-minimal.ef-ui-select-open {
+  border-color: transparent;
+  background: var(--ef-selected);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--ef-accent) 28%, transparent);
+}
+.ef-ui-select-minimal .ef-ui-select-label {
+  flex: 0 1 auto;
+}
+.ef-ui-select-minimal .ef-ui-select-arrow {
+  margin-left: var(--ef-space-1);
+  font-size: 1.22em;
+}
 
 /* Menu used by select / combobox / overlay menu. Lives in the portal root,
  * which has no background of its own — without an explicit fill, the menu
@@ -486,6 +520,7 @@
   position: relative;
   padding: var(--ef-space-1);
   min-width: 120px;
+  max-width: min(420px, calc(100vw - 24px));
   background: var(--ef-bg-raised);
   border: 1px solid var(--ef-border);
   border-radius: var(--ef-r-2);
@@ -513,6 +548,23 @@
   color: var(--ef-fg-0);
   padding-left: calc(var(--ef-space-2) + 2px);
 }
+.ef-ui-menu-item-text {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+.ef-ui-menu-item-label,
+.ef-ui-menu-item-sub {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ef-ui-menu-item-sub {
+  color: var(--ef-fg-3);
+  font: var(--ef-fs-xs) var(--ef-font-ui);
+}
 .ef-ui-menu-item-active {
   background: var(--ef-accent-bg);
   color: var(--ef-fg-0);
@@ -524,6 +576,22 @@
   width: 2px;
   background: var(--ef-accent);
   border-radius: 0 var(--ef-r-1) var(--ef-r-1) 0;
+}
+.ef-ui-menu-header {
+  position: sticky;
+  top: calc(-1 * var(--ef-space-1));
+  z-index: 1;
+  padding: var(--ef-space-2) var(--ef-space-2) var(--ef-space-1);
+  color: var(--ef-fg-1);
+  background: var(--ef-bg-raised);
+  font: 700 var(--ef-fs-xs) var(--ef-font-ui);
+  text-transform: uppercase;
+  letter-spacing: 0;
+}
+.ef-ui-menu-divider {
+  height: 1px;
+  margin: var(--ef-space-1) 0;
+  background: var(--ef-border);
 }
 .ef-ui-menu-empty {
   padding: var(--ef-space-2);
@@ -795,7 +863,7 @@
   height: 14px;
   padding: 0 4px;
   background: var(--ef-error);
-  color: #fff;
+  color: var(--ef-error-fg);
   border-radius: var(--ef-r-pill);
   font: 600 var(--ef-fs-xs) var(--ef-font-ui);
   margin-left: 2px;

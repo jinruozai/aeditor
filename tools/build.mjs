@@ -29,6 +29,9 @@ const JS_ORDER = [
   'core/theme.js',
   'core/bus.js',
   'core/shortcuts.js',
+  'core/history.js',
+  'core/i18n.js',
+  'core/settings.js',
 
   // Layer 1 �?tree (pure data)
   'tree/tree.js',
@@ -36,6 +39,13 @@ const JS_ORDER = [
   // Layer 2 �?registry & component context
   'core/registry.js',
   'core/context.js',
+
+  // Layer 2.5 - AI session/agent runtime (no UI dependency)
+  'ai/store.js',
+  'ai/provider.js',
+  'ai/context.js',
+  'ai/orchestration.js',
+  'ai/runtime.js',
 
   // Layer 3 �?dock runtime
   'dock/runtime.js',
@@ -139,6 +149,11 @@ const JS_ORDER = [
   'ui/overlay/dialogs.js',  // ui.alert / ui.confirm / ui.prompt / ui.contextMenu �?depend on modal + menu
 
   // Layer 12 �?built-in panel components (compose EF.ui.* + register via EF.registerComponent)
+  'ai/panels/agents.js',
+  'ai/panels/chat.js',
+  'ai/panels/transcript.js',
+  'ui/panel/settings.js',
+  'ui/panel/settings-builtins.js',
   'ui/panel/dock-tabs.js',
   'ui/panel/log.js',
 
@@ -158,6 +173,7 @@ const CSS_ORDER = [
   'style/ui-container.css',
   'style/ui-data.css',
   'style/ui-overlay.css',
+  'style/ui-ai.css',
 ]
 
 // ─── concat ────────────────────────────────────────────────────────────────

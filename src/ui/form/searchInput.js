@@ -12,7 +12,7 @@
 
     const clear = ui.iconButton({
       icon: 'x',
-      title: o.clearTitle || 'Clear search',
+      title: o.clearTitle || (EF.i18n && EF.i18n.has(EF.i18n.getLocale(), 'common.clear_search') ? EF.i18n.t('common.clear_search') : 'Clear search'),
       size: 'sm',
       kind: 'ghost',
       onClick: function () {

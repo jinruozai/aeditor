@@ -33,7 +33,7 @@
   border-radius: var(--ef-r-2);
   border: 1px solid var(--ef-border-strong);
   cursor: copy;
-  box-shadow: inset 0 0 0 1px rgba(255,255,255,.04);
+  box-shadow: inset 0 0 0 1px var(--ef-highlight-subtle);
 }
 .ef-ui-gradient-rail {
   position: absolute;
@@ -302,8 +302,8 @@
   min-width: 0;
 }
 .ef-ui-asset-picker.is-missing {
-  border-color: var(--ef-error, #e06c75) !important;
-  box-shadow: 0 0 0 1px color-mix(in srgb, var(--ef-error, #e06c75) 55%, transparent) inset;
+  border-color: var(--ef-error) !important;
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--ef-error) 55%, transparent) inset;
 }
 .ef-ui-asset-preview {
   display: flex;

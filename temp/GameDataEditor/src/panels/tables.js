@@ -161,7 +161,7 @@
       },
     });
     var addBtn = ui.iconButton({
-      icon: 'plus', kind: 'primary', title: 'Add table',
+      icon: 'plus', kind: 'primary', title: I18N.text('tablemap.add_tooltip'),
       onClick: function () { handleAddTable(); },
     });
     bar.appendChild(searchInput);
@@ -307,20 +307,20 @@
     }
 
     function blankMenu() {
-      var items = [{ label: 'New Table', icon: 'plus', onSelect: handleAddTable }];
-      if (GDE.clipboard.has('tableDef')) items.push({ label: 'Paste Table', icon: 'paste', onSelect: function () { pasteTable(null); } });
+      var items = [{ label: t('tablemap.ctx.new_table'), icon: 'plus', onSelect: handleAddTable }];
+      if (GDE.clipboard.has('tableDef')) items.push({ label: t('tablemap.ctx.paste_table'), icon: 'paste', onSelect: function () { pasteTable(null); } });
       return items;
     }
 
     function nodeMenu(node) {
       if (node.kind === 'table') {
-        var items = [{ label: 'Copy Table', icon: 'copy', onSelect: function () { copyTable(node); } }];
-        if (GDE.clipboard.has('tableDef')) items.push({ label: 'Paste Table', icon: 'paste', onSelect: function () { pasteTable(node); } });
-        if (GDE.clipboard.has('entities')) items.push({ label: 'Paste Card', icon: 'paste', onSelect: function () { pasteCard(node); } });
+        var items = [{ label: t('tablemap.ctx.copy_table'), icon: 'copy', onSelect: function () { copyTable(node); } }];
+        if (GDE.clipboard.has('tableDef')) items.push({ label: t('tablemap.ctx.paste_table'), icon: 'paste', onSelect: function () { pasteTable(node); } });
+        if (GDE.clipboard.has('entities')) items.push({ label: t('tablemap.ctx.paste_card'), icon: 'paste', onSelect: function () { pasteCard(node); } });
         return items;
       }
       return [
-        { label: 'Copy Card', icon: 'copy', onSelect: function () { copyEntity(node); } },
+        { label: t('tablemap.ctx.copy_card'), icon: 'copy', onSelect: function () { copyEntity(node); } },
       ];
     }
     // Context menu is intentionally empty on the table tree â€?rename /
@@ -422,7 +422,7 @@
 
   EF.registerComponent('gde-tables', {
     factory: createPanel,
-    defaults: function () { return { title: 'Tables', icon: 'table', props: {} }; },
+    defaults: function () { return { title: t('panel.tablemap'), icon: 'table', props: {} }; },
   });
 })();
 

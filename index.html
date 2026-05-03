@@ -70,7 +70,7 @@
     //   │  └──────────┴──────────────────────┴──────────────────┘  │
     //   │                      bottom row                          │
     //   │  ┌──────────────────────────────────────────────────────┐ │
-    //   │  │         theme + log (collapsible)                    │ │
+    //   │  │         ai chat + log (collapsible)                  │ │
     //   │  └──────────────────────────────────────────────────────┘ │
     //   └─────────────────────────────────────────────────────────┘
     const { createDockLayout, dock, split, panel } = EF
@@ -89,26 +89,25 @@
         },
       })
     } else {
-      tree = split('vertical', [
-        split('horizontal', [
-          // ── Left sidebar: component tree + search ──────────────
-          // Icon-only vertical tab rail on the right edge of the dock;
-          // clicking an already-active tab collapses the whole sidebar.
-          dock({
-            name: 'sidebar',
-            toolbar: {
-              direction: 'left',
-              items: [
-                { component: 'tab-sidebar', align: 'start' },
-              ],
-            },
-            panels: [
-              panel({ component: 'component-tree',   title: 'Components', icon: '☰' }),
-              panel({ component: 'component-search', title: 'Search',     icon: '⌕' }),
+      tree = split('horizontal', [
+        // ── Left sidebar: AI agents + component navigation ─────────
+        dock({
+          name: 'sidebar',
+          toolbar: {
+            direction: 'left',
+            items: [
+              { component: 'tab-sidebar', align: 'start' },
             ],
-          }),
+          },
+          panels: [
+            panel({ component: 'ai-agents',        title: 'AI Agents',  icon: '◇' }),
+            panel({ component: 'component-tree',   title: 'Components', icon: '☰' }),
+            panel({ component: 'component-search', title: 'Search',     icon: '⌕' }),
+          ],
+        }),
 
-          // ── Center: showcase tabs (one per category, added on demand) ──
+        // ── Center: main view over bottom dock ─────────────────────
+        split('vertical', [
           dock({
             name: 'editor',
             toolbar: {
@@ -119,45 +118,48 @@
               ],
             },
             panels: [
-              panel({ component: 'showcase-base', title: 'Base', icon: '◇' }),
+              panel({ component: 'ai-conversation', title: 'AI Chat',  icon: '✎' }),
+              panel({ component: 'showcase-base',   title: 'Base',     icon: '◇' }),
+              panel({ component: 'settings',        title: 'Settings', icon: '⚙' }),
             ],
           }),
-
-          // ── Right: property inspector ─────────────────────────
           dock({
-            name: 'properties',
+            name: 'bottom',
             toolbar: {
-              direction: 'top',
+              direction: 'bottom',
               items: [
-                { component: 'tab-compact', align: 'start' },
+                { component: 'tab-standard', align: 'start',
+                  props: { closable: false, addable: false, collapsible: true } },
                 { component: 'dock-actions', align: 'end' },
               ],
             },
             panels: [
-              panel({ component: 'property-panel', title: 'Properties', icon: '⚙' }),
+              panel({ component: 'ai-chat',      title: 'AI Chat', icon: '✎' }),
+              panel({ component: 'log',          title: 'Log',     icon: '📋' }),
             ],
           }),
-        ], [0.22, 0.52, 0.26]),
+        ], [0.72, 0.28]),
 
-        // ── Bottom: theme config + log ─────────────────────────────
-        // Toolbar lives at the BOTTOM edge (under the panel content), tabs
-        // are non-closable because we always want both panels reachable.
+        // ── Right: property inspector ──────────────────────────────
         dock({
-          name: 'bottom',
+          name: 'properties',
           toolbar: {
-            direction: 'bottom',
+            direction: 'top',
             items: [
-              { component: 'tab-standard', align: 'start',
-                props: { closable: false, addable: false, collapsible: true } },
+              { component: 'tab-compact', align: 'start' },
               { component: 'dock-actions', align: 'end' },
             ],
           },
           panels: [
-            panel({ component: 'theme-config', title: 'Theme', icon: '🎨' }),
-            panel({ component: 'log',          title: 'Log',   icon: '📋' }),
+            panel({ component: 'property-panel', title: 'Properties', icon: '⚙' }),
           ],
         }),
-      ], [0.72, 0.28])
+      ], [0.22, 0.52, 0.26])
+    }
+
+    if (!isPopup) {
+      const demoGroup = EF.ai.createGroup({ name: 'Demo AI' })
+      EF.ai.createAgent({ name: 'main', path: 'demo/main', groupId: demoGroup.id })
     }
 
     const layout = createDockLayout(document.getElementById('app'), {

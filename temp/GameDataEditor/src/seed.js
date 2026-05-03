@@ -249,6 +249,7 @@
     }, 'Demo Project');
     State.setWorkspaceInfo({ kind: 'demo', name: 'Demo Project' });
     State.clearDirty();
+    if (window.GDE && GDE.history) GDE.history.reset(t('history.open_demo'), { saved: true });
   }
 
   window.Seed = { install: install, BUILTIN: BUILTIN };

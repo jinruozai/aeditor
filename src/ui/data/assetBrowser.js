@@ -1,4 +1,4 @@
-// EF.ui.assetBrowser — generic file-manager style asset browser.
+// EF.ui.assetBrowser 鈥?generic file-manager style asset browser.
 //
 // The component is intentionally storage-agnostic. It renders entries and
 // interactions; callers provide an adapter for listing, importing, moving,
@@ -8,19 +8,25 @@
   const ui = EF.ui = EF.ui || {}
 
   const VIEW = [
-    ['sm', 'Small icons'],
-    ['md', 'Medium icons'],
-    ['lg', 'Large icons'],
-    ['xl', 'Extra large icons'],
-    ['list', 'List'],
+    ['sm', 'assetBrowser.view.small', 'Small icons'],
+    ['md', 'assetBrowser.view.medium', 'Medium icons'],
+    ['lg', 'assetBrowser.view.large', 'Large icons'],
+    ['xl', 'assetBrowser.view.extraLarge', 'Extra large icons'],
+    ['list', 'assetBrowser.view.list', 'List'],
   ]
   const SORT = [
-    ['name', 'Name'],
-    ['mtime', 'Modified'],
-    ['kind', 'Type'],
-    ['size', 'Size'],
-    ['ctime', 'Created'],
+    ['name', 'assetBrowser.sort.name', 'Name'],
+    ['mtime', 'assetBrowser.sort.modified', 'Modified'],
+    ['kind', 'assetBrowser.sort.type', 'Type'],
+    ['size', 'assetBrowser.sort.size', 'Size'],
+    ['ctime', 'assetBrowser.sort.created', 'Created'],
   ]
+
+  function tr(key, fallback, vars) {
+    if (!EF.i18n) return fallback
+    const value = EF.i18n.t(key, vars)
+    return value === key ? fallback : value
+  }
 
   ui.assetBrowser = function (opts) {
     const o = opts || {}
@@ -38,9 +44,9 @@
     const root = ui.h('div', 'ef-ui-asset-browser')
     const bar = ui.h('div', 'ef-ui-assetbar')
     const crumb = ui.h('div', 'ef-ui-assetcrumb')
-    const search = ui.searchInput({ value: searchSig, placeholder: o.placeholder || 'Search assets...' })
-    const viewBtn = ui.iconButton({ icon: 'grid', title: 'View', size: 'sm', onClick: openViewMenu })
-    const sortBtn = ui.iconButton({ icon: 'arrow-up-down', title: 'Sort', size: 'sm', onClick: openSortMenu })
+    const search = ui.searchInput({ value: searchSig, placeholder: o.placeholder || (EF.i18n ? EF.i18n.text('assetBrowser.search') : 'Search assets...') })
+    const viewBtn = ui.iconButton({ icon: 'grid', title: EF.i18n ? EF.i18n.text('assetBrowser.view') : 'View', size: 'sm', onClick: openViewMenu })
+    const sortBtn = ui.iconButton({ icon: 'arrow-up-down', title: EF.i18n ? EF.i18n.text('assetBrowser.sort') : 'Sort', size: 'sm', onClick: openSortMenu })
     const grid = ui.h('div', 'ef-ui-assetgrid')
     let menuHandle = null
     let suppressGridClick = false
@@ -57,6 +63,7 @@
       paint()
     })
     ui.bind(root, version, paint)
+    if (EF.i18n) ui.bind(root, EF.i18n.locale, paint)
     ui.bind(root, selectedSig, paintSelection)
 
     grid.addEventListener('click', function (ev) {
@@ -93,7 +100,7 @@
       grid.dataset.view = view
       ui.disposeChildren ? ui.disposeChildren(grid) : clear(grid)
       if (!rows.length) {
-        grid.appendChild(ui.h('div', 'ef-ui-asset-empty', { text: query ? 'No matching assets.' : 'Drop files here.' }))
+        grid.appendChild(ui.h('div', 'ef-ui-asset-empty', { text: query ? tr('assetBrowser.empty.search', 'No matching assets.') : tr('assetBrowser.empty.drop', 'Drop files here.') }))
         return
       }
       rows.forEach(function (item, idx) {
@@ -202,7 +209,8 @@
 
     function renderCrumb() {
       clear(crumb)
-      crumb.appendChild(crumbButton(o.rootLabel || 'asset', ''))
+      const rootLabel = ui.isSignal && ui.isSignal(o.rootLabel) ? o.rootLabel() : (o.rootLabel || tr('assetBrowser.root', 'asset'))
+      crumb.appendChild(crumbButton(rootLabel, ''))
       let cur = ''
       parts(dir).forEach(function (p) {
         cur = cur ? cur + '/' + p : p
@@ -259,29 +267,29 @@
       const single = rows.length === 1 ? rows[0] : null
       if (!hasRows) {
         return [
-          { label: 'New Folder', icon: 'folder', onSelect: createFolder },
-          { label: 'Add Files', icon: 'plus', onSelect: pickFiles },
+          { label: tr('common.new_folder', 'New Folder'), icon: 'folder', onSelect: createFolder },
+          { label: tr('common.add_files', 'Add Files'), icon: 'plus', onSelect: pickFiles },
           { type: 'divider' },
-          { label: 'View', icon: 'grid', items: viewItems() },
-          { label: 'Sort', icon: 'arrow-up-down', items: sortItems() },
+          { label: tr('common.view', 'View'), icon: 'grid', items: viewItems() },
+          { label: tr('common.sort', 'Sort'), icon: 'arrow-up-down', items: sortItems() },
         ]
       }
       const extra = typeof o.actions === 'function' ? (o.actions(rows, item) || []) : []
       const items = []
       if (single && o.rename) {
-        items.push({ label: 'Rename', icon: 'edit', onSelect: function () {
+        items.push({ label: tr('common.rename', 'Rename'), icon: 'edit', onSelect: function () {
           const ret = o.rename(single)
           ret && ret.then ? ret.then(done) : done()
         } })
       }
       if (o.remove) {
-        items.push({ label: 'Delete', icon: 'trash', danger: true, onSelect: function () {
+        items.push({ label: tr('common.delete', 'Delete'), icon: 'trash', danger: true, onSelect: function () {
           const ret = o.remove(rows)
           ret && ret.then ? ret.then(done) : done()
         } })
       }
       if (single) {
-        items.push({ label: 'Copy Path', icon: 'copy', onSelect: function () { copy(pathFor(single)) } })
+        items.push({ label: tr('common.copy_path', 'Copy Path'), icon: 'copy', onSelect: function () { copy(pathFor(single)) } })
       }
       if (extra.length) {
         items.push({ type: 'divider' })
@@ -294,16 +302,16 @@
     function openSortMenu() { ui.menu({ anchor: sortBtn, items: sortItems(), side: 'bottom', align: 'end' }) }
     function viewItems() {
       return VIEW.map(function (v) {
-        return { label: (view === v[0] ? '✓ ' : '') + v[1], onSelect: function () { view = v[0]; save('view', view); paint() } }
+        return { label: (view === v[0] ? '* ' : '') + tr(v[1], v[2]), onSelect: function () { view = v[0]; save('view', view); paint() } }
       })
     }
     function sortItems() {
       return SORT.map(function (s) {
-        return { label: (sortBy === s[0] ? '✓ ' : '') + s[1], onSelect: function () { sortBy = s[0]; save('sortBy', sortBy); paint() } }
+        return { label: (sortBy === s[0] ? '* ' : '') + tr(s[1], s[2]), onSelect: function () { sortBy = s[0]; save('sortBy', sortBy); paint() } }
       }).concat([
         { type: 'divider' },
-        { label: (sortDir === 'asc' ? '✓ ' : '') + 'Ascending', onSelect: function () { sortDir = 'asc'; save('sortDir', sortDir); paint() } },
-        { label: (sortDir === 'desc' ? '✓ ' : '') + 'Descending', onSelect: function () { sortDir = 'desc'; save('sortDir', sortDir); paint() } },
+        { label: (sortDir === 'asc' ? '* ' : '') + tr('assetBrowser.sort.asc', 'Ascending'), onSelect: function () { sortDir = 'asc'; save('sortDir', sortDir); paint() } },
+        { label: (sortDir === 'desc' ? '* ' : '') + tr('assetBrowser.sort.desc', 'Descending'), onSelect: function () { sortDir = 'desc'; save('sortDir', sortDir); paint() } },
       ])
     }
 
@@ -324,7 +332,7 @@
 
     function createFolder() {
       if (!o.createFolder) return
-      const name = prompt('Folder name')
+      const name = prompt(tr('assetBrowser.folderName', 'Folder name'))
       if (!name) return
       const ret = o.createFolder(dir, name)
       if (ret && ret.then) ret.then(done)
@@ -412,7 +420,7 @@
     }
     function clear(el) { while (el.firstChild) ui.dispose(el.firstChild) }
     function parts(path) { return String(path || '').split('/').filter(Boolean) }
-    function typeLabel(it) { return it.kind === 'folder' ? 'Folder' : (it.kind || 'file') }
+    function typeLabel(it) { return it.kind === 'folder' ? tr('assetBrowser.kind.folder', 'Folder') : (it.kind || 'file') }
     function valueFor(it, key) { return key === 'kind' ? typeLabel(it) : key === 'size' ? it.size : key === 'mtime' ? it.mtime : key === 'ctime' ? it.ctime : it.name }
     function sizeLabel(n) { n = Number(n) || 0; return n > 1048576 ? (n / 1048576).toFixed(1) + ' MB' : n > 1024 ? Math.round(n / 1024) + ' KB' : (n ? n + ' B' : '') }
     function dateLabel(t) { return t ? new Date(t).toLocaleDateString() : '' }

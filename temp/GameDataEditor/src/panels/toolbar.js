@@ -74,9 +74,8 @@
     var langBtn = document.createElement('div');
     langBtn.className = 'gde-brand';
     langBtn.style.marginLeft = '6px';
-    var langIcon = document.createElement('span'); langIcon.textContent = 'Lang';
     var langLabel = document.createElement('span');
-    langBtn.appendChild(langIcon); langBtn.appendChild(langLabel);
+    langBtn.appendChild(langLabel);
     langBtn.addEventListener('click', function () {
       buildMenu(langBtn, [
         { label: t('toolbar.lang.en') + (I18N.getLocale() === 'en' ? '  ✓' : ''),
@@ -119,10 +118,10 @@
 
   function doNew() {
     EF.ui.confirm({
-      title:   'New Project',
-      message: 'Discard current project and start a new one?',
+      title:   t('toolbar.new.title'),
+      message: t('toolbar.new.message'),
       danger:  true,
-      okLabel: 'Discard',
+      okLabel: t('toolbar.new.discard'),
     }).then(function (ok) {
       if (!ok) return;
       if (window.GDE && GDE.plugins) GDE.plugins.deactivateAll();
@@ -138,6 +137,7 @@
       State.closeAllTabs();
       State.setSelection(null);
       State.markDirty();
+      if (window.GDE && GDE.history) GDE.history.reset(t('history.new_project'));
       State.log('info', 'New project created');
     });
   }
@@ -154,9 +154,11 @@
 
   async function doSave() {
     await run('Save', async function () {
+      if (window.GDE && GDE.history) GDE.history.flush();
       var ws = await ProjectIO.fsWorkspace.save();
       State.setWorkspaceInfo({ kind: 'folder', name: ws.name });
       State.clearDirty();
+      if (window.GDE && GDE.history) GDE.history.markSaved();
       await ProjectIO.recent.put(ws);
       State.log('info', 'Saved project: ' + ws.name);
     });

@@ -141,12 +141,21 @@
   /* Semantic state colors as text + bg pairs. */
   --ef-success:    var(--ef-c-success);
   --ef-success-bg: color-mix(in srgb, var(--ef-c-success) 12%, transparent);
+  --ef-success-fg: var(--ef-accent-fg);
   --ef-warn:       var(--ef-c-warn);
   --ef-warn-bg:    color-mix(in srgb, var(--ef-c-warn)    14%, transparent);
+  --ef-warn-fg:    #15120a;
   --ef-error:      var(--ef-c-error);
   --ef-error-bg:   color-mix(in srgb, var(--ef-c-error)   14%, transparent);
+  --ef-error-fg:   var(--ef-accent-fg);
   --ef-info:       var(--ef-c-info);
   --ef-info-bg:    color-mix(in srgb, var(--ef-c-info)    12%, transparent);
+  --ef-info-fg:    var(--ef-accent-fg);
+
+  /* Subtle highlight lines used on raised controls. Components should use
+   * this instead of hard-coded white/black alpha overlays. */
+  --ef-highlight-subtle: color-mix(in srgb, var(--ef-fg-0) 6%, transparent);
+  --ef-highlight-strong: color-mix(in srgb, var(--ef-fg-0) 12%, transparent);
 
   /* ── Layer 1 — Spacing scale (4-pt grid) ───────────────────────── */
   --ef-space-1: 4px;

@@ -62,24 +62,25 @@
 
     // 閳光偓閳光偓 Header: title + filter input + add button 閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓
     var header = ui.h('div', 'gde-cs-tree-header');
-    var titleEl = ui.h('span', 'gde-cs-tree-title', { text: '(no cardStyle selected)' });
+    var titleEl = ui.h('span', 'gde-cs-tree-title', { text: '' });
     header.appendChild(titleEl);
     root.appendChild(header);
 
     var bar = ui.h('div', 'gde-cs-tree-bar');
     var filterSig = EF.signal('');
-    var search = ui.searchInput({ value: filterSig, placeholder: 'Filter...' });
+    var search = ui.searchInput({ value: filterSig, placeholder: I18N.text('cardstyle.filter') });
     search.style.cssText = 'flex:1 1 auto;min-width:0;';
     var addBtn = ui.iconButton({
-      icon: 'plus', kind: 'primary', size: 'sm', title: 'Add component',
+      icon: 'plus', kind: 'primary', size: 'sm', title: I18N.text('cardstyle.add_component'),
       onClick: function (ev) { showAddMenu(ev); },
     });
     bar.appendChild(search); bar.appendChild(addBtn);
     root.appendChild(bar);
 
     var empty = ui.h('div', 'gde-cs-tree-empty', {
-      text: 'Select a cardStyle on the left, or drag a component into the editor.',
+      text: '',
     });
+    EF.ui.collect(empty, I18N.bindText(empty, 'cardstyle.empty_hint'));
 
     var itemsSig    = EF.signal([]);
     var selectedSig = EF.signal([]);
@@ -104,10 +105,10 @@
         var spec = null; try { spec = EF.resolveComponent(node.component); } catch (_) {}
         var canPaste = (clipboard.peek() || []).length > 0;
         return [
-          { label: 'Copy', icon: 'copy', onSelect: function () { copyNodes(); } },
-          { label: 'Paste', icon: 'paste', disabled: !canPaste, onSelect: function () { Actions.paste(keyFromState()); } },
-          { label: 'Duplicate', icon: 'copy', onSelect: function () { duplicateNodes(); } },
-          { label: 'Copy Scene Text', icon: 'copy', onSelect: function () { copySceneText(); } },
+          { label: t('common.copy'), icon: 'copy', onSelect: function () { copyNodes(); } },
+          { label: t('common.paste'), icon: 'paste', disabled: !canPaste, onSelect: function () { Actions.paste(keyFromState()); } },
+          { label: t('common.duplicate'), icon: 'copy', onSelect: function () { duplicateNodes(); } },
+          { label: t('cardstyle.copy_scene_text'), icon: 'copy', onSelect: function () { copySceneText(); } },
           { label: 'Copy Subtree Text', icon: 'copy', onSelect: function () { copySceneText(node.id); } },
           { label: 'Paste as sibling', disabled: !canPaste, icon: 'paste',
             onSelect: function () { pasteAsSibling(node.id); } },
@@ -150,14 +151,14 @@
       var key = State.activeCardStyle.peek();
       var def = key ? State.projectCardStyles()[key] : null;
       var items = [];
-      if (key) items.push({ label: 'Add Node...', icon: 'plus', onSelect: function () { openAddMenu({ x: ev.clientX, y: ev.clientY }, null); } });
+      if (key) items.push({ label: t('cardstyle.add_node'), icon: 'plus', onSelect: function () { openAddMenu({ x: ev.clientX, y: ev.clientY }, null); } });
       if (def && def.root && (clipboard.peek() || []).length) {
-        items.push({ label: 'Paste', icon: 'paste', onSelect: function () { Actions.paste(key); } });
+        items.push({ label: t('common.paste'), icon: 'paste', onSelect: function () { Actions.paste(key); } });
         items.push({ label: 'Paste as child of Root', icon: 'paste', onSelect: function () { pasteAsChild(def.root.id); } });
       }
       if (def && def.root) {
         if (items.length) items.push({ type: 'divider' });
-        items.push({ label: 'Copy Scene Text', icon: 'copy', onSelect: function () { copySceneText(); } });
+        items.push({ label: t('cardstyle.copy_scene_text'), icon: 'copy', onSelect: function () { copySceneText(); } });
         items.push({ label: 'Copy', icon: 'copy', disabled: !currentSelectedIds().length, onSelect: function () { Actions.copy(key); } });
         items.push({ label: 'Duplicate', icon: 'copy', disabled: !currentSelectedIds().length, onSelect: function () { Actions.duplicate(key); } });
       }
@@ -169,7 +170,7 @@
       var key = State.activeCardStyle();
       var cs = State.projectCardStyles();
       var def = key ? cs[key] : null;
-      titleEl.textContent = def ? (def.name || key) : '(no cardStyle selected)';
+      titleEl.textContent = def ? (def.name || key) : t('cardstyle.none_selected');
       if (!def || !def.root) {
         if (root.contains(tree)) root.removeChild(tree);
         if (!root.contains(empty)) root.appendChild(empty);
@@ -484,7 +485,7 @@
   }
 
   EF.registerComponent('gde-cardstyle-tree', {
-    defaults: function () { return { title: 'Object Tree', icon: 'list' }; },
+    defaults: function () { return { title: t('panel.object_tree'), icon: 'list' }; },
     factory:  factory,
   });
 })();

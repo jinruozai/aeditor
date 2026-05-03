@@ -5,6 +5,8 @@
 //   options: [{ value, label, icon? }],
 //   placeholder?: string|signal,
 //   disabled?: bool|signal,
+//   variant?: 'default'|'minimal',
+//   autoWidth?: bool,
 // }
 ;(function (EF) {
   'use strict'
@@ -16,7 +18,10 @@
     const placeholder = ui.asSig(o.placeholder != null ? o.placeholder : 'Select...')
     const disabled    = ui.asSig(o.disabled    != null ? o.disabled    : false)
     const doWrite = ui.writer(sig, o.onChange, 'ui.select')
-    const el = ui.h('button', 'ef-ui-select', { type: 'button' })
+    const cls = 'ef-ui-select'
+      + (o.variant === 'minimal' ? ' ef-ui-select-minimal' : '')
+      + (o.autoWidth ? ' ef-ui-select-auto' : '')
+    const el = ui.h('button', cls, { type: 'button' })
     const labelEl = ui.h('span', 'ef-ui-select-label')
     const arrow = ui.h('span', 'ef-ui-select-arrow', { text: '▾' })
     el.appendChild(labelEl); el.appendChild(arrow)
@@ -44,15 +49,27 @@
       const items = o.options || []
       for (let i = 0; i < items.length; i++) {
         const it = items[i]
+        if (it.type === 'header') {
+          list.appendChild(ui.h('div', 'ef-ui-menu-header', { text: it.label || '' }))
+          continue
+        }
+        if (it.type === 'divider') {
+          list.appendChild(ui.h('div', 'ef-ui-menu-divider'))
+          continue
+        }
         const row = ui.h('button', 'ef-ui-menu-item' + (it.value === sig.peek() ? ' ef-ui-menu-item-active' : ''), { type: 'button' })
         if (it.icon) row.appendChild(ui.icon({ glyph: it.icon }))
-        const sp = ui.h('span', null, { text: it.label != null ? it.label : String(it.value) })
-        row.appendChild(sp)
+        const text = ui.h('span', 'ef-ui-menu-item-text')
+        text.appendChild(ui.h('span', 'ef-ui-menu-item-label', { text: it.label != null ? it.label : String(it.value) }))
+        if (it.subLabel) text.appendChild(ui.h('span', 'ef-ui-menu-item-sub', { text: it.subLabel }))
+        row.appendChild(text)
         row.addEventListener('click', function () { doWrite(it.value); pop && pop.close(); pop = null })
         list.appendChild(row)
       }
       pop = ui.popover({ anchor: el, content: list, side: 'bottom', align: 'start', onDismiss: function () { pop = null } })
-      list.style.minWidth = el.getBoundingClientRect().width + 'px'
+      list.style.minWidth = Math.max(120, el.getBoundingClientRect().width) + 'px'
+      list.style.maxHeight = Math.max(160, Math.min(420, window.innerHeight - 96)) + 'px'
+      list.style.overflow = 'auto'
     })
     ui.collect(el, function () { if (pop) { pop.close(); pop = null } })
 

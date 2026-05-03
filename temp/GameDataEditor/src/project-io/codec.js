@@ -50,7 +50,8 @@
     };
   }
 
-  function applySnapshot(snapshot, sourceName) {
+  function applySnapshot(snapshot, sourceName, options) {
+    options = options || {};
     var snap = normalizeSnapshot(snapshot);
     var merged = mergeStructDefsIntoTypeConfig(snap);
     if (merged.pushed.length) {
@@ -61,10 +62,12 @@
     State.setProjectCardStyles(snap.card_styles);
     State.setGameData(flattenGameData(snap.tables));
     State.setTableMap(buildTableMap(snap.tables));
-    State.projectName.set((snap.project && snap.project.name) || sourceName || 'Untitled');
-    State.version.set((snap.project && Number(snap.project.version)) || 0);
-    State.closeAllTabs();
-    State.setSelection(null);
+    if (!options.preserveProjectMeta) {
+      State.projectName.set((snap.project && snap.project.name) || sourceName || 'Untitled');
+      State.version.set((snap.project && Number(snap.project.version)) || 0);
+    }
+    if (!options.preserveTabs) State.closeAllTabs();
+    if (!options.preserveSelection) State.setSelection(null);
     Normalize.normalizeAll();
   }
 

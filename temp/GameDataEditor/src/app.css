@@ -339,6 +339,105 @@ body {
   border-color: var(--gde-line);
 }
 
+.gde-history {
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--gde-panel-bg);
+  color: var(--ef-fg-1);
+}
+.gde-history-bar {
+  height: 34px;
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 8px;
+  background: var(--gde-panel-chrome-bg);
+  border-bottom: 1px solid var(--gde-line);
+  box-sizing: border-box;
+}
+.gde-history-title {
+  font: 600 var(--ef-fs-sm) var(--ef-font-ui);
+  color: var(--ef-fg-0);
+}
+.gde-history-actions {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.gde-history-list {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  padding: 6px;
+  background: var(--gde-content-bg);
+}
+.gde-history-empty {
+  padding: 28px 8px;
+  text-align: center;
+  font: var(--ef-fs-sm) var(--ef-font-ui);
+  color: var(--ef-fg-3);
+}
+.gde-history-row {
+  width: 100%;
+  min-height: 30px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 8px;
+  border: 1px solid transparent;
+  border-radius: var(--ef-r-2);
+  background: transparent;
+  color: var(--ef-fg-1);
+  text-align: left;
+  cursor: pointer;
+  box-sizing: border-box;
+}
+.gde-history-row:hover {
+  background: var(--gde-panel-chrome-hover);
+  border-color: var(--gde-line-soft);
+}
+.gde-history-row.is-current {
+  background: color-mix(in srgb, var(--ef-accent) 22%, var(--gde-item-bg));
+  border-color: var(--ef-accent);
+  color: var(--ef-fg-0);
+}
+.gde-history-row.is-future {
+  opacity: .58;
+}
+.gde-history-marker {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--ef-fg-4);
+  flex: 0 0 auto;
+}
+.gde-history-row.is-current .gde-history-marker {
+  background: var(--ef-accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--ef-accent) 18%, transparent);
+}
+.gde-history-body {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: baseline;
+  flex: 1 1 auto;
+}
+.gde-history-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font: 500 var(--ef-fs-sm) var(--ef-font-ui);
+}
+.gde-history-meta {
+  color: var(--ef-fg-3);
+  font: var(--ef-fs-xs) var(--ef-font-mono);
+}
+
 .gde-tc-section-caret,
 .gde-tm-caret {
   width: 16px;

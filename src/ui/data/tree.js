@@ -203,7 +203,11 @@
     // Label (with search highlight if query active)
     const lab = ui.h('span', 'ef-ui-tree-label')
     const labelText = row.node.label != null ? String(row.node.label) : String(row.node.id)
-    if (ctx.query) {
+    if (opts.labelSlot && !ctx.query) {
+      const node = opts.labelSlot(row.node, ctx)
+      if (node) lab.appendChild(node)
+      else lab.textContent = labelText
+    } else if (ctx.query) {
       lab.appendChild(ctx.highlight(labelText))
     } else {
       lab.textContent = labelText

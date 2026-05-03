@@ -23,11 +23,14 @@
     'paste':        '<path d="M15 2H9a2 2 0 0 0-2 2v1H5a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2V4a2 2 0 0 0-2-2Z"/><path d="M9 4h6"/><path d="M8 11h8"/><path d="M8 15h5"/>',
     'save':         '<path d="M15.2 3a2 2 0 0 1 1.4.6l3.8 3.8a2 2 0 0 1 .6 1.4V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/><path d="M17 21v-7a1 1 0 0 0-1-1H8a1 1 0 0 0-1 1v7"/><path d="M7 3v4a1 1 0 0 0 1 1h7"/>',
     'refresh':      '<path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/>',
+    'undo':         '<path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-15-6.7L3 13"/>',
+    'redo':         '<path d="M21 7v6h-6"/><path d="M3 17a9 9 0 0 1 15-6.7l3 2.7"/>',
 
     // ─── Navigation ─────────────────────────────────────────────
     'chevron-down':  '<path d="m6 9 6 6 6-6"/>',
     'chevron-right': '<path d="m9 18 6-6-6-6"/>',
     'chevron-up':    '<path d="m18 15-6-6-6 6"/>',
+    'arrow-up':      '<path d="m12 19V5"/><path d="m5 12 7-7 7 7"/>',
     'chevron-left':  '<path d="m15 18-6-6 6-6"/>',
     'arrow-right':   '<path d="M5 12h14"/><path d="m12 5 7 7-7 7"/>',
     'arrow-left':    '<path d="m12 19-7-7 7-7"/><path d="M19 12H5"/>',

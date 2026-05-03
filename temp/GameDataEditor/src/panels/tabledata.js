@@ -184,7 +184,7 @@
 
       if (ids.length === 0) {
         var empty = document.createElement('div');
-        empty.style.cssText = 'display:flex;align-items:center;justify-content:center;height:100%;color:var(--ef-fg-3,#8a8a90);font-size:13px;';
+        empty.style.cssText = 'display:flex;align-items:center;justify-content:center;height:100%;color:var(--ef-fg-3);font-size:13px;';
         empty.textContent = T('table.empty');
         body.appendChild(empty);
         return;
@@ -370,14 +370,14 @@
           renderBody();
         }
         var items = card ? [
-          { label: 'Copy Card', icon: 'copy', onSelect: copyCards },
-          { label: 'Duplicate Card', icon: 'copy', onSelect: duplicateCards },
-          { label: 'Delete', icon: 'trash', danger: true, onSelect: handleDelete },
+          { label: t('tablemap.ctx.copy_card'), icon: 'copy', onSelect: copyCards },
+          { label: t('table.ctx.duplicate'), icon: 'copy', onSelect: duplicateCards },
+          { label: t('common.delete'), icon: 'trash', danger: true, onSelect: handleDelete },
         ] : [
-          { label: 'New Card', icon: 'plus', onSelect: handleAdd },
+          { label: t('table.ctx.new_card'), icon: 'plus', onSelect: handleAdd },
         ];
         if (!card && GDE.clipboard.has('entities')) {
-          items.push({ label: 'Paste Card', icon: 'paste', onSelect: pasteCards });
+          items.push({ label: t('tablemap.ctx.paste_card'), icon: 'paste', onSelect: pasteCards });
         }
         EF.ui.contextMenu({ x: ev.clientX, y: ev.clientY }, items);
       });

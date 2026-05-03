@@ -77,7 +77,7 @@
   white-space: nowrap;
   overflow: hidden;
   isolation: isolate;
-  box-shadow: 0 1px 0 rgba(0,0,0,.18), inset 0 1px 0 rgba(255,255,255,.04);
+  box-shadow: 0 1px 0 color-mix(in srgb, var(--ef-bg-0) 42%, transparent), inset 0 1px 0 var(--ef-highlight-subtle);
   transform: translateZ(0);
   transition:
     background  var(--ef-dur-fast) var(--ef-ease),
@@ -108,7 +108,7 @@
   color: var(--ef-fg-0);
   border-color: var(--ef-border-hover);
   transform: translateY(-1px);
-  box-shadow: 0 2px 6px rgba(0,0,0,.28), inset 0 1px 0 rgba(255,255,255,.06);
+  box-shadow: var(--ef-shadow-1), inset 0 1px 0 var(--ef-highlight-subtle);
 }
 .ef-ui-btn:active {
   background: var(--ef-bg-4);
@@ -136,28 +136,20 @@
 }
 
 .ef-ui-btn-primary {
-  background: linear-gradient(180deg,
-    color-mix(in srgb, var(--ef-accent-soft) 65%, var(--ef-accent)) 0%,
-    var(--ef-accent) 100%);
+  background: var(--ef-accent);
   color: var(--ef-accent-fg);
-  border-color: color-mix(in srgb, var(--ef-accent) 70%, #000);
-  box-shadow:
-    0 1px 0 rgba(0,0,0,.25),
-    inset 0 1px 0 rgba(255,255,255,.18);
+  border-color: var(--ef-accent);
+  box-shadow: inset 0 1px 0 var(--ef-highlight-strong);
 }
 .ef-ui-btn-primary:hover {
-  background: linear-gradient(180deg,
-    var(--ef-accent-soft) 0%,
-    color-mix(in srgb, var(--ef-accent-soft) 60%, var(--ef-accent)) 100%);
+  background: color-mix(in srgb, var(--ef-accent-soft) 72%, var(--ef-accent));
   border-color: var(--ef-accent-soft);
-  box-shadow:
-    0 4px 12px color-mix(in srgb, var(--ef-accent) 40%, transparent),
-    inset 0 1px 0 rgba(255,255,255,.22);
+  box-shadow: 0 0 0 2px var(--ef-accent-bg), inset 0 1px 0 var(--ef-highlight-strong);
 }
 .ef-ui-btn-primary:active {
   background: var(--ef-accent);
   box-shadow:
-    inset 0 2px 4px color-mix(in srgb, #000 40%, transparent),
+    inset 0 2px 4px color-mix(in srgb, var(--ef-bg-0) 48%, transparent),
     0 0 0 0 transparent;
 }
 
@@ -180,10 +172,10 @@
 }
 .ef-ui-btn-danger:hover {
   background: var(--ef-error);
-  color: #fff;
+  color: var(--ef-error-fg);
   box-shadow:
     0 4px 12px color-mix(in srgb, var(--ef-error) 40%, transparent),
-    inset 0 1px 0 rgba(255,255,255,.18);
+    inset 0 1px 0 var(--ef-highlight-strong);
 }
 .ef-ui-btn-danger:focus-visible {
   border-color: var(--ef-error);
@@ -233,14 +225,14 @@
               transform var(--ef-dur-fast) var(--ef-ease);
 }
 .ef-ui-copy-btn-copied {
-  color: var(--ef-success, #61c47a);
-  background: color-mix(in srgb, var(--ef-success, #61c47a) 18%, transparent);
-  border-color: color-mix(in srgb, var(--ef-success, #61c47a) 42%, transparent);
+  color: var(--ef-success);
+  background: color-mix(in srgb, var(--ef-success) 18%, transparent);
+  border-color: color-mix(in srgb, var(--ef-success) 42%, transparent);
 }
 .ef-ui-copy-btn-copied:hover {
-  color: var(--ef-success, #61c47a);
-  background: color-mix(in srgb, var(--ef-success, #61c47a) 24%, transparent);
-  border-color: color-mix(in srgb, var(--ef-success, #61c47a) 56%, transparent);
+  color: var(--ef-success);
+  background: color-mix(in srgb, var(--ef-success) 24%, transparent);
+  border-color: color-mix(in srgb, var(--ef-success) 56%, transparent);
 }
 
 /* ── tooltip ──────────────────────────────────────── */

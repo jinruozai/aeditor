@@ -43,14 +43,14 @@
     var snapSiblings = EF.signal(false);
     var gridBtn = ui.iconButton({
       icon: 'grid',
-      title: 'Show grid',
+      title: I18N.text('cardstyle.show_grid'),
       kind: 'ghost',
       onClick: function () { gridVisible.set(!gridVisible.peek()); },
     });
     var gridSizeEl = ui.numberInput({ value: gridSize, min: 1, max: 128, step: 1, precision: 0 });
     var snapBtn = ui.iconButton({
       icon: 'magnet',
-      title: 'Snap',
+      title: I18N.text('cardstyle.snap'),
       kind: 'ghost',
       onClick: function () { snapEnabled.set(!snapEnabled.peek()); },
     });
@@ -59,7 +59,7 @@
     var snapSiblingsBtn = snapSourceButton('Siblings', snapSiblings, 'Snap to sibling edges and centers');
     var alignMenuBtn = ui.iconButton({
       icon: 'more-horizontal',
-      title: 'Align and distribute',
+      title: I18N.text('cardstyle.align_menu'),
       kind: 'ghost',
       onClick: function () { openAlignMenu(alignMenuBtn); },
     });
@@ -134,17 +134,17 @@
         side: 'bottom',
         align: 'end',
         items: [
-          { type: 'header', label: 'Align' },
-          { label: 'Left', disabled: disabled, onSelect: function () { applyAlign('left'); } },
-          { label: 'Horizontal Center', disabled: disabled, onSelect: function () { applyAlign('center-x'); } },
-          { label: 'Right', disabled: disabled, onSelect: function () { applyAlign('right'); } },
+          { type: 'header', label: t('cardstyle.align') },
+          { label: t('cardstyle.align.left'), disabled: disabled, onSelect: function () { applyAlign('left'); } },
+          { label: t('cardstyle.align.center_x'), disabled: disabled, onSelect: function () { applyAlign('center-x'); } },
+          { label: t('cardstyle.align.right'), disabled: disabled, onSelect: function () { applyAlign('right'); } },
           { type: 'divider' },
-          { label: 'Top', disabled: disabled, onSelect: function () { applyAlign('top'); } },
-          { label: 'Vertical Center', disabled: disabled, onSelect: function () { applyAlign('center-y'); } },
-          { label: 'Bottom', disabled: disabled, onSelect: function () { applyAlign('bottom'); } },
+          { label: t('cardstyle.align.top'), disabled: disabled, onSelect: function () { applyAlign('top'); } },
+          { label: t('cardstyle.align.center_y'), disabled: disabled, onSelect: function () { applyAlign('center-y'); } },
+          { label: t('cardstyle.align.bottom'), disabled: disabled, onSelect: function () { applyAlign('bottom'); } },
           { type: 'divider' },
-          { label: 'Distribute Horizontally', disabled: disabled, onSelect: function () { applyAlign('distribute-x'); } },
-          { label: 'Distribute Vertically', disabled: disabled, onSelect: function () { applyAlign('distribute-y'); } },
+          { label: t('cardstyle.align.distribute_x'), disabled: disabled, onSelect: function () { applyAlign('distribute-x'); } },
+          { label: t('cardstyle.align.distribute_y'), disabled: disabled, onSelect: function () { applyAlign('distribute-y'); } },
         ],
       });
     }
@@ -333,7 +333,7 @@
       ui.searchMenu({
         items: componentItems(point, parentId),
         pos: point || canvasCenterPoint(),
-        placeholder: 'Search components...',
+        placeholder: t('cardstyle.search_components'),
         side: 'bottom',
         align: 'start',
         width: 300,
@@ -395,11 +395,11 @@
       var selected = SceneSelection.idsFromSelection(State.selection(), styleKey);
       var hasSelection = selected.length > 0;
       var items = [
-        { label: 'Add Node...', icon: 'plus', onSelect: function () { openAddMenu({ x: ev.clientX, y: ev.clientY }, targetId || null); } },
+        { label: t('cardstyle.add_node'), icon: 'plus', onSelect: function () { openAddMenu({ x: ev.clientX, y: ev.clientY }, targetId || null); } },
         { type: 'divider' },
-        { label: 'Copy', icon: 'copy', disabled: !hasSelection, onSelect: function () { GDE.cardStyleActions.copy(styleKey); } },
-        { label: 'Paste', icon: 'paste', disabled: !GDE.cardStyleActions.canPaste(), onSelect: function () { GDE.cardStyleActions.paste(styleKey); } },
-        { label: 'Duplicate', icon: 'copy', disabled: !hasSelection, onSelect: function () { GDE.cardStyleActions.duplicate(styleKey); } },
+        { label: t('common.copy'), icon: 'copy', disabled: !hasSelection, onSelect: function () { GDE.cardStyleActions.copy(styleKey); } },
+        { label: t('common.paste'), icon: 'paste', disabled: !GDE.cardStyleActions.canPaste(), onSelect: function () { GDE.cardStyleActions.paste(styleKey); } },
+        { label: t('common.duplicate'), icon: 'copy', disabled: !hasSelection, onSelect: function () { GDE.cardStyleActions.duplicate(styleKey); } },
       ];
       EF.ui.contextMenu({ x: ev.clientX, y: ev.clientY }, items);
     });
@@ -991,7 +991,7 @@
   }
 
   EF.registerComponent('gde-cardstyle-editor', {
-    defaults: function () { return { title: 'CardStyle', icon: 'columns' }; },
+    defaults: function () { return { title: t('panel.cardstyle'), icon: 'columns' }; },
     factory:  factory,
   });
 })();

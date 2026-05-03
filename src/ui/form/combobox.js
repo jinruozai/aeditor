@@ -32,11 +32,11 @@
     ui.bind(wrap, sig, function (v) { if (document.activeElement !== inp) inp.value = v == null ? '' : String(v) })
 
     let pop = null
-    function open() {
+    function open(showAll) {
       if (pop) return
       if (disabled.peek()) return
       const list = ui.h('div', 'ef-ui-menu')
-      const term = inp.value.toLowerCase()
+      const term = showAll ? '' : inp.value.toLowerCase()
       const items = norm(ui.isSignal && ui.isSignal(o.options) ? o.options.peek() : o.options)
       const filtered = items.filter(function (it) { return !term || String(it.label).toLowerCase().indexOf(term) >= 0 })
       if (!filtered.length) {
@@ -54,11 +54,11 @@
       pop = ui.popover({ anchor: wrap, content: list, side: 'bottom', align: 'start', onDismiss: function () { pop = null } })
     }
     function close() { if (pop) { pop.close(); pop = null } }
-    function reopen() { close(); open() }
+    function reopen(showAll) { close(); open(showAll) }
 
-    inp.addEventListener('focus', open)
-    inp.addEventListener('input', function () { doWrite(inp.value); reopen() })
-    arrow.addEventListener('mousedown', function (e) { e.preventDefault(); inp.focus(); pop ? close() : open() })
+    inp.addEventListener('focus', function () { open(true) })
+    inp.addEventListener('input', function () { doWrite(inp.value); reopen(false) })
+    arrow.addEventListener('mousedown', function (e) { e.preventDefault(); inp.focus(); pop ? close() : open(true) })
     ui.collect(wrap, close)
 
     return wrap

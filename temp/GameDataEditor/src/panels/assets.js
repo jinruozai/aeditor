@@ -7,7 +7,7 @@
   function createPanel(propsSig, ctx) {
     var browser = EF.ui.assetBrowser({
       storageKey: 'gde.assets.v2',
-      rootLabel: 'asset',
+      rootLabel: I18N.text('assets.root'),
       version: ProjectIO.assets.version,
       children: function (dir, query) {
         return ProjectIO.assets.children(dir, query);
@@ -21,11 +21,11 @@
       importFiles: importFiles,
       createFolder: function (dir, name) {
         ProjectIO.assets.createFolder(dir, name);
-        State.log('info', 'Created asset folder: asset://' + joinPath(dir, name));
+        State.log('info', t('assets.log.created_folder', { path: 'asset://' + joinPath(dir, name) }));
       },
       moveEntries: function (entries, targetDir) {
         var moved = ProjectIO.assets.moveMany(entries, targetDir);
-        if (moved.length) State.log('info', 'Moved ' + moved.length + ' asset item(s) to asset://' + targetDir);
+        if (moved.length) State.log('info', t('assets.log.moved', { n: moved.length, path: 'asset://' + targetDir }));
       },
       rename: renameEntry,
       remove: removeEntries,
@@ -44,9 +44,9 @@
       var replace = false;
       if (ProjectIO.assets.exists(target) && !replaceAll && !keepAll) {
         var ok = await EF.ui.confirm({
-          title: 'Asset already exists',
-          message: target + ' already exists. Replace it? Cancel keeps both.',
-          okLabel: 'Replace',
+          title: t('assets.exists.title'),
+          message: t('assets.exists.message', { path: target }),
+          okLabel: t('assets.exists.replace'),
         });
         replace = !!ok;
         if (list.length > 1) {
@@ -58,24 +58,24 @@
       }
       await ProjectIO.assets.importFile(file, null, { dir: dir, replace: replace });
     }
-    State.log('info', 'Imported ' + list.length + ' asset(s) to asset://' + (dir || ''));
+    State.log('info', t('assets.log.imported', { n: list.length, path: 'asset://' + (dir || '') }));
   }
 
   function renameEntry(entry) {
     if (!entry) return;
     if (entry.kind === 'folder') {
-      var folderName = prompt('Rename folder', entry.name);
+      var folderName = prompt(t('assets.rename_folder'), entry.name);
       if (!folderName || folderName === entry.name) return;
       var nextDir = ProjectIO.assets.renameFolder(entry.path, folderName);
-      State.log('info', 'Renamed folder: asset://' + entry.path + ' -> asset://' + nextDir);
+      State.log('info', t('assets.log.renamed_folder', { from: 'asset://' + entry.path, to: 'asset://' + nextDir }));
       return;
     }
     var info = ProjectIO.assets.get(entry.url);
     if (!info) return;
-    var name = prompt('Rename asset', info.name);
+    var name = prompt(t('assets.rename_asset'), info.name);
     if (!name || name === info.name) return;
     var next = ProjectIO.assets.rename(entry.url, name);
-    State.log('info', 'Renamed asset: ' + entry.url + ' -> ' + next);
+    State.log('info', t('assets.log.renamed_asset', { from: entry.url, to: next }));
   }
 
   async function removeEntries(entries) {
@@ -84,10 +84,10 @@
     var urls = urlsForEntries(rows);
     var refs = State.findAssetReferences(urls);
     var ok = await EF.ui.confirm({
-      title: 'Delete Asset',
+      title: t('assets.delete.title'),
       message: deleteMessage(rows.length, refs),
       danger: true,
-      okLabel: 'Delete',
+      okLabel: t('common.delete'),
     });
     if (!ok) return;
     var clearedEntities = refs.length ? State.clearAssetReferences(urls) : 0;
@@ -95,13 +95,15 @@
       if (entry.kind === 'folder') ProjectIO.assets.removeFolder(entry.path);
     });
     if (urls.length) ProjectIO.assets.remove(urls);
-    State.log('warn', 'Deleted ' + rows.length + ' asset item(s)' + (refs.length ? ', cleared ' + refs.length + ' reference(s) in ' + clearedEntities + ' entity(s)' : ''));
+    State.log('warn', refs.length
+      ? t('assets.log.deleted_refs', { n: rows.length, refs: refs.length, entities: clearedEntities })
+      : t('assets.log.deleted', { n: rows.length }));
   }
 
   function assetActions(rows) {
     if (!urlsForEntries(rows).length) return [];
     return [{
-      label: 'View References',
+      label: t('assets.view_refs'),
       icon: 'search',
       onSelect: function () {
         var query = referenceQuery(rows);
@@ -137,9 +139,9 @@
   }
 
   function deleteMessage(count, refs) {
-    var msg = 'Delete ' + count + ' asset item(s)? This removes them from the project asset store.';
-    if (!refs.length) return msg + '\n\nNo table data currently references these assets.';
-    return msg + '\n\nReferenced in ' + refs.length + ' place(s). Deleting will clear those references.';
+    var msg = t('assets.delete.message', { n: count });
+    if (!refs.length) return msg + '\n\n' + t('assets.delete.no_refs');
+    return msg + '\n\n' + t('assets.delete.refs', { n: refs.length });
   }
 
   function unique(list) {

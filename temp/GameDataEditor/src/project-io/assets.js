@@ -22,10 +22,60 @@
     version.set(version.peek() + 1);
     State.markDirty();
     EF.bus.emit('assets:changed');
+    if (window.GDE && GDE.history) GDE.history.captureEvent('assets:changed');
   }
   function changed() {
     version.set(version.peek() + 1);
     EF.bus.emit('assets:changed');
+  }
+
+  function snapshot() {
+    var outFiles = {};
+    Object.keys(files).forEach(function (path) {
+      var f = files[path];
+      outFiles[path] = {
+        path: f.path,
+        url: f.url,
+        name: f.name,
+        dir: f.dir,
+        kind: f.kind,
+        size: f.size,
+        blob: f.blob,
+        hash: f.hash || '',
+        ctime: f.ctime || 0,
+        mtime: f.mtime || 0,
+      };
+    });
+    return {
+      files: outFiles,
+      hashes: Object.assign({}, hashes),
+      folders: Object.assign({}, folders),
+    };
+  }
+
+  function restore(snapshotData) {
+    Object.keys(urls).forEach(function (path) { URL.revokeObjectURL(urls[path]); });
+    files = {};
+    urls = {};
+    hashes = Object.assign({}, snapshotData && snapshotData.hashes || {});
+    folders = Object.assign({ '': true }, snapshotData && snapshotData.folders || {});
+    Object.keys(snapshotData && snapshotData.files || {}).forEach(function (path) {
+      var f = snapshotData.files[path];
+      files[path] = {
+        path: f.path,
+        url: f.url,
+        name: f.name,
+        dir: f.dir,
+        kind: f.kind,
+        size: f.size,
+        blob: f.blob,
+        hash: f.hash || '',
+        ctime: f.ctime || 0,
+        mtime: f.mtime || 0,
+      };
+      if (f.blob) urls[path] = URL.createObjectURL(f.blob);
+    });
+    bump();
   }
 
   async function importFile(file, kind, ctx) {
@@ -663,6 +713,8 @@
     writeToDirectory: writeToDirectory,
     zipEntries: zipEntries,
     clear: clear,
+    snapshot: snapshot,
+    restore: restore,
   };
   EF.ui.resolveAssetUrl = urlFor;
 })();

@@ -43,6 +43,35 @@
     return track(EF.effect(fn));
   }
 
+  function loadScript(src) {
+    return new Promise(function (resolve, reject) {
+      var el = document.createElement('script');
+      el.src = src;
+      el.onload = function () { resolve(); };
+      el.onerror = function () { reject(new Error('Failed to load ' + src)); };
+      document.head.appendChild(el);
+    });
+  }
+
+  function installAIAdapter() {
+    var files = [
+      'src/ai/core.js',
+      'src/ai/resources.js',
+      'src/ai/patch.js',
+      'src/ai/tools.js',
+      'src/ai/skills.js',
+    ];
+    var chain = Promise.resolve();
+    files.forEach(function (file) {
+      chain = chain.then(function () { return loadScript(file + '?v=1'); });
+    });
+    chain.then(function () {
+      if (window.GDE && GDE.ai && GDE.ai.install) GDE.ai.install();
+    }, function (err) {
+      State.log('warn', err.message);
+    });
+  }
+
   // 1. Seed the demo dataset (synchronous â€?keeps file:// double-click working).
   Seed.install();
 
@@ -89,6 +118,7 @@
     panels: [
       EF.panel({ component: 'gde-assets',             title: 'Assets',     icon: 'folder'  }),
       EF.panel({ component: 'gde-cardstyle-list',     title: 'Card Styles', icon: 'columns' }),
+      EF.panel({ component: 'gde-history',            title: 'History',    icon: 'clock'   }),
       EF.panel({ component: 'log',                    title: 'Log',        icon: 'list'    }),
     ],
   });
@@ -109,6 +139,52 @@
 
   // 3. Mount.
   var handle = EF.createDockLayout(document.getElementById('app'), { tree: tree });
+  if (window.GDE && GDE.history) track(GDE.history.installShortcuts());
+  track(EF.effect(function () {
+    I18N.locale();
+    relocalizePanelTitles();
+  }));
+
+  function relocalizePanelTitles() {
+    var titleKeys = {
+      'gde-tables': 'panel.tablemap',
+      'gde-typeconfig': 'panel.typeconfig',
+      'gde-cardstyle-tree': 'panel.object_tree',
+      'gde-search': 'panel.search',
+      'gde-assets': 'panel.assets',
+      'gde-cardstyle-list': 'panel.cardstyles',
+      'gde-history': 'panel.history',
+      'log': 'panel.log',
+      'gde-inspector': 'panel.inspector',
+    };
+    var changed = false;
+    function walk(node) {
+      if (!node) return node;
+      if (node.type === 'dock') {
+        var panels = node.panels.map(function (p) {
+          var key = titleKeys[p.component];
+          if (!key) return p;
+          var title = t(key);
+          if (p.title === title) return p;
+          changed = true;
+          return Object.assign({}, p, { title: title });
+        });
+        return changed ? Object.assign({}, node, { panels: panels }) : node;
+      }
+      if (node.type === 'split') {
+        var any = false;
+        var children = node.children.map(function (child) {
+          var next = walk(child);
+          if (next !== child) any = true;
+          return next;
+        });
+        return any ? Object.assign({}, node, { children: children }) : node;
+      }
+      return node;
+    }
+    var next = walk(handle.tree());
+    if (changed) handle.setTree(next);
+  }
 
   function destroy() {
     if (destroyed) return;
@@ -168,6 +244,10 @@
 
   // 9. Top toolbar (plain DOM, lives above the frame).
   TopBar.mount(document.getElementById('gde-topbar'));
+
+  // 9.5. Project-level AI adapter registrations. EF.ai owns the generic
+  // panels/runtime; GDE.ai only contributes domain resources, tools, skills.
+  installAIAdapter();
 
   // 10. Document title tracks project name.
   appEffect(function () {

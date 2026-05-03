@@ -179,6 +179,7 @@
   function emit(ev, payload) {
     if (isDirtyEvent(ev)) dirty.set(true);
     EF.bus.emit(ev, payload);
+    if (isDirtyEvent(ev) && window.GDE && GDE.history) GDE.history.captureEvent(ev, payload);
   }
 
   // Whenever either TypeConfig signal changes, push the merged view into the

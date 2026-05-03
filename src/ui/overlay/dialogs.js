@@ -12,6 +12,12 @@
     return f
   }
 
+  function tr(key, fallback) {
+    if (!EF.i18n) return fallback
+    const value = EF.i18n.t(key)
+    return value === key ? fallback : value
+  }
+
   // ── ui.alert(opts) → Promise<void>
   // opts: { title?, message?, okLabel? = 'OK' }
   ui.alert = function (opts) {
@@ -20,7 +26,7 @@
       const body = ui.h('div', 'ef-ui-dialog-body', { text: o.message || '' })
       let modal
       const ok = ui.button({
-        text: o.okLabel || 'OK', kind: 'primary',
+        text: o.okLabel || tr('common.ok', 'OK'), kind: 'primary',
         onClick: function () { modal.close() },
       })
       modal = ui.modal({
@@ -41,9 +47,9 @@
       let done = false
       const finish = function (v) { if (done) return; done = true; modal.close(); resolve(v) }
       const body = ui.h('div', 'ef-ui-dialog-body', { text: o.message || '' })
-      const cancel = ui.button({ text: o.cancelLabel || 'Cancel', onClick: function () { finish(false) } })
+      const cancel = ui.button({ text: o.cancelLabel || tr('common.cancel', 'Cancel'), onClick: function () { finish(false) } })
       const ok = ui.button({
-        text: o.okLabel || 'OK',
+        text: o.okLabel || tr('common.ok', 'OK'),
         kind: o.danger ? 'danger' : 'primary',
         onClick: function () { finish(true) },
       })
@@ -71,9 +77,9 @@
       const inputEl = ui.input({ value: value, placeholder: o.placeholder || '' })
       body.appendChild(inputEl)
 
-      const cancel = ui.button({ text: o.cancelLabel || 'Cancel', onClick: function () { finish(null) } })
+      const cancel = ui.button({ text: o.cancelLabel || tr('common.cancel', 'Cancel'), onClick: function () { finish(null) } })
       const ok     = ui.button({
-        text: o.okLabel || 'OK', kind: 'primary',
+        text: o.okLabel || tr('common.ok', 'OK'), kind: 'primary',
         onClick: function () { finish(value.peek()) },
       })
       var modal = ui.modal({

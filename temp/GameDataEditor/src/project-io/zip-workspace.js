@@ -29,6 +29,7 @@
     if (window.GDE && GDE.plugins) await GDE.plugins.loadProject(pluginFiles, file.name.replace(/\.zip$/i, ''));
     ProjectIO.assets.loadFromZip(entries);
     ProjectIO.codec.applySnapshot(ProjectIO.codec.filesToSnapshot(files), file.name.replace(/\.zip$/i, ''));
+    if (window.GDE && GDE.history) GDE.history.reset(t('history.import_project', { name: file.name }), { saved: true });
   }
 
   async function exportZip() {
