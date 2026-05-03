@@ -304,8 +304,8 @@ body {
   box-shadow: 0 0 0 1px color-mix(in srgb, var(--ef-accent) 45%, transparent);
 }
 .gde-cs-guide.is-sibling {
-  background: #b06cff;
-  box-shadow: 0 0 0 1px color-mix(in srgb, #b06cff 42%, transparent);
+  background: var(--ef-info);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--ef-info) 42%, transparent);
 }
 
 .gde-inspector-header {

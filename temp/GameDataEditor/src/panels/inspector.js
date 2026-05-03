@@ -897,7 +897,7 @@
       var p = State.previewMergeStructDef(pathKey);
       var total = p.pushed.length + p.cleared.length + p.skipped.length;
       if (!total || (p.pushed.length === 0 && p.cleared.length === 0)) {
-        State.log('info', 'Merge: "' + pathKey + '" already normalized â€?nothing to do');
+        State.log('info', 'Merge: "' + pathKey + '" already normalized - nothing to do');
         State.showLogPanel();
         return;
       }
@@ -956,7 +956,7 @@
         kind: 'primary',
         onClick: function () {
           var res = State.applyFixes(pathKey, plan);
-          State.log('info', 'Fix: table "' + pathKey + '" â€?changed ' + res.changed + ' of ' + res.total + ' entities');
+          State.log('info', 'Fix: table "' + pathKey + '" - changed ' + res.changed + ' of ' + res.total + ' entities');
           State.showLogPanel();
           m.close();
         },
@@ -1067,7 +1067,7 @@
     var firstComponent = initial[0].component;
     if (initial.some(function (n) { return n.component !== firstComponent; })) {
       root.appendChild(ui.h('div', 'gde-inspector-empty', {
-        text: 'Selection has different component types â€?pick a single kind to edit.',
+        text: 'Selection has different component types - pick a single kind to edit.',
       }));
       return root;
     }

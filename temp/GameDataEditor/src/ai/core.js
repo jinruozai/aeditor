@@ -186,22 +186,14 @@
   function addResourceRef(ref) {
     var ai = ensureAI();
     if (!ai || !ref || !ref.uri) return null;
-    var existing = (ai.resources.peek ? ai.resources.peek() : ai.resources()).filter(function (item) {
-      return item.resolver === (ref.resolver || ref.kind) && item.uri === ref.uri;
-    })[0];
-    return existing || ai.addResource(ref);
+    return ai.addTarget ? ai.addTarget(ref) : ai.addResource(ref);
   }
 
   function attachRefsToAgent(agentId, refs) {
     var ai = ensureAI();
     var agent = ai && (agentId ? ai.findAgent(agentId) : ai.getActiveAgent());
     if (!agent) return null;
-    var ids = agent.contextRefs.slice();
-    (refs || []).forEach(function (ref) {
-      var stored = addResourceRef(ref);
-      if (stored && ids.indexOf(stored.id) < 0) ids.push(stored.id);
-    });
-    return ai.updateAgent(agent.id, { contextRefs: ids });
+    return ai.attachTargetsToAgent ? ai.attachTargetsToAgent(agent.id, refs || []) : agent;
   }
 
   function attachSelectionToAgent(agentId) {

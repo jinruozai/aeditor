@@ -364,7 +364,7 @@
     const baseCtx = { ai: ai, agent: agent, actor: actor || 'user', runId: runId }
     const allowedResources = ai.canRead(actor || 'user', agent.id, 'resources.read')
     const resolvedResources = allowedResources ? resolveResources(agent, baseCtx) : []
-    const resourceRefs = describeResources(agent)
+    const resourceRefs = allowedResources ? describeResources(agent) : []
     return {
       runId: runId,
       agent: agent,

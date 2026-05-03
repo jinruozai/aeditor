@@ -1,0 +1,318 @@
+/* editorframe - Settings panel */
+
+.ef-settings-panel {
+  display: grid;
+  grid-template-columns: var(--ef-settings-nav-w, 240px) 1px minmax(0, 1fr);
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  background: var(--ef-bg-0);
+  color: var(--ef-fg-1);
+}
+
+.ef-settings-nav {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  border-right: 0;
+  background: var(--ef-bg-1);
+  padding: var(--ef-space-2) var(--ef-space-1);
+  box-sizing: border-box;
+}
+
+.ef-settings-nav > .ef-ui-search-field {
+  flex: 0 0 auto;
+  margin-bottom: var(--ef-space-2);
+}
+
+.ef-settings-splitter {
+  min-width: 1px;
+  height: 100%;
+}
+
+.ef-settings-tree {
+  flex: 1 1 auto;
+  width: 100%;
+  height: auto;
+  min-height: 0;
+  background: transparent;
+}
+
+.ef-settings-tree .ef-ui-tree-row {
+  border-radius: 4px;
+}
+
+.ef-settings-tree .ef-ui-tree-row-active,
+.ef-settings-tree .ef-ui-tree-row-active:hover {
+  background: var(--ef-selected);
+  color: var(--ef-fg-0);
+}
+
+.ef-settings-content {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  background: var(--ef-bg-0);
+}
+
+.ef-settings-page {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 100%;
+  max-width: 1080px;
+  width: 100%;
+  padding: var(--ef-space-5);
+  box-sizing: border-box;
+}
+
+.ef-settings-page-head {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ef-space-1);
+  margin-bottom: var(--ef-space-4);
+}
+
+.ef-settings-page-title {
+  color: var(--ef-fg-0);
+  font: 700 var(--ef-fs-xl) var(--ef-font-ui);
+}
+
+.ef-settings-page-desc {
+  max-width: 720px;
+  color: var(--ef-fg-3);
+  line-height: 1.45;
+}
+
+.ef-settings-ai-page {
+  max-width: 1180px;
+}
+
+.ef-settings-theme-page {
+  display: flex;
+  flex-direction: column;
+  max-width: none;
+}
+
+.ef-settings-theme-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--ef-space-2);
+  margin-bottom: var(--ef-space-3);
+}
+
+.ef-settings-theme-tabs {
+  flex: 1 1 auto;
+  min-width: 160px;
+}
+
+.ef-settings-theme-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+}
+
+.ef-settings-theme-host {
+  padding-right: var(--ef-space-2);
+}
+
+.ef-settings-theme-pane {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: var(--ef-space-1) var(--ef-space-3);
+  align-content: start;
+}
+
+.ef-settings-theme-pane .ef-ui-prop-row {
+  grid-template-columns: minmax(0, 112px) minmax(0, 1fr);
+}
+
+.ef-settings-theme-pane .ef-ui-prop-label {
+  text-align: left;
+}
+
+.ef-settings-ai-overview {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ef-space-3);
+  margin-bottom: var(--ef-space-4);
+}
+
+.ef-settings-note {
+  display: flex;
+  align-items: center;
+  min-height: 40px;
+  padding: var(--ef-space-2) var(--ef-space-3);
+  border: 1px solid color-mix(in srgb, var(--ef-warn) 34%, var(--ef-border));
+  border-radius: var(--ef-r-3);
+  background: var(--ef-warn-bg);
+  color: var(--ef-fg-2);
+  line-height: 1.4;
+  box-sizing: border-box;
+}
+
+.ef-settings-provider-block {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  border: 1px solid var(--ef-border);
+  border-radius: var(--ef-r-3);
+  background: var(--ef-bg-1);
+  overflow: hidden;
+}
+
+.ef-settings-provider-block-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ef-space-3);
+  min-height: 42px;
+  padding: 0 var(--ef-space-3);
+  border-bottom: 1px solid var(--ef-border);
+  background: var(--ef-bg-raised);
+}
+
+.ef-settings-provider-block-title {
+  color: var(--ef-fg-0);
+  font-weight: 700;
+}
+
+.ef-settings-provider-block-desc {
+  min-width: 0;
+  color: var(--ef-fg-3);
+  font: var(--ef-fs-xs) var(--ef-font-ui);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ef-settings-provider-list {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.ef-settings-provider-row {
+  display: grid;
+  grid-template-columns: 220px minmax(0, 1fr);
+  align-items: start;
+  min-width: 0;
+  border-bottom: 1px solid var(--ef-border);
+}
+
+.ef-settings-provider-row:last-child {
+  border-bottom: 0;
+}
+
+.ef-settings-provider-row.ef-settings-provider-loading {
+  border-color: color-mix(in srgb, var(--ef-warn) 38%, var(--ef-border));
+}
+
+.ef-settings-provider-row.ef-settings-provider-ok {
+  border-color: color-mix(in srgb, var(--ef-success) 44%, var(--ef-border));
+}
+
+.ef-settings-provider-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-start;
+  gap: var(--ef-space-2);
+  min-height: 0;
+  padding: var(--ef-space-3);
+  background: transparent;
+}
+
+.ef-settings-provider-title {
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
+  gap: var(--ef-space-2);
+  color: var(--ef-fg-0);
+  font-weight: 700;
+}
+
+.ef-settings-provider-fields {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--ef-space-2) var(--ef-space-3);
+  padding: var(--ef-space-3);
+}
+
+.ef-settings-field {
+  display: grid;
+  grid-template-columns: minmax(150px, 34%) minmax(0, 1fr);
+  align-items: center;
+  gap: var(--ef-space-3);
+  min-width: 0;
+}
+
+.ef-settings-field-copy {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  gap: 2px;
+}
+
+.ef-settings-field-control {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  gap: var(--ef-space-1);
+}
+
+.ef-settings-field-control > .ef-ui-field,
+.ef-settings-field-control > .ef-ui-select,
+.ef-settings-field-control > .ef-ui-input {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.ef-settings-model-control .ef-ui-combobox {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.ef-settings-model-action {
+  display: inline-flex;
+  align-items: center;
+  flex: 0 0 auto;
+  gap: var(--ef-space-1);
+}
+
+.ef-settings-provider-status {
+  color: var(--ef-fg-3);
+  font: var(--ef-fs-xs) var(--ef-font-ui);
+  white-space: nowrap;
+}
+
+.ef-settings-field-label {
+  color: var(--ef-fg-1);
+  font-weight: 600;
+}
+
+.ef-settings-field-desc {
+  color: var(--ef-fg-3);
+  font: var(--ef-fs-xs) var(--ef-font-ui);
+  line-height: 1.35;
+}
+
+@media (max-width: 680px) {
+  .ef-settings-panel {
+    grid-template-columns: minmax(132px, 34%) 1px minmax(0, 1fr);
+  }
+  .ef-settings-page {
+    padding: var(--ef-space-3);
+  }
+  .ef-settings-ai-overview,
+  .ef-settings-provider-row,
+  .ef-settings-provider-fields {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .ef-settings-field {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--ef-space-1);
+  }
+}

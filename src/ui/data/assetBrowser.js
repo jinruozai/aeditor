@@ -332,11 +332,15 @@
 
     function createFolder() {
       if (!o.createFolder) return
-      const name = prompt(tr('assetBrowser.folderName', 'Folder name'))
-      if (!name) return
-      const ret = o.createFolder(dir, name)
-      if (ret && ret.then) ret.then(done)
-      else done()
+      ui.prompt({
+        title: tr('common.new_folder', 'New Folder'),
+        message: tr('assetBrowser.folderName', 'Folder name'),
+      }).then(function (name) {
+        if (!name) return
+        const ret = o.createFolder(dir, name)
+        if (ret && ret.then) ret.then(done)
+        else done()
+      })
     }
 
     function selectedEntries() {

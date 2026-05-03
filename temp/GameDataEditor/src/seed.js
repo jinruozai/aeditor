@@ -102,7 +102,7 @@
     return { projectTC: projectTC, tables: { 'data/items': items, 'data/characters': characters, 'data/shops': shops } };
   }
 
-  // Default cardStyle = 120脳120 absolute card with the 'id' field shown
+  // Default cardStyle = 120x120 absolute card with the 'id' field shown
   // centered at the bottom. Shipped as the fallback every table inherits.
   function buildDemoCardStyles() {
     return {
@@ -254,4 +254,3 @@
 
   window.Seed = { install: install, BUILTIN: BUILTIN };
 })();
-

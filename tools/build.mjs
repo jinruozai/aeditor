@@ -175,6 +175,7 @@ const CSS_ORDER = [
   'style/ui-data.css',
   'style/ui-overlay.css',
   'style/ui-ai.css',
+  'style/ui-settings.css',
 ]
 
 // ─── concat ────────────────────────────────────────────────────────────────

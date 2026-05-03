@@ -61,10 +61,14 @@
     State.log('info', t('assets.log.imported', { n: list.length, path: 'asset://' + (dir || '') }));
   }
 
-  function renameEntry(entry) {
+  async function renameEntry(entry) {
     if (!entry) return;
     if (entry.kind === 'folder') {
-      var folderName = prompt(t('assets.rename_folder'), entry.name);
+      var folderName = await EF.ui.prompt({
+        title: t('assets.rename_folder'),
+        message: t('assets.rename_name'),
+        default: entry.name,
+      });
       if (!folderName || folderName === entry.name) return;
       var nextDir = ProjectIO.assets.renameFolder(entry.path, folderName);
       State.log('info', t('assets.log.renamed_folder', { from: 'asset://' + entry.path, to: 'asset://' + nextDir }));
@@ -72,7 +76,11 @@
     }
     var info = ProjectIO.assets.get(entry.url);
     if (!info) return;
-    var name = prompt(t('assets.rename_asset'), info.name);
+    var name = await EF.ui.prompt({
+      title: t('assets.rename_asset'),
+      message: t('assets.rename_name'),
+      default: info.name,
+    });
     if (!name || name === info.name) return;
     var next = ProjectIO.assets.rename(entry.url, name);
     State.log('info', t('assets.log.renamed_asset', { from: entry.url, to: next }));
@@ -103,13 +111,13 @@
   function assetActions(rows) {
     if (!urlsForEntries(rows).length) return [];
     return [{
-      label: 'Ask AI',
+      label: t('assets.ask_ai'),
       icon: 'message-circle',
       onSelect: function () {
         if (!GDE.ai || !GDE.ai.sendTargetsToAI) return;
         GDE.ai.sendTargetsToAI(urlsForEntries(rows).map(function (url) {
           return GDE.ai.assetTarget(url);
-        }), 'Inspect these asset(s).');
+        }), t('assets.ask_ai_prompt'));
       },
     }, {
       label: t('assets.view_refs'),
