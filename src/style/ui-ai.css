@@ -203,6 +203,12 @@
   overflow: hidden;
 }
 
+.ef-ai-composer.ef-ai-target-drop-active {
+  border-color: color-mix(in srgb, var(--ef-accent) 58%, var(--ef-border));
+  background: color-mix(in srgb, var(--ef-accent) 5%, var(--ef-bg-1));
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--ef-accent) 38%, transparent), var(--ef-shadow-1);
+}
+
 .ef-ai-chat-agentbar {
   display: flex;
   align-items: center;

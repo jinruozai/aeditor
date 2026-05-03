@@ -44,6 +44,7 @@ const JS_ORDER = [
   'ai/store.js',
   'ai/provider.js',
   'ai/context.js',
+  'ai/target.js',
   'ai/orchestration.js',
   'ai/runtime.js',
 

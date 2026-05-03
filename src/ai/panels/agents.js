@@ -175,14 +175,23 @@
     })
   }
 
-  function promptAgent(groupId) {
+  function promptAgent(groupId, parentAgentId) {
     ui.prompt({
-      title: 'New Agent',
+      title: parentAgentId ? 'New Child Agent' : 'New Agent',
       message: 'Agent name',
       default: 'Agent',
     }).then(function (name) {
       if (!name) return
-      EF.ai.createAgent({ name: name, groupId: groupId || null })
+      if (parentAgentId) {
+        const parent = EF.ai.findAgent(parentAgentId)
+        EF.ai.createAgent({
+          name: name,
+          path: parent ? (parent.path + '/' + name) : name,
+          groupId: parent ? (parent.groupId || null) : (groupId || null),
+        })
+      } else {
+        EF.ai.createAgent({ name: name, groupId: groupId || null })
+      }
     })
   }
 
@@ -223,6 +232,10 @@
   function commitAgentDrop(source, target, position) {
     if (target.kind === 'group' && position === 'inside') {
       EF.ai.moveAgent(source.agentId, { groupId: target.groupId })
+      return
+    }
+    if (target.kind === 'agent' && position === 'inside') {
+      EF.ai.reparentAgent(source.agentId, target.agentId)
       return
     }
     if (target.kind === 'agent') {
@@ -342,6 +355,13 @@
             onClick: function () { promptAgent(node.groupId) },
           })
         }
+        if (node.kind === 'agent') {
+          actions.push({
+            icon: 'user',
+            title: 'New child agent',
+            onClick: function () { promptAgent(node.groupId || null, node.agentId) },
+          })
+        }
         actions.push({
           icon: 'edit',
           title: 'Rename',
@@ -361,8 +381,8 @@
           items.push({ label: 'New Agent', icon: 'user', onSelect: function () { promptAgent(node.groupId) } })
           items.push({ type: 'divider' })
         }
-        if (node.kind === 'agent' && !node.isActive) {
-          items.push({ label: 'Set Active', icon: 'check-circle', onSelect: function () { EF.ai.selectAgent(node.agentId) } })
+        if (node.kind === 'agent') {
+          items.push({ label: 'New Child Agent', icon: 'user', onSelect: function () { promptAgent(node.groupId || null, node.agentId) } })
           items.push({ type: 'divider' })
         }
         items.push({ label: 'Rename', icon: 'edit', onSelect: function () { renameNode(node) } })
@@ -373,7 +393,7 @@
         canDrag: function () { return true },
         getDragData: function (nodes) { return { types: ['ef.ai/node'], nodes: nodes } },
         dropZones: function (node) {
-          return node.kind === 'group' ? ['before', 'inside', 'after'] : ['before', 'after']
+          return node.kind === 'group' || node.kind === 'agent' ? ['before', 'inside', 'after'] : ['before', 'after']
         },
         canDrop: function (node, position, data) {
           const source = data.nodes[0]

@@ -84,6 +84,105 @@
     return { kind: sel.kind || 'selection', selection: clone(sel), refs: refs };
   }
 
+  function tableTarget(pathKey) {
+    return {
+      resolver: 'gde',
+      uri: 'gde://table/' + pathKey,
+      kind: 'gde.table',
+      title: pathKey,
+      meta: { table: pathKey },
+      capabilities: ['read', 'patch', 'query'],
+      tools: ['gde.getTableSchema', 'gde.queryRows', 'gde.proposePatch'],
+    };
+  }
+
+  function entityTarget(pathKey, id) {
+    var data = State.gameData()[String(id)] || {};
+    return {
+      resolver: 'gde',
+      uri: 'gde://entity/' + pathKey + '/' + String(id),
+      kind: 'gde.entity',
+      title: pathKey + ' / ' + entityTitle(id, data),
+      summary: data.name != null ? String(data.name) : '',
+      meta: { table: pathKey, id: String(id) },
+      capabilities: ['read', 'patch', 'references'],
+      tools: ['gde.getEntity', 'gde.findReferences', 'gde.proposePatch'],
+    };
+  }
+
+  function fieldTarget(pathKey, id, field) {
+    return {
+      resolver: 'gde',
+      uri: 'gde://field/' + pathKey + '/' + String(id) + '/' + String(field),
+      kind: 'gde.field',
+      title: pathKey + ' / ' + String(id) + ' / ' + String(field),
+      meta: { table: pathKey, id: String(id), field: String(field) },
+      capabilities: ['read', 'patch'],
+      tools: ['gde.getField', 'gde.proposePatch'],
+    };
+  }
+
+  function assetTarget(url) {
+    return {
+      resolver: 'gde',
+      uri: 'gde://asset/' + String(url || '').replace(/^asset:\/\//, ''),
+      kind: 'gde.asset',
+      title: String(url || ''),
+      meta: { url: String(url || '') },
+      capabilities: ['read', 'references'],
+      tools: ['gde.findAssetReferences'],
+    };
+  }
+
+  function cardStyleTarget(key) {
+    return {
+      resolver: 'gde',
+      uri: 'gde://card-style/' + String(key),
+      kind: 'gde.card_style',
+      title: String(key),
+      meta: { cardStyle: String(key) },
+      capabilities: ['read', 'patch'],
+      tools: ['gde.getCardStyle', 'gde.proposePatch'],
+    };
+  }
+
+  function selectionTargets() {
+    var ctx = selectionContext();
+    return (ctx.refs || []).map(function (ref) {
+      if (ref.kind === 'gde.entity' && ref.uri) {
+        var parts = ref.uri.replace('gde://entity/', '').split('/');
+        var id = parts.pop();
+        return entityTarget(parts.join('/'), id);
+      }
+      return ref;
+    });
+  }
+
+  function registerTargetProviders() {
+    var ai = ensureAI();
+    if (!ai || !ai.registerTargetProvider) return;
+    ai.registerTargetProvider('gde', {
+      match: function (source) {
+        return source === 'selection' || (source && (source.gdeTarget || source.pathKey || source.assetUrl || source.cardStyle));
+      },
+      capture: function (source) {
+        if (source === 'selection' || (source && source.gdeTarget === 'selection')) return selectionTargets();
+        if (source && source.gdeTarget === 'table') return tableTarget(source.pathKey);
+        if (source && source.gdeTarget === 'entity') return entityTarget(source.pathKey, source.id);
+        if (source && source.gdeTarget === 'field') return fieldTarget(source.pathKey, source.id, source.field);
+        if (source && source.gdeTarget === 'asset') return assetTarget(source.assetUrl || source.url);
+        if (source && source.gdeTarget === 'card_style') return cardStyleTarget(source.cardStyle || source.key);
+        return null;
+      },
+    });
+  }
+
+  function bindTarget(el, targetOrFn, opts) {
+    var ai = ensureAI();
+    if (!ai || !ai.bindTarget) return el;
+    return ai.bindTarget(el, targetOrFn, opts);
+  }
+
   function addResourceRef(ref) {
     var ai = ensureAI();
     if (!ai || !ref || !ref.uri) return null;
@@ -120,11 +219,24 @@
     }, 'user');
   }
 
+  function sendTargetsToAI(targets, message, agentId) {
+    var ai = ensureAI();
+    var agent = ai && (agentId ? ai.findAgent(agentId) : ai.getActiveAgent());
+    if (!agent) return null;
+    if (ai.attachTargetsToAgent) agent = ai.attachTargetsToAgent(agent.id, targets) || agent;
+    return ai.sendMessage(agent.id, {
+      content: message || 'Inspect the attached GameDataEditor target(s).',
+      contextRefs: agent.contextRefs || [],
+      meta: { targets: targets || [] },
+    }, 'user');
+  }
+
   function install() {
     if (GDE.ai._installed) return true;
     var ai = ensureAI();
     if (!ai) return false;
     if (GDE.ai.registerResourceResolvers) GDE.ai.registerResourceResolvers();
+    registerTargetProviders();
     if (GDE.ai.registerContextProviders) GDE.ai.registerContextProviders();
     if (GDE.ai.registerTools) GDE.ai.registerTools();
     if (GDE.ai.registerSkills) GDE.ai.registerSkills();
@@ -139,6 +251,15 @@
     install: install,
     projectSummary: projectSummary,
     selectionContext: selectionContext,
+    registerTargetProviders: registerTargetProviders,
+    tableTarget: tableTarget,
+    entityTarget: entityTarget,
+    fieldTarget: fieldTarget,
+    assetTarget: assetTarget,
+    cardStyleTarget: cardStyleTarget,
+    selectionTargets: selectionTargets,
+    bindTarget: bindTarget,
+    sendTargetsToAI: sendTargetsToAI,
     addResourceRef: addResourceRef,
     attachRefsToAgent: attachRefsToAgent,
     attachSelectionToAgent: attachSelectionToAgent,

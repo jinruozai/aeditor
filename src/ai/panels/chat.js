@@ -249,6 +249,50 @@
     }
   }
 
+  function targetTitle(item) {
+    return item.title || item.label || item.name || item.uri || 'Target'
+  }
+
+  function targetKind(item) {
+    return item.kind || item.resolver || 'target'
+  }
+
+  function sameTarget(a, b) {
+    return a && b && a.resolver === b.resolver && a.uri === b.uri
+  }
+
+  function addPendingTargets(sig, targets) {
+    const list = sig.peek().slice()
+    const incoming = EF.ai.normalizeTarget ? targets.map(EF.ai.normalizeTarget).filter(Boolean) : targets
+    for (let i = 0; i < incoming.length; i++) {
+      let exists = false
+      for (let j = 0; j < list.length; j++) exists = exists || sameTarget(list[j], incoming[i])
+      if (!exists) list.push(incoming[i])
+    }
+    sig.set(list)
+  }
+
+  function renderPendingTargetChips(parent, sig) {
+    clearChildren(parent)
+    parent.classList.remove('ef-ai-resource-chips-visible')
+    const list = sig()
+    if (!list.length) return
+    parent.classList.add('ef-ai-resource-chips-visible')
+    for (let i = 0; i < list.length; i++) {
+      const item = list[i]
+      const chip = ui.h('button', 'ef-ai-resource-chip ef-ai-target-chip', { type: 'button', title: item.uri })
+      chip.appendChild(ui.h('span', 'ef-ai-resource-kind', { text: targetKind(item) }))
+      chip.appendChild(ui.h('span', 'ef-ai-resource-title', { text: targetTitle(item) }))
+      chip.appendChild(ui.h('span', 'ef-ai-resource-remove', { text: 'x' }))
+      chip.addEventListener('click', function (ev) {
+        ev.preventDefault()
+        const next = sig.peek().filter(function (target) { return !sameTarget(target, item) })
+        sig.set(next)
+      })
+      parent.appendChild(chip)
+    }
+  }
+
   function openPermissionMenu(anchor, permSig) {
     const items = PERMISSION_OPTIONS.map(function (opt) {
       return {
@@ -271,6 +315,7 @@
     const mode = EF.signal(props.mode || 'chat')
     const permissionMode = EF.signal(props.permissionMode || 'full')
     const input = EF.signal('')
+    const pendingTargets = EF.signal([])
     const hasTarget = EF.derived(function () { return !!activeAgent() })
     const busy = EF.derived(function () {
       const a = activeAgent()
@@ -288,9 +333,16 @@
     ui.collect(root, sendIcon.dispose)
 
     const composer = ui.h('div', 'ef-ai-composer')
+    if (EF.ai.installTargetDrop) {
+      EF.ai.installTargetDrop(composer, {
+        onDrop: function (targets) { addPendingTargets(pendingTargets, targets) },
+      })
+    }
 
     const chips = ui.h('div', 'ef-ai-resource-chips')
     composer.appendChild(chips)
+    const targetChips = ui.h('div', 'ef-ai-resource-chips ef-ai-pending-targets')
+    composer.appendChild(targetChips)
 
     const editorWrap = ui.h('div', 'ef-ai-chat-input-wrap')
     const editor = ui.textarea({ value: input, rows: 4, placeholder: 'Message current agent...', mono: false, disabled: controlDisabled })
@@ -416,6 +468,7 @@
     }))
 
     ui.collect(root, EF.effect(function () { renderResourceChips(chips, activeAgent()) }))
+    ui.collect(root, EF.effect(function () { renderPendingTargetChips(targetChips, pendingTargets) }))
 
     return root
 
@@ -428,6 +481,11 @@
       }
       const text = input().trim()
       if (!text) return
+      const targets = pendingTargets.peek()
+      let nextAgent = agent
+      if (targets.length && EF.ai.attachTargetsToAgent) {
+        nextAgent = EF.ai.attachTargetsToAgent(agent.id, targets) || agent
+      }
       EF.ai.updateAgent(agent.id, {
         provider: provider.peek(),
         model: model.peek() || defaultModel(provider.peek()),
@@ -440,8 +498,10 @@
         model: model.peek() || defaultModel(provider.peek()),
         mode: mode.peek(),
         permissionMode: permissionMode.peek(),
+        targets: targets,
       }
-      EF.ai.sendMessage(agent.id, { content: text, contextRefs: agent.contextRefs || [], meta: meta }, 'user')
+      EF.ai.sendMessage(agent.id, { content: text, contextRefs: nextAgent.contextRefs || [], meta: meta }, 'user')
+      pendingTargets.set([])
       input.set('')
       if (nativeEditor) nativeEditor.value = ''
     }

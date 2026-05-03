@@ -313,6 +313,43 @@
     return out
   }
 
+  function compactJson(value, max) {
+    let text = ''
+    try { text = JSON.stringify(value) } catch (_) { text = String(value) }
+    max = max || 1200
+    return text.length > max ? text.slice(0, max) + '...' : text
+  }
+
+  function resourceContextMessage(resourceRefs, resolvedResources) {
+    if (!resourceRefs.length && !resolvedResources.length) return null
+    const items = []
+    for (let i = 0; i < resourceRefs.length; i++) {
+      const ref = resourceRefs[i]
+      items.push({
+        id: ref.id || null,
+        uri: ref.uri || '',
+        kind: ref.kind || ref.resolver || 'resource',
+        title: ref.title || '',
+        summary: ref.summary || '',
+        meta: ref.meta || {},
+        payload: resolvedResources[i] == null ? null : compactJson(resolvedResources[i], 1400),
+      })
+    }
+    return {
+      id: 'system-context-' + Date.now().toString(36),
+      from: 'system',
+      role: 'system',
+      status: 'done',
+      content: 'Attached editor context resources. Use their uri/kind/meta to choose precise tools. Large payloads are summarized; call tools for full data.\n' + compactJson(items, 6000),
+    }
+  }
+
+  function requestMessages(agent, resourceRefs, resolvedResources) {
+    const messages = agent.messages.slice()
+    const context = resourceContextMessage(resourceRefs, resolvedResources)
+    return context ? [context].concat(messages) : messages
+  }
+
   function goalPolicy(agent) {
     const policy = (agent.state && agent.state.goalPolicy) || {}
     return {
@@ -327,6 +364,7 @@
     const baseCtx = { ai: ai, agent: agent, actor: actor || 'user', runId: runId }
     const allowedResources = ai.canRead(actor || 'user', agent.id, 'resources.read')
     const resolvedResources = allowedResources ? resolveResources(agent, baseCtx) : []
+    const resourceRefs = describeResources(agent)
     return {
       runId: runId,
       agent: agent,
@@ -335,9 +373,9 @@
       provider: agent.provider || ai.defaultProvider || 'mock',
       model: agent.model || '',
       input: input || null,
-      messages: agent.messages.slice(),
+      messages: requestMessages(agent, resourceRefs, resolvedResources),
       contextRefs: agent.contextRefs.slice(),
-      resourceRefs: describeResources(agent),
+      resourceRefs: resourceRefs,
       resources: resolvedResources,
       resolvedResources: resolvedResources,
       tools: agent.toolRefs ? agent.toolRefs.slice() : ai.listTools(),

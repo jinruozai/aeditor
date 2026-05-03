@@ -209,6 +209,9 @@
       ids.forEach(function (id) {
         var entity = Object.assign({ id: id }, data[id] || {});
         var card = Card.render(entity, id, pathKey, { width: cardSize });
+        if (GDE.ai && GDE.ai.bindTarget) {
+          GDE.ai.bindTarget(card, function () { return GDE.ai.entityTarget(pathKey, id); }, { draggable: true });
+        }
         if (selectedIds.has(id)) card.classList.add('is-selected');
         grid.appendChild(card);
       });
@@ -268,6 +271,9 @@
         var tr = document.createElement('tr');
         if (selectedIds.has(id)) tr.classList.add('is-selected');
         tr.dataset.id = id;
+        if (GDE.ai && GDE.ai.bindTarget) {
+          GDE.ai.bindTarget(tr, function () { return GDE.ai.entityTarget(pathKey, id); }, { draggable: true });
+        }
         var idCell = document.createElement('td');
         idCell.style.fontFamily = 'ui-monospace,monospace';
         idCell.textContent = id;
@@ -370,10 +376,24 @@
           renderBody();
         }
         var items = card ? [
+          {
+            label: 'Ask AI',
+            icon: 'message-circle',
+            onSelect: function () {
+              GDE.ai.sendTargetsToAI(Array.from(selectedIds).map(function (id) {
+                return GDE.ai.entityTarget(pathKey, id);
+              }), 'Inspect these table card(s).');
+            },
+          },
           { label: t('tablemap.ctx.copy_card'), icon: 'copy', onSelect: copyCards },
           { label: t('table.ctx.duplicate'), icon: 'copy', onSelect: duplicateCards },
           { label: t('common.delete'), icon: 'trash', danger: true, onSelect: handleDelete },
         ] : [
+          {
+            label: 'Ask AI about Table',
+            icon: 'message-circle',
+            onSelect: function () { GDE.ai.sendTargetsToAI([GDE.ai.tableTarget(pathKey)], 'Inspect this table.'); },
+          },
           { label: t('table.ctx.new_card'), icon: 'plus', onSelect: handleAdd },
         ];
         if (!card && GDE.clipboard.has('entities')) {

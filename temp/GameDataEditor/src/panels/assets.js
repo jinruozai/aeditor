@@ -103,6 +103,15 @@
   function assetActions(rows) {
     if (!urlsForEntries(rows).length) return [];
     return [{
+      label: 'Ask AI',
+      icon: 'message-circle',
+      onSelect: function () {
+        if (!GDE.ai || !GDE.ai.sendTargetsToAI) return;
+        GDE.ai.sendTargetsToAI(urlsForEntries(rows).map(function (url) {
+          return GDE.ai.assetTarget(url);
+        }), 'Inspect these asset(s).');
+      },
+    }, {
       label: t('assets.view_refs'),
       icon: 'search',
       onSelect: function () {
