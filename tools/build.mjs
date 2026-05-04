@@ -42,6 +42,7 @@ const JS_ORDER = [
 
   // Layer 2.5 - AI session/agent runtime (no UI dependency)
   'ai/store.js',
+  'ai/connection.js',
   'ai/provider.js',
   'ai/context.js',
   'ai/target.js',

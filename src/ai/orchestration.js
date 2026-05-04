@@ -54,7 +54,7 @@
       path: agent.path,
       groupId: agent.groupId || null,
       order: agent.order,
-      provider: agent.provider,
+      connection: agent.connection,
       model: agent.model,
       mode: agent.mode,
       permissionMode: agent.permissionMode,
@@ -168,7 +168,7 @@
         path: args.path || args.name || 'Agent',
         groupId: args.groupId || null,
         parentAgentId: args.parentAgentId || null,
-        provider: args.provider || ai.defaultProvider || 'mock',
+        connection: args.connection || ai.defaultConnection || 'mock',
         model: args.model || '',
         mode: args.mode || 'chat',
         systemPrompt: args.systemPrompt || '',
@@ -244,7 +244,7 @@
     return {
       message: sent && sent.message,
       runId: sent && sent.request && sent.request.runId,
-      provider: sent && sent.request && sent.request.provider,
+      connection: sent && sent.request && sent.request.connection,
       model: sent && sent.request && sent.request.model,
     }
   }

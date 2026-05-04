@@ -63,6 +63,7 @@
           themeItem('dracula', 'Dracula'),
           themeItem('light',   'Light'),
         ]},
+        { label: t('toolbar.settings'), onClick: function () { State.openSettings(); } },
       ]);
     }
 

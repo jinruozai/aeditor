@@ -96,7 +96,7 @@
 
   var centerDock = EF.dock({
     name:   'center',
-    accept: ['gde-table-data', 'gde-cardstyle-editor'],
+    accept: ['gde-table-data', 'gde-cardstyle-editor', 'settings'],
     toolbar: {
       direction: 'top',
       items: [{ component: 'tab-standard', props: { addable: false } }],
@@ -168,6 +168,7 @@
       'ai-agents-list': 'panel.ai_agents',
       'ai-chatinput': 'panel.ai_send',
       'ai-messages': 'panel.ai_messages',
+      'settings': 'panel.settings',
       'gde-cardstyle-tree': 'panel.object_tree',
       'gde-search': 'panel.search',
       'gde-assets': 'panel.assets',

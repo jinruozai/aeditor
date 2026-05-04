@@ -10,6 +10,7 @@ for (const file of [
   'src/core/signal.js',
   'src/core/log.js',
   'src/ai/store.js',
+  'src/ai/connection.js',
   'src/ai/provider.js',
   'src/ai/context.js',
   'src/ai/runtime.js',
@@ -28,7 +29,7 @@ function latestCall(agentId) {
 const agent = ai.createAgent({
   name: 'Tool Runner',
   path: 'tools/root',
-  provider: 'mock',
+  connection: 'mock',
   toolRefs: ['edit-record'],
 })
 
@@ -126,8 +127,8 @@ ai.registerTool('read-number', {
     return { id: args.id, value: 42 }
   },
 })
-ai.registerProvider('tool-loop', {
-  send: function (request) {
+ai.registerTransport('tool-loop', {
+  send: function (connection, request) {
     loopRequests.push(request)
     if (loopRequests.length === 1) {
       return {
@@ -142,9 +143,10 @@ ai.registerProvider('tool-loop', {
     return { role: 'assistant', content: 'Tool says ' + JSON.parse(last.content).value }
   },
 })
+ai.registerConnection('tool-loop', { auth: { type: 'none' }, transport: { type: 'tool-loop' }, configDefaults: {} })
 const loopAgent = ai.createAgent({
   name: 'Loop Agent',
-  provider: 'tool-loop',
+  connection: 'tool-loop',
   toolRefs: ['read-number'],
 })
 const loopRun = ai.sendMessage(loopAgent.id, 'start', 'user')

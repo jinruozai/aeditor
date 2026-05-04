@@ -6,6 +6,7 @@ global.window = { EF: {} }
 vm.runInThisContext(readFileSync('src/core/signal.js', 'utf8'), { filename: 'signal.js' })
 vm.runInThisContext(readFileSync('src/core/log.js', 'utf8'), { filename: 'log.js' })
 vm.runInThisContext(readFileSync('src/ai/store.js', 'utf8'), { filename: 'ai/store.js' })
+vm.runInThisContext(readFileSync('src/ai/connection.js', 'utf8'), { filename: 'ai/connection.js' })
 vm.runInThisContext(readFileSync('src/ai/provider.js', 'utf8'), { filename: 'ai/provider.js' })
 vm.runInThisContext(readFileSync('src/ai/context.js', 'utf8'), { filename: 'ai/context.js' })
 vm.runInThisContext(readFileSync('src/ai/runtime.js', 'utf8'), { filename: 'ai/runtime.js' })
@@ -13,12 +14,13 @@ vm.runInThisContext(readFileSync('src/ai/runtime.js', 'utf8'), { filename: 'ai/r
 const ai = window.EF.ai
 let requestSeen = null
 
-ai.registerProvider('capture', {
-  send: function (request) {
+ai.registerTransport('capture', {
+  send: function (connection, request) {
     requestSeen = request
     return { role: 'assistant', content: 'ok' }
   },
 })
+ai.registerConnection('capture', { auth: { type: 'none' }, transport: { type: 'capture' }, configDefaults: {} })
 
 ai.registerResourceResolver('secret', {
   resolve: function () { return { hidden: true } },
@@ -27,7 +29,7 @@ ai.registerResourceResolver('secret', {
 const target = ai.createAgent({
   name: 'Target',
   path: 'target',
-  provider: 'capture',
+  connection: 'capture',
   messages: [{ role: 'user', content: 'read context' }],
 })
 const actor = ai.createAgent({ name: 'Actor', path: 'actor' })
@@ -57,7 +59,7 @@ ai.setPermissionResolver(null)
 const imageAgent = ai.createAgent({
   name: 'Image Target',
   path: 'image-target',
-  provider: 'capture',
+  connection: 'capture',
   messages: [{ role: 'user', content: 'read image' }],
 })
 const image = ai.addResource({

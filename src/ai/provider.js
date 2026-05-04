@@ -1,77 +1,8 @@
-// EF.ai provider registry and built-in provider adapters.
+// EF.ai built-in auth drivers, transports, and connections.
 ;(function (EF) {
   'use strict'
 
   const ai = EF.ai = EF.ai || {}
-  const providers = {}
-  const providerMeta = {}
-  const providersSig = EF.signal([])
-  const modelsSig = EF.signal({})
-
-  function registerProvider(name, provider) {
-    providers[name] = provider
-    providerMeta[name] = {
-      id: name,
-      label: provider.label || provider.name || name,
-      kind: provider.kind || name,
-      modelHints: provider.modelHints || [],
-    }
-    providersSig.set(providerOptions())
-    if (!ai.defaultProvider) ai.defaultProvider = name
-    if (EF.settings && provider && provider.settings) {
-      EF.settings.registerSchema('ai', provider.settings)
-    }
-    return provider
-  }
-
-  function getProvider(name) {
-    return providers[name || ai.defaultProvider]
-  }
-
-  function listProviders() {
-    return Object.keys(providers)
-  }
-
-  function providerOptions() {
-    return Object.keys(providers).map(function (id) {
-      return Object.assign({}, providerMeta[id])
-    })
-  }
-
-  function modelHints(name) {
-    const meta = providerMeta[name || ai.defaultProvider]
-    return meta ? (meta.modelHints || []) : []
-  }
-
-  function setDefaultProvider(name) {
-    ai.defaultProvider = name
-    return getProvider(name)
-  }
-
-  function refreshModels(name, config) {
-    const providerName = name || ai.defaultProvider
-    const provider = getProvider(providerName)
-    if (!provider || !provider.models) return null
-    return Promise.resolve(provider.models(readProviderConfig(providerName, config || {}))).then(function (models) {
-      const next = Object.assign({}, modelsSig.peek())
-      next[providerName] = normalizeModels(models || [])
-      modelsSig.set(next)
-      return next[providerName]
-    })
-  }
-
-  function readProviderConfig(name, overrides) {
-    const provider = getProvider(name)
-    const defaults = (provider && provider.configDefaults) || {}
-    const out = Object.assign({}, defaults)
-    if (EF.settings) {
-      Object.keys(defaults).forEach(function (key) {
-        const value = EF.settings.get('ai.' + name + '.' + key)
-        if (value !== undefined) out[key] = value
-      })
-    }
-    return Object.assign(out, overrides || {})
-  }
 
   function normalizeModels(models) {
     const list = Array.isArray(models) ? models : []
@@ -80,44 +11,6 @@
       const id = item.id || item.value || item.name || item.model
       return Object.assign({}, item, { id: id, value: id, label: item.label || item.name || id })
     })
-  }
-
-  function providerSettings(name, label, defaults, order) {
-    return [
-      {
-        key: 'ai.' + name + '.baseUrl',
-        label: label + ' Base URL',
-        type: 'string',
-        default: defaults.baseUrl,
-        description: 'HTTP base URL for the ' + label + ' adapter.',
-        order: order,
-      },
-      {
-        key: 'ai.' + name + '.apiKey',
-        label: label + ' API Key',
-        type: 'password',
-        default: '',
-        sensitive: true,
-        description: 'API key used by the browser adapter. Prefer Local Bridge for shared deployments.',
-        order: order + 1,
-      },
-      {
-        key: 'ai.' + name + '.defaultModel',
-        label: label + ' Default Model',
-        type: 'string',
-        default: defaults.defaultModel,
-        description: 'Fallback model when the provider model list has not been loaded.',
-        order: order + 2,
-      },
-      {
-        key: 'ai.' + name + '.stream',
-        label: label + ' Stream',
-        type: 'bool',
-        default: !!defaults.stream,
-        description: 'Request streaming responses when the provider and runtime path support them.',
-        order: order + 3,
-      },
-    ]
   }
 
   function trimSlash(s) {
@@ -433,101 +326,104 @@
     stream: true,
   }
 
-  function openAiCompatibleProvider(id, label, defaults, order) {
-    return {
-      label: label,
-      kind: 'openai',
-      configDefaults: defaults,
-      modelHints: defaults.modelHints || [],
-      settings: providerSettings(id, label, defaults, order),
-      models: function (config) {
-        return requestJson(joinUrl(config.baseUrl, '/models'), {
-          method: 'GET',
-          headers: authHeaders(config, 'openai'),
-        }).then(function (data) {
-          return normalizeModels((data.data || data.models || []).map(function (item) { return item.id || item.name || item.model || item }))
-        })
-      },
-      send: function (request, ctx) {
-        const config = readProviderConfig(id)
-        const model = request.model || config.defaultModel
-        const tools = openAiTools(request)
-        const stream = !!(request.stream && config.stream && !tools.length)
-        const body = {
-          model: model,
-          messages: openAiMessages(request.messages, request),
-          stream: stream,
-          stream_options: stream ? { include_usage: true } : undefined,
-        }
-        if (tools.length) {
-          body.tools = tools
-          body.tool_choice = 'auto'
-        }
-        return requestMaybeStream(joinUrl(config.baseUrl, '/chat/completions'), {
-          method: 'POST',
-          headers: authHeaders(config, 'openai'),
-          signal: ctx.signal,
-          body: JSON.stringify(body),
-        }, function (data) {
-          const choice = data.choices && data.choices[0]
-          const delta = choice && (choice.delta || choice.message)
-          return delta ? messageText(delta.content) : ''
-        }).then(function (data) {
-          if (data.streamed && data.deltas) return { deltas: data.deltas }
-          if (data.streamed) return { role: 'assistant', content: data.content, usage: data.usage || null }
-          data = data.data
-          const choice = data.choices && data.choices[0]
-          const message = (choice && choice.message) || {}
-          return {
-            role: message.role || 'assistant',
-            content: messageText(message.content),
-            toolCalls: normalizeOpenAiToolCalls(message.tool_calls || message.toolCalls || [], request),
-            usage: data.usage || null,
-    }
+  ai.registerAuthDriver('none', {
+    status: function () { return { state: 'signed_in' } },
   })
-      },
-    }
-  }
 
-  registerProvider('mock', {
-    label: 'Mock',
-    settings: [
-      {
-        key: 'ai.mock.responsePrefix',
-        label: 'Response Prefix',
-        type: 'string',
-        default: 'Echo:',
-        description: 'Prefix used by the mock provider.',
-        order: 100,
-      },
-    ],
-      send: function (request, ctx) {
-        if (ctx.signal && ctx.signal.aborted) throw new Error('aborted')
-        const last = request.messages[request.messages.length - 1]
-        const text = last && last.content ? messageText(last.content) : ''
-        const prefix = EF.settings ? EF.settings.get('ai.mock.responsePrefix') : 'Echo:'
-        return {
+  ai.registerAuthDriver('apiKey', {
+    status: function (connection, config) {
+      return config.apiKey ? { state: 'signed_in', method: 'apiKey' } : { state: 'signed_out', method: 'apiKey' }
+    },
+  })
+
+  ai.registerAuthDriver('localBridge', {
+    status: function (connection, config) {
+      return { state: 'unknown', method: 'localBridge', baseUrl: config.baseUrl || '' }
+    },
+    login: function (connection, config) {
+      return requestJson(joinUrl(config.baseUrl, '/connections/' + connection.id + '/login'), { method: 'POST' })
+    },
+    logout: function (connection, config) {
+      return requestJson(joinUrl(config.baseUrl, '/connections/' + connection.id + '/logout'), { method: 'POST' })
+    },
+  })
+
+  ai.registerAuthDriver('subscriptionBridge', {
+    status: function (connection, config) {
+      return requestJson(joinUrl(config.baseUrl, '/connections/' + connection.id + '/status'), { method: 'GET' })
+    },
+    login: function (connection, config) {
+      return requestJson(joinUrl(config.baseUrl, '/connections/' + connection.id + '/login'), { method: 'POST' })
+    },
+    logout: function (connection, config) {
+      return requestJson(joinUrl(config.baseUrl, '/connections/' + connection.id + '/logout'), { method: 'POST' })
+    },
+  })
+
+  ai.registerTransport('mock', {
+    send: function (connection, request, ctx) {
+      const config = ai.getConnectionConfig(connection.id)
+      if (ctx.signal && ctx.signal.aborted) throw new Error('aborted')
+      const last = request.messages[request.messages.length - 1]
+      const text = last && last.content ? messageText(last.content) : ''
+      return {
         role: 'assistant',
-        content: text ? prefix + ' ' + text : 'Mock assistant response.',
+        content: text ? (config.responsePrefix || 'Echo:') + ' ' + text : 'Mock assistant response.',
       }
     },
   })
 
-  registerProvider('openai-compatible', openAiCompatibleProvider('openai-compatible', 'OpenAI Compatible', openAiDefaults, 120))
-  registerProvider('openrouter', openAiCompatibleProvider('openrouter', 'OpenRouter', { baseUrl: 'https://openrouter.ai/api/v1', apiKey: '', defaultModel: '', stream: true, modelHints: ['anthropic/claude-sonnet-4.5', 'openai/gpt-5', 'google/gemini-2.5-pro'] }, 130))
-  registerProvider('groq', openAiCompatibleProvider('groq', 'Groq', { baseUrl: 'https://api.groq.com/openai/v1', apiKey: '', defaultModel: '', stream: true, modelHints: ['openai/gpt-oss-120b', 'openai/gpt-oss-20b', 'llama-3.3-70b-versatile'] }, 140))
-  registerProvider('mistral', openAiCompatibleProvider('mistral', 'Mistral', { baseUrl: 'https://api.mistral.ai/v1', apiKey: '', defaultModel: '', stream: true, modelHints: ['mistral-large-latest', 'mistral-medium-latest', 'codestral-latest'] }, 150))
-  registerProvider('xai', openAiCompatibleProvider('xai', 'xAI', { baseUrl: 'https://api.x.ai/v1', apiKey: '', defaultModel: '', stream: true, modelHints: ['grok-4', 'grok-code-fast-1'] }, 160))
-  registerProvider('deepseek', openAiCompatibleProvider('deepseek', 'DeepSeek', { baseUrl: 'https://api.deepseek.com/v1', apiKey: '', defaultModel: '', stream: true, modelHints: ['deepseek-v4-flash', 'deepseek-v4-pro'] }, 170))
-  registerProvider('ollama', openAiCompatibleProvider('ollama', 'Ollama', { baseUrl: 'http://127.0.0.1:11434/v1', apiKey: '', defaultModel: '', stream: true, modelHints: ['llama3.2', 'qwen2.5-coder', 'deepseek-r1'] }, 180))
-  registerProvider('custom-openai', openAiCompatibleProvider('custom-openai', 'Custom OpenAI Compatible', { baseUrl: '', apiKey: '', defaultModel: '', stream: true }, 190))
+  ai.registerTransport('openai-compatible', {
+    models: function (connection, config) {
+      return requestJson(joinUrl(config.baseUrl, '/models'), {
+        method: 'GET',
+        headers: authHeaders(config, 'openai'),
+      }).then(function (data) {
+        return normalizeModels((data.data || data.models || []).map(function (item) { return item.id || item.name || item.model || item }))
+      })
+    },
+    send: function (connection, request, ctx) {
+      const config = ai.getConnectionConfig(connection.id)
+      const model = request.model || config.defaultModel
+      const tools = openAiTools(request)
+      const stream = !!(request.stream && config.stream && !tools.length)
+      const body = {
+        model: model,
+        messages: openAiMessages(request.messages, request),
+        stream: stream,
+        stream_options: stream ? { include_usage: true } : undefined,
+      }
+      if (tools.length) {
+        body.tools = tools
+        body.tool_choice = 'auto'
+      }
+      return requestMaybeStream(joinUrl(config.baseUrl, '/chat/completions'), {
+        method: 'POST',
+        headers: authHeaders(config, 'openai'),
+        signal: ctx.signal,
+        body: JSON.stringify(body),
+      }, function (data) {
+        const choice = data.choices && data.choices[0]
+        const delta = choice && (choice.delta || choice.message)
+        return delta ? messageText(delta.content) : ''
+      }).then(function (data) {
+        if (data.streamed && data.deltas) return { deltas: data.deltas }
+        if (data.streamed) return { role: 'assistant', content: data.content, usage: data.usage || null }
+        data = data.data
+        const choice = data.choices && data.choices[0]
+        const message = (choice && choice.message) || {}
+        return {
+          role: message.role || 'assistant',
+          content: messageText(message.content),
+          toolCalls: normalizeOpenAiToolCalls(message.tool_calls || message.toolCalls || [], request),
+          usage: data.usage || null,
+        }
+      })
+    },
+  })
 
-  registerProvider('anthropic-compatible', {
-    label: 'Anthropic Compatible',
-    kind: 'http',
-    configDefaults: anthropicDefaults,
-    settings: providerSettings('anthropic-compatible', 'Anthropic Compatible', anthropicDefaults, 140),
-    models: function (config) {
+  ai.registerTransport('anthropic', {
+    models: function (connection, config) {
       const headers = authHeaders(config, 'anthropic')
       headers['anthropic-version'] = '2023-06-01'
       return requestJson(joinUrl(config.baseUrl, '/v1/models'), {
@@ -537,8 +433,8 @@
         return normalizeModels((data.data || data.models || []).map(function (item) { return item.id || item.name }))
       })
     },
-    send: function (request, ctx) {
-      const config = readProviderConfig('anthropic-compatible')
+    send: function (connection, request, ctx) {
+      const config = ai.getConnectionConfig(connection.id)
       const headers = authHeaders(config, 'anthropic')
       const system = anthropicSystem(request.messages)
       const body = {
@@ -573,12 +469,8 @@
     },
   })
 
-  registerProvider('local-bridge', {
-    label: 'Local Bridge',
-    kind: 'bridge',
-    configDefaults: localBridgeDefaults,
-    settings: providerSettings('local-bridge', 'Local Bridge', localBridgeDefaults, 160),
-    models: function (config) {
+  ai.registerTransport('local-bridge', {
+    models: function (connection, config) {
       return requestJson(joinUrl(config.baseUrl, '/models'), {
         method: 'GET',
         headers: authHeaders(config, 'openai'),
@@ -586,8 +478,8 @@
         return normalizeModels(data.models || data.data || [])
       })
     },
-    send: function (request, ctx) {
-      const config = readProviderConfig('local-bridge')
+    send: function (connection, request, ctx) {
+      const config = ai.getConnectionConfig(connection.id)
       return requestMaybeStream(joinUrl(config.baseUrl, '/chat'), {
         method: 'POST',
         headers: authHeaders(config, 'openai'),
@@ -610,17 +502,60 @@
     },
   })
 
-  ai.defaultProvider = 'mock'
+  ai.registerTransport('codex-bridge', {
+    models: function (connection, config) {
+      return requestJson(joinUrl(config.baseUrl, '/connections/' + connection.id + '/models'), { method: 'GET' })
+        .then(function (data) { return normalizeModels(data.models || data.data || []) })
+    },
+    send: function (connection, request, ctx) {
+      const config = ai.getConnectionConfig(connection.id)
+      return requestMaybeStream(joinUrl(config.baseUrl, '/connections/' + connection.id + '/chat'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        signal: ctx.signal,
+        body: JSON.stringify(Object.assign({}, request, {
+          model: request.model || config.defaultModel,
+          stream: !!(request.stream && config.stream),
+        })),
+      }, function (data) {
+        if (data.delta) return messageText(data.delta)
+        if (data.content) return messageText(data.content)
+        return ''
+      }).then(function (data) {
+        if (data.streamed && data.deltas) return { deltas: data.deltas }
+        if (data.streamed) return { role: 'assistant', content: data.content, usage: data.usage || null }
+        data = data.data
+        return data.message || data.result || data
+      })
+    },
+  })
 
-  ai.providers = providersSig
-  ai.models = modelsSig
-  ai.registerProvider = registerProvider
-  ai.getProvider = getProvider
-  ai.listProviders = listProviders
-  ai.providerOptions = providerOptions
-  ai.modelHints = modelHints
-  ai.setDefaultProvider = setDefaultProvider
-  ai.refreshModels = refreshModels
-  ai.getProviderConfig = readProviderConfig
+  function connection(id, label, provider, authType, transportType, defaults, hints, order) {
+    ai.registerConnection(id, {
+      label: label,
+      provider: provider,
+      auth: { type: authType },
+      transport: { type: transportType },
+      configDefaults: defaults,
+      modelHints: hints || defaults.modelHints || [],
+      order: order,
+    })
+  }
+
+  connection('mock', 'Mock', 'mock', 'none', 'mock', { responsePrefix: 'Echo:', defaultModel: '', stream: false }, [], 10)
+  connection('openai-api', 'OpenAI API', 'openai', 'apiKey', 'openai-compatible', openAiDefaults, ['gpt-5.1', 'gpt-4.1'], 110)
+  connection('openai-codex', 'OpenAI Codex', 'openai', 'subscriptionBridge', 'codex-bridge', { baseUrl: 'http://127.0.0.1:8787', defaultModel: '', stream: true }, ['gpt-5.3-codex', 'gpt-5.3-codex-spark'], 115)
+  connection('openrouter', 'OpenRouter', 'openrouter', 'apiKey', 'openai-compatible', { baseUrl: 'https://openrouter.ai/api/v1', apiKey: '', defaultModel: '', stream: true }, ['anthropic/claude-sonnet-4.5', 'openai/gpt-5', 'google/gemini-2.5-pro'], 130)
+  connection('groq', 'Groq', 'groq', 'apiKey', 'openai-compatible', { baseUrl: 'https://api.groq.com/openai/v1', apiKey: '', defaultModel: '', stream: true }, ['openai/gpt-oss-120b', 'openai/gpt-oss-20b', 'llama-3.3-70b-versatile'], 140)
+  connection('mistral', 'Mistral', 'mistral', 'apiKey', 'openai-compatible', { baseUrl: 'https://api.mistral.ai/v1', apiKey: '', defaultModel: '', stream: true }, ['mistral-large-latest', 'mistral-medium-latest', 'codestral-latest'], 150)
+  connection('xai', 'xAI', 'xai', 'apiKey', 'openai-compatible', { baseUrl: 'https://api.x.ai/v1', apiKey: '', defaultModel: '', stream: true }, ['grok-4', 'grok-code-fast-1'], 160)
+  connection('deepseek', 'DeepSeek', 'deepseek', 'apiKey', 'openai-compatible', { baseUrl: 'https://api.deepseek.com/v1', apiKey: '', defaultModel: '', stream: true }, ['deepseek-v4-flash', 'deepseek-v4-pro'], 170)
+  connection('ollama', 'Ollama', 'ollama', 'none', 'openai-compatible', { baseUrl: 'http://127.0.0.1:11434/v1', apiKey: '', defaultModel: '', stream: true }, ['llama3.2', 'qwen2.5-coder', 'deepseek-r1'], 180)
+  connection('custom-openai', 'Custom OpenAI Compatible', 'custom', 'apiKey', 'openai-compatible', { baseUrl: '', apiKey: '', defaultModel: '', stream: true }, [], 190)
+  connection('anthropic-api', 'Anthropic API', 'anthropic', 'apiKey', 'anthropic', anthropicDefaults, ['claude-sonnet-4-5', 'claude-opus-4-1'], 210)
+  connection('claude-code', 'Claude Code', 'anthropic', 'subscriptionBridge', 'local-bridge', { baseUrl: 'http://127.0.0.1:8787', apiKey: '', defaultModel: '', stream: true }, ['claude-sonnet-4-5', 'claude-opus-4-1'], 220)
+  connection('local-bridge', 'Local Bridge', 'bridge', 'localBridge', 'local-bridge', localBridgeDefaults, [], 300)
+
+  ai.setActiveConnection('mock')
   ai.estimateUsageCost = estimateUsageCost
 })(window.EF = window.EF || {})

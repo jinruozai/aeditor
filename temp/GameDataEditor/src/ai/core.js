@@ -288,7 +288,7 @@
       name: 'main',
       path: 'main',
       mode: 'chat',
-      provider: ai.defaultProvider || 'mock',
+      connection: ai.defaultConnection || 'mock',
       permissionMode: 'full',
       skillRefs: ['gde.game-data-designer'],
       contextRefs: [

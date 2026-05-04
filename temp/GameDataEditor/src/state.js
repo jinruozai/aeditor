@@ -727,6 +727,37 @@
     }, { transient: transient });
     _handle.activatePanel(ret.panelId);
   }
+  function openSettings() {
+    if (!_handle) return;
+    var dockId = _centerDockId();
+    if (!dockId) return;
+    var tree = _handle.tree();
+    var found = null;
+    (function walk(n) {
+      if (!n || found) return;
+      if (n.type === 'dock' && n.name === _centerDockName) {
+        for (var i = 0; i < n.panels.length; i++) {
+          if (n.panels[i].component === 'settings') {
+            found = n.panels[i];
+            return;
+          }
+        }
+      } else if (n.type === 'split') {
+        n.children.forEach(walk);
+      }
+    })(tree);
+    if (found) {
+      _handle.activatePanel(found.id);
+      return;
+    }
+    var ret = _handle.addPanel(dockId, {
+      component: 'settings',
+      title: t('panel.settings') || 'Settings',
+      icon: 'settings',
+      props: {},
+    }, { transient: false });
+    _handle.activatePanel(ret.panelId);
+  }
   function closeTab(pathKey) {
     var hit = _findTablePanel(pathKey);
     if (hit) _handle.removePanel(hit.panel.id);
@@ -1114,6 +1145,7 @@
     setActiveTable: setActiveTable,
     openTable: openTable,
     openCardStyle: openCardStyle,
+    openSettings: openSettings,
     closeTab: closeTab,
     pinTab: pinTab,
     closeAllTabs: closeAllTabs,

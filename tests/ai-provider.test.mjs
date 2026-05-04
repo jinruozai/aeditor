@@ -5,6 +5,7 @@ import vm from 'node:vm'
 global.window = { EF: {} }
 vm.runInThisContext(readFileSync('src/core/signal.js', 'utf8'), { filename: 'signal.js' })
 vm.runInThisContext(readFileSync('src/core/settings.js', 'utf8'), { filename: 'settings.js' })
+vm.runInThisContext(readFileSync('src/ai/connection.js', 'utf8'), { filename: 'ai/connection.js' })
 vm.runInThisContext(readFileSync('src/ai/provider.js', 'utf8'), { filename: 'ai/provider.js' })
 
 const EF = window.EF
@@ -75,9 +76,10 @@ function streamResponse(chunks) {
   }
 }
 
-assert.deepEqual(ai.listProviders(), [
+assert.deepEqual(ai.listConnections(), [
   'mock',
-  'openai-compatible',
+  'openai-api',
+  'openai-codex',
   'openrouter',
   'groq',
   'mistral',
@@ -85,22 +87,23 @@ assert.deepEqual(ai.listProviders(), [
   'deepseek',
   'ollama',
   'custom-openai',
-  'anthropic-compatible',
+  'anthropic-api',
+  'claude-code',
   'local-bridge',
 ])
-assert.equal(ai.providerOptions()[1].label, 'OpenAI Compatible')
+assert.equal(ai.connectionOptions()[1].label, 'OpenAI API')
 
-EF.settings.set('ai.openai-compatible.baseUrl', 'https://openai.test/v1/')
-EF.settings.set('ai.openai-compatible.apiKey', 'openai-key')
-EF.settings.set('ai.openai-compatible.defaultModel', 'model-a')
-EF.settings.set('ai.openai-compatible.stream', true)
+EF.settings.set(ai.connectionConfigKey('openai-api', 'baseUrl'), 'https://openai.test/v1/')
+EF.settings.set(ai.connectionConfigKey('openai-api', 'apiKey'), 'openai-key')
+EF.settings.set(ai.connectionConfigKey('openai-api', 'defaultModel'), 'model-a')
+EF.settings.set(ai.connectionConfigKey('openai-api', 'stream'), true)
 
-const openAiModels = await ai.refreshModels('openai-compatible')
+const openAiModels = await ai.refreshModels('openai-api')
 assert.deepEqual(openAiModels.map(function (m) { return m.id }), ['model-a', 'model-b'])
 assert.equal(calls.at(-1).url, 'https://openai.test/v1/models')
 assert.equal(calls.at(-1).opts.headers.Authorization, 'Bearer openai-key')
 
-const openAiReply = await ai.getProvider('openai-compatible').send({
+const openAiReply = await ai.sendViaConnection('openai-api', {
   model: '',
   stream: true,
   messages: [{ role: 'user', content: 'hello' }],
@@ -113,7 +116,7 @@ assert.equal(openAiBody.stream, true)
 assert.deepEqual(openAiBody.messages, [{ role: 'user', content: 'hello' }])
 
 const imageDataUrl = 'data:image/png;base64,aGVsbG8='
-await ai.getProvider('openai-compatible').send({
+await ai.sendViaConnection('openai-api', {
   model: '',
   stream: false,
   messages: [{ role: 'user', content: 'see image' }],
@@ -127,7 +130,7 @@ assert.deepEqual(openAiImageBody.messages[0].content, [
   { type: 'image_url', image_url: { url: imageDataUrl } },
 ])
 
-const openAiToolReply = await ai.getProvider('openai-compatible').send({
+const openAiToolReply = await ai.sendViaConnection('openai-api', {
   model: '',
   stream: true,
   messages: [{ role: 'user', content: 'use tool' }],
@@ -139,10 +142,10 @@ assert.equal(openAiToolBody.tools[0].function.name, 'gde__queryRows')
 assert.deepEqual(openAiToolBody.tools[0].function.parameters.properties.table, { type: 'string' })
 assert.deepEqual(openAiToolReply.toolCalls, [])
 
-EF.settings.set('ai.deepseek.baseUrl', 'https://stream.test/v1')
-EF.settings.set('ai.deepseek.defaultModel', 'deepseek-v4-flash')
-EF.settings.set('ai.deepseek.stream', true)
-const streamedReply = await ai.getProvider('deepseek').send({
+EF.settings.set(ai.connectionConfigKey('deepseek', 'baseUrl'), 'https://stream.test/v1')
+EF.settings.set(ai.connectionConfigKey('deepseek', 'defaultModel'), 'deepseek-v4-flash')
+EF.settings.set(ai.connectionConfigKey('deepseek', 'stream'), true)
+const streamedReply = await ai.sendViaConnection('deepseek', {
   model: '',
   stream: true,
   messages: [{ role: 'user', content: 'stream' }],
@@ -157,11 +160,11 @@ for await (const delta of streamedReply.deltas) {
 assert.equal(streamParts.join(''), 'hello')
 assert.deepEqual(streamUsage, { prompt_tokens: 2, completion_tokens: 3, total_tokens: 5 })
 
-EF.settings.set('ai.anthropic-compatible.baseUrl', 'https://anthropic.test')
-EF.settings.set('ai.anthropic-compatible.apiKey', 'anthropic-key')
-EF.settings.set('ai.anthropic-compatible.defaultModel', 'claude-test')
+EF.settings.set(ai.connectionConfigKey('anthropic-api', 'baseUrl'), 'https://anthropic.test')
+EF.settings.set(ai.connectionConfigKey('anthropic-api', 'apiKey'), 'anthropic-key')
+EF.settings.set(ai.connectionConfigKey('anthropic-api', 'defaultModel'), 'claude-test')
 
-const anthropicReply = await ai.getProvider('anthropic-compatible').send({
+const anthropicReply = await ai.sendViaConnection('anthropic-api', {
   model: '',
   stream: false,
   messages: [
@@ -178,7 +181,7 @@ assert.equal(anthropicBody.model, 'claude-test')
 assert.equal(anthropicBody.system, 'be brief')
 assert.deepEqual(anthropicBody.messages, [{ role: 'user', content: 'hello' }])
 
-await ai.getProvider('anthropic-compatible').send({
+await ai.sendViaConnection('anthropic-api', {
   model: '',
   stream: false,
   messages: [{ role: 'user', content: 'see image' }],
@@ -191,9 +194,9 @@ assert.deepEqual(anthropicImageBody.messages[0].content, [
   { type: 'image', source: { type: 'base64', media_type: 'image/png', data: 'aGVsbG8=' } },
 ])
 
-EF.settings.set('ai.local-bridge.baseUrl', 'http://bridge.test/')
-EF.settings.set('ai.local-bridge.defaultModel', 'local-test')
-const bridgeReply = await ai.getProvider('local-bridge').send({
+EF.settings.set(ai.connectionConfigKey('local-bridge', 'baseUrl'), 'http://bridge.test/')
+EF.settings.set(ai.connectionConfigKey('local-bridge', 'defaultModel'), 'local-test')
+const bridgeReply = await ai.sendViaConnection('local-bridge', {
   model: '',
   stream: false,
   messages: [{ role: 'user', content: 'hello' }],

@@ -8,6 +8,7 @@ for (const file of [
   'src/core/signal.js',
   'src/core/log.js',
   'src/ai/store.js',
+  'src/ai/connection.js',
   'src/ai/provider.js',
   'src/ai/context.js',
   'src/ai/runtime.js',
@@ -23,8 +24,8 @@ function byId(items, id) {
 
 let streamRequest = null
 let streamCtx = null
-ai.registerProvider('stream-capture', {
-  send: async function (request, ctx) {
+ai.registerTransport('stream-capture', {
+  send: async function (connection, request, ctx) {
     streamRequest = request
     streamCtx = ctx
     assert.equal(ctx.signal.aborted, false)
@@ -35,10 +36,11 @@ ai.registerProvider('stream-capture', {
     }
   },
 })
+ai.registerConnection('stream-capture', { auth: { type: 'none' }, transport: { type: 'stream-capture' }, configDefaults: {} })
 
 const streamed = ai.createAgent({
   name: 'Streamer',
-  provider: 'stream-capture',
+  connection: 'stream-capture',
   model: 'stream-model',
 })
 ai.updateAgent(streamed.id, { stream: true })
@@ -47,7 +49,7 @@ assert.equal(sent.request.stream, true)
 assert.equal(byId(ai.agents(), streamed.id).status, 'running')
 const streamedReply = await sent.promise
 assert.equal(streamRequest.stream, true)
-assert.equal(streamRequest.provider, 'stream-capture')
+assert.equal(streamRequest.connection, 'stream-capture')
 assert.equal(streamRequest.model, 'stream-model')
 assert.equal(streamRequest.messages.at(-1).content, 'stream this')
 assert.equal(streamCtx.runId, streamRequest.runId)
@@ -58,18 +60,19 @@ assert.equal(byId(ai.agents(), streamed.id).status, 'idle')
 let release
 const held = new Promise(function (resolve) { release = resolve })
 let abortCtx = null
-ai.registerProvider('stream-hold', {
-  send: function (request, ctx) {
+ai.registerTransport('stream-hold', {
+  send: function (connection, request, ctx) {
     abortCtx = ctx
     return held.then(function () {
       return { role: 'assistant', content: ctx.signal.aborted ? 'aborted' : 'late' }
     })
   },
 })
+ai.registerConnection('stream-hold', { auth: { type: 'none' }, transport: { type: 'stream-hold' }, configDefaults: {} })
 
 const aborting = ai.createAgent({
   name: 'Abort Stream',
-  provider: 'stream-hold',
+  connection: 'stream-hold',
 })
 ai.updateAgent(aborting.id, { stream: true })
 const run = ai.runAgent(aborting.id)

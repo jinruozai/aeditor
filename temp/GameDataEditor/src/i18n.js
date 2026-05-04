@@ -20,6 +20,7 @@
     'toolbar.import_zip': 'Import...',
     'toolbar.export_zip': 'Export Zip...',
     'toolbar.theme': 'Theme',
+    'toolbar.settings': 'Settings',
     'toolbar.lang.en': 'English',
     'toolbar.lang.zh': '中文',
     'toolbar.status.tables': 'Tables',
@@ -46,6 +47,7 @@
     'panel.ai_agents': 'AgentList',
     'panel.ai_messages': 'Message',
     'panel.ai_send': 'Chat',
+    'panel.settings': 'Settings',
 
     'tablemap.search_placeholder': 'Filter tables...',
     'tablemap.add_tooltip': 'Add new table',
@@ -248,6 +250,7 @@
     'toolbar.import_zip': '导入...',
     'toolbar.export_zip': '导出 Zip...',
     'toolbar.theme': '主题',
+    'toolbar.settings': '设置',
     'toolbar.lang.en': 'English',
     'toolbar.lang.zh': '中文',
     'toolbar.status.tables': '表',
@@ -274,6 +277,7 @@
     'panel.ai_agents': 'AgentList',
     'panel.ai_messages': 'Message',
     'panel.ai_send': 'Chat',
+    'panel.settings': '设置',
 
     'tablemap.search_placeholder': '筛选表...',
     'tablemap.add_tooltip': '新建表',

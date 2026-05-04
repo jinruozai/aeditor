@@ -135,7 +135,7 @@
         path: normalizedPath(agent.path || agent.name || agent.id),
         parentAgentPath: parentAgentPath(agent.path || agent.name || agent.id),
         parentAgentId: null,
-        provider: agent.provider || '',
+        connection: agent.connection || '',
         model: agent.model || '',
         mode: agent.mode || 'chat',
         status: statusOf(agent),

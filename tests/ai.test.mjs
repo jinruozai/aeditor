@@ -6,6 +6,7 @@ global.window = { EF: {} }
 vm.runInThisContext(readFileSync('src/core/signal.js', 'utf8'), { filename: 'signal.js' })
 vm.runInThisContext(readFileSync('src/core/log.js', 'utf8'), { filename: 'log.js' })
 vm.runInThisContext(readFileSync('src/ai/store.js', 'utf8'), { filename: 'ai/store.js' })
+vm.runInThisContext(readFileSync('src/ai/connection.js', 'utf8'), { filename: 'ai/connection.js' })
 vm.runInThisContext(readFileSync('src/ai/provider.js', 'utf8'), { filename: 'ai/provider.js' })
 vm.runInThisContext(readFileSync('src/ai/context.js', 'utf8'), { filename: 'ai/context.js' })
 vm.runInThisContext(readFileSync('src/ai/runtime.js', 'utf8'), { filename: 'ai/runtime.js' })
@@ -42,7 +43,7 @@ function assertGroupsAreUiFolders() {
   const agent = ai.createAgent({
     name: 'Planner',
     groupId: child.id,
-    provider: 'mock',
+    connection: 'mock',
     model: 'fast',
     mode: 'chat',
     messages: [{ role: 'system', from: 'system', content: 'keep' }],
@@ -68,7 +69,7 @@ function assertGroupsAreUiFolders() {
   assert.deepEqual(afterMove.contextRefs, beforeMove.contextRefs)
   assert.deepEqual(afterMove.memory, beforeMove.memory)
   assert.deepEqual(afterMove.state, beforeMove.state)
-  assert.equal(afterMove.provider, beforeMove.provider)
+  assert.equal(afterMove.connection, beforeMove.connection)
   assert.equal(afterMove.model, beforeMove.model)
   assert.equal(afterMove.mode, beforeMove.mode)
   assert.equal(afterMove.status, beforeMove.status)
@@ -208,7 +209,7 @@ function assertRegistryContracts(agentId) {
   ai.registerSkill('review', { id: 'review', title: 'Review', tools: ['diff-preview'] })
   ai.registerAgentTemplate('goal-reviewer', {
     id: 'goal-reviewer',
-    defaults: { provider: 'mock', model: 'fast', mode: 'goal' },
+    defaults: { connection: 'mock', model: 'fast', mode: 'goal' },
     skills: ['review'],
   })
   ai.registerContextProvider('selection', {
@@ -248,8 +249,8 @@ async function assertSendRunStatusAndRequest(agentId, resourceCheck) {
   let requestSeen = null
   let ctxSeen = null
   let callCount = 0
-  ai.registerProvider('capture', {
-    send: function (request, ctx) {
+  ai.registerTransport('capture', {
+    send: function (connection, request, ctx) {
       callCount += 1
       requestSeen = request
       ctxSeen = ctx
@@ -259,8 +260,9 @@ async function assertSendRunStatusAndRequest(agentId, resourceCheck) {
       }
     },
   })
+  ai.registerConnection('capture', { auth: { type: 'none' }, transport: { type: 'capture' }, configDefaults: {} })
 
-  ai.updateAgent(agentId, { provider: 'capture', model: 'reasoning' })
+  ai.updateAgent(agentId, { connection: 'capture', model: 'reasoning' })
   const sent = ai.sendMessage(agentId, { content: 'balance sword prices' }, 'user')
   assert.equal(sent.message.role, 'user')
   assert.equal(sent.message.from, 'user')
@@ -278,7 +280,7 @@ async function assertSendRunStatusAndRequest(agentId, resourceCheck) {
   assert.equal(requestSeen.agent.id, agentId)
   assert.equal(requestSeen.agent.mode, 'goal')
   assert.equal(requestSeen.agent.state.goalPolicy.maxTurns, 3)
-  assert.equal(requestSeen.provider, 'capture')
+  assert.equal(requestSeen.connection, 'capture')
   assert.equal(requestSeen.model, 'reasoning')
   assert.deepEqual(requestSeen.resources, [{ uri: 'case://selection/item-1', text: 'resolved:case://selection/item-1' }])
   assert.deepEqual(requestSeen.tools, ['diff-preview'])
@@ -292,10 +294,11 @@ async function assertSendRunStatusAndRequest(agentId, resourceCheck) {
 async function assertStopAgent(agentId) {
   let releaseRun
   const held = new Promise(function (resolve) { releaseRun = resolve })
-  ai.registerProvider('hold', {
+  ai.registerTransport('hold', {
     send: function () { return held.then(function () { return 'late' }) },
   })
-  ai.updateAgent(agentId, { provider: 'hold' })
+  ai.registerConnection('hold', { auth: { type: 'none' }, transport: { type: 'hold' }, configDefaults: {} })
+  ai.updateAgent(agentId, { connection: 'hold' })
   const run = ai.runAgent(agentId)
   assert.equal(byId(ai.agents(), agentId).status, 'running')
   assert.equal(ai.stopAgent(agentId), true)

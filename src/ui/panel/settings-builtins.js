@@ -59,33 +59,33 @@
   EF.settings.registerSection('ai', {
     title: 'AI',
     icon: 'user',
-    description: 'Providers, models, access mode, and local bridge settings.',
+    description: 'Connections, auth methods, models, and local bridge settings.',
     order: 20,
   })
 
   EF.settings.registerSchema('ai', [
     {
-      key: 'ai.defaultProvider',
-      label: 'Default Provider',
+      key: 'ai.defaultConnection',
+      label: 'Default Connection',
       type: 'select',
       default: 'mock',
       options: function () {
-        if (EF.ai && EF.ai.providerOptions) {
-          return EF.ai.providerOptions().map(function (item) {
+        if (EF.ai && EF.ai.connectionOptions) {
+          return EF.ai.connectionOptions().map(function (item) {
             return { value: item.id, label: item.label || item.id }
           })
         }
-        const list = EF.ai && EF.ai.listProviders ? EF.ai.listProviders() : ['mock']
+        const list = EF.ai && EF.ai.listConnections ? EF.ai.listConnections() : ['mock']
         return list.map(function (id) { return { value: id, label: id } })
       },
-      description: 'Provider used by newly created agents.',
+      description: 'Connection used by newly created agents.',
       order: 10,
     },
   ])
 
   EF.effect(function () {
-    if (!EF.ai || !EF.ai.setDefaultProvider) return
-    EF.ai.setDefaultProvider(EF.settings.get('ai.defaultProvider') || 'mock')
+    if (!EF.ai || !EF.ai.setActiveConnection) return
+    EF.ai.setActiveConnection(EF.settings.get('ai.defaultConnection') || 'mock')
   })
 
   EF.settings.registerPage('ai', {
@@ -101,17 +101,17 @@
     const root = EF.ui.h('div', 'ef-settings-page ef-settings-ai-page')
     root.appendChild(pageHead(
       'AI',
-      'Configure AI providers, local credentials, model defaults, and connection behavior.'
+      'Configure AI connections, auth methods, model defaults, and local bridge behavior.'
     ))
 
     const overview = EF.ui.h('div', 'ef-settings-ai-overview')
     overview.appendChild(settingSelect({
-      key: 'ai.defaultProvider',
-      label: 'Default provider',
-      desc: 'New agents start with this provider. Existing agents keep their own provider.',
+      key: 'ai.defaultConnection',
+      label: 'Default connection',
+      desc: 'New agents start with this connection. Existing agents keep their own connection.',
       options: function () {
-        if (EF.ai && EF.ai.providerOptions) {
-          return EF.ai.providerOptions().map(function (item) {
+        if (EF.ai && EF.ai.connectionOptions) {
+          return EF.ai.connectionOptions().map(function (item) {
             return { value: item.id, label: item.label || item.id }
           })
         }
@@ -119,18 +119,18 @@
       },
     }))
     overview.appendChild(statusNote(
-      'Provider channels are registered by the framework or plugins. Browser API keys are for personal/local use; shared deployments should route through Local Bridge.'
+      'Connections combine provider metadata, auth method, transport, and model defaults. Subscription auth such as ChatGPT/Codex or Claude Code should route through a Local Bridge.'
     ))
     root.appendChild(overview)
 
     const block = EF.ui.h('section', 'ef-settings-provider-block')
     const blockHead = EF.ui.h('div', 'ef-settings-provider-block-head')
     blockHead.appendChild(EF.ui.h('div', 'ef-settings-provider-block-title', { text: 'Connections' }))
-    blockHead.appendChild(EF.ui.h('div', 'ef-settings-provider-block-desc', { text: 'Use the Custom OpenAI Compatible channel for private endpoints. Framework plugins can register additional providers without replacing this page.' }))
+    blockHead.appendChild(EF.ui.h('div', 'ef-settings-provider-block-desc', { text: 'Use Custom OpenAI Compatible for private endpoints. Framework plugins can register connections without replacing this page.' }))
     block.appendChild(blockHead)
     const list = EF.ui.h('div', 'ef-settings-provider-list')
-    const providers = EF.ai && EF.ai.providerOptions ? EF.ai.providerOptions() : [{ id: 'mock', label: 'Mock' }]
-    for (let i = 0; i < providers.length; i++) list.appendChild(providerRow(providers[i]))
+    const connections = EF.ai && EF.ai.connectionOptions ? EF.ai.connectionOptions() : [{ id: 'mock', label: 'Mock' }]
+    for (let i = 0; i < connections.length; i++) list.appendChild(connectionRow(connections[i]))
     block.appendChild(list)
     root.appendChild(block)
     return root
@@ -409,20 +409,28 @@
     return head
   }
 
-  function providerRow(meta) {
-    const provider = EF.ai && EF.ai.getProvider ? EF.ai.getProvider(meta.id) : null
-    const settings = providerSettingsFor(meta.id, meta.label || meta.id, provider)
+  function connectionRow(meta) {
+    const connection = EF.ai && EF.ai.getConnection ? EF.ai.getConnection(meta.id) : null
+    const settings = connectionSettingsFor(meta.id, meta.label || meta.id, connection)
     const card = EF.ui.h('section', 'ef-settings-provider-row')
     const head = EF.ui.h('div', 'ef-settings-provider-head')
     const title = EF.ui.h('div', 'ef-settings-provider-title')
     title.appendChild(EF.ui.h('span', null, { text: meta.label || meta.id }))
     head.appendChild(title)
     const status = EF.ui.h('div', 'ef-settings-provider-status')
+    if (meta.authType === 'subscriptionBridge' || meta.authType === 'localBridge') {
+      head.appendChild(EF.ui.button({
+        text: 'Sign in',
+        size: 'sm',
+        kind: 'ghost',
+        onClick: function () { loginConnection(meta.id, status) },
+      }))
+    }
     card.appendChild(head)
     const fields = EF.ui.h('div', 'ef-settings-provider-fields')
     for (let i = 0; i < settings.length; i++) {
       const field = settings[i]
-      if (field.kind === 'model' && provider && provider.models) {
+      if (field.kind === 'model') {
         field.action = modelLoadAction(meta.id, card, status)
       }
       fields.appendChild(field.kind === 'switch'
@@ -433,35 +441,52 @@
     return card
   }
 
-  function modelLoadAction(providerId, card, status) {
+  function modelLoadAction(connectionId, card, status) {
     const wrap = EF.ui.h('div', 'ef-settings-model-action')
     wrap.appendChild(EF.ui.iconButton({
       icon: 'refresh',
       title: 'Load models',
       size: 'sm',
       kind: 'ghost',
-      onClick: function () { loadModels(providerId, card, status) },
+      onClick: function () { loadModels(connectionId, card, status) },
     }))
     wrap.appendChild(status)
     return wrap
   }
 
-  function providerSettingsFor(id, label, provider) {
-    const settings = (provider && provider.settings) || []
+  function connectionSettingsFor(id, label, connection) {
+    const defaults = (connection && connection.configDefaults) || {}
     const out = []
-    for (let i = 0; i < settings.length; i++) {
-      const item = settings[i]
+    Object.keys(defaults).forEach(function (key) {
       out.push({
-        kind: item.type === 'bool' ? 'switch' : (item.key.indexOf('.defaultModel') >= 0 ? 'model' : 'input'),
-        providerId: id,
-        key: item.key,
-        label: compactLabel(id, label, item.label || item.key),
-        type: item.type === 'password' ? 'password' : 'text',
-        placeholder: placeholderFor(item.key),
-        desc: item.description,
+        kind: key === 'stream' ? 'switch' : (key === 'defaultModel' ? 'model' : 'input'),
+        connectionId: id,
+        key: EF.ai.connectionConfigKey(id, key),
+        label: compactLabel(id, label, keyLabel(key)),
+        type: key === 'apiKey' ? 'password' : 'text',
+        placeholder: placeholderFor(key),
+        desc: keyDesc(key, label),
       })
-    }
+    })
     return out
+  }
+
+  function keyLabel(key) {
+    if (key === 'baseUrl') return 'Base URL'
+    if (key === 'apiKey') return 'API Key'
+    if (key === 'defaultModel') return 'Default Model'
+    if (key === 'stream') return 'Stream'
+    if (key === 'responsePrefix') return 'Response Prefix'
+    return key
+  }
+
+  function keyDesc(key, label) {
+    if (key === 'baseUrl') return 'HTTP base URL for the ' + label + ' transport.'
+    if (key === 'apiKey') return 'API key used by this connection. Browser keys are for personal/local use.'
+    if (key === 'defaultModel') return 'Fallback model when the model list has not been loaded.'
+    if (key === 'stream') return 'Request streaming responses when the transport supports them.'
+    if (key === 'responsePrefix') return 'Prefix used by the mock connection.'
+    return ''
   }
 
   function compactLabel(id, providerLabel, label) {
@@ -491,7 +516,7 @@
       onChange: function (v) {
         value.set(v)
         EF.settings.set(spec.key, v)
-        if (spec.key.indexOf('.apiKey') >= 0 && v && spec.providerId) activateProvider(spec.providerId)
+        if (spec.key.indexOf('.apiKey') >= 0 && v && spec.connectionId) activateConnection(spec.connectionId)
       },
     }))
     return row
@@ -499,7 +524,7 @@
 
   function settingModel(spec) {
     const value = EF.signal(EF.settings.get(spec.key) || '')
-    const options = EF.signal(modelOptionsFor(spec.providerId, value.peek()))
+    const options = EF.signal(modelOptionsFor(spec.connectionId, value.peek()))
     const row = settingRow(spec.label, spec.desc)
     const control = EF.ui.h('div', 'ef-settings-field-control ef-settings-model-control')
     control.appendChild(EF.ui.combobox({
@@ -509,23 +534,23 @@
       onChange: function (v) {
         value.set(v)
         EF.settings.set(spec.key, v)
-        if (spec.providerId) syncActiveAgentModel(spec.providerId, v)
+        if (spec.connectionId) syncActiveAgentModel(spec.connectionId, v)
       },
     }))
     if (spec.action) control.appendChild(spec.action)
     row.appendChild(control)
     if (EF.ai && EF.ai.models) {
       EF.ui.collect(row, EF.effect(function () {
-        options.set(modelOptionsFor(spec.providerId, value()))
+        options.set(modelOptionsFor(spec.connectionId, value()))
       }))
     }
     return row
   }
 
-  function modelOptionsFor(providerId, current) {
+  function modelOptionsFor(connectionId, current) {
     const map = EF.ai && EF.ai.models ? EF.ai.models() : {}
-    const list = map && map[providerId] ? map[providerId] : []
-    const hints = EF.ai && EF.ai.modelHints ? EF.ai.modelHints(providerId) : []
+    const list = map && map[connectionId] ? map[connectionId] : []
+    const hints = EF.ai && EF.ai.modelHints ? EF.ai.modelHints(connectionId) : []
     const out = []
     let found = !current
     for (let h = 0; h < hints.length; h++) {
@@ -557,7 +582,7 @@
       onChange: function (v) {
         value.set(v)
         EF.settings.set(spec.key, v)
-        if (spec.key === 'ai.defaultProvider') activateProvider(v)
+        if (spec.key === 'ai.defaultConnection') activateConnection(v)
       },
     }))
     return row
@@ -589,44 +614,56 @@
     return EF.ui.h('div', 'ef-settings-note', { text: text })
   }
 
-  function loadModels(providerId, card, status) {
+  function loadModels(connectionId, card, status) {
     if (!EF.ai || !EF.ai.refreshModels) return
     card.classList.add('ef-settings-provider-loading')
     if (status) status.textContent = 'Loading...'
-    EF.ai.refreshModels(providerId).then(function (models) {
+    EF.ai.refreshModels(connectionId).then(function (models) {
       card.classList.remove('ef-settings-provider-loading')
       card.classList.add('ef-settings-provider-ok')
       if (status) status.textContent = models && models.length ? String(models.length) + ' models' : 'No models returned'
-      activateProvider(providerId)
+      activateConnection(connectionId)
       setTimeout(function () { card.classList.remove('ef-settings-provider-ok') }, 900)
     }, function (err) {
       card.classList.remove('ef-settings-provider-loading')
       if (status) status.textContent = 'Load failed'
-      if (EF.reportError) EF.reportError({ scope: 'settings', provider: providerId }, err)
+      if (EF.reportError) EF.reportError({ scope: 'settings', connection: connectionId }, err)
     })
   }
 
-  function activateProvider(providerId) {
-    if (!providerId || !EF.ai) return
-    EF.settings.set('ai.defaultProvider', providerId)
-    if (EF.ai.setDefaultProvider) EF.ai.setDefaultProvider(providerId)
+  function loginConnection(connectionId, status) {
+    if (!EF.ai || !EF.ai.loginConnection) return
+    if (status) status.textContent = 'Signing in...'
+    EF.ai.loginConnection(connectionId).then(function (next) {
+      if (status) status.textContent = next && next.state ? next.state : 'Signed in'
+      activateConnection(connectionId)
+    }, function (err) {
+      if (status) status.textContent = 'Sign in failed'
+      if (EF.reportError) EF.reportError({ scope: 'settings', connection: connectionId }, err)
+    })
+  }
+
+  function activateConnection(connectionId) {
+    if (!connectionId || !EF.ai) return
+    EF.settings.set('ai.defaultConnection', connectionId)
+    if (EF.ai.setActiveConnection) EF.ai.setActiveConnection(connectionId)
     const agent = EF.ai.getActiveAgent ? EF.ai.getActiveAgent() : null
     if (!agent || !EF.ai.updateAgent) return
-    if (agent.provider && agent.provider !== 'mock' && agent.provider !== providerId) return
-    const config = EF.ai.getProviderConfig ? EF.ai.getProviderConfig(providerId) : {}
-    const opts = modelOptionsFor(providerId, config.defaultModel || agent.model)
+    if (agent.connection && agent.connection !== 'mock' && agent.connection !== connectionId) return
+    const config = EF.ai.getConnectionConfig ? EF.ai.getConnectionConfig(connectionId) : {}
+    const opts = modelOptionsFor(connectionId, config.defaultModel || agent.model)
     const nextModel = config.defaultModel || (opts.length ? opts[0].value : '')
     EF.ai.updateAgent(agent.id, {
-      provider: providerId,
+      connection: connectionId,
       model: nextModel,
       stream: !!config.stream,
     })
   }
 
-  function syncActiveAgentModel(providerId, modelId) {
-    if (!providerId || !modelId || !EF.ai || !EF.ai.getActiveAgent || !EF.ai.updateAgent) return
+  function syncActiveAgentModel(connectionId, modelId) {
+    if (!connectionId || !modelId || !EF.ai || !EF.ai.getActiveAgent || !EF.ai.updateAgent) return
     const agent = EF.ai.getActiveAgent()
-    if (!agent || agent.provider !== providerId) return
+    if (!agent || agent.connection !== connectionId) return
     EF.ai.updateAgent(agent.id, { model: modelId })
   }
 })(window.EF = window.EF || {})

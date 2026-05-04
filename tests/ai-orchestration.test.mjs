@@ -8,6 +8,7 @@ for (const file of [
   'src/core/signal.js',
   'src/core/log.js',
   'src/ai/store.js',
+  'src/ai/connection.js',
   'src/ai/provider.js',
   'src/ai/context.js',
   'src/ai/orchestration.js',
@@ -69,7 +70,7 @@ const createdAgent = previewApply(root.id, 'agent.create', {
   name: 'Worker',
   parentAgentId: root.id,
   groupId: createdGroup.id,
-  provider: 'mock',
+  connection: 'mock',
   model: 'fast',
 }, root.id)
 assert.equal(createdAgent.name, 'Worker')
@@ -98,13 +99,14 @@ assert.equal(readableGroups.status, 'completed')
 assert.equal(byName(readableGroups.result, 'Team').id, createdGroup.id)
 
 let sentRequest = null
-ai.registerProvider('capture-send', {
-  send: function (request) {
+ai.registerTransport('capture-send', {
+  send: function (connection, request) {
     sentRequest = request
     return { role: 'assistant', content: 'done' }
   },
 })
-ai.updateAgent(createdAgent.id, { provider: 'capture-send' })
+ai.registerConnection('capture-send', { auth: { type: 'none' }, transport: { type: 'capture-send' }, configDefaults: {} })
+ai.updateAgent(createdAgent.id, { connection: 'capture-send' })
 const sent = await runCall(root.id, 'agent.send', { agentId: createdAgent.id, content: 'work item' }, root.id)
 assert.equal(sent.status, 'completed')
 assert.equal(sent.result.message.content, 'work item')
@@ -114,10 +116,11 @@ assert.equal(sentRequest.agent.id, createdAgent.id)
 
 let releaseRun
 const held = new Promise(function (resolve) { releaseRun = resolve })
-ai.registerProvider('hold-orchestration', {
+ai.registerTransport('hold-orchestration', {
   send: function () { return held.then(function () { return 'late' }) },
 })
-ai.updateAgent(createdAgent.id, { provider: 'hold-orchestration' })
+ai.registerConnection('hold-orchestration', { auth: { type: 'none' }, transport: { type: 'hold-orchestration' }, configDefaults: {} })
+ai.updateAgent(createdAgent.id, { connection: 'hold-orchestration' })
 const run = ai.runAgent(createdAgent.id)
 assert.equal(ai.findAgent(createdAgent.id).status, 'running')
 const stopped = await runCall(root.id, 'agent.stop', { agentId: createdAgent.id }, root.id)

@@ -50,76 +50,83 @@
       : { value: value, label: item.label || item.name || value })
   }
 
-  function providerOptions() {
-    if (EF.ai.providerOptions) return optionsFrom(EF.ai.providerOptions())
-    return EF.ai.providers ? optionsFrom(EF.ai.providers) : optionsFrom(EF.ai.listProviders())
+  function connectionOptions() {
+    if (EF.ai.connectionOptions) return optionsFrom(EF.ai.connectionOptions())
+    return EF.ai.connections ? optionsFrom(EF.ai.connections) : optionsFrom(EF.ai.listConnections())
   }
 
-  function defaultProvider() {
-    if (EF.settings) return EF.settings.get('ai.defaultProvider') || EF.ai.defaultProvider || 'mock'
-    return EF.ai.defaultProvider || 'mock'
+  function defaultConnection() {
+    if (EF.settings) return EF.settings.get('ai.defaultConnection') || EF.ai.defaultConnection || 'mock'
+    return EF.ai.defaultConnection || 'mock'
   }
 
-  function providerConfig(provider) {
-    return EF.ai.getProviderConfig ? EF.ai.getProviderConfig(provider || defaultProvider()) : {}
+  function connectionConfig(connection) {
+    return EF.ai.getConnectionConfig ? EF.ai.getConnectionConfig(connection || defaultConnection()) : {}
   }
 
-  function defaultModel(provider) {
-    return providerConfig(provider).defaultModel || ''
+  function defaultModel(connection) {
+    return connectionConfig(connection).defaultModel || ''
   }
 
-  function modelOptions(provider, config) {
+  function modelOptions(connection, config) {
     const o = config || {}
     const out = []
-    const hints = (!o.loadedOnly && EF.ai.modelHints) ? EF.ai.modelHints(provider) : []
+    const hints = (!o.loadedOnly && EF.ai.modelHints) ? EF.ai.modelHints(connection) : []
     for (let h = 0; h < hints.length; h++) pushOption(out, hints[h])
-    const providers = EF.ai.providers ? readList(EF.ai.providers) : []
-    for (let i = 0; i < providers.length; i++) {
-      const p = providers[i]
-      if (typeof p !== 'string' && (p.id === provider || p.name === provider || p.value === provider)) {
+    const connections = EF.ai.connections ? readList(EF.ai.connections) : []
+    for (let i = 0; i < connections.length; i++) {
+      const p = connections[i]
+      if (typeof p !== 'string' && (p.id === connection || p.name === connection || p.value === connection)) {
         const metaModels = p.models || []
         for (let m = 0; m < metaModels.length; m++) pushOption(out, metaModels[m])
       }
     }
     const models = EF.ai.models ? (read(EF.ai.models) || []) : []
-    const loaded = (Array.isArray(models) ? models : models[provider]) || []
+    const loaded = (Array.isArray(models) ? models : models[connection]) || []
     for (let j = 0; j < loaded.length; j++) pushOption(out, loaded[j])
-    const fallback = defaultModel(provider)
+    const fallback = defaultModel(connection)
     if (fallback) pushOption(out, fallback)
     return out
   }
 
-  function configuredProviderOptions() {
-    const providers = providerOptions()
+  function configuredConnectionOptions() {
+    const connections = connectionOptions()
+    const statuses = EF.ai.connectionStatus ? (read(EF.ai.connectionStatus) || {}) : {}
+    const loadedMap = EF.ai.models ? (read(EF.ai.models) || {}) : {}
     const out = []
-    for (let i = 0; i < providers.length; i++) {
-      const p = providers[i]
+    for (let i = 0; i < connections.length; i++) {
+      const p = connections[i]
       const id = p.value || p.id
       if (!id || id === 'mock') continue
-      const cfg = providerConfig(id)
+      const cfg = connectionConfig(id)
       const isLocal = id === 'ollama' || id === 'local-bridge'
-      const opts = modelOptions(id, { loadedOnly: isLocal })
+      const isSubscription = p.authType === 'subscriptionBridge'
+      const loaded = (Array.isArray(loadedMap) ? loadedMap : loadedMap[id]) || []
+      const opts = modelOptions(id, { loadedOnly: isLocal || (isSubscription && !cfg.defaultModel && !loaded.length) })
       const hasCredential = !!cfg.apiKey
-      const hasLocalModels = isLocal && !!(opts && opts.length)
-      if (!hasCredential && !hasLocalModels) continue
+      const signedIn = statuses[id] && statuses[id].state === 'signed_in'
+      const hasConfiguredLocal = (isLocal || p.authType === 'localBridge') && (!!cfg.defaultModel || !!loaded.length)
+      if (p.authType === 'apiKey' && !hasCredential) continue
+      if (isSubscription && !signedIn && !cfg.defaultModel && !loaded.length) continue
+      if ((isLocal || p.authType === 'localBridge') && !hasConfiguredLocal) continue
       if (!opts.length) continue
       out.push({ id: id, label: p.label || p.name || id, models: opts })
     }
     return out
   }
 
-  function modelValue(provider, model) {
-    return (provider || '') + '::' + (model || '')
+  function modelValue(connection, model) {
+    return (connection || '') + '::' + (model || '')
   }
 
   function parseModelValue(value) {
     const s = String(value || '')
     const idx = s.indexOf('::')
-    return idx < 0 ? { provider: defaultProvider(), model: s } : { provider: s.slice(0, idx), model: s.slice(idx + 2) }
+    return idx < 0 ? { connection: defaultConnection(), model: s } : { connection: s.slice(0, idx), model: s.slice(idx + 2) }
   }
 
   function groupedModelOptions() {
-    const groups = configuredProviderOptions()
+    const groups = configuredConnectionOptions()
     const out = []
     for (let i = 0; i < groups.length; i++) {
       const g = groups[i]
@@ -198,8 +205,8 @@
 
   function factory(propsSig, ctx) {
     const props = propsSig.peek() || {}
-    const provider = EF.signal(props.provider || defaultProvider())
-    const model = EF.signal(props.model || defaultModel(provider.peek()))
+    const connection = EF.signal(props.connection || defaultConnection())
+    const model = EF.signal(props.model || defaultModel(connection.peek()))
     const mode = EF.signal(props.mode || 'chat')
     const permissionMode = EF.signal(props.permissionMode || 'full')
     const draft = EF.signal(EF.ai.richPrompt.empty())
@@ -285,14 +292,14 @@
     root.appendChild(composer)
 
     ui.collect(root, EF.effect(function () {
-      const opts = providerOptions()
-      const preferred = defaultProvider()
-      if (opts.length && !provider.peek()) provider.set(preferred || opts[0].value)
+      const opts = connectionOptions()
+      const preferred = defaultConnection()
+      if (opts.length && !connection.peek()) connection.set(preferred || opts[0].value)
     }))
 
     ui.collect(root, EF.effect(function () {
       const opts = groupedModelOptions()
-      const selected = EF.signal(modelValue(provider(), model()))
+      const selected = EF.signal(modelValue(connection(), model()))
       disposeTree(modelSlot.firstChild)
       modelSlot.appendChild(ui.select({
         value: selected,
@@ -303,9 +310,9 @@
         disabled: controlDisabled,
         onChange: function (v) {
           const parsed = parseModelValue(v)
-          provider.set(parsed.provider)
+          connection.set(parsed.connection)
           model.set(parsed.model)
-          updateCurrentAgent({ provider: parsed.provider, model: parsed.model, stream: !!providerConfig(parsed.provider).stream })
+          updateCurrentAgent({ connection: parsed.connection, model: parsed.model, stream: !!connectionConfig(parsed.connection).stream })
         },
       }))
       let found = false
@@ -315,9 +322,9 @@
         const first = opts.find(function (it) { return it.value })
         if (first) {
           const parsed = parseModelValue(first.value)
-          provider.set(parsed.provider)
+          connection.set(parsed.connection)
           model.set(parsed.model)
-          updateCurrentAgent({ provider: parsed.provider, model: parsed.model, stream: !!providerConfig(parsed.provider).stream })
+          updateCurrentAgent({ connection: parsed.connection, model: parsed.model, stream: !!connectionConfig(parsed.connection).stream })
         }
       }
     }))
@@ -325,12 +332,12 @@
     ui.collect(root, EF.effect(function () {
       const a = activeAgent()
       if (!a) {
-        provider.set(defaultProvider())
-        model.set(defaultModel(provider.peek()))
+        connection.set(defaultConnection())
+        model.set(defaultModel(connection.peek()))
         return
       }
-      provider.set(a.provider || defaultProvider())
-      model.set(a.model || defaultModel(a.provider || defaultProvider()))
+      connection.set(a.connection || defaultConnection())
+      model.set(a.model || defaultModel(a.connection || defaultConnection()))
       mode.set(a.mode || 'chat')
       permissionMode.set(a.permissionMode || 'full')
     }))
@@ -380,15 +387,15 @@
       const refs = EF.ai.richPrompt.refs(currentDraft)
       const content = EF.ai.richPrompt.content(currentDraft)
       EF.ai.updateAgent(agent.id, {
-        provider: provider.peek(),
-        model: model.peek() || defaultModel(provider.peek()),
+        connection: connection.peek(),
+        model: model.peek() || defaultModel(connection.peek()),
         mode: mode.peek(),
         permissionMode: permissionMode.peek(),
-        stream: !!providerConfig(provider.peek()).stream,
+        stream: !!connectionConfig(connection.peek()).stream,
       })
       const meta = {
-        provider: provider.peek(),
-        model: model.peek() || defaultModel(provider.peek()),
+        connection: connection.peek(),
+        model: model.peek() || defaultModel(connection.peek()),
         mode: mode.peek(),
         permissionMode: permissionMode.peek(),
         resourceRefs: refs,

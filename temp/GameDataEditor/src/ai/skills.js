@@ -67,7 +67,7 @@
       title: 'GDE Table Designer',
       defaults: {
         mode: 'chat',
-        provider: 'mock',
+        connection: 'mock',
         model: '',
         contextRefs: [
           { resolver: 'gde', uri: 'gde://project', kind: 'gde.project', title: 'Project summary' },
@@ -81,7 +81,7 @@
       title: 'GDE Reference Auditor',
       defaults: {
         mode: 'goal',
-        provider: 'mock',
+        connection: 'mock',
         model: '',
         state: { goalPolicy: { maxTurns: 8, maxToolCalls: 20, requireUserApprovalForApply: true } },
         permissions: { paths: [{ path: 'gde', mode: 'read' }] },

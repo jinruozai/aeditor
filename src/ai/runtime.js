@@ -10,7 +10,7 @@
     if (typeof result === 'string') return { role: 'assistant', content: result }
     if (result && result.message) return result.message
     return Object.assign({ role: 'assistant', content: '' }, result || {}, {
-      provider: request.providerName,
+      connection: request.connectionName,
       model: request.agent.model || null,
     })
   }
@@ -68,13 +68,13 @@
       state.content += text
     }
     if (calls.length) state.toolCalls = state.toolCalls.concat(calls)
-    if (delta && delta.provider) state.provider = delta.provider
+    if (delta && delta.connection) state.connection = delta.connection
     if (delta && delta.model) state.model = delta.model
     if (delta && delta.usage) state.usage = delta.usage
     return ai.updateMessage(agentId, messageId, {
       content: state.content,
       toolCalls: state.toolCalls,
-      provider: state.provider || request.providerName,
+      connection: state.connection || request.connectionName,
       model: state.model || request.agent.model || null,
       status: 'running',
     })
@@ -86,12 +86,12 @@
     const toolCalls = normalizeToolCalls(message.toolCalls || state.toolCalls, request.actor)
     const completedAt = Date.now()
     const usage = message.usage || (result && result.usage) || state.usage || null
-    const cost = ai.estimateUsageCost ? ai.estimateUsageCost(request.providerName, message.model || state.model || request.agent.model, usage) : null
+    const cost = ai.estimateUsageCost ? ai.estimateUsageCost(request.connectionName, message.model || state.model || request.agent.model, usage) : null
     const firstTokenAt = state.firstTokenAt || null
     return ai.updateMessage(agentId, messageId, Object.assign({}, message, {
       content: content,
       toolCalls: toolCalls,
-      provider: message.provider || state.provider || request.providerName,
+      connection: message.connection || state.connection || request.connectionName,
       model: message.model || state.model || request.agent.model || null,
       status: message.status || 'done',
       stats: {
@@ -181,7 +181,7 @@
       from: 'agent:' + agentId,
       role: 'assistant',
       content: '',
-      provider: request.providerName,
+      connection: request.connectionName,
       model: request.agent.model || null,
       status: 'running',
       contextRefs: [],
@@ -191,7 +191,7 @@
     const state = {
       content: '',
       toolCalls: [],
-      provider: request.providerName,
+      connection: request.connectionName,
       model: request.agent.model || null,
       startTime: Date.now(),
     }
@@ -405,8 +405,8 @@
       runId: runId,
       agent: agent,
       actor: actor || 'user',
-      providerName: agent.provider || ai.defaultProvider || 'mock',
-      provider: agent.provider || ai.defaultProvider || 'mock',
+      connectionName: agent.connection || ai.defaultConnection || 'mock',
+      connection: agent.connection || ai.defaultConnection || 'mock',
       model: agent.model || '',
       input: input || null,
       messages: requestMessages(agent, resourceRefs, resolvedResources),
@@ -443,8 +443,11 @@
 
   function runAgent(agentId, input) {
     const agent = agentId ? ai.findAgent(agentId) : ai.getActiveAgent()
-    const provider = ai.getProvider(agent && agent.provider)
-    if (!agent || !provider) return null
+    const connection = ai.getConnection(agent && agent.connection)
+    if (!agent || !connection) return null
+    const runner = {
+      send: function (request, runCtx) { return ai.sendViaConnection(request.connectionName, request, runCtx) },
+    }
     const controller = new AbortController()
     const runId = 'run_' + Date.now().toString(36) + '_' + nextRunId++
     const actor = (input && input.actor) || 'user'
@@ -452,12 +455,12 @@
     const ctx = ai.createRunContext(request, controller)
     const key = agent.id
 
-    runs[key] = { controller: controller, provider: provider, runId: runId }
+    runs[key] = { controller: controller, connection: runner, runId: runId }
     ai.setAgentStatus(agent.id, 'running')
 
     const promise = Promise.resolve().then(function () {
-      if (agent.mode === 'goal') return runGoalLoop(agent.id, provider, input, controller, runId, actor)
-      return runChatTurn(agent.id, provider, request, ctx, controller, actor)
+      if (agent.mode === 'goal') return runGoalLoop(agent.id, runner, input, controller, runId, actor)
+      return runChatTurn(agent.id, runner, request, ctx, controller, actor)
     }).then(function (result) {
       if (controller.signal.aborted) return null
       if (agent.mode === 'goal') {
@@ -471,7 +474,7 @@
     }, function (err) {
       delete runs[key]
       ai.setAgentStatus(agent.id, controller.signal.aborted ? 'idle' : 'error')
-      if (!controller.signal.aborted && EF.reportError) EF.reportError({ scope: 'ai', provider: request.providerName }, err)
+      if (!controller.signal.aborted && EF.reportError) EF.reportError({ scope: 'ai', connection: request.connectionName }, err)
       return null
     })
 
@@ -516,9 +519,9 @@
     if (!run) return false
     run.controller.abort()
     if (run.messageId) ai.updateMessage(agent.id, run.messageId, { status: 'stopped' })
-    if (run.provider && run.provider.abort) {
-      if (EF.safeCall) EF.safeCall({ scope: 'ai', provider: agent.provider || ai.defaultProvider, runId: run.runId }, function () { run.provider.abort(run.runId) })
-      else run.provider.abort(run.runId)
+    if (run.connection && run.connection.abort) {
+      if (EF.safeCall) EF.safeCall({ scope: 'ai', connection: agent.connection || ai.defaultConnection, runId: run.runId }, function () { run.connection.abort(run.runId) })
+      else run.connection.abort(run.runId)
     }
     delete runs[agent.id]
     ai.setAgentStatus(agent.id, 'idle')
@@ -533,7 +536,7 @@
       from: from || 'user',
       role: 'user',
       content: spec.content,
-      provider: agent.provider,
+      connection: agent.connection,
       model: agent.model || null,
       contextRefs: spec.contextRefs || [],
       meta: meta || spec.meta || null,
@@ -546,3 +549,4 @@
   ai.stopAgent = stopAgent
   ai.sendMessage = sendMessage
 })(window.EF = window.EF || {})
+

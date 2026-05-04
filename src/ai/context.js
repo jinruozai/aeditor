@@ -261,7 +261,7 @@
 
   function registerPlugin(name, plugin) {
     plugins[name] = plugin
-    registerPluginList(plugin && plugin.providers, ai.registerProvider)
+    registerPluginList(plugin && plugin.connections, ai.registerConnection)
     registerPluginList(plugin && plugin.skills, registerSkill)
     registerPluginList(plugin && plugin.tools, registerTool)
     registerPluginList(plugin && plugin.contextProviders, registerContextProvider)
