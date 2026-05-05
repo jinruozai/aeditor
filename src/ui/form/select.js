@@ -66,10 +66,16 @@
         row.addEventListener('click', function () { doWrite(it.value); pop && pop.close(); pop = null })
         list.appendChild(row)
       }
-      pop = ui.popover({ anchor: el, content: list, side: 'bottom', align: 'start', onDismiss: function () { pop = null } })
       list.style.minWidth = Math.max(120, el.getBoundingClientRect().width) + 'px'
       list.style.maxHeight = Math.max(160, Math.min(420, window.innerHeight - 96)) + 'px'
       list.style.overflow = 'auto'
+      pop = ui.popover({
+        anchor: el,
+        content: list,
+        side: o.side || 'bottom',
+        align: o.align || 'start',
+        onDismiss: function () { pop = null },
+      })
     })
     ui.collect(el, function () { if (pop) { pop.close(); pop = null } })
 

@@ -135,6 +135,38 @@
     return updateToolCall(agentId, callId, { status: 'failed', error: String(err && err.message ? err.message : err) })
   }
 
+  function isPromiseLike(value) {
+    return value && typeof value.then === 'function'
+  }
+
+  function applySucceeded(result) {
+    if (!result || typeof result !== 'object') return false
+    return result.applied === true || result.status === 'applied'
+  }
+
+  function applyFailureMessage(result) {
+    if (!result || typeof result !== 'object') return 'Tool apply did not report success'
+    if (result.error) return String(result.error)
+    const validation = result.validation || {}
+    const errors = result.errors || validation.errors || []
+    if (errors.length) {
+      return errors.map(function (item) {
+        return item && typeof item === 'object'
+          ? ((item.path ? item.path + ': ' : '') + (item.message || JSON.stringify(item)))
+          : String(item)
+      }).join('\n')
+    }
+    if (result.ok === false) return 'Tool apply returned ok=false'
+    return 'Tool apply did not report success'
+  }
+
+  function finishApplyToolCall(agentId, callId, found, result) {
+    if (applySucceeded(result)) {
+      return updateToolCall(agentId, callId, { status: 'applied', applyResult: result, error: null })
+    }
+    return updateToolCall(agentId, callId, { status: 'failed', applyResult: result, error: applyFailureMessage(result) })
+  }
+
   function getToolCallActionState(agentId, callId, actor) {
     const found = findToolCall(agentId, callId)
     if (!found) return null
@@ -158,6 +190,23 @@
       callAllowed: canCall,
       applyAllowed: canApply,
     }
+  }
+
+  function isToolAlwaysAllowed(agentId, toolId) {
+    const agent = ai.findAgent(agentId)
+    const map = agent && agent.meta && agent.meta.alwaysAllowTools
+    return !!(map && map[toolId])
+  }
+
+  function setToolAlwaysAllowed(agentId, toolId, allowed) {
+    const agent = ai.findAgent(agentId)
+    if (!agent || !toolId) return null
+    const meta = Object.assign({}, agent.meta || {})
+    const map = Object.assign({}, meta.alwaysAllowTools || {})
+    if (allowed) map[toolId] = true
+    else delete map[toolId]
+    meta.alwaysAllowTools = map
+    return ai.updateAgent(agentId, { meta: meta })
   }
 
   function previewToolCall(agentId, callId, actor) {
@@ -208,7 +257,13 @@
     updateToolCall(agentId, callId, { status: 'applying' })
     try {
       const result = callToolPhase(agentId, callId, actor || found.toolCall.actor || 'user', 'apply')
-      return updateToolCall(agentId, callId, { status: 'applied', applyResult: result, error: null })
+      if (!isPromiseLike(result)) return finishApplyToolCall(agentId, callId, found, result)
+      const promise = Promise.resolve(result).then(function (done) {
+        return finishApplyToolCall(agentId, callId, found, done)
+      }, function (err) {
+        return failToolCall(agentId, callId, found, err)
+      })
+      return { toolCall: findToolCall(agentId, callId).toolCall, promise: promise }
     } catch (err) {
       return failToolCall(agentId, callId, found, err)
     }
@@ -335,6 +390,8 @@
   ai.runToolCall = runToolCall
   ai.applyToolCall = applyToolCall
   ai.getToolCallActionState = getToolCallActionState
+  ai.isToolAlwaysAllowed = isToolAlwaysAllowed
+  ai.setToolAlwaysAllowed = setToolAlwaysAllowed
   ai.registerSkill = registerSkill
   ai.getSkill = getSkill
   ai.listSkills = function () { return keys(skills) }

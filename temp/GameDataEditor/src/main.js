@@ -58,12 +58,13 @@
       'src/ai/core.js',
       'src/ai/resources.js',
       'src/ai/patch.js',
+      'src/ai/change-set.js',
       'src/ai/tools.js',
       'src/ai/skills.js',
     ];
     var chain = Promise.resolve();
     files.forEach(function (file) {
-      chain = chain.then(function () { return loadScript(file + '?v=1'); });
+      chain = chain.then(function () { return loadScript(file + '?v=2'); });
     });
     chain.then(function () {
       if (window.GDE && GDE.ai && GDE.ai.install) GDE.ai.install();

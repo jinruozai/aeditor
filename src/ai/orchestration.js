@@ -1,4 +1,4 @@
-// EF.ai built-in agent/group orchestration tools.
+// EF.ai built-in agent orchestration tools.
 ;(function (EF) {
   'use strict'
 
@@ -6,13 +6,6 @@
 
   function clone(value) {
     return value == null ? value : structuredClone(value)
-  }
-
-  function byId(list, id) {
-    for (let i = 0; i < list.length; i++) {
-      if (list[i].id === id) return list[i]
-    }
-    return null
   }
 
   function actor(ctx) {
@@ -35,30 +28,22 @@
     if (actor(ctx) !== agentId) requireManage(ctx, agentId)
   }
 
-  function groupSummary(group) {
-    return {
-      id: group.id,
-      name: group.name,
-      parentId: group.parentId || null,
-      order: group.order,
-      collapsed: !!group.collapsed,
-      createdAt: group.createdAt,
-      updatedAt: group.updatedAt,
-    }
-  }
-
   function agentSummary(agent, full) {
     const out = {
       id: agent.id,
       name: agent.name,
-      path: agent.path,
-      groupId: agent.groupId || null,
+      parentAgentId: agent.parentAgentId || null,
       order: agent.order,
       connection: agent.connection,
       model: agent.model,
-      mode: agent.mode,
       permissionMode: agent.permissionMode,
       status: agent.status,
+      statusText: agent.statusText || '',
+      activeMessageId: agent.activeMessageId || null,
+      activeQuestId: agent.activeQuestId || null,
+      queuedCount: (agent.queue || []).length,
+      unreadInboxCount: (agent.inbox || []).filter(function (event) { return !event.consumed }).length,
+      recentQuests: clone((agent.quests || []).slice(-8)),
       contextRefs: clone(agent.contextRefs || []),
       skillRefs: clone(agent.skillRefs || []),
       toolRefs: clone(agent.toolRefs || []),
@@ -70,76 +55,12 @@
     if (full) {
       out.systemPrompt = agent.systemPrompt || ''
       out.messages = clone(agent.messages || [])
+      out.queue = clone(agent.queue || [])
+      out.inbox = clone(agent.inbox || [])
       out.memory = clone(agent.memory || {})
       out.state = clone(agent.state || {})
     }
     return out
-  }
-
-  function readGroup(args) {
-    const groups = ai.groups.peek()
-    if (args && args.groupId) {
-      const group = byId(groups, args.groupId)
-      if (!group) throw new Error('Group not found')
-      return groupSummary(group)
-    }
-    return groups.map(groupSummary)
-  }
-
-  function createGroupPreview(args) {
-    return {
-      action: 'create',
-      kind: 'group',
-      group: {
-        name: args.name || 'Group',
-        parentId: args.parentId || null,
-        order: args.order == null ? null : args.order,
-        collapsed: !!args.collapsed,
-      },
-    }
-  }
-
-  function createGroupApply(args) {
-    return ai.createGroup({
-      name: args.group && args.group.name,
-      parentId: args.group && args.group.parentId,
-      order: args.group && args.group.order,
-      collapsed: args.group && args.group.collapsed,
-    })
-  }
-
-  function reparentGroupPreview(args) {
-    const group = ai.findGroup(args.groupId)
-    const parent = args.parentId ? ai.findGroup(args.parentId) : null
-    if (!group) throw new Error('Group not found')
-    if (args.parentId && !parent) throw new Error('Parent group not found')
-    return {
-      action: 'reparent',
-      kind: 'group',
-      groupId: group.id,
-      fromParentId: group.parentId || null,
-      toParentId: args.parentId || null,
-      order: args.order == null ? group.order : args.order,
-    }
-  }
-
-  function reparentGroupApply(args) {
-    return ai.moveGroup(args.groupId, { parentId: args.toParentId || null, order: args.order })
-  }
-
-  function deleteGroupPreview(args) {
-    const group = ai.findGroup(args.groupId)
-    if (!group) throw new Error('Group not found')
-    return {
-      action: 'delete',
-      kind: 'group',
-      group: groupSummary(group),
-      affectedAgentIds: ai.agents.peek().filter(function (agent) { return agent.groupId === group.id }).map(function (agent) { return agent.id }),
-    }
-  }
-
-  function deleteGroupApply(args) {
-    return ai.deleteGroup(args.group && args.group.id)
   }
 
   function readAgent(args, ctx) {
@@ -165,12 +86,9 @@
       kind: 'agent',
       agent: {
         name: args.name || 'Agent',
-        path: args.path || args.name || 'Agent',
-        groupId: args.groupId || null,
         parentAgentId: args.parentAgentId || null,
-        connection: args.connection || ai.defaultConnection || 'mock',
-        model: args.model || '',
-        mode: args.mode || 'chat',
+        connection: args.connection || (ctx.agent && ctx.agent.connection) || ai.defaultConnection || 'mock',
+        model: args.model || (ctx.agent && ctx.agent.model) || '',
         systemPrompt: args.systemPrompt || '',
         contextRefs: clone(args.contextRefs || []),
         skillRefs: clone(args.skillRefs || []),
@@ -185,14 +103,76 @@
 
   function createAgentApply(args) {
     const spec = clone(args.agent)
-    const parentAgentId = spec.parentAgentId
-    delete spec.parentAgentId
-    if (parentAgentId) {
-      const parent = ai.findAgent(parentAgentId)
-      spec.path = ai.normalizePath(parent.path + '/' + ai.agentNameFromPath(spec.path || spec.name))
-      spec.groupId = parent.groupId || null
+    spec.select = false
+    const agent = ai.createAgent(spec)
+    return Object.assign({ applied: true }, agentSummary(agent, true))
+  }
+
+  function delegateAgentPreview(args, ctx) {
+    const target = args.agentId ? ai.findAgent(args.agentId) : null
+    if (args.agentId) {
+      if (!target) throw new Error('Agent not found')
+      requireSend(ctx, target.id)
+      return {
+        action: 'delegate',
+        kind: 'agent',
+        agentId: target.id,
+        content: args.content || '',
+        contextRefs: clone(args.contextRefs || []),
+        attachments: clone(args.attachments || []),
+        meta: clone(args.meta || null),
+        interrupt: !!args.interrupt,
+        guidance: args.guidance || null,
+      }
     }
-    return ai.createAgent(spec)
+    const parentId = args.parentAgentId || (ctx.agent && ctx.agent.id) || null
+    if (parentId) requireManageOrSelf(ctx, parentId)
+    return {
+      action: 'delegate',
+      kind: 'agent',
+      agent: {
+        name: args.name || 'Agent',
+        parentAgentId: parentId,
+        connection: args.connection || (ctx.agent && ctx.agent.connection) || ai.defaultConnection || 'mock',
+        model: args.model || (ctx.agent && ctx.agent.model) || '',
+        systemPrompt: args.systemPrompt || '',
+        contextRefs: clone(args.agentContextRefs || []),
+        skillRefs: clone(args.skillRefs || []),
+        toolRefs: clone(args.toolRefs || []),
+        permissions: clone(args.permissions || null),
+        state: clone(args.state || {}),
+        memory: clone(args.memory || {}),
+        meta: clone(args.agentMeta || {}),
+      },
+      content: args.content || '',
+      contextRefs: clone(args.contextRefs || []),
+      attachments: clone(args.attachments || []),
+      meta: clone(args.meta || null),
+      interrupt: !!args.interrupt,
+      guidance: args.guidance || null,
+    }
+  }
+
+  function delegateAgentApply(args, ctx) {
+    const agent = args.agentId ? ai.findAgent(args.agentId) : createAgentApply({ agent: args.agent })
+    if (!agent) throw new Error('Agent not found')
+    const sent = ai.agent.send(agent.id, {
+      fromAgentId: actor(ctx) === 'user' ? null : actor(ctx),
+      content: args.content || '',
+      contextRefs: clone(args.contextRefs || []),
+      attachments: clone(args.attachments || []),
+      meta: clone(args.meta || null),
+      interrupt: !!args.interrupt,
+      guidance: args.guidance || null,
+    })
+    return {
+      applied: true,
+      agent: agentSummary(ai.findAgent(agent.id), false),
+      agentId: agent.id,
+      questId: sent && sent.questId,
+      messageId: sent && sent.messageId,
+      status: sent && sent.status,
+    }
   }
 
   function reparentAgentPreview(args, ctx) {
@@ -204,16 +184,16 @@
       action: 'reparent',
       kind: 'agent',
       agentId: agent.id,
-      fromGroupId: agent.groupId || null,
-      toGroupId: args.groupId || null,
-      parentAgentId: args.parentAgentId || null,
+      fromParentAgentId: agent.parentAgentId || null,
+      toParentAgentId: args.parentAgentId || null,
       order: args.order == null ? agent.order : args.order,
     }
   }
 
   function reparentAgentApply(args) {
-    if (args.parentAgentId) return ai.reparentAgent(args.agentId, args.parentAgentId, args.order)
-    return ai.moveAgent(args.agentId, { groupId: args.toGroupId || null, order: args.order })
+    const parentAgentId = args.toParentAgentId || args.parentAgentId || null
+    const agent = ai.reparentAgent(args.agentId, parentAgentId, args.order)
+    return Object.assign({ applied: true }, agentSummary(agent, false))
   }
 
   function deleteAgentPreview(args, ctx) {
@@ -225,69 +205,51 @@
       kind: 'agent',
       agent: agentSummary(agent, false),
       descendantAgentIds: ai.agents.peek().filter(function (item) {
-        return item.id !== agent.id && ai.isDescendant(agent.path, item.path)
+        return item.id !== agent.id && ai.isDescendant(agent.id, item.id)
       }).map(function (item) { return item.id }),
     }
   }
 
   function deleteAgentApply(args) {
-    return ai.deleteAgent(args.agent && args.agent.id)
+    const agent = ai.deleteAgent(args.agent && args.agent.id)
+    return Object.assign({ applied: true }, agent ? agentSummary(agent, false) : {})
   }
 
   function sendAgent(args, ctx) {
     requireSend(ctx, args.agentId)
-    const sent = ai.sendMessage(args.agentId, {
+    return ai.agent.send(args.agentId, {
+      fromAgentId: actor(ctx) === 'user' ? null : actor(ctx),
       content: args.content || '',
       contextRefs: clone(args.contextRefs || []),
+      attachments: clone(args.attachments || []),
       meta: clone(args.meta || null),
-    }, actor(ctx))
-    return {
-      message: sent && sent.message,
-      runId: sent && sent.request && sent.request.runId,
-      connection: sent && sent.request && sent.request.connection,
-      model: sent && sent.request && sent.request.model,
-    }
+      interrupt: !!args.interrupt,
+      guidance: args.guidance || null,
+    })
+  }
+
+  function readQuest(args, ctx) {
+    const result = ai.quest.read(args.agentId, args.questId, actor(ctx))
+    if (!result) throw new Error('Quest not found or permission denied')
+    return result
+  }
+
+  function readQuestResult(args, ctx) {
+    const result = ai.quest.result(args.agentId, args.questId, actor(ctx))
+    if (!result) throw new Error('Quest not found or permission denied')
+    return result
+  }
+
+  function readMessage(args, ctx) {
+    const result = ai.message.read(args.agentId, args.messageId, actor(ctx))
+    if (!result) throw new Error('Message not found or permission denied')
+    return result
   }
 
   function stopAgent(args, ctx) {
     requireManage(ctx, args.agentId)
     return { stopped: ai.stopAgent(args.agentId) }
   }
-
-  ai.registerTool('group.read', {
-    title: 'Read Groups',
-    description: 'Read one group or list all AI agent groups.',
-    schema: { type: 'object', properties: { groupId: { type: 'string' } } },
-    permissions: ['tool.call'],
-    run: readGroup,
-  })
-
-  ai.registerTool('group.create', {
-    title: 'Create Group',
-    description: 'Create an AI agent group after preview approval.',
-    schema: { type: 'object' },
-    permissions: ['tool.call', 'tool.apply'],
-    preview: createGroupPreview,
-    apply: createGroupApply,
-  })
-
-  ai.registerTool('group.reparent', {
-    title: 'Reparent Group',
-    description: 'Move a group under another group after preview approval.',
-    schema: { type: 'object' },
-    permissions: ['tool.call', 'tool.apply'],
-    preview: reparentGroupPreview,
-    apply: reparentGroupApply,
-  })
-
-  ai.registerTool('group.delete', {
-    title: 'Delete Group',
-    description: 'Delete a group folder after preview approval. Agents are moved to the root.',
-    schema: { type: 'object', required: ['groupId'] },
-    permissions: ['tool.call', 'tool.apply'],
-    preview: deleteGroupPreview,
-    apply: deleteGroupApply,
-  })
 
   ai.registerTool('agent.read', {
     title: 'Read Agents',
@@ -299,16 +261,39 @@
 
   ai.registerTool('agent.create', {
     title: 'Create Agent',
-    description: 'Create an AI agent after preview approval.',
+    description: 'Create an AI agent after preview approval. Creation only creates the agent; if the user asked this agent to do work, continue with agent.send unless the request only asked for creation.',
     schema: { type: 'object' },
     permissions: ['tool.call', 'tool.apply'],
     preview: createAgentPreview,
     apply: createAgentApply,
   })
 
+  ai.registerTool('agent.delegate', {
+    title: 'Delegate Agent Task',
+    description: 'Create or reuse an agent and send it a delegated task in one workflow. Returns agentId and questId. Delegation does not force the parent to wait.',
+    schema: {
+      type: 'object',
+      required: ['content'],
+      properties: {
+        agentId: { type: 'string' },
+        name: { type: 'string' },
+        parentAgentId: { type: 'string' },
+        systemPrompt: { type: 'string' },
+        content: { type: 'string' },
+        contextRefs: { type: 'array' },
+        attachments: { type: 'array' },
+        interrupt: { type: 'boolean' },
+        guidance: { type: 'string' },
+      },
+    },
+    permissions: ['tool.call', 'tool.apply'],
+    preview: delegateAgentPreview,
+    apply: delegateAgentApply,
+  })
+
   ai.registerTool('agent.reparent', {
     title: 'Reparent Agent',
-    description: 'Move an agent to a group or under another agent after preview approval.',
+    description: 'Move an agent under another agent, or to the root when parentAgentId is empty.',
     schema: { type: 'object', required: ['agentId'] },
     permissions: ['tool.call', 'tool.apply'],
     preview: reparentAgentPreview,
@@ -317,7 +302,7 @@
 
   ai.registerTool('agent.delete', {
     title: 'Delete Agent',
-    description: 'Delete an agent after preview approval.',
+    description: 'Delete an agent and its descendants after preview approval.',
     schema: { type: 'object', required: ['agentId'] },
     permissions: ['tool.call', 'tool.apply'],
     preview: deleteAgentPreview,
@@ -326,10 +311,34 @@
 
   ai.registerTool('agent.send', {
     title: 'Send Agent Message',
-    description: 'Send a message to another agent through the normal EF.ai runtime.',
+    description: 'Send a message to another agent. Returns a questId for this exact delegated task; prefer quest.result after the runtime reports completion.',
     schema: { type: 'object', required: ['agentId', 'content'] },
     permissions: ['tool.call'],
     run: sendAgent,
+  })
+
+  ai.registerTool('quest.read', {
+    title: 'Read Quest',
+    description: 'Read the status and result message id for a cross-agent quest.',
+    schema: { type: 'object', required: ['agentId', 'questId'] },
+    permissions: ['tool.call'],
+    run: readQuest,
+  })
+
+  ai.registerTool('quest.result', {
+    title: 'Read Quest Result',
+    description: 'Read a quest and, when completed, return its result message content in one call.',
+    schema: { type: 'object', required: ['agentId', 'questId'] },
+    permissions: ['tool.call'],
+    run: readQuestResult,
+  })
+
+  ai.registerTool('message.read', {
+    title: 'Read Message',
+    description: 'Read one exact message by agent id and message id.',
+    schema: { type: 'object', required: ['agentId', 'messageId'] },
+    permissions: ['tool.call'],
+    run: readMessage,
   })
 
   ai.registerTool('agent.stop', {
@@ -343,25 +352,27 @@
   ai.registerSkill('orchestration', {
     id: 'orchestration',
     title: 'Agent Orchestration',
-    version: '1.0.0',
-    description: 'Create, read, message, stop, delete, and reorganize EF.ai agents and groups within permission boundaries.',
-    systemPrompt: 'Use agent.* and group.* tools to coordinate EF.ai agents. Preview destructive or structural changes before applying them. Respect readable, sendable, and manageable target boundaries.',
+    version: '2.0.0',
+    description: 'Create, read, message, stop, delete, and reorganize EF.ai agents within permission boundaries.',
+    systemPrompt: 'Use agent.* and quest.* tools to coordinate EF.ai agents. Complete delegated tasks end-to-end when possible. Prefer agent.delegate for create/reuse + send. Delegation is parallel: continue useful local work, then use quest.result for completed inbox event batches.',
     rules: [
-      'Read target agents before changing them.',
-      'Use preview/apply tools for create, delete, and reparent operations.',
-      'Use agent.send for delegated work and agent.stop only for agents you can manage.',
+      'Agents are identified by id. Names are display labels and may repeat.',
+      'Use parentAgentId for parent/child ownership. There are no groups and no path identity.',
+      'Use agent.delegate when the user asks an agent to do work; it is the stable one-step delegation workflow.',
+      'After agent.delegate or agent.send, do not immediately poll quest.result. Continue useful work or stop; child completions arrive later as inbox notifications.',
+      'When processing an inbox event batch, use quest.result for completed events in that batch and do not wait for pending sibling quests.',
       'If you are already running as a child agent, do not create further child agents unless the user explicitly requests deeper delegation.',
     ],
     tools: [
-      'group.read',
-      'group.create',
-      'group.reparent',
-      'group.delete',
       'agent.read',
       'agent.create',
+      'agent.delegate',
       'agent.reparent',
       'agent.delete',
       'agent.send',
+      'quest.read',
+      'quest.result',
+      'message.read',
       'agent.stop',
     ],
   })

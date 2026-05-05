@@ -16,6 +16,8 @@ GameDataEditor owns project semantics:
 
 The editor uses framework AI APIs but does not reimplement framework storage, target attachment, or permission checks.
 
+Patch review UI must use the framework ChangeSet contract in `doc/change-set-review-system.md`. GDE owns conversion from `gde.patch` preview to `ef.changeSet`; the framework owns review rendering and approval routing.
+
 ## Target Map
 
 | Surface | Target kind | URI | Read tools | Mutation path |
@@ -105,7 +107,7 @@ No alternate patch formats are supported.
 Patch tool semantics:
 
 - `gde.validatePatch` checks the patch without producing an applyable UI diff.
-- `gde.previewPatch` is the canonical dry-run write tool and must be called before every mutation.
+- `gde.previewPatch` is the canonical dry-run write tool and must return or be convertible to an atomic `ef.changeSet`.
 - `gde.applyPatch` applies only an approved patch or approved preview result.
 - No alternate mutation tool IDs or compatibility envelopes are supported.
 
@@ -140,6 +142,7 @@ Patch tool semantics:
 - Dragging targetable surfaces into `ai-chatinput` attaches target chips.
 - Sending with target chips attaches them to the active agent and clears pending chips.
 - AI-generated patches appear in `ai-messages` with preview and approval controls.
+- AI-generated patches render as `EF.ui.changeReview` using GDE semantic renderers.
 - Applying an approved patch records one GDE history entry.
 
 ## Implementation Tasks
@@ -148,4 +151,5 @@ Patch tool semantics:
 2. Add missing read/query/bulk helper tools.
 3. Add tests around patch validation and apply.
 4. Render GDE patch previews clearly in message tool blocks.
-5. Update GDE skill with strict data authoring rules.
+5. Add `GDE.ai.patchPreviewToChangeSet` and a `gde.patch` ChangeSet adapter.
+6. Update GDE skill with strict data authoring rules.

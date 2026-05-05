@@ -4,7 +4,13 @@
 
   const ai = EF.ai = EF.ai || {}
   const runs = {}
+  const waitingRuns = {}
+  const runtimeConfig = {
+    maxConcurrentAgents: 8,
+    maxConcurrentMessagesPerAgent: 1,
+  }
   let nextRunId = 1
+  let nextProviderToolCallId = 1
 
   function normalizeProviderMessage(result, request) {
     if (typeof result === 'string') return { role: 'assistant', content: result }
@@ -48,7 +54,9 @@
 
   function normalizeToolCalls(calls, actor) {
     return (calls || []).map(function (call) {
+      const id = call.id || call.providerCallId || ('tc_provider_' + Date.now().toString(36) + '_' + nextProviderToolCallId++)
       return Object.assign({}, call, {
+        id: id,
         toolId: call.toolId || call.name || call.tool || '',
         name: call.name || call.toolId || call.tool || '',
         args: call.args || {},
@@ -82,13 +90,15 @@
 
   function finishStreamingMessage(agentId, messageId, state, result, request) {
     const message = normalizeProviderMessage(result || {}, request)
-    const content = message.content != null && (message.content !== '' || !state.content) ? message.content : state.content
+    let content = message.content != null && (message.content !== '' || !state.content) ? message.content : state.content
     const toolCalls = normalizeToolCalls(message.toolCalls || state.toolCalls, request.actor)
+    const actionNote = content && hasActionBoundary(toolCalls) ? content : null
+    if (actionNote) content = ''
     const completedAt = Date.now()
     const usage = message.usage || (result && result.usage) || state.usage || null
     const cost = ai.estimateUsageCost ? ai.estimateUsageCost(request.connectionName, message.model || state.model || request.agent.model, usage) : null
     const firstTokenAt = state.firstTokenAt || null
-    return ai.updateMessage(agentId, messageId, Object.assign({}, message, {
+    const patch = Object.assign({}, message, {
       content: content,
       toolCalls: toolCalls,
       connection: message.connection || state.connection || request.connectionName,
@@ -105,7 +115,9 @@
         usage: usage,
         cost: cost,
       },
-    }))
+    })
+    if (actionNote) patch.meta = Object.assign({}, message.meta || {}, { runId: request.runId, actionNote: actionNote })
+    return ai.updateMessage(agentId, messageId, patch)
   }
 
   function consumeDeltas(agentId, messageId, state, source, request, controller) {
@@ -137,6 +149,42 @@
     })
   }
 
+  function hasToolResult(agent, callId) {
+    const messages = agent && agent.messages || []
+    for (let i = 0; i < messages.length; i++) {
+      if (messages[i].role === 'tool' && messages[i].meta && messages[i].meta.toolCallId === callId) return true
+    }
+    return false
+  }
+
+  function appendResolvedToolResults(agentId, message) {
+    const agent = ai.findAgent(agentId)
+    const calls = message && message.toolCalls || []
+    const state = { appended: 0, pending: 0 }
+    for (let i = 0; i < calls.length; i++) {
+      const call = calls[i]
+      if (call.status !== 'applied' && call.status !== 'completed' && call.status !== 'rejected' && call.status !== 'failed') {
+        state.pending++
+        continue
+      }
+      if (hasToolResult(agent, call.id)) continue
+      if (call.status === 'applied') {
+        appendToolResult(agentId, call, call.applyResult || { applied: true }, 'done')
+        state.appended++
+      } else if (call.status === 'completed') {
+        appendToolResult(agentId, call, call.result, 'done')
+        state.appended++
+      } else if (call.status === 'rejected') {
+        appendToolResult(agentId, call, { rejected: true, reason: call.error || 'Rejected' }, 'error')
+        state.appended++
+      } else if (call.status === 'failed') {
+        appendToolResult(agentId, call, call.error || { error: 'Tool failed' }, 'error')
+        state.appended++
+      }
+    }
+    return state
+  }
+
   function executeToolCalls(agentId, message, actor) {
     const calls = message.toolCalls || []
     if (!calls.length) return Promise.resolve({ count: 0, waiting: false })
@@ -153,6 +201,32 @@
     })
   }
 
+  function hasDelegationBoundary(calls) {
+    calls = calls || []
+    for (let i = 0; i < calls.length; i++) {
+      const id = calls[i] && (calls[i].toolId || calls[i].name)
+      if (id === 'agent.delegate' || id === 'agent.send') return true
+    }
+    return false
+  }
+
+  function hasActionBoundary(calls) {
+    calls = calls || []
+    for (let i = 0; i < calls.length; i++) {
+      const id = calls[i] && (calls[i].toolId || calls[i].name)
+      if (id === 'agent.delegate' || id === 'agent.send') return true
+      if (id === 'agent.create' || id === 'agent.reparent' || id === 'agent.delete' || id === 'agent.stop') return true
+    }
+    return false
+  }
+
+  function shouldAutoApplyTool(agent, call) {
+    if (!agent || agent.permissionMode !== 'full') return false
+    const id = call && (call.toolId || call.name || '')
+    if (ai.isToolAlwaysAllowed && ai.isToolAlwaysAllowed(agent.id, id)) return true
+    return id === 'agent.create' || id === 'agent.delegate'
+  }
+
   function executeOneToolCall(agentId, call, actor) {
     const tool = ai.getTool(call.toolId)
     if (!tool) {
@@ -161,7 +235,17 @@
     }
     if (tool.apply && !tool.run) {
       const previewed = ai.previewToolCall(agentId, call.id, actor)
-      appendToolResult(agentId, call, previewed && (previewed.preview || previewed.error || previewed), previewed && previewed.status === 'failed' ? 'error' : 'done')
+      if (previewed && previewed.status === 'previewed' && shouldAutoApplyTool(ai.findAgent(agentId), previewed)) {
+        const applied = ai.applyToolCall(agentId, call.id, actor)
+        if (applied && applied.promise) {
+          return applied.promise.then(function (done) {
+            appendToolResult(agentId, call, done && (done.applyResult || done.error || done), done && done.status === 'failed' ? 'error' : 'done')
+            return { waiting: false }
+          })
+        }
+        appendToolResult(agentId, call, applied && (applied.applyResult || applied.error || applied), applied && applied.status === 'failed' ? 'error' : 'done')
+        return Promise.resolve({ waiting: false })
+      }
       return Promise.resolve({ waiting: true })
     }
     const approved = ai.approveToolCall(agentId, call.id, actor)
@@ -177,6 +261,7 @@
   }
 
   function runChatTurn(agentId, provider, request, ctx, controller, actor) {
+    const inputMessage = request.input && request.input.id ? request.input : null
     const assistant = ai.appendMessage(agentId, {
       from: 'agent:' + agentId,
       role: 'assistant',
@@ -184,6 +269,7 @@
       connection: request.connectionName,
       model: request.agent.model || null,
       status: 'running',
+      resultForQuestId: inputMessage && inputMessage.questId || null,
       contextRefs: [],
       meta: { runId: request.runId },
     })
@@ -242,207 +328,187 @@
     return executeToolCalls(agentId, message, actor).then(function (state) {
       if (controller.signal.aborted || !state.count) return message
       const current = ai.findAgent(agentId)
-      if (!current || state.waiting) return message
+      if (!current || state.waiting) {
+        waitingRuns[agentId] = {
+          request: request,
+          actor: actor,
+          runId: request.runId,
+          turn: request.turn || 0,
+          messageId: message.id,
+        }
+        ai.setAgentStatus(agentId, {
+          status: 'waiting_approval',
+          statusText: 'waiting for tool approval',
+          activeMessageId: request.input && request.input.id || null,
+          activeQuestId: request.input && request.input.questId || null,
+        })
+        return message
+      }
+      if (hasDelegationBoundary(calls)) {
+        enqueuePostDelegationContinuation(agentId, request, ai.readMessage(agentId, message.id) || message)
+        return message
+      }
       const nextRequest = makeRequest(current, null, request.runId, actor, (request.turn || 0) + 1)
       const nextCtx = ai.createRunContext(nextRequest, controller)
       return runChatTurn(agentId, provider, nextRequest, nextCtx, controller, actor)
     })
   }
 
-  function resolveResourceRef(ref, all) {
-    if (typeof ref === 'string') return all.find(function (item) { return item.id === ref }) || { id: ref }
-    return ref
+  function makeRequest(agent, input, runId, actor, turn) {
+    return ai.makeRequest(agent, input, runId, actor, turn)
   }
 
-  function effectiveContextRefs(agent, input) {
-    const refs = []
-    const seen = {}
-    function add(ref) {
-      const id = typeof ref === 'string' ? ref : (ref && (ref.resourceId || ref.id))
-      if (!id || seen[id]) return
-      seen[id] = true
-      refs.push(ref)
+  function completeMessageExecution(agentId, request, result) {
+    const input = request && request.input
+    if (!input || !input.id) return
+    const failed = result && result.status === 'error'
+    ai.updateMessage(agentId, input.id, {
+      status: failed ? 'failed' : 'done',
+      completedAt: Date.now(),
+    })
+    if (!input.questId) return
+    const questPatch = failed
+      ? { status: 'failed', completedAt: Date.now(), summary: 'Quest failed' }
+      : {
+        status: 'completed',
+        resultMessageId: result && result.id || null,
+        completedAt: Date.now(),
+        summary: result && typeof result.content === 'string' ? result.content.slice(0, 240) : '',
+      }
+    const quest = ai.updateQuest(agentId, input.questId, questPatch)
+    if (quest && quest.fromAgentId) {
+      ai.appendInboxEvent(quest.fromAgentId, {
+        type: failed ? 'quest.failed' : 'quest.completed',
+        fromAgentId: agentId,
+        questId: quest.id,
+        resultMessageId: quest.resultMessageId || null,
+        summary: quest.summary || '',
+      })
+      scheduleAgent(quest.fromAgentId)
     }
-    const agentRefs = agent.contextRefs || []
-    const inputRefs = input && input.contextRefs || []
-    for (let i = 0; i < agentRefs.length; i++) add(agentRefs[i])
-    for (let j = 0; j < inputRefs.length; j++) add(inputRefs[j])
-    return refs
   }
 
-  function resolveResources(refs, baseCtx) {
+  function finishAgentRun(agentId, request, result, key, controller) {
+    delete runs[key]
+    const current = ai.findAgent(agentId)
+    if (current && current.status === 'waiting_approval') return result
+    completeMessageExecution(agentId, request, result)
+    const agent = ai.findAgent(agentId)
+    if (agent && agent.queue && agent.queue.length) {
+      ai.setAgentStatus(agentId, { status: 'queued', statusText: '', activeMessageId: null, activeQuestId: null })
+      scheduleAgent(agentId)
+    } else if (agent && hasActionableInbox(agent)) {
+      enqueueInboxContinuation(agent)
+      ai.setAgentStatus(agentId, { status: 'queued', statusText: '', activeMessageId: null, activeQuestId: null })
+      scheduleAgent(agentId)
+    } else {
+      ai.setAgentStatus(agentId, { status: 'idle', statusText: '', activeMessageId: null, activeQuestId: null })
+    }
+    scheduleQueuedAgents()
+    return result
+  }
+
+  function hasActionableInbox(agent) {
+    const inbox = agent && agent.inbox || []
+    for (let i = 0; i < inbox.length; i++) if (!inbox[i].consumed) return true
+    return false
+  }
+
+  function summarizeDelegationCalls(message) {
+    const calls = message && message.toolCalls || []
     const out = []
-    const all = ai.resources ? ai.resources.peek() : []
-    for (let i = 0; i < refs.length; i++) {
-      const ref = resolveResourceRef(refs[i], all)
-      const resolver = ref && ai.getResourceResolver && ai.getResourceResolver(ref.resolver || ref.kind)
-      const canResolve = !resolver || !resolver.canResolve || resolver.canResolve(ref, baseCtx)
-      if (resolver && resolver.resolve && canResolve) out.push(resolver.resolve(ref, baseCtx))
-      else out.push(ref)
+    for (let i = 0; i < calls.length; i++) {
+      const id = calls[i] && (calls[i].toolId || calls[i].name)
+      if (id !== 'agent.delegate' && id !== 'agent.send') continue
+      const result = calls[i].applyResult || calls[i].result || {}
+      out.push({
+        toolId: id,
+        agentId: result.agentId || (calls[i].args && calls[i].args.agentId) || null,
+        questId: result.questId || null,
+        messageId: result.messageId || null,
+        status: result.status || calls[i].status || '',
+      })
     }
     return out
   }
 
-  function describeResources(refs) {
-    const all = ai.resources ? ai.resources.peek() : []
-    return refs.map(function (ref) {
-      const item = resolveResourceRef(ref, all)
-      return {
-        id: item.id || null,
-        resolver: item.resolver || item.kind || '',
-        uri: item.uri || '',
-        title: item.title || '',
-        kind: item.kind || 'resource',
-        summary: item.summary || '',
-        meta: item.meta || {},
-      }
+  function enqueuePostDelegationContinuation(agentId, request, message) {
+    const input = request && request.input
+    if (input && input.meta && input.meta.runtimeEvent === 'post-delegation.continuation') return null
+    const delegated = summarizeDelegationCalls(message)
+    if (!delegated.length) return null
+    const content = [
+      'Continue after delegated tasks were dispatched.',
+      'Delegated quests:',
+      JSON.stringify(delegated),
+      'Continue only useful local work that does not depend on those child results.',
+      'Do not call quest.result for these delegated quests until a completion inbox event reports they are ready.',
+      'If no independent local work remains, briefly state that delegated work is running and stop this turn.',
+    ].join('\n')
+    return queueMessage(agentId, {
+      from: 'system',
+      role: 'user',
+      content: content,
+      meta: { runtimeEvent: 'post-delegation.continuation', sourceMessageId: message && message.id || null, delegated: delegated },
+      priority: 10,
+      schedule: false,
     })
   }
 
-  function resolveTools(agent) {
-    const refs = agent.toolRefs || ai.listTools()
+  function enqueueInboxContinuation(agent) {
+    const events = (agent.inbox || []).filter(function (event) { return !event.consumed })
+    if (!events.length) return null
+    events.sort(function (a, b) { return (a.createdAt || 0) - (b.createdAt || 0) })
+    const selected = events.slice()
+    for (let i = 0; i < selected.length; i++) ai.markInboxEventConsumed(agent.id, selected[i].id)
+    const pending = pendingQuestsForEvents(agent.id, selected)
+    const content = 'Process this completed agent runtime event batch:\n' + JSON.stringify(selected.map(function (event) {
+      return {
+        type: event.type,
+        fromAgentId: event.fromAgentId,
+        questId: event.questId,
+        resultMessageId: event.resultMessageId,
+        summary: event.summary,
+      }
+    })) + '\nPending related quests, if any, are non-blocking background:\n' + JSON.stringify(pending)
+    return queueMessage(agent.id, {
+      from: 'system',
+      role: 'user',
+      content: content,
+      meta: { runtimeEvent: 'inbox.continuation', events: selected, pendingQuests: pending },
+      schedule: false,
+    })
+  }
+
+  function pendingQuestsForEvents(agentId, events) {
+    const seen = {}
     const out = []
-    for (let i = 0; i < refs.length; i++) {
-      const tool = ai.getTool(refs[i])
-      if (tool) {
+    const agents = ai.agents ? ai.agents.peek() : []
+    const sourceIds = {}
+    for (let i = 0; i < events.length; i++) if (events[i].fromAgentId) sourceIds[events[i].fromAgentId] = true
+    for (let a = 0; a < agents.length; a++) {
+      const list = agents[a].quests || []
+      for (let j = 0; j < list.length; j++) {
+        const quest = list[j]
+        if (quest.fromAgentId !== agentId) continue
+        if (quest.status === 'completed' || quest.status === 'failed' || quest.status === 'stopped') continue
+        if (sourceIds[agents[a].id]) continue
+        const key = agents[a].id + '/' + quest.id
+        if (seen[key]) continue
+        seen[key] = true
         out.push({
-          id: refs[i],
-          title: tool.title || refs[i],
-          description: tool.description || '',
-          schema: tool.schema || null,
-          permissions: tool.permissions || null,
+          agentId: agents[a].id,
+          questId: quest.id,
+          status: quest.status,
+          summary: quest.summary || '',
         })
       }
     }
     return out
   }
 
-  function resolveSkills(agent) {
-    const refs = agent.skillRefs || []
-    const out = []
-    for (let i = 0; i < refs.length; i++) {
-      const skill = ai.getSkill(refs[i])
-      if (skill) out.push(Object.assign({ id: refs[i] }, skill))
-    }
-    return out
-  }
-
-  function compactJson(value, max) {
-    let text = ''
-    try { text = JSON.stringify(value) } catch (_) { text = String(value) }
-    max = max || 1200
-    return text.length > max ? text.slice(0, max) + '...' : text
-  }
-
-  function resourceContextMessage(resourceRefs, resolvedResources) {
-    if (!resourceRefs.length && !resolvedResources.length) return null
-    const items = []
-    for (let i = 0; i < resourceRefs.length; i++) {
-      const ref = resourceRefs[i]
-      const resolved = resolvedResources[i] == null ? null : sanitizeResourcePayload(resolvedResources[i])
-      items.push({
-        id: ref.id || null,
-        uri: ref.uri || '',
-        kind: ref.kind || ref.resolver || 'resource',
-        title: ref.title || '',
-        summary: ref.summary || '',
-        meta: sanitizeResourceMeta(ref.meta || {}),
-        payload: resolved == null ? null : compactJson(resolved, 1400),
-      })
-    }
-    return {
-      id: 'system-context-' + Date.now().toString(36),
-      from: 'system',
-      role: 'system',
-      status: 'done',
-      content: 'Attached editor context resources. Use their uri/kind/meta to choose precise tools. Large payloads are summarized; call tools for full data.\n' + compactJson(items, 6000),
-    }
-  }
-
-  function sanitizeResourceMeta(meta) {
-    const out = Object.assign({}, meta || {})
-    if (out.dataUrl) {
-      out.hasImageData = true
-      delete out.dataUrl
-    }
-    return out
-  }
-
-  function sanitizeResourcePayload(payload) {
-    if (!payload || typeof payload !== 'object' || Array.isArray(payload)) return payload
-    const out = Object.assign({}, payload)
-    if (out.dataUrl) {
-      out.hasImageData = true
-      delete out.dataUrl
-    }
-    if (out.meta) out.meta = sanitizeResourceMeta(out.meta)
-    return out
-  }
-
-  function requestMessages(agent, resourceRefs, resolvedResources) {
-    const messages = agent.messages.slice()
-    const context = resourceContextMessage(resourceRefs, resolvedResources)
-    return context ? [context].concat(messages) : messages
-  }
-
-  function goalPolicy(agent) {
-    const policy = (agent.state && agent.state.goalPolicy) || {}
-    return {
-      maxTurns: Math.max(1, Number(policy.maxTurns || 20)),
-      maxToolCalls: Math.max(0, Number(policy.maxToolCalls || 50)),
-      requireUserApprovalForApply: policy.requireUserApprovalForApply !== false,
-      stopWhen: policy.stopWhen || 'self_check_passed',
-    }
-  }
-
-  function makeRequest(agent, input, runId, actor, turn) {
-    const baseCtx = { ai: ai, agent: agent, actor: actor || 'user', runId: runId }
-    const allowedResources = ai.canRead(actor || 'user', agent.id, 'resources.read')
-    const contextRefs = effectiveContextRefs(agent, input)
-    const resolvedResources = allowedResources ? resolveResources(contextRefs, baseCtx) : []
-    const resourceRefs = allowedResources ? describeResources(contextRefs) : []
-    return {
-      runId: runId,
-      agent: agent,
-      actor: actor || 'user',
-      connectionName: agent.connection || ai.defaultConnection || 'mock',
-      connection: agent.connection || ai.defaultConnection || 'mock',
-      model: agent.model || '',
-      input: input || null,
-      messages: requestMessages(agent, resourceRefs, resolvedResources),
-      contextRefs: contextRefs.slice(),
-      resourceRefs: resourceRefs,
-      resources: resolvedResources,
-      resolvedResources: resolvedResources,
-      tools: agent.toolRefs ? agent.toolRefs.slice() : ai.listTools(),
-      toolSpecs: resolveTools(agent),
-      skills: agent.skillRefs ? agent.skillRefs.slice() : [],
-      skillSpecs: resolveSkills(agent),
-      responseFormat: agent.responseFormat || null,
-      stream: !!agent.stream,
-      target: agent,
-      event: input && input.event ? input.event : null,
-      turn: turn || 0,
-      goalPolicy: agent.mode === 'goal' ? goalPolicy(agent) : null,
-      time: Date.now(),
-    }
-  }
-
-  function handleToolCalls(agentId, message, result, actor, policy, toolCount) {
-    const calls = (result && result.toolCalls) || message.toolCalls || []
-    if (!calls.length) return { count: toolCount, waiting: false }
-    const attached = message.toolCalls && message.toolCalls.length
-      ? message.toolCalls
-      : ai.attachToolCalls(agentId, message.id, calls, actor)
-    const nextCount = toolCount + attached.length
-    return {
-      count: nextCount,
-      waiting: policy && policy.requireUserApprovalForApply && attached.length > 0,
-    }
-  }
-
   function runAgent(agentId, input) {
-    const agent = agentId ? ai.findAgent(agentId) : ai.getActiveAgent()
+    let agent = agentId ? ai.findAgent(agentId) : ai.getActiveAgent()
     const connection = ai.getConnection(agent && agent.connection)
     if (!agent || !connection) return null
     const runner = {
@@ -450,103 +516,233 @@
     }
     const controller = new AbortController()
     const runId = 'run_' + Date.now().toString(36) + '_' + nextRunId++
-    const actor = (input && input.actor) || 'user'
+    const actor = (input && input.actor) || agent.id
     const request = makeRequest(agent, input, runId, actor, 0)
     const ctx = ai.createRunContext(request, controller)
     const key = agent.id
 
-    runs[key] = { controller: controller, connection: runner, runId: runId }
-    ai.setAgentStatus(agent.id, 'running')
+    runs[key] = { controller: controller, connection: runner, runId: runId, request: request }
+    ai.setAgentStatus(agent.id, {
+      status: 'running',
+      statusText: input && input.content ? String(input.content).slice(0, 120) : '',
+      activeMessageId: input && input.id || null,
+      activeQuestId: input && input.questId || null,
+    })
+    if (input && input.id) ai.updateMessage(agent.id, input.id, { status: 'running', startedAt: Date.now() })
+    if (input && input.questId) ai.updateQuest(agent.id, input.questId, { status: 'running', startedAt: Date.now() })
 
     const promise = Promise.resolve().then(function () {
-      if (agent.mode === 'goal') return runGoalLoop(agent.id, runner, input, controller, runId, actor)
       return runChatTurn(agent.id, runner, request, ctx, controller, actor)
     }).then(function (result) {
       if (controller.signal.aborted) return null
-      if (agent.mode === 'goal') {
-        delete runs[key]
-        ai.setAgentStatus(agent.id, result && result.waiting ? 'waiting' : 'idle')
-        return result && result.message
-      }
-      ai.setAgentStatus(agent.id, 'idle')
-      delete runs[key]
-      return result
+      return finishAgentRun(agent.id, request, result, key, controller)
     }, function (err) {
       delete runs[key]
-      ai.setAgentStatus(agent.id, controller.signal.aborted ? 'idle' : 'error')
+      if (input && input.id) ai.updateMessage(agent.id, input.id, { status: controller.signal.aborted ? 'stopped' : 'failed', completedAt: Date.now() })
+      if (input && input.questId) ai.updateQuest(agent.id, input.questId, { status: controller.signal.aborted ? 'stopped' : 'failed', completedAt: Date.now(), summary: String(err && err.message ? err.message : err) })
+      ai.setAgentStatus(agent.id, controller.signal.aborted ? 'idle' : 'failed')
       if (!controller.signal.aborted && EF.reportError) EF.reportError({ scope: 'ai', connection: request.connectionName }, err)
+      scheduleQueuedAgents()
       return null
     })
 
     return { request: request, controller: controller, promise: promise }
   }
 
-  function runGoalLoop(agentId, provider, input, controller, runId, actor) {
-    let turn = 0
-    let toolCount = 0
-    let lastMessage = null
-    let waiting = false
+  function activeRunCount() {
+    return Object.keys(runs).length
+  }
 
-    function step() {
-      const current = ai.findAgent(agentId)
-      const policy = goalPolicy(current)
-      if (controller.signal.aborted || turn >= policy.maxTurns || toolCount >= policy.maxToolCalls || waiting) {
-        return { message: lastMessage, waiting: waiting }
+  function canStartRun(agentId) {
+    if (runs[agentId]) return false
+    return activeRunCount() < runtimeConfig.maxConcurrentAgents
+  }
+
+  function stopRun(agentId, status) {
+    const agent = ai.findAgent(agentId)
+    if (!agent) return false
+    const run = runs[agent.id]
+    const waiting = waitingRuns[agent.id]
+    if (!run && !waiting) return false
+    if (run) {
+      run.controller.abort()
+      if (run.messageId) ai.updateMessage(agent.id, run.messageId, { status: 'stopped' })
+      const input = run.request && run.request.input
+      if (input && input.id) ai.updateMessage(agent.id, input.id, { status: 'stopped', completedAt: Date.now() })
+      if (input && input.questId) ai.updateQuest(agent.id, input.questId, { status: 'stopped', completedAt: Date.now(), summary: 'Stopped' })
+      if (run.connection && run.connection.abort) {
+        if (EF.safeCall) EF.safeCall({ scope: 'ai', connection: agent.connection || ai.defaultConnection, runId: run.runId }, function () { run.connection.abort(run.runId) })
+        else run.connection.abort(run.runId)
       }
-      const request = makeRequest(current, input, runId, actor, turn)
-      const ctx = ai.createRunContext(request, controller)
-      turn++
-      return Promise.resolve(provider.send(request, ctx)).then(function (result) {
-        if (controller.signal.aborted) return { message: null, waiting: false }
-        const message = normalizeProviderMessage(result, request)
-        lastMessage = ai.appendMessage(agentId, message)
-        const toolState = handleToolCalls(agentId, lastMessage, result, actor, policy, toolCount)
-        toolCount = toolState.count
-        waiting = toolState.waiting
-        if (result && (result.done || result.stop)) return { message: lastMessage, waiting: false }
-        if (!result || result.continue !== true) return { message: lastMessage, waiting: waiting }
-        return step()
-      })
+      delete runs[agent.id]
     }
+    if (waiting) {
+      const input = waiting.request && waiting.request.input
+      if (input && input.id) ai.updateMessage(agent.id, input.id, { status: 'stopped', completedAt: Date.now() })
+      if (input && input.questId) ai.updateQuest(agent.id, input.questId, { status: 'stopped', completedAt: Date.now(), summary: 'Stopped' })
+      delete waitingRuns[agent.id]
+    }
+    ai.setAgentStatus(agent.id, status || 'idle')
+    return true
+  }
 
-    return step()
+  function resumeAgent(agentId, actor) {
+    const agent = ai.findAgent(agentId)
+    const waiting = agent && waitingRuns[agent.id]
+    if (!agent || !waiting || runs[agent.id]) return null
+    if (!canStartRun(agent.id)) return null
+    const message = ai.readMessage(agent.id, waiting.messageId)
+    const toolState = appendResolvedToolResults(agent.id, message)
+    if (toolState.pending) return null
+    delete waitingRuns[agent.id]
+
+    const controller = new AbortController()
+    const runner = {
+      send: function (request, runCtx) { return ai.sendViaConnection(request.connectionName, request, runCtx) },
+    }
+    const request = makeRequest(ai.findAgent(agent.id), waiting.request.input, waiting.runId, waiting.actor, waiting.turn + 1)
+    const ctx = ai.createRunContext(request, controller)
+    const key = agent.id
+    runs[key] = { controller: controller, connection: runner, runId: waiting.runId, request: request }
+    ai.setAgentStatus(agent.id, {
+      status: 'running',
+      statusText: 'continuing after tool approval',
+      activeMessageId: request.input && request.input.id || null,
+      activeQuestId: request.input && request.input.questId || null,
+    })
+    const promise = Promise.resolve().then(function () {
+      return runChatTurn(agent.id, runner, request, ctx, controller, actor || waiting.actor)
+    }).then(function (result) {
+      if (controller.signal.aborted) return null
+      return finishAgentRun(agent.id, request, result, key, controller)
+    }, function (err) {
+      delete runs[key]
+      const input = request.input
+      if (input && input.id) ai.updateMessage(agent.id, input.id, { status: controller.signal.aborted ? 'stopped' : 'failed', completedAt: Date.now() })
+      if (input && input.questId) ai.updateQuest(agent.id, input.questId, { status: controller.signal.aborted ? 'stopped' : 'failed', completedAt: Date.now(), summary: String(err && err.message ? err.message : err) })
+      ai.setAgentStatus(agent.id, controller.signal.aborted ? 'idle' : 'failed')
+      if (!controller.signal.aborted && EF.reportError) EF.reportError({ scope: 'ai', connection: request.connectionName }, err)
+      scheduleQueuedAgents()
+      return null
+    })
+    return { request: request, controller: controller, promise: promise }
   }
 
   function stopAgent(agentId) {
     const agent = agentId ? ai.findAgent(agentId) : ai.getActiveAgent()
     if (!agent) return false
-    const run = runs[agent.id]
-    if (!run) return false
-    run.controller.abort()
-    if (run.messageId) ai.updateMessage(agent.id, run.messageId, { status: 'stopped' })
-    if (run.connection && run.connection.abort) {
-      if (EF.safeCall) EF.safeCall({ scope: 'ai', connection: agent.connection || ai.defaultConnection, runId: run.runId }, function () { run.connection.abort(run.runId) })
-      else run.connection.abort(run.runId)
-    }
-    delete runs[agent.id]
-    ai.setAgentStatus(agent.id, 'idle')
-    return true
+    const stopped = stopRun(agent.id, 'idle')
+    scheduleQueuedAgents()
+    return stopped
   }
 
-  function sendMessage(agentId, content, from, meta) {
+  function scheduleAgent(agentId) {
+    let agent = agentId ? ai.findAgent(agentId) : ai.getActiveAgent()
+    if (!agent) return null
+    if (runs[agent.id] || agent.status === 'running' || agent.status === 'waiting_approval') return null
+    if (!canStartRun(agent.id)) {
+      if (agent.queue && agent.queue.length) ai.setAgentStatus(agent.id, { status: 'queued', statusText: '', activeMessageId: null, activeQuestId: null })
+      return null
+    }
+    if ((!agent.queue || !agent.queue.length) && hasActionableInbox(agent)) {
+      enqueueInboxContinuation(agent)
+      agent = ai.findAgent(agent.id)
+    }
+    const queue = agent.queue || []
+    if (!queue.length) return null
+    const item = queue.slice().sort(function (a, b) {
+      return (b.priority || 0) - (a.priority || 0) || a.createdAt - b.createdAt
+    })[0]
+    ai.dequeueMessage(agent.id, item.messageId)
+    const message = ai.readMessage(agent.id, item.messageId)
+    return message ? runAgent(agent.id, message) : null
+  }
+
+  function scheduleQueuedAgents() {
+    if (activeRunCount() >= runtimeConfig.maxConcurrentAgents) return
+    const agents = ai.agents ? ai.agents.peek() : []
+    for (let i = 0; i < agents.length; i++) {
+      if (activeRunCount() >= runtimeConfig.maxConcurrentAgents) return
+      if (agents[i].queue && agents[i].queue.length) scheduleAgent(agents[i].id)
+    }
+  }
+
+  function queueMessage(agentId, content, from, meta) {
     const agent = agentId ? ai.findAgent(agentId) : ai.getActiveAgent()
     if (!agent) return null
     const spec = content && typeof content === 'object' ? content : { content: content }
     const message = ai.appendMessage(agent.id, {
-      from: from || 'user',
-      role: 'user',
+      from: spec.from || from || 'user',
+      role: spec.role || 'user',
       content: spec.content,
       connection: agent.connection,
       model: agent.model || null,
       contextRefs: spec.contextRefs || [],
+      attachments: spec.attachments || [],
+      questId: spec.questId || null,
+      resultForQuestId: spec.resultForQuestId || null,
+      status: 'queued',
       meta: meta || spec.meta || null,
     })
-    const run = runAgent(agent.id, message)
-    return Object.assign({ message: message }, run)
+    ai.enqueueMessage(agent.id, message.id, {
+      interrupt: !!spec.interrupt,
+      priority: spec.priority || 0,
+      guidance: spec.guidance || null,
+    })
+    if (spec.interrupt) stopRun(agent.id, 'queued')
+    const run = spec.schedule === false ? null : scheduleAgent(agent.id)
+    return Object.assign({ agentId: agent.id, messageId: message.id, message: message, status: message.status }, run || {})
+  }
+
+  function sendAgentQuest(toAgentId, spec) {
+    spec = spec || {}
+    const target = ai.findAgent(toAgentId)
+    if (!target) return null
+    let message = ai.appendMessage(target.id, {
+      from: spec.fromAgentId ? ('agent:' + spec.fromAgentId) : (spec.from || 'user'),
+      role: 'user',
+      content: spec.content || '',
+      connection: target.connection,
+      model: target.model || null,
+      contextRefs: spec.contextRefs || [],
+      attachments: spec.attachments || [],
+      status: 'queued',
+      meta: spec.meta || null,
+    })
+    message = ai.updateMessage(target.id, message.id, { questId: message.id })
+    const quest = ai.createQuest(target.id, {
+      id: message.id,
+      fromAgentId: spec.fromAgentId || null,
+      requestMessageId: message.id,
+      status: 'queued',
+    })
+    ai.enqueueMessage(target.id, message.id, {
+      interrupt: !!spec.interrupt,
+      priority: spec.priority || 0,
+      guidance: spec.guidance || null,
+    })
+    if (spec.interrupt) stopRun(target.id, 'queued')
+    const run = scheduleAgent(target.id)
+    return {
+      agentId: target.id,
+      questId: quest.id,
+      messageId: message.id,
+      status: run ? 'running' : 'queued',
+    }
   }
 
   ai.runAgent = runAgent
   ai.stopAgent = stopAgent
-  ai.sendMessage = sendMessage
+  ai.resumeAgent = resumeAgent
+  ai.scheduleAgent = scheduleAgent
+  ai.configureRuntime = function (config) {
+    Object.assign(runtimeConfig, config || {})
+    scheduleQueuedAgents()
+    return Object.assign({}, runtimeConfig)
+  }
+  ai.message = ai.message || {}
+  ai.agent = ai.agent || {}
+  ai.message.send = function (agentId, spec) { return queueMessage(agentId, spec || {}, (spec && spec.from) || 'user') }
+  ai.agent.send = sendAgentQuest
 })(window.EF = window.EF || {})
 

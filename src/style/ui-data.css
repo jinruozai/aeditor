@@ -209,6 +209,46 @@
 }
 .ef-ui-table-td:last-child { border-right: 0; }
 
+/* ── gridSelection ─────────────────────────────────────────────── */
+.ef-ui-grid-marquee {
+  position: absolute;
+  z-index: 5;
+  border: 1px solid var(--ef-accent);
+  background: color-mix(in srgb, var(--ef-accent) 14%, transparent);
+  pointer-events: none;
+  box-sizing: border-box;
+}
+
+.ef-ui-grid-drag-ghost {
+  position: fixed;
+  z-index: var(--ef-z-popover);
+  transform: translate(10px, 10px);
+  min-width: 52px;
+  max-width: 180px;
+  padding: 4px 8px;
+  border: 1px solid var(--ef-accent);
+  border-radius: var(--ef-r-2);
+  background: var(--ef-bg-raised);
+  color: var(--ef-fg-1);
+  box-shadow: var(--ef-shadow-3);
+  font: var(--ef-fs-sm) var(--ef-font-ui);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  pointer-events: none;
+}
+
+.ef-ui-grid-drop-indicator {
+  position: absolute;
+  z-index: 6;
+  display: none;
+  width: 2px;
+  border-radius: var(--ef-r-pill);
+  background: var(--ef-accent);
+  box-shadow: 0 0 8px var(--ef-accent);
+  pointer-events: none;
+}
+
 /* ── breadcrumbs ────────────────────────────────────────────────── */
 .ef-ui-crumbs {
   display: flex;
@@ -630,4 +670,195 @@
   border: 1px solid var(--ef-accent);
   background: color-mix(in srgb, var(--ef-accent) 16%, transparent);
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--ef-accent) 30%, transparent);
+}
+
+.ef-change-review {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ef-space-2);
+  min-width: 0;
+  color: var(--ef-fg-1);
+  font: var(--ef-fs-sm) var(--ef-font-ui);
+}
+.ef-change-review-head,
+.ef-change-review-resource-head,
+.ef-change-review-change-meta,
+.ef-change-review-diff,
+.ef-change-review-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--ef-space-2);
+}
+.ef-change-review-head {
+  padding-bottom: var(--ef-space-1);
+  border-bottom: 1px solid var(--ef-border);
+}
+.ef-change-review-title-block {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+.ef-change-review-title {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--ef-fg-0);
+  font-weight: 650;
+}
+.ef-change-review-summary,
+.ef-change-review-description,
+.ef-change-review-resource-subtitle,
+.ef-change-review-change-summary {
+  color: var(--ef-fg-3);
+  font-size: var(--ef-fs-xs);
+  line-height: 1.35;
+}
+.ef-change-review-actions {
+  flex: 0 0 auto;
+  margin-left: auto;
+}
+.ef-change-review-status {
+  flex: 0 0 auto;
+  padding: 1px 6px;
+  border: 1px solid var(--ef-border);
+  border-radius: var(--ef-r-pill);
+  color: var(--ef-fg-3);
+  font-size: var(--ef-fs-xs);
+  line-height: 16px;
+}
+.ef-change-review-status-applied {
+  border-color: color-mix(in srgb, var(--ef-success) 40%, var(--ef-border));
+  color: var(--ef-success);
+}
+.ef-change-review-status-failed {
+  border-color: color-mix(in srgb, var(--ef-error) 40%, var(--ef-border));
+  color: var(--ef-error);
+}
+.ef-change-review-status-rejected {
+  border-color: color-mix(in srgb, var(--ef-warning) 40%, var(--ef-border));
+  color: var(--ef-warning);
+}
+.ef-change-review-validation {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.ef-change-review-validation-item {
+  padding: 4px 7px;
+  border: 1px solid color-mix(in srgb, var(--ef-error) 35%, var(--ef-border));
+  border-radius: var(--ef-r-2);
+  background: color-mix(in srgb, var(--ef-error) 10%, var(--ef-bg-1));
+  color: var(--ef-error);
+}
+.ef-change-review-resources,
+.ef-change-review-changes {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ef-space-1);
+}
+.ef-change-review-resource {
+  border: 1px solid var(--ef-border);
+  border-radius: var(--ef-r-2);
+  background: var(--ef-bg-1);
+  overflow: hidden;
+}
+.ef-change-review-resource-head {
+  width: 100%;
+  padding: 6px 8px;
+  border: 0;
+  border-bottom: 1px solid var(--ef-border);
+  background: var(--ef-bg-2);
+  color: inherit;
+  text-align: left;
+}
+.ef-change-review-resource-label {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+.ef-change-review-resource-title {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--ef-fg-0);
+  font-weight: 600;
+}
+.ef-change-review-change {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 7px 8px;
+  border-bottom: 1px solid color-mix(in srgb, var(--ef-border) 70%, transparent);
+}
+.ef-change-review-change:last-child {
+  border-bottom: 0;
+}
+.ef-change-review-change-meta {
+  flex-wrap: wrap;
+}
+.ef-change-review-op,
+.ef-change-review-path {
+  flex: 0 1 auto;
+  min-width: 0;
+  padding: 1px 6px;
+  border: 1px solid var(--ef-border);
+  border-radius: var(--ef-r-pill);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--ef-fs-xs);
+}
+.ef-change-review-op {
+  color: var(--ef-accent);
+  text-transform: uppercase;
+}
+.ef-change-review-diff {
+  align-items: stretch;
+}
+.ef-change-review-value {
+  display: grid;
+  grid-template-columns: 54px minmax(0, 1fr);
+  flex: 1 1 0;
+  min-width: 0;
+  border: 1px solid var(--ef-border);
+  border-radius: var(--ef-r-2);
+  overflow: hidden;
+  background: var(--ef-bg-0);
+}
+.ef-change-review-value-before {
+  border-color: color-mix(in srgb, var(--ef-error) 24%, var(--ef-border));
+}
+.ef-change-review-value-after {
+  border-color: color-mix(in srgb, var(--ef-success) 24%, var(--ef-border));
+}
+.ef-change-review-value-label {
+  padding: 4px 6px;
+  border-right: 1px solid var(--ef-border);
+  background: var(--ef-bg-2);
+  color: var(--ef-fg-3);
+  font-size: var(--ef-fs-xs);
+}
+.ef-change-review-value-text {
+  min-width: 0;
+  padding: 4px 6px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--ef-fg-1);
+  font: var(--ef-fs-xs) var(--ef-font-mono);
+}
+.ef-change-review-empty {
+  color: var(--ef-fg-3);
+  font-style: italic;
+}
+
+@media (max-width: 720px) {
+  .ef-change-review-head,
+  .ef-change-review-diff {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .ef-change-review-actions {
+    margin-left: 0;
+  }
 }

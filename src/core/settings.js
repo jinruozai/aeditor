@@ -99,6 +99,7 @@
       title: p.title || id,
       icon: p.icon || 'settings',
       order: p.order != null ? p.order : 0,
+      searchText: p.searchText || '',
       replacesSchema: !!p.replacesSchema,
       factory: p.factory,
     }

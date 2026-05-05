@@ -51,7 +51,7 @@
           pageId: pages[j].id,
           sectionId: section.id,
           order: pages[j].order,
-          searchText: [pages[j].title, section.title].join(' '),
+          searchText: [pages[j].title, section.title, typeof pages[j].searchText === 'function' ? pages[j].searchText() : pages[j].searchText].join(' '),
         })
       }
       children.sort(function (a, b) { return (a.order || 0) - (b.order || 0) })

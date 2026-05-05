@@ -92,7 +92,7 @@
       title: pathKey,
       meta: { table: pathKey },
       capabilities: ['read', 'patch', 'query'],
-      tools: ['gde.getTableSchema', 'gde.queryRows', 'gde.proposePatch'],
+      tools: ['gde.getTableSchema', 'gde.queryRows', 'gde.previewPatch', 'gde.applyPatch'],
     };
   }
 
@@ -106,7 +106,7 @@
       summary: data.name != null ? String(data.name) : '',
       meta: { table: pathKey, id: String(id) },
       capabilities: ['read', 'patch', 'references'],
-      tools: ['gde.getEntity', 'gde.findReferences', 'gde.proposePatch'],
+      tools: ['gde.getEntity', 'gde.findReferences', 'gde.previewPatch', 'gde.applyPatch'],
     };
   }
 
@@ -118,7 +118,7 @@
       title: pathKey + ' / ' + String(id) + ' / ' + String(field),
       meta: { table: pathKey, id: String(id), field: String(field) },
       capabilities: ['read', 'patch'],
-      tools: ['gde.getField', 'gde.proposePatch'],
+      tools: ['gde.getField', 'gde.previewPatch', 'gde.applyPatch'],
     };
   }
 
@@ -142,7 +142,7 @@
       title: String(key),
       meta: { cardStyle: String(key) },
       capabilities: ['read', 'patch'],
-      tools: ['gde.getCardStyle', 'gde.proposePatch'],
+      tools: ['gde.getCardStyle', 'gde.previewPatch', 'gde.applyPatch'],
     };
   }
 
@@ -154,7 +154,7 @@
       title: String(name),
       meta: { type: String(name) },
       capabilities: ['read', 'patch', 'references'],
-      tools: ['gde.getTypeConfig', 'gde.findUnknownStructFields', 'gde.proposePatch'],
+      tools: ['gde.getTypeConfig', 'gde.findUnknownStructFields', 'gde.previewPatch', 'gde.applyPatch'],
     };
   }
 
@@ -166,7 +166,7 @@
       title: String(styleKey) + ' / ' + String(nodeId),
       meta: { cardStyle: String(styleKey), nodeId: String(nodeId) },
       capabilities: ['read', 'patch'],
-      tools: ['gde.getCardStyleNode', 'gde.proposePatch'],
+      tools: ['gde.getCardStyleNode', 'gde.previewPatch', 'gde.applyPatch'],
     };
   }
 
@@ -232,9 +232,10 @@
     if (!ai) return null;
     var agent = attachSelectionToAgent(agentId) || ai.getActiveAgent();
     if (!agent) return null;
-    return ai.sendMessage(agent.id, {
+    return ai.message.send(agent.id, {
       content: message || 'Inspect the attached GameDataEditor selection.',
-    }, 'user');
+      from: 'user',
+    });
   }
 
   function sendTargetsToAI(targets, message, agentId) {
@@ -265,6 +266,7 @@
     if (!ai) return false;
     configureProjectPersistence(ai);
     if (GDE.ai.registerResourceResolvers) GDE.ai.registerResourceResolvers();
+    if (GDE.ai.registerChangeSetAdapter) GDE.ai.registerChangeSetAdapter();
     registerTargetProviders();
     if (GDE.ai.registerContextProviders) GDE.ai.registerContextProviders();
     if (GDE.ai.registerTools) GDE.ai.registerTools();
@@ -286,8 +288,6 @@
     ai.createAgent({
       id: 'gde-main',
       name: 'main',
-      path: 'main',
-      mode: 'chat',
       connection: ai.defaultConnection || 'mock',
       permissionMode: 'full',
       skillRefs: ['gde.game-data-designer'],

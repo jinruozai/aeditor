@@ -98,7 +98,7 @@
       const rows = sorted(o.children ? (o.children(dir, query) || []) : [])
       grid.className = 'ef-ui-assetgrid ef-ui-assetgrid-' + view
       grid.dataset.view = view
-      ui.disposeChildren ? ui.disposeChildren(grid) : clear(grid)
+      ui.disposeChildren(grid)
       if (!rows.length) {
         grid.appendChild(ui.h('div', 'ef-ui-asset-empty', { text: query ? tr('assetBrowser.empty.search', 'No matching assets.') : tr('assetBrowser.empty.drop', 'Drop files here.') }))
         return
@@ -215,7 +215,7 @@
     }
 
     function renderCrumb() {
-      clear(crumb)
+      ui.disposeChildren(crumb)
       const rootLabel = ui.isSignal && ui.isSignal(o.rootLabel) ? o.rootLabel() : (o.rootLabel || tr('assetBrowser.root', 'asset'))
       crumb.appendChild(crumbButton(rootLabel, ''))
       let cur = ''
@@ -296,7 +296,7 @@
         } })
       }
       if (single) {
-        items.push({ label: tr('common.copy_path', 'Copy Path'), icon: 'copy', onSelect: function () { copy(pathFor(single)) } })
+        items.push({ label: tr('common.copy_path', 'Copy Path'), icon: 'copy', onSelect: function () { ui.copyText(pathFor(single)) } })
       }
       if (extra.length) {
         items.push({ type: 'divider' })
@@ -429,7 +429,6 @@
     function readEntries(data) {
       return data && Array.isArray(data.assetEntries) ? data.assetEntries : []
     }
-    function clear(el) { while (el.firstChild) ui.dispose(el.firstChild) }
     function parts(path) { return String(path || '').split('/').filter(Boolean) }
     function typeLabel(it) { return it.kind === 'folder' ? tr('assetBrowser.kind.folder', 'Folder') : (it.kind || 'file') }
     function valueFor(it, key) { return key === 'kind' ? typeLabel(it) : key === 'size' ? it.size : key === 'mtime' ? it.mtime : key === 'ctime' ? it.ctime : it.name }
@@ -448,7 +447,6 @@
       return a.left <= b.left + b.width && a.left + a.width >= b.left
           && a.top <= b.top + b.height && a.top + a.height >= b.top
     }
-    function copy(text) { if (navigator.clipboard) navigator.clipboard.writeText(text) }
     function load(k, fallback) { try { return storageKey ? (localStorage.getItem(storageKey + '.' + k) || fallback) : fallback } catch (_) { return fallback } }
     function save(k, v) { try { if (storageKey) localStorage.setItem(storageKey + '.' + k, v) } catch (_) {} }
 

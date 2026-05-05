@@ -43,11 +43,17 @@ const JS_ORDER = [
   // Layer 2.5 - AI session/agent runtime (no UI dependency)
   'ai/store.js',
   'ai/connection.js',
+  'ai/adapter.js',
   'ai/provider.js',
+  'ai/provider-auth.js',
+  'ai/provider-transports.js',
+  'ai/provider-connections.js',
   'ai/context.js',
+  'ai/change-set.js',
   'ai/target.js',
   'ai/rich-prompt.js',
   'ai/orchestration.js',
+  'ai/request.js',
   'ai/runtime.js',
 
   // Layer 3 �?dock runtime
@@ -136,12 +142,14 @@ const JS_ORDER = [
 
   // Layer 10 �?UI library: data
   'ui/data/list.js',
+  'ui/data/gridSelection.js',
   'ui/data/tree.js',
   'ui/data/tree-dnd.js',
   'ui/data/table.js',
   'ui/data/breadcrumbs.js',
   'ui/data/progressBar.js',
   'ui/data/assetBrowser.js',
+  'ui/data/changeReview.js',
 
   // Layer 11 �?UI library: overlays
   'ui/overlay/menu.js',

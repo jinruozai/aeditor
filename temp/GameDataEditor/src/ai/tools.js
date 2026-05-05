@@ -73,34 +73,23 @@
       return replaceAssetReferences(args.from, args.to);
     });
 
-    EF.ai.registerTool('gde.proposePatch', {
-      title: 'Propose GDE patch',
-      description: 'Return a validated GDE patch proposal without applying it.',
-      schema: { patch: 'gde.patch' },
-      permissions: { call: true, apply: false },
-      preview: function (args) { return GDE.ai.patch(args.patch || args, { dryRun: true }); },
-      run: function (args) { return GDE.ai.patch(args.patch || args, { dryRun: true }); },
-    });
     EF.ai.registerTool('gde.previewPatch', {
       title: 'Preview GDE patch',
-      description: 'Validate and preview a GDE patch.',
+      description: 'Validate and preview a GDE patch. The approved preview can be applied from the message UI.',
       schema: { patch: 'gde.patch' },
-      permissions: { call: true, apply: false },
-      preview: function (args) { return GDE.ai.patch(args.patch || args, { dryRun: true }); },
-      run: function (args) { return GDE.ai.patch(args.patch || args, { dryRun: true }); },
+      permissions: { call: true, apply: true },
+      preview: GDE.ai.previewPatchChangeSet,
+      run: GDE.ai.previewPatchChangeSet,
+      apply: GDE.ai.applyPatchChangeSet,
     });
     EF.ai.registerTool('gde.applyPatch', {
       title: 'Apply GDE patch',
       description: 'Apply an approved GDE patch through State and History.',
       schema: { patch: 'gde.patch' },
       permissions: { call: true, apply: true },
-      preview: function (args) { return GDE.ai.patch(args.patch || args, { dryRun: true }); },
-      run: function (args) { return GDE.ai.patch(args.patch || args, { dryRun: true }); },
-      apply: function (result) {
-        var patch = result && result.type === 'gde.patch' ? result : (result && result.patch) || null;
-        if (!patch && result && result.validation && result.changes) patch = result.patch;
-        return GDE.ai.patch(patch || result, { apply: true });
-      },
+      preview: GDE.ai.previewPatchChangeSet,
+      run: GDE.ai.previewPatchChangeSet,
+      apply: GDE.ai.applyPatchChangeSet,
     });
   }
 

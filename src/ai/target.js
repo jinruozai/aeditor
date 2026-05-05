@@ -336,7 +336,7 @@
             icon: 'message-circle',
             onSelect: function () {
               attachTargetsToAgent(null, targets)
-              if (ai.sendMessage) ai.sendMessage(null, 'Inspect the attached target(s).', 'user')
+              if (ai.message && ai.message.send) ai.message.send(null, { content: 'Inspect the attached target(s).', from: 'user' })
             },
           },
         ])

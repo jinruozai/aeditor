@@ -282,9 +282,23 @@
   gap: var(--ef-space-1);
 }
 
+.ef-settings-auth-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--ef-space-2);
+  min-width: 0;
+  flex-wrap: wrap;
+}
+
 .ef-settings-provider-status {
   color: var(--ef-fg-3);
   font: var(--ef-fs-xs) var(--ef-font-ui);
+  white-space: nowrap;
+}
+
+.ef-settings-auth-hint {
+  color: var(--ef-fg-3);
+  font: var(--ef-fs-xs) var(--ef-font-mono);
   white-space: nowrap;
 }
 

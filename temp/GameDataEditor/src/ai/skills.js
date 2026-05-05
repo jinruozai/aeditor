@@ -66,7 +66,6 @@
     EF.ai.registerAgentTemplate('gde.table-designer', {
       title: 'GDE Table Designer',
       defaults: {
-        mode: 'chat',
         connection: 'mock',
         model: '',
         contextRefs: [
@@ -80,10 +79,8 @@
     EF.ai.registerAgentTemplate('gde.reference-auditor', {
       title: 'GDE Reference Auditor',
       defaults: {
-        mode: 'goal',
         connection: 'mock',
         model: '',
-        state: { goalPolicy: { maxTurns: 8, maxToolCalls: 20, requireUserApprovalForApply: true } },
         permissions: { paths: [{ path: 'gde', mode: 'read' }] },
       },
       skills: ['gde.game-data-designer'],

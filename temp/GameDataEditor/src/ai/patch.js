@@ -220,6 +220,7 @@
       table: op.table || null,
       id: op.id != null ? String(op.id) : null,
       field: op.field || null,
+      raw: clone(op),
       before: before,
       after: after,
       summary: summarizeOp(op, before, after),

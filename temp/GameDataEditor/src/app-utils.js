@@ -16,6 +16,10 @@
   }
 
   function clear(el) {
+    if (window.EF && EF.ui && EF.ui.disposeChildren) {
+      EF.ui.disposeChildren(el);
+      return;
+    }
     while (el && el.firstChild) disposeNode(el.firstChild);
   }
 

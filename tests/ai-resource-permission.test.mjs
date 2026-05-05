@@ -7,8 +7,13 @@ vm.runInThisContext(readFileSync('src/core/signal.js', 'utf8'), { filename: 'sig
 vm.runInThisContext(readFileSync('src/core/log.js', 'utf8'), { filename: 'log.js' })
 vm.runInThisContext(readFileSync('src/ai/store.js', 'utf8'), { filename: 'ai/store.js' })
 vm.runInThisContext(readFileSync('src/ai/connection.js', 'utf8'), { filename: 'ai/connection.js' })
+vm.runInThisContext(readFileSync('src/ai/adapter.js', 'utf8'), { filename: 'ai/adapter.js' })
 vm.runInThisContext(readFileSync('src/ai/provider.js', 'utf8'), { filename: 'ai/provider.js' })
+vm.runInThisContext(readFileSync('src/ai/provider-auth.js', 'utf8'), { filename: 'ai/provider-auth.js' })
+vm.runInThisContext(readFileSync('src/ai/provider-transports.js', 'utf8'), { filename: 'ai/provider-transports.js' })
+vm.runInThisContext(readFileSync('src/ai/provider-connections.js', 'utf8'), { filename: 'ai/provider-connections.js' })
 vm.runInThisContext(readFileSync('src/ai/context.js', 'utf8'), { filename: 'ai/context.js' })
+vm.runInThisContext(readFileSync('src/ai/request.js', 'utf8'), { filename: 'ai/request.js' })
 vm.runInThisContext(readFileSync('src/ai/runtime.js', 'utf8'), { filename: 'ai/runtime.js' })
 
 const ai = window.EF.ai
@@ -28,11 +33,10 @@ ai.registerResourceResolver('secret', {
 
 const target = ai.createAgent({
   name: 'Target',
-  path: 'target',
   connection: 'capture',
   messages: [{ role: 'user', content: 'read context' }],
 })
-const actor = ai.createAgent({ name: 'Actor', path: 'actor' })
+const actor = ai.createAgent({ name: 'Actor' })
 const res = ai.addResource({
   resolver: 'secret',
   uri: 'secret://one',
@@ -58,7 +62,6 @@ assert.equal(requestSeen.messages.some(function (m) {
 ai.setPermissionResolver(null)
 const imageAgent = ai.createAgent({
   name: 'Image Target',
-  path: 'image-target',
   connection: 'capture',
   messages: [{ role: 'user', content: 'read image' }],
 })
@@ -72,8 +75,12 @@ const image = ai.addResource({
 ai.updateAgent(imageAgent.id, { contextRefs: [image.id] })
 await ai.runAgent(imageAgent.id).promise
 assert.equal(requestSeen.messages[0].role, 'system')
-assert.equal(String(requestSeen.messages[0].content).includes('data:image/png;base64'), false)
-assert.equal(String(requestSeen.messages[0].content).includes('hasImageData'), true)
+const resourceMessage = requestSeen.messages.find(function (message) {
+  return String(message.content || '').indexOf('Attached editor context resources') >= 0
+})
+assert.equal(!!resourceMessage, true)
+assert.equal(String(resourceMessage.content).includes('data:image/png;base64'), false)
+assert.equal(String(resourceMessage.content).includes('hasImageData'), true)
 assert.equal(requestSeen.resources[0].meta.dataUrl, 'data:image/png;base64,aGVsbG8=')
 
 console.log('ai resource permission tests ok')

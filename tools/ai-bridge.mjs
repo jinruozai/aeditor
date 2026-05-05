@@ -1,13 +1,24 @@
 #!/usr/bin/env node
 import http from 'node:http'
 import { spawn } from 'node:child_process'
+import { existsSync } from 'node:fs'
+import { join } from 'node:path'
 
 const HOST = process.env.EF_AI_BRIDGE_HOST || '127.0.0.1'
 const PORT = Number(process.env.EF_AI_BRIDGE_PORT || 8787)
-const CODEX_COMMAND = process.env.EF_CODEX_COMMAND || 'codex'
+const WINDOWS_SHELL = process.platform === 'win32'
+const CODEX_COMMAND = process.env.EF_CODEX_COMMAND || resolveCodexCommand()
 const CODEX_ARGS = (process.env.EF_CODEX_ARGS || 'app-server --listen stdio://').split(/\s+/).filter(Boolean)
 const CODEX_CHAT_COMMAND = process.env.EF_CODEX_CHAT_COMMAND || ''
 const CODEX_CHAT_ARGS = (process.env.EF_CODEX_CHAT_ARGS || '').split(/\s+/).filter(Boolean)
+let lastDebugRequest = null
+
+function resolveCodexCommand() {
+  if (!WINDOWS_SHELL) return 'codex'
+  const appData = process.env.APPDATA || ''
+  const npmCodex = appData ? join(appData, 'npm', 'codex.cmd') : ''
+  return npmCodex && existsSync(npmCodex) ? npmCodex : 'codex'
+}
 
 function json(res, status, data) {
   const body = JSON.stringify(data == null ? {} : data)
@@ -20,42 +31,10 @@ function json(res, status, data) {
   res.end(body)
 }
 
-function textOfMessageContent(content) {
-  if (content == null) return ''
-  if (typeof content === 'string') return content
-  if (content.type === 'rich-prompt') return content.renderedText || content.text || ''
-  if (Array.isArray(content)) {
-    return content.map(function (item) {
-      return typeof item === 'string' ? item : (item.text || item.content || '')
-    }).join('')
-  }
-  return String(content)
-}
-
-function lastUserText(request) {
-  const messages = request.messages || []
-  for (let i = messages.length - 1; i >= 0; i--) {
-    if ((messages[i].role || 'user') === 'user') return textOfMessageContent(messages[i].content)
-  }
-  return textOfMessageContent(request.content)
-}
-
 function userInputItems(request) {
-  const items = []
-  const text = lastUserText(request)
-  if (text) items.push({ type: 'text', text })
-  const refs = request.resourceRefs || []
-  const payloads = request.resources || request.resolvedResources || []
-  for (let i = 0; i < refs.length; i++) {
-    const ref = refs[i] || {}
-    const payload = payloads[i] || {}
-    if (payload.path && String(ref.kind || payload.kind || '').indexOf('image') >= 0) {
-      items.push({ type: 'localImage', path: payload.path })
-    } else if (payload.url || (payload.dataUrl && /^https?:/.test(payload.dataUrl))) {
-      items.push({ type: 'image', url: payload.url || payload.dataUrl })
-    }
-  }
-  return items.length ? items : [{ type: 'text', text: '' }]
+  return Array.isArray(request.inputItems) && request.inputItems.length
+    ? request.inputItems
+    : [{ type: 'text', text: '' }]
 }
 
 function runJsonCommand(command, args, payload) {
@@ -63,6 +42,7 @@ function runJsonCommand(command, args, payload) {
     const child = spawn(command, args, {
       stdio: ['pipe', 'pipe', 'pipe'],
       windowsHide: true,
+      shell: WINDOWS_SHELL,
     })
     let stdout = ''
     let stderr = ''
@@ -96,13 +76,22 @@ class JsonRpcProcess {
     this.listeners = new Map()
     this.buffer = ''
     this.initialized = null
+    this.lastError = null
   }
 
   start() {
     if (this.child) return
+    this.lastError = null
     this.child = spawn(this.command, this.args, {
       stdio: ['pipe', 'pipe', 'pipe'],
       windowsHide: true,
+      shell: WINDOWS_SHELL,
+    })
+    this.child.on('error', err => {
+      this.lastError = err
+      this.child = null
+      this.rejectPending(err)
+      this.initialized = null
     })
     this.child.stdout.setEncoding('utf8')
     this.child.stdout.on('data', chunk => this.onData(chunk))
@@ -112,14 +101,19 @@ class JsonRpcProcess {
     })
     this.child.on('exit', () => {
       this.child = null
-      for (const item of this.pending.values()) item.reject(new Error('Codex app-server exited'))
-      this.pending.clear()
+      this.rejectPending(new Error('Codex app-server exited'))
       this.initialized = null
     })
   }
 
+  rejectPending(err) {
+    for (const item of this.pending.values()) item.reject(err)
+    this.pending.clear()
+  }
+
   async ensureReady() {
     this.start()
+    if (this.lastError) throw this.lastError
     if (this.initialized) return this.initialized
     this.initialized = this.request('initialize', {
       clientInfo: {
@@ -139,6 +133,9 @@ class JsonRpcProcess {
     }).then(result => {
       this.notify('initialized', {})
       return result
+    }, err => {
+      this.initialized = null
+      throw err
     })
     return this.initialized
   }
@@ -164,7 +161,12 @@ class JsonRpcProcess {
     const msg = { id, method, params: params || {} }
     return new Promise((resolve, reject) => {
       this.pending.set(id, { resolve, reject })
-      this.child.stdin.write(JSON.stringify(msg) + '\n')
+      try {
+        this.child.stdin.write(JSON.stringify(msg) + '\n')
+      } catch (err) {
+        this.pending.delete(id)
+        reject(err)
+      }
     })
   }
 
@@ -198,7 +200,7 @@ const codex = new JsonRpcProcess(CODEX_COMMAND, CODEX_ARGS)
 
 async function codexStatus() {
   await codex.ensureReady()
-  const result = await codex.request('account/read', { refreshToken: false })
+  const result = await codex.request('account/read', { refreshToken: true })
   const account = result && result.account
   return {
     state: account ? 'signed_in' : 'signed_out',
@@ -230,6 +232,8 @@ async function codexLogout() {
 async function codexModels() {
   return {
     models: [
+      { id: 'gpt-5.5', label: 'gpt-5.5' },
+      { id: 'gpt-5.5-pro', label: 'gpt-5.5-pro' },
       { id: 'gpt-5.3-codex', label: 'gpt-5.3-codex' },
       { id: 'gpt-5.3-codex-spark', label: 'gpt-5.3-codex-spark' },
       { id: 'gpt-5.2-codex', label: 'gpt-5.2-codex' },
@@ -270,9 +274,21 @@ async function codexChat(request) {
     if (turn.status === 'failed') doneReject(new Error(turn.error && turn.error.message || 'Codex turn failed'))
     else doneResolve(turn)
   })
+  const input = userInputItems(request)
+  lastDebugRequest = {
+    time: new Date().toISOString(),
+    model: request.model || '',
+    messages: (request.messages || []).length,
+    inputPreview: input.map(item => Object.assign({}, item, {
+      text: item.text ? item.text.slice(0, 4000) : item.text,
+    })),
+  }
+  if (process.env.EF_AI_BRIDGE_DEBUG_PROMPT) {
+    console.log('[prompt]', JSON.stringify(input).slice(0, 4000))
+  }
   await codex.request('turn/start', {
     threadId,
-    input: userInputItems(request),
+    input: input,
     model: request.model || undefined,
     summary: 'concise',
   })
@@ -304,6 +320,7 @@ async function route(req, res) {
   if (req.method === 'OPTIONS') return json(res, 204, {})
   const url = new URL(req.url, 'http://localhost')
   if (url.pathname === '/health' || url.pathname === '/healthz') return json(res, 200, { ok: true, id: 'editorframe-ai-bridge' })
+  if (url.pathname === '/debug/last-request' && req.method === 'GET') return json(res, 200, lastDebugRequest || {})
   if (url.pathname === '/connections') {
     return json(res, 200, {
       data: [

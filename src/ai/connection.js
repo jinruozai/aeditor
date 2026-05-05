@@ -9,6 +9,7 @@
   const connectionsSig = EF.signal([])
   const modelsSig = EF.signal({})
   const statusSig = EF.signal({})
+  const CUSTOM_KEY = 'ai.customConnections'
   let activeConnection = 'mock'
 
   function normalizeModels(models) {
@@ -36,6 +37,69 @@
     connectionsSig.set(connectionOptions())
     if (!activeConnection) activeConnection = spec.id
     return spec
+  }
+
+  function customConnections() {
+    return EF.settings && EF.settings.get ? (EF.settings.get(CUSTOM_KEY) || []) : []
+  }
+
+  function persistCustomConnections(list) {
+    if (EF.settings && EF.settings.set) EF.settings.set(CUSTOM_KEY, list || [])
+  }
+
+  function createCustomConnection(spec) {
+    const s = spec || {}
+    const id = uniqueConnectionId(s.id || slug(s.label || s.provider || 'custom'))
+    const item = {
+      id: id,
+      label: s.label || id,
+      provider: s.provider || 'custom',
+      authType: s.authType || 'apiKey',
+      transportType: s.transportType || 'openai-compatible',
+      defaults: {
+        baseUrl: s.baseUrl || '',
+        apiKey: s.apiKey || '',
+        defaultModel: s.defaultModel || '',
+        stream: s.stream !== false,
+      },
+      modelHints: s.modelHints || [],
+      order: s.order || 500,
+    }
+    const list = customConnections().filter(function (old) { return old.id !== id }).concat([item])
+    persistCustomConnections(list)
+    registerConnection(id, customSpec(item))
+    return getConnection(id)
+  }
+
+  function loadCustomConnections() {
+    const list = customConnections()
+    for (let i = 0; i < list.length; i++) registerConnection(list[i].id, customSpec(list[i]))
+    return list
+  }
+
+  function customSpec(item) {
+    return {
+      id: item.id,
+      label: item.label || item.id,
+      provider: item.provider || 'custom',
+      auth: { type: item.authType || 'apiKey' },
+      transport: { type: item.transportType || 'openai-compatible' },
+      configDefaults: Object.assign({ baseUrl: '', apiKey: '', defaultModel: '', stream: true }, item.defaults || {}),
+      modelHints: item.modelHints || [],
+      order: item.order || 500,
+      custom: true,
+    }
+  }
+
+  function slug(text) {
+    return String(text || 'custom').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'custom'
+  }
+
+  function uniqueConnectionId(base) {
+    let id = base
+    let n = 2
+    while (connections[id]) id = base + '-' + n++
+    return id
   }
 
   function getConnection(id) {
@@ -124,11 +188,11 @@
     })
   }
 
-  function login(id) {
+  function login(id, opts) {
     const c = getConnection(id)
     const driver = getAuthDriver(id)
     if (!c || !driver || !driver.login) return Promise.resolve(setStatus(id, authStatus(id)))
-    return Promise.resolve(driver.login(c, connectionConfig(c.id))).then(function (status) {
+    return Promise.resolve(driver.login(c, connectionConfig(c.id), opts || {})).then(function (status) {
       return setStatus(c.id, status || authStatus(c.id))
     })
   }
@@ -172,6 +236,8 @@
   ai.registerAuthDriver = registerAuthDriver
   ai.registerTransport = registerTransport
   ai.registerConnection = registerConnection
+  ai.createCustomConnection = createCustomConnection
+  ai.loadCustomConnections = loadCustomConnections
   ai.getConnection = getConnection
   ai.listConnections = listConnections
   ai.connectionOptions = connectionOptions

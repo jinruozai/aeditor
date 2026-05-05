@@ -1,4 +1,4 @@
-import assert from 'node:assert/strict'
+﻿import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import vm from 'node:vm'
 
@@ -9,8 +9,13 @@ for (const file of [
   'src/core/log.js',
   'src/ai/store.js',
   'src/ai/connection.js',
+  'src/ai/adapter.js',
   'src/ai/provider.js',
+  'src/ai/provider-auth.js',
+  'src/ai/provider-transports.js',
+  'src/ai/provider-connections.js',
   'src/ai/context.js',
+  'src/ai/request.js',
   'src/ai/runtime.js',
 ]) {
   vm.runInThisContext(readFileSync(file, 'utf8'), { filename: file })
@@ -44,7 +49,7 @@ const streamed = ai.createAgent({
   model: 'stream-model',
 })
 ai.updateAgent(streamed.id, { stream: true })
-const sent = ai.sendMessage(streamed.id, { content: 'stream this' }, 'user')
+const sent = ai.message.send(streamed.id, { content: 'stream this' }, 'user')
 assert.equal(sent.request.stream, true)
 assert.equal(byId(ai.agents(), streamed.id).status, 'running')
 const streamedReply = await sent.promise

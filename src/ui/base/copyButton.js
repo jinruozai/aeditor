@@ -24,7 +24,7 @@
       size: o.size || 'sm',
       kind: 'ghost',
       onClick: function () {
-        copyText(readText(o.text)).then(function () {
+        ui.copyText(readText(o.text)).then(function () {
           copied.set(true)
           btn.classList.add('ef-ui-copy-btn-copied')
           if (timer) clearTimeout(timer)
@@ -53,7 +53,7 @@
     return v
   }
 
-  function copyText(text) {
+  ui.copyText = function (text) {
     const s = String(text == null ? '' : text)
     if (navigator.clipboard && navigator.clipboard.writeText) {
       return navigator.clipboard.writeText(s).catch(function () { fallbackCopy(s) })

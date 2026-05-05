@@ -119,6 +119,10 @@
   // (only codeInput does, for syntax highlighting), it assigns `.innerHTML`
   // directly on its own element. That makes the trust boundary visible at
   // the call site instead of hiding it behind an option name.
+  ui.disposeChildren = function (el) {
+    while (el && el.firstChild) ui.dispose(el.firstChild)
+  }
+
   ui.h = function (tag, cls, attrs) {
     const el = document.createElement(tag)
     if (cls) el.className = cls

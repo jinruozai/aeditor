@@ -31,7 +31,11 @@
 
 ## Phase 4 - Patch UX
 
-- [x] Message panel renders GDE patch preview as a diff summary.
+- [ ] `EF.changeSet` core implemented.
+- [ ] `EF.ui.changeReview` implemented.
+- [ ] `ai-messages` renders `ef.changeSet` previews.
+- [ ] `GDE.ai.patchPreviewToChangeSet` implemented.
+- [ ] GDE patch preview renders through `EF.ui.changeReview`.
 - [x] Apply requires approval.
 - [x] Apply writes one history entry.
 - [x] Validation failure displays errors without mutation.
@@ -44,7 +48,7 @@
 - [x] `npm run check:dist`
 - [ ] GDE browser smoke:
   - open demo
-  - configure provider
+  - configure connection
   - send a chat message
   - attach table card target
   - preview patch

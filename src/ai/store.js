@@ -1,70 +1,25 @@
-// EF.ai store - final group/agent/resource model.
+// EF.ai store - final agent/resource model.
 ;(function (EF) {
   'use strict'
 
   const ai = EF.ai = EF.ai || {}
 
-  let nextGroupId = 1
   let nextAgentId = 1
   let nextMessageId = 1
   let nextResourceId = 1
+  let nextEventId = 1
 
-  const groupsSig = EF.signal([])
   const agentsSig = EF.signal([])
   const resourcesSig = EF.signal([])
   const activeAgentIdSig = EF.signal(null)
   let permissionResolver = null
-  let persistenceKey = 'editorframe.ai.v1'
+  let persistenceKey = 'editorframe.ai.v2'
   let persistenceEnabled = true
 
   function now() { return Date.now() }
 
   function makeId(prefix, n) {
     return prefix + '_' + now().toString(36) + '_' + n
-  }
-
-  function normalizePath(path) {
-    let out = String(path || '').replace(/\\/g, '/')
-    out = out.replace(/\/+/g, '/')
-    out = out.replace(/^\/+/, '')
-    out = out.replace(/\/+$/, '')
-    return out || 'main'
-  }
-
-  function pathParts(path) {
-    return normalizePath(path).toLowerCase().split('/').filter(Boolean)
-  }
-
-  function parentPath(path) {
-    const parts = pathParts(path)
-    parts.pop()
-    return parts.join('/')
-  }
-
-  function agentNameFromPath(path) {
-    const parts = pathParts(path)
-    return parts.length ? parts[parts.length - 1] : normalizePath(path)
-  }
-
-  function isPathInside(path, root) {
-    const child = pathParts(path)
-    const parent = pathParts(root)
-    if (!parent.length) return true
-    if (child.length < parent.length) return false
-    for (let i = 0; i < parent.length; i++) {
-      if (child[i] !== parent[i]) return false
-    }
-    return true
-  }
-
-  function isDescendant(parent, child) {
-    const p = pathParts(parent)
-    const c = pathParts(child)
-    if (!p.length || c.length <= p.length) return false
-    for (let i = 0; i < p.length; i++) {
-      if (p[i] !== c[i]) return false
-    }
-    return true
   }
 
   function defaultName(kind, id) {
@@ -75,55 +30,49 @@
     return typeof order === 'number' ? order : fallback
   }
 
-  function makeGroup(spec) {
-    spec = spec || {}
-    const id = spec.id || makeId('g', nextGroupId++)
-    return {
-      id: id,
-      name: spec.name || defaultName('Group', id),
-      parentId: spec.parentId || null,
-      order: cleanOrder(spec.order, groupsSig.peek().length),
-      collapsed: !!spec.collapsed,
-      createdAt: spec.createdAt || now(),
-      updatedAt: spec.updatedAt || now(),
-    }
+  function normalizePath(path) {
+    let out = String(path || '').replace(/\\/g, '/')
+    out = out.replace(/\/+/g, '/').replace(/^\/+/, '').replace(/\/+$/, '')
+    return out || 'root'
   }
 
   function makePermission(path, mode) {
     return { path: normalizePath(path), mode: mode || 'read' }
   }
 
-  function normalizePermissionList(permissions, path) {
+  function normalizePermissionList(permissions) {
     const paths = permissions && permissions.paths
-    if (paths && paths.length) {
-      return { paths: paths.map(function (p) { return makePermission(p.path, p.mode) }) }
-    }
-    return { paths: [makePermission(path, 'readwrite')] }
+    if (paths && paths.length) return { paths: paths.map(function (p) { return makePermission(p.path, p.mode) }) }
+    return { paths: [] }
   }
 
   function makeAgent(spec) {
     spec = spec || {}
     const id = spec.id || makeId('a', nextAgentId++)
-    const path = normalizePath(spec.path || spec.name || id)
     return {
       id: id,
-      name: spec.name || agentNameFromPath(path),
-      path: path,
-      groupId: spec.groupId || null,
+      name: spec.name || defaultName('Agent', id),
+      parentAgentId: spec.parentAgentId || null,
       order: cleanOrder(spec.order, agentsSig.peek().length),
       connection: spec.connection || ai.defaultConnection || 'mock',
       model: spec.model || '',
-      mode: spec.mode || 'chat',
+      contextBudgetTokens: spec.contextBudgetTokens || null,
       permissionMode: spec.permissionMode || 'full',
       status: spec.status || 'idle',
+      statusText: spec.statusText || '',
+      activeMessageId: spec.activeMessageId || null,
+      activeQuestId: spec.activeQuestId || null,
       systemPrompt: spec.systemPrompt || '',
       messages: (spec.messages || []).map(makeMessage),
+      queue: (spec.queue || []).map(makeQueueItem),
+      inbox: (spec.inbox || []).map(makeInboxEvent),
+      quests: (spec.quests || []).map(makeQuest),
       contextRefs: spec.contextRefs ? spec.contextRefs.slice() : [],
       memory: spec.memory || {},
       state: spec.state || {},
       skillRefs: spec.skillRefs ? spec.skillRefs.slice() : [],
       toolRefs: spec.toolRefs ? spec.toolRefs.slice() : [],
-      permissions: normalizePermissionList(spec.permissions, path),
+      permissions: normalizePermissionList(spec.permissions),
       createdAt: spec.createdAt || now(),
       updatedAt: spec.updatedAt || now(),
       meta: spec.meta || {},
@@ -134,17 +83,68 @@
     spec = spec || {}
     return {
       id: spec.id || makeId('m', nextMessageId++),
+      agentId: spec.agentId || null,
       from: spec.from || 'user',
       role: spec.role || 'user',
       content: spec.content == null ? '' : spec.content,
       connection: spec.connection || null,
       model: spec.model || null,
-      time: spec.time || now(),
+      time: spec.time || spec.createdAt || now(),
+      createdAt: spec.createdAt || spec.time || now(),
+      startedAt: spec.startedAt || null,
+      completedAt: spec.completedAt || (spec.status === 'done' ? (spec.time || now()) : null),
       status: spec.status || 'done',
       contextRefs: spec.contextRefs ? spec.contextRefs.slice() : [],
       attachments: spec.attachments ? spec.attachments.slice() : [],
       toolCalls: spec.toolCalls ? spec.toolCalls.slice() : [],
+      questId: spec.questId || null,
+      resultForQuestId: spec.resultForQuestId || null,
       meta: spec.meta || null,
+      usage: spec.usage || null,
+      stats: spec.stats || null,
+    }
+  }
+
+  function makeQueueItem(spec) {
+    spec = spec || {}
+    return {
+      messageId: spec.messageId || null,
+      priority: cleanOrder(spec.priority, 0),
+      interrupt: !!spec.interrupt,
+      guidance: spec.guidance || null,
+      createdAt: spec.createdAt || now(),
+    }
+  }
+
+  function makeInboxEvent(spec) {
+    spec = spec || {}
+    return {
+      id: spec.id || makeId('evt', nextEventId++),
+      type: spec.type || 'event',
+      fromAgentId: spec.fromAgentId || null,
+      questId: spec.questId || null,
+      resultMessageId: spec.resultMessageId || null,
+      summary: spec.summary || '',
+      consumed: !!spec.consumed,
+      createdAt: spec.createdAt || now(),
+      meta: spec.meta || {},
+    }
+  }
+
+  function makeQuest(spec) {
+    spec = spec || {}
+    return {
+      id: spec.id || spec.requestMessageId,
+      fromAgentId: spec.fromAgentId || null,
+      toAgentId: spec.toAgentId || null,
+      requestMessageId: spec.requestMessageId || spec.id || null,
+      status: spec.status || 'queued',
+      resultMessageId: spec.resultMessageId || spec.resultId || null,
+      summary: spec.summary || '',
+      createdAt: spec.createdAt || now(),
+      startedAt: spec.startedAt || null,
+      completedAt: spec.completedAt || null,
+      meta: spec.meta || {},
     }
   }
 
@@ -163,115 +163,42 @@
     }
   }
 
-  function findGroup(id) {
-    const groups = groupsSig.peek()
-    for (let i = 0; i < groups.length; i++) {
-      if (groups[i].id === id) return groups[i]
-    }
-    return null
-  }
-
   function findAgent(id) {
     const agents = agentsSig.peek()
-    for (let i = 0; i < agents.length; i++) {
-      if (agents[i].id === id) return agents[i]
-    }
-    return null
-  }
-
-  function findAgentByPath(path) {
-    const target = normalizePath(path).toLowerCase()
-    const agents = agentsSig.peek()
-    for (let i = 0; i < agents.length; i++) {
-      if (normalizePath(agents[i].path).toLowerCase() === target) return agents[i]
-    }
+    for (let i = 0; i < agents.length; i++) if (agents[i].id === id) return agents[i]
     return null
   }
 
   function getActiveAgent() {
-    const id = activeAgentIdSig()
-    const agents = agentsSig()
-    for (let i = 0; i < agents.length; i++) {
-      if (agents[i].id === id) return agents[i]
-    }
-    return null
-  }
-
-  function updateGroups(fn) {
-    let out = null
-    groupsSig.update(function (groups) {
-      const next = fn(groups.slice())
-      out = next
-      return next
-    })
-    return out
+    return findAgent(activeAgentIdSig())
   }
 
   function updateAgents(fn) {
     let out = null
     agentsSig.update(function (agents) {
-      const next = fn(agents.slice())
-      out = next
-      return next
+      out = fn(agents.slice())
+      return out
     })
     return out
   }
 
-  function createGroup(spec) {
-    const group = makeGroup(spec)
-    groupsSig.update(function (groups) { return groups.concat([group]) })
-    return group
-  }
-
-  function updateGroup(id, patch) {
-    let out = null
-    updateGroups(function (groups) {
-      return groups.map(function (group) {
-        if (group.id !== id) return group
-        out = Object.assign({}, group, patch || {}, { updatedAt: now() })
-        return out
-      })
-    })
-    return out
-  }
-
-  function renameGroup(id, name) {
-    return updateGroup(id, { name: String(name || '') })
-  }
-
-  function moveGroup(id, opts, orderArg) {
-    const group = findGroup(id)
-    const o = (opts && typeof opts === 'object') ? opts : { parentId: opts, order: orderArg }
-    return updateGroup(id, { parentId: o.parentId || null, order: cleanOrder(o.order, group ? group.order : 0) })
-  }
-
-  function deleteGroup(id) {
-    const removed = findGroup(id)
-    const removeIds = new Set([id])
-    let changed = true
-    while (changed) {
-      changed = false
-      const groups = groupsSig.peek()
-      for (let i = 0; i < groups.length; i++) {
-        if (groups[i].parentId && removeIds.has(groups[i].parentId) && !removeIds.has(groups[i].id)) {
-          removeIds.add(groups[i].id)
-          changed = true
-        }
-      }
+  function isDescendant(parentId, childId) {
+    if (!parentId || !childId || parentId === childId) return false
+    let cur = findAgent(childId)
+    while (cur && cur.parentAgentId) {
+      if (cur.parentAgentId === parentId) return true
+      cur = findAgent(cur.parentAgentId)
     }
-    groupsSig.update(function (groups) { return groups.filter(function (g) { return !removeIds.has(g.id) }) })
-    agentsSig.update(function (agents) {
-      return agents.map(function (agent) {
-        return removeIds.has(agent.groupId) ? Object.assign({}, agent, { groupId: null, updatedAt: now() }) : agent
-      })
-    })
-    return removed
+    return false
   }
 
   function createAgent(spec) {
     const agent = makeAgent(spec)
+    if (agent.parentAgentId && (!findAgent(agent.parentAgentId) || isDescendant(agent.id, agent.parentAgentId))) {
+      agent.parentAgentId = null
+    }
     agentsSig.update(function (agents) { return agents.concat([agent]) })
-    activeAgentIdSig.set(agent.id)
+    if (!spec || spec.select !== false) activeAgentIdSig.set(agent.id)
     return agent
   }
 
@@ -281,8 +208,10 @@
       return agents.map(function (agent) {
         if (agent.id !== id) return agent
         out = Object.assign({}, agent, patch || {}, { updatedAt: now() })
-        if (patch && patch.path) out.path = normalizePath(patch.path)
-        if (patch && patch.permissions) out.permissions = normalizePermissionList(patch.permissions, out.path)
+        if (patch && patch.parentAgentId && (!findAgent(patch.parentAgentId) || isDescendant(id, patch.parentAgentId))) out.parentAgentId = agent.parentAgentId || null
+        if (patch && patch.permissions) out.permissions = normalizePermissionList(patch.permissions)
+        delete out.path
+        delete out.groupId
         return out
       })
     })
@@ -295,63 +224,42 @@
 
   function moveAgent(id, opts, orderArg) {
     const agent = findAgent(id)
-    const o = (opts && typeof opts === 'object') ? opts : { groupId: opts, order: orderArg }
+    const o = (opts && typeof opts === 'object') ? opts : { parentAgentId: opts, order: orderArg }
     if (!agent) return null
-    return moveAgentSubtree(id, agent.path, o.groupId || null, o.order)
-  }
-
-  function setAgentPath(id, path) {
-    const agent = findAgent(id)
-    if (!agent) return null
-    return moveAgentSubtree(id, normalizePath(path), agent.groupId || null, agent.order)
-  }
-
-  function moveAgentSubtree(id, nextPath, nextGroupId, order) {
-    const agent = findAgent(id)
-    if (!agent) return null
-    const oldPath = normalizePath(agent.path)
-    const rootPath = normalizePath(nextPath)
-    const groupId = nextGroupId || null
-    let moved = null
-    agentsSig.update(function (agents) {
-      return agents.map(function (item) {
-        if (item.id !== id && !isDescendant(oldPath, item.path)) return item
-        const suffix = item.id === id ? '' : normalizePath(item.path).slice(oldPath.length).replace(/^\/+/, '')
-        const path = suffix ? normalizePath(rootPath + '/' + suffix) : rootPath
-        const patch = {
-          path: path,
-          groupId: groupId,
-          updatedAt: now(),
-        }
-        if (item.id === id) {
-          patch.order = cleanOrder(order, item.order)
-          moved = Object.assign({}, item, patch)
-          return moved
-        }
-        return Object.assign({}, item, patch)
-      })
-    })
-    return moved
+    const parentAgentId = o.parentAgentId || null
+    if (parentAgentId && (!findAgent(parentAgentId) || parentAgentId === id || isDescendant(id, parentAgentId))) return null
+    return updateAgent(id, { parentAgentId: parentAgentId, order: cleanOrder(o.order, agent.order) })
   }
 
   function reparentAgent(id, parentAgentId, order) {
-    const agent = findAgent(id)
-    const parent = findAgent(parentAgentId)
-    if (!agent || !parent || agent.id === parent.id) return null
-    if (isDescendant(agent.path, parent.path)) return null
-    const name = agentNameFromPath(agent.path)
-    return moveAgentSubtree(id, normalizePath(parent.path + '/' + name), parent.groupId || null, order)
+    return moveAgent(id, { parentAgentId: parentAgentId || null, order: order })
+  }
+
+  function childIdsOf(id) {
+    const agents = agentsSig.peek()
+    const out = []
+    for (let i = 0; i < agents.length; i++) if (agents[i].parentAgentId === id) out.push(agents[i].id)
+    return out
+  }
+
+  function descendantIdsOf(id) {
+    const out = []
+    const stack = childIdsOf(id)
+    while (stack.length) {
+      const next = stack.shift()
+      out.push(next)
+      const children = childIdsOf(next)
+      for (let i = 0; i < children.length; i++) stack.push(children[i])
+    }
+    return out
   }
 
   function deleteAgent(id) {
     const removed = findAgent(id)
-    const removedPath = removed && removed.path
-    agentsSig.update(function (agents) {
-      return agents.filter(function (agent) {
-        return agent.id !== id && !(removedPath && isDescendant(removedPath, agent.path))
-      })
-    })
-    if (activeAgentIdSig.peek() === id || (removedPath && getActiveAgent() && isDescendant(removedPath, getActiveAgent().path))) {
+    if (!removed) return null
+    const removeIds = new Set([id].concat(descendantIdsOf(id)))
+    agentsSig.update(function (agents) { return agents.filter(function (agent) { return !removeIds.has(agent.id) }) })
+    if (removeIds.has(activeAgentIdSig.peek())) {
       const rest = agentsSig.peek()
       activeAgentIdSig.set(rest.length ? rest[0].id : null)
     }
@@ -368,14 +276,18 @@
     updateAgents(function (agents) {
       return agents.map(function (agent) {
         if (agent.id !== agentId) return agent
-        out = makeMessage(message)
-        return Object.assign({}, agent, {
-          messages: agent.messages.concat([out]),
-          updatedAt: now(),
-        })
+        out = makeMessage(Object.assign({}, message || {}, { agentId: agentId }))
+        return Object.assign({}, agent, { messages: agent.messages.concat([out]), updatedAt: now() })
       })
     })
     return out
+  }
+
+  function readMessage(agentId, messageId) {
+    const agent = findAgent(agentId)
+    const messages = agent && agent.messages || []
+    for (let i = 0; i < messages.length; i++) if (messages[i].id === messageId) return messages[i]
+    return null
   }
 
   function updateMessage(agentId, messageId, patch) {
@@ -388,8 +300,27 @@
           out = Object.assign({}, message, patch || {})
           return out
         })
+        return Object.assign({}, agent, { messages: messages, updatedAt: now() })
+      })
+    })
+    return out
+  }
+
+  function setAgentStatus(agentId, status) {
+    return updateAgent(agentId, typeof status === 'object' ? status : { status: status })
+  }
+
+  function enqueueMessage(agentId, messageId, opts) {
+    let out = null
+    opts = opts || {}
+    updateAgents(function (agents) {
+      return agents.map(function (agent) {
+        if (agent.id !== agentId) return agent
+        out = makeQueueItem({ messageId: messageId, priority: opts.priority, interrupt: opts.interrupt, guidance: opts.guidance })
+        const queue = opts.interrupt ? [out].concat(agent.queue || []) : (agent.queue || []).concat([out])
         return Object.assign({}, agent, {
-          messages: messages,
+          queue: queue,
+          status: agent.status === 'idle' ? 'queued' : agent.status,
           updatedAt: now(),
         })
       })
@@ -397,8 +328,85 @@
     return out
   }
 
-  function setAgentStatus(agentId, status) {
-    return updateAgent(agentId, { status: status })
+  function dequeueMessage(agentId, messageId) {
+    let out = null
+    updateAgents(function (agents) {
+      return agents.map(function (agent) {
+        if (agent.id !== agentId) return agent
+        const queue = (agent.queue || []).filter(function (item) {
+          if (!out && (!messageId || item.messageId === messageId)) {
+            out = item
+            return false
+          }
+          return true
+        })
+        return Object.assign({}, agent, { queue: queue, updatedAt: now() })
+      })
+    })
+    return out
+  }
+
+  function createQuest(agentId, spec) {
+    let out = null
+    updateAgents(function (agents) {
+      return agents.map(function (agent) {
+        if (agent.id !== agentId) return agent
+        out = makeQuest(Object.assign({}, spec || {}, { toAgentId: agentId }))
+        return Object.assign({}, agent, { quests: (agent.quests || []).concat([out]), updatedAt: now() })
+      })
+    })
+    return out
+  }
+
+  function findQuest(agentId, questId) {
+    const agent = findAgent(agentId)
+    const quests = agent && agent.quests || []
+    for (let i = 0; i < quests.length; i++) if (quests[i].id === questId) return quests[i]
+    return null
+  }
+
+  function updateQuest(agentId, questId, patch) {
+    let out = null
+    updateAgents(function (agents) {
+      return agents.map(function (agent) {
+        if (agent.id !== agentId) return agent
+        const quests = (agent.quests || []).map(function (quest) {
+          if (quest.id !== questId) return quest
+          out = Object.assign({}, quest, patch || {})
+          return out
+        })
+        return Object.assign({}, agent, { quests: quests, updatedAt: now() })
+      })
+    })
+    return out
+  }
+
+  function appendInboxEvent(agentId, event) {
+    let out = null
+    updateAgents(function (agents) {
+      return agents.map(function (agent) {
+        if (agent.id !== agentId) return agent
+        out = makeInboxEvent(event)
+        return Object.assign({}, agent, { inbox: (agent.inbox || []).concat([out]), updatedAt: now() })
+      })
+    })
+    return out
+  }
+
+  function markInboxEventConsumed(agentId, eventId) {
+    let out = null
+    updateAgents(function (agents) {
+      return agents.map(function (agent) {
+        if (agent.id !== agentId) return agent
+        const inbox = (agent.inbox || []).map(function (event) {
+          if (event.id !== eventId) return event
+          out = Object.assign({}, event, { consumed: true })
+          return out
+        })
+        return Object.assign({}, agent, { inbox: inbox, updatedAt: now() })
+      })
+    })
+    return out
   }
 
   function addResource(spec) {
@@ -431,8 +439,7 @@
 
   function snapshot() {
     return {
-      version: 1,
-      groups: groupsSig.peek(),
+      version: 2,
       agents: agentsSig.peek().map(snapshotAgent),
       resources: resourcesSig.peek(),
       activeAgentId: activeAgentIdSig.peek(),
@@ -440,7 +447,33 @@
   }
 
   function snapshotAgent(agent) {
-    return Object.assign({}, agent, { contextRefs: [] })
+    const out = Object.assign({}, agent, { contextRefs: [] })
+    delete out.path
+    delete out.groupId
+    return out
+  }
+
+  function normalizeRestoredRuntime(agent) {
+    const transient = { running: true, queued: true, waiting_approval: true, stopped: true, failed: true }
+    const messages = (agent.messages || []).map(function (message) {
+      return (message.status === 'running' || message.status === 'queued')
+        ? Object.assign({}, message, { status: 'stopped', completedAt: message.completedAt || now() })
+        : message
+    })
+    const quests = (agent.quests || []).map(function (quest) {
+      return (quest.status === 'running' || quest.status === 'queued' || quest.status === 'waiting_approval')
+        ? Object.assign({}, quest, { status: 'stopped', completedAt: quest.completedAt || now(), summary: quest.summary || 'Stopped by reload' })
+        : quest
+    })
+    return Object.assign({}, agent, {
+      status: transient[agent.status] ? 'idle' : (agent.status || 'idle'),
+      statusText: '',
+      activeMessageId: null,
+      activeQuestId: null,
+      queue: [],
+      messages: messages,
+      quests: quests,
+    })
   }
 
   function save() {
@@ -452,9 +485,8 @@
 
   function restore(data) {
     const next = data || readStored()
-    if (!next) return null
-    groupsSig.set((next.groups || []).map(makeGroup))
-    agentsSig.set((next.agents || []).map(makeAgent))
+    if (!next || next.version !== 2) return null
+    agentsSig.set((next.agents || []).map(function (agent) { return normalizeRestoredRuntime(makeAgent(agent)) }))
     resourcesSig.set((next.resources || []).map(makeResource))
     activeAgentIdSig.set(next.activeAgentId || (agentsSig.peek()[0] && agentsSig.peek()[0].id) || null)
     return snapshot()
@@ -473,18 +505,9 @@
 
   function configurePersistence(opts) {
     opts = opts || {}
-    const prevKey = persistenceKey
     if (opts.key) persistenceKey = opts.key
     if (opts.enabled != null) persistenceEnabled = opts.enabled !== false
-    if (opts.load !== false) {
-      const restored = restore()
-      if (!restored && prevKey !== persistenceKey) {
-        groupsSig.set([])
-        agentsSig.set([])
-        resourcesSig.set([])
-        activeAgentIdSig.set(null)
-      }
-    }
+    if (opts.load !== false) restore()
     return snapshot()
   }
 
@@ -500,38 +523,41 @@
     return ruleMode === wantedMode
   }
 
+  function pathInside(path, root) {
+    const child = normalizePath(path).toLowerCase().split('/').filter(Boolean)
+    const parent = normalizePath(root).toLowerCase().split('/').filter(Boolean)
+    if (!parent.length) return true
+    if (child.length < parent.length) return false
+    for (let i = 0; i < parent.length; i++) if (child[i] !== parent[i]) return false
+    return true
+  }
+
   function canAccessPath(agent, path, mode) {
     const wantedMode = mode || 'read'
     const rules = (agent && agent.permissions && agent.permissions.paths) || []
     for (let i = 0; i < rules.length; i++) {
-      if (isPathInside(path, rules[i].path) && canMode(rules[i].mode, wantedMode)) return true
+      if (pathInside(path, rules[i].path) && canMode(rules[i].mode, wantedMode)) return true
     }
     return false
   }
 
-  function canReadPath(agent, path) {
-    return canAccessPath(agent, path, 'read')
-  }
-
-  function canWritePath(agent, path) {
-    return canAccessPath(agent, path, 'write')
-  }
+  function canReadPath(agent, path) { return canAccessPath(agent, path, 'read') }
+  function canWritePath(agent, path) { return canAccessPath(agent, path, 'write') }
 
   function defaultPermission(ctx) {
     if (ctx.actor === 'user') return true
-    const actor = findAgent(ctx.actor)
+    const actorAgent = findAgent(ctx.actor)
     const target = findAgent(ctx.targetAgentId)
-    if (!actor || !target) return false
-    if (ctx.scope === 'messages.send') {
-      return actor.id === target.id || isDescendant(actor.path, target.path) || canAccessPath(actor, target.path, 'write')
+    if (!actorAgent || !target) return false
+    if (actorAgent.id === target.id) return true
+    if (ctx.scope === 'messages.send') return isDescendant(actorAgent.id, target.id)
+    if (ctx.scope === 'agent.manage') return isDescendant(actorAgent.id, target.id)
+    if (ctx.scope === 'agent.summary') return isDescendant(actorAgent.id, target.id)
+    if (ctx.scope === 'quest.read') {
+      const quest = findQuest(ctx.targetAgentId, ctx.questId)
+      return !!(quest && quest.fromAgentId === actorAgent.id)
     }
-    if (ctx.scope === 'agent.manage') {
-      return isDescendant(actor.path, target.path)
-    }
-    if (ctx.scope === 'agent.summary') {
-      return actor.id === target.id || isDescendant(actor.path, target.path) || canReadPath(actor, target.path)
-    }
-    return actor.id === target.id || isDescendant(actor.path, target.path) || canReadPath(actor, target.path)
+    return isDescendant(actorAgent.id, target.id)
   }
 
   function resolvePermission(actor, targetAgentId, scope, details) {
@@ -551,58 +577,100 @@
     return fn
   }
 
-  function getPermissionResolver() {
-    return permissionResolver
-  }
-
-  function canRead(actorId, targetId, scope) {
-    return resolvePermission(actorId, targetId, scope || 'agent.full')
-  }
-
-  function canSend(actorId, targetId) {
-    return resolvePermission(actorId, targetId, 'messages.send')
-  }
-
-  function canManage(actorId, targetId) {
-    return resolvePermission(actorId, targetId, 'agent.manage')
-  }
-
+  function getPermissionResolver() { return permissionResolver }
+  function canRead(actorId, targetId, scope) { return resolvePermission(actorId, targetId, scope || 'agent.full') }
+  function canSend(actorId, targetId) { return resolvePermission(actorId, targetId, 'messages.send') }
+  function canManage(actorId, targetId) { return resolvePermission(actorId, targetId, 'agent.manage') }
   function canUseTool(actorId, targetId, toolId, phase) {
-    return resolvePermission(actorId, targetId, phase === 'apply' ? 'tool.apply' : 'tool.call', {
-      toolId: toolId,
-      phase: phase || 'call',
-    })
+    return resolvePermission(actorId, targetId, phase === 'apply' ? 'tool.apply' : 'tool.call', { toolId: toolId, phase: phase || 'call' })
   }
 
-  ai.groups = groupsSig
+  function messageApiRead(agentId, messageId, actor) {
+    if (!resolvePermission(actor || 'user', agentId, 'messages.read', { messageId: messageId })) return null
+    return readMessage(agentId, messageId)
+  }
+
+  function questApiRead(agentId, questId, actor) {
+    if (!resolvePermission(actor || 'user', agentId, 'quest.read', { questId: questId })) return null
+    const quest = findQuest(agentId, questId)
+    if (!quest) return null
+    return {
+      agentId: agentId,
+      questId: quest.id,
+      status: quest.status,
+      resultId: quest.resultMessageId || null,
+      summary: quest.summary || '',
+      createdAt: quest.createdAt,
+      completedAt: quest.completedAt || null,
+    }
+  }
+
+  function questApiResult(agentId, questId, actor) {
+    const quest = questApiRead(agentId, questId, actor)
+    if (!quest || !quest.resultId) return quest
+    const message = messageApiRead(agentId, quest.resultId, actor)
+    return Object.assign({}, quest, { message: message || null, content: message ? message.content : null, resultMessageId: quest.resultId })
+  }
+
+  function agentApiRead(agentId, actor) {
+    if (!resolvePermission(actor || 'user', agentId, 'agent.summary')) return null
+    const agent = findAgent(agentId)
+    if (!agent) return null
+    const unread = (agent.inbox || []).filter(function (event) { return !event.consumed }).length
+    return {
+      id: agent.id,
+      name: agent.name,
+      parentAgentId: agent.parentAgentId || null,
+      order: agent.order,
+      status: agent.status,
+      statusText: agent.statusText || '',
+      activeMessageId: agent.activeMessageId || null,
+      activeQuestId: agent.activeQuestId || null,
+      queuedCount: (agent.queue || []).length,
+      unreadInboxCount: unread,
+      recentQuests: (agent.quests || []).slice(-8),
+    }
+  }
+
+  function agentMessages(agentId, opts, actor) {
+    opts = opts || {}
+    if (!resolvePermission(actor || 'user', agentId, 'messages.read')) return []
+    const agent = findAgent(agentId)
+    let messages = agent && agent.messages || []
+    if (!opts.includeToolMessages) messages = messages.filter(function (message) { return message.role !== 'tool' })
+    if (opts.after) {
+      let index = -1
+      for (let i = 0; i < messages.length; i++) if (messages[i].id === opts.after) { index = i; break }
+      if (index >= 0) messages = messages.slice(index + 1)
+    }
+    if (opts.limit > 0 && messages.length > opts.limit) messages = messages.slice(messages.length - opts.limit)
+    return messages.slice()
+  }
+
   ai.agents = agentsSig
   ai.resources = resourcesSig
   ai.activeAgentId = activeAgentIdSig
-  ai.normalizePath = normalizePath
-  ai.parentPath = parentPath
-  ai.agentNameFromPath = agentNameFromPath
-  ai.isPathInside = isPathInside
-  ai.isDescendant = isDescendant
-  ai.findGroup = findGroup
-  ai.createGroup = createGroup
-  ai.updateGroup = updateGroup
-  ai.renameGroup = renameGroup
-  ai.moveGroup = moveGroup
-  ai.deleteGroup = deleteGroup
   ai.findAgent = findAgent
-  ai.findAgentByPath = findAgentByPath
   ai.getActiveAgent = getActiveAgent
   ai.createAgent = createAgent
   ai.updateAgent = updateAgent
   ai.renameAgent = renameAgent
   ai.moveAgent = moveAgent
   ai.reparentAgent = reparentAgent
-  ai.setAgentPath = setAgentPath
   ai.deleteAgent = deleteAgent
   ai.selectAgent = selectAgent
+  ai.isDescendant = isDescendant
   ai.appendMessage = appendMessage
+  ai.readMessage = readMessage
   ai.updateMessage = updateMessage
   ai.setAgentStatus = setAgentStatus
+  ai.enqueueMessage = enqueueMessage
+  ai.dequeueMessage = dequeueMessage
+  ai.createQuest = createQuest
+  ai.findQuest = findQuest
+  ai.updateQuest = updateQuest
+  ai.appendInboxEvent = appendInboxEvent
+  ai.markInboxEventConsumed = markInboxEventConsumed
   ai.addResource = addResource
   ai.removeResource = removeResource
   ai.canAccessPath = canAccessPath
@@ -619,10 +687,17 @@
   ai.restore = restore
   ai.configurePersistence = configurePersistence
   ai.clearStoredState = clearStoredState
+  ai.message = ai.message || {}
+  ai.quest = ai.quest || {}
+  ai.agent = ai.agent || {}
+  ai.message.read = messageApiRead
+  ai.quest.read = questApiRead
+  ai.quest.result = questApiResult
+  ai.agent.read = agentApiRead
+  ai.agent.messages = agentMessages
 
   restore()
   EF.effect(function () {
-    groupsSig()
     agentsSig()
     resourcesSig()
     activeAgentIdSig()

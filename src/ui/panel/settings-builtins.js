@@ -94,6 +94,7 @@
     icon: 'user',
     order: 0,
     replacesSchema: true,
+    searchText: aiSearchText,
     factory: renderAiSettings,
   })
 
@@ -127,6 +128,13 @@
     const blockHead = EF.ui.h('div', 'ef-settings-provider-block-head')
     blockHead.appendChild(EF.ui.h('div', 'ef-settings-provider-block-title', { text: 'Connections' }))
     blockHead.appendChild(EF.ui.h('div', 'ef-settings-provider-block-desc', { text: 'Use Custom OpenAI Compatible for private endpoints. Framework plugins can register connections without replacing this page.' }))
+    blockHead.appendChild(EF.ui.button({
+      text: 'Add Connection',
+      icon: 'plus',
+      size: 'sm',
+      kind: 'ghost',
+      onClick: function () { addCustomConnection(root) },
+    }))
     block.appendChild(blockHead)
     const list = EF.ui.h('div', 'ef-settings-provider-list')
     const connections = EF.ai && EF.ai.connectionOptions ? EF.ai.connectionOptions() : [{ id: 'mock', label: 'Mock' }]
@@ -255,7 +263,7 @@
       size: 'sm',
       onClick: function () {
         const text = EF.theme && EF.theme.exportCss ? EF.theme.exportCss() : ''
-        navigator.clipboard && navigator.clipboard.writeText(text)
+        ui.copyText(text)
         if (ui.toast) ui.toast({ kind: 'info', title: 'CSS copied', message: text })
       },
     })
@@ -418,16 +426,11 @@
     title.appendChild(EF.ui.h('span', null, { text: meta.label || meta.id }))
     head.appendChild(title)
     const status = EF.ui.h('div', 'ef-settings-provider-status')
-    if (meta.authType === 'subscriptionBridge' || meta.authType === 'localBridge') {
-      head.appendChild(EF.ui.button({
-        text: 'Sign in',
-        size: 'sm',
-        kind: 'ghost',
-        onClick: function () { loginConnection(meta.id, status) },
-      }))
-    }
     card.appendChild(head)
     const fields = EF.ui.h('div', 'ef-settings-provider-fields')
+    if (meta.authType === 'subscriptionBridge') {
+      fields.appendChild(settingAuth(meta.id, status, meta.authType))
+    }
     for (let i = 0; i < settings.length; i++) {
       const field = settings[i]
       if (field.kind === 'model') {
@@ -465,6 +468,7 @@
         label: compactLabel(id, label, keyLabel(key)),
         type: key === 'apiKey' ? 'password' : 'text',
         placeholder: placeholderFor(key),
+        defaultValue: defaults[key],
         desc: keyDesc(key, label),
       })
     })
@@ -507,7 +511,8 @@
   }
 
   function settingInput(spec) {
-    const value = EF.signal(EF.settings.get(spec.key) || '')
+    const current = EF.settings.get(spec.key)
+    const value = EF.signal(current !== undefined ? current : (spec.defaultValue != null ? spec.defaultValue : ''))
     const row = settingRow(spec.label, spec.desc)
     row.appendChild(EF.ui.input({
       value: value,
@@ -523,7 +528,8 @@
   }
 
   function settingModel(spec) {
-    const value = EF.signal(EF.settings.get(spec.key) || '')
+    const current = EF.settings.get(spec.key)
+    const value = EF.signal(current !== undefined ? current : (spec.defaultValue != null ? spec.defaultValue : ''))
     const options = EF.signal(modelOptionsFor(spec.connectionId, value.peek()))
     const row = settingRow(spec.label, spec.desc)
     const control = EF.ui.h('div', 'ef-settings-field-control ef-settings-model-control')
@@ -589,7 +595,8 @@
   }
 
   function settingSwitch(spec) {
-    const value = EF.signal(!!EF.settings.get(spec.key))
+    const current = EF.settings.get(spec.key)
+    const value = EF.signal(current !== undefined ? !!current : !!spec.defaultValue)
     const row = settingRow(spec.label, spec.desc)
     row.appendChild(EF.ui.switch({
       value: value,
@@ -598,6 +605,45 @@
         EF.settings.set(spec.key, v)
       },
     }))
+    return row
+  }
+
+  function settingAuth(connectionId, status, authType) {
+    const row = settingRow(
+      'Auth',
+      authType === 'subscriptionBridge'
+        ? 'Uses Local Bridge to open the provider login page and store account auth outside this browser page.'
+        : 'Connects to a trusted Local Bridge running on this machine.'
+    )
+    const actions = EF.ui.h('div', 'ef-settings-auth-actions')
+    const loginBtn = EF.ui.button({
+      text: 'Login with Browser',
+      size: 'sm',
+      kind: 'primary',
+      onClick: function () { loginConnection(connectionId, status, loginBtn, logoutBtn) },
+    })
+    const logoutBtn = EF.ui.button({
+      text: 'Logout',
+      size: 'sm',
+      kind: 'ghost',
+      onClick: function () { logoutConnection(connectionId, status, loginBtn, logoutBtn) },
+    })
+    const refreshBtn = EF.ui.iconButton({
+      icon: 'refresh',
+      title: 'Refresh auth status',
+      size: 'sm',
+      kind: 'ghost',
+      onClick: function () { refreshAuthStatus(connectionId, status, loginBtn, logoutBtn, bridgeHint) },
+    })
+    const bridgeHint = EF.ui.h('span', 'ef-settings-auth-hint')
+    actions.appendChild(loginBtn)
+    actions.appendChild(refreshBtn)
+    actions.appendChild(logoutBtn)
+    actions.appendChild(bridgeHint)
+    setAuthState(connectionId, status, loginBtn, logoutBtn, null, bridgeHint)
+    actions.appendChild(status)
+    row.appendChild(actions)
+    refreshAuthStatus(connectionId, status, loginBtn, logoutBtn, bridgeHint)
     return row
   }
 
@@ -631,16 +677,122 @@
     })
   }
 
-  function loginConnection(connectionId, status) {
+  function loginConnection(connectionId, status, loginBtn, logoutBtn) {
     if (!EF.ai || !EF.ai.loginConnection) return
+    if (loginBtn && loginBtn.disabled) return
+    let popup = null
+    try {
+      if (window.open) popup = window.open('about:blank', '_blank')
+      if (popup && popup.document) {
+        popup.document.title = 'AI Login'
+        popup.document.body.style.font = '14px system-ui, sans-serif'
+        popup.document.body.style.padding = '24px'
+        popup.document.body.textContent = 'Connecting to local AI bridge...'
+      }
+    } catch (_) {}
     if (status) status.textContent = 'Signing in...'
-    EF.ai.loginConnection(connectionId).then(function (next) {
-      if (status) status.textContent = next && next.state ? next.state : 'Signed in'
+    if (loginBtn) loginBtn.disabled = true
+    EF.ai.loginConnection(connectionId, { popup: popup }).then(function (next) {
+      setAuthState(connectionId, status, loginBtn, logoutBtn, next)
       activateConnection(connectionId)
     }, function (err) {
-      if (status) status.textContent = 'Sign in failed'
+      const message = loginErrorMessage(err)
+      if (popup && popup.document) {
+        popup.document.title = 'AI Login Failed'
+        popup.document.body.style.font = '14px system-ui, sans-serif'
+        popup.document.body.style.padding = '24px'
+        popup.document.body.style.lineHeight = '1.5'
+        popup.document.body.textContent = message
+      }
+      if (status) status.textContent = message
+      if (loginBtn) {
+        loginBtn.style.display = ''
+        loginBtn.disabled = false
+      }
+      if (logoutBtn) logoutBtn.style.display = 'none'
       if (EF.reportError) EF.reportError({ scope: 'settings', connection: connectionId }, err)
     })
+  }
+
+  function logoutConnection(connectionId, status, loginBtn, logoutBtn) {
+    if (!EF.ai || !EF.ai.logoutConnection) return
+    if (status) status.textContent = 'Signing out...'
+    EF.ai.logoutConnection(connectionId).then(function (next) {
+      setAuthState(connectionId, status, loginBtn, logoutBtn, next || { state: 'signed_out' })
+    }, function (err) {
+      if (status) status.textContent = 'Logout failed'
+      if (EF.reportError) EF.reportError({ scope: 'settings', connection: connectionId }, err)
+    })
+  }
+
+  function refreshAuthStatus(connectionId, status, loginBtn, logoutBtn, bridgeHint) {
+    if (!EF.ai || !EF.ai.refreshAuthStatus) return
+    if (loginBtn) loginBtn.disabled = true
+    if (status) status.textContent = 'Checking...'
+    EF.ai.refreshAuthStatus(connectionId).then(function (next) {
+      setAuthState(connectionId, status, loginBtn, logoutBtn, next, bridgeHint)
+    }, function (err) {
+      if (status) status.textContent = bridgeUnavailableText(err)
+      if (bridgeHint) bridgeHint.textContent = authFixHint(err)
+      if (loginBtn) {
+        loginBtn.style.display = ''
+        loginBtn.disabled = true
+        loginBtn.title = authFixHint(err)
+      }
+      if (logoutBtn) logoutBtn.style.display = 'none'
+    })
+  }
+
+  function authStatusText(connectionId) {
+    const status = EF.ai && EF.ai.authStatus ? EF.ai.authStatus(connectionId) : null
+    return status && status.state ? status.state : 'Not signed in'
+  }
+
+  function authResultText(result, fallback) {
+    if (!result) return fallback
+    const parts = []
+    if (result.state) parts.push(result.state)
+    if (result.userCode) parts.push('code ' + result.userCode)
+    if (result.verificationUrl || result.loginUrl || result.url) parts.push('browser opened')
+    return parts.length ? parts.join(' · ') : fallback
+  }
+
+  function loginErrorMessage(err) {
+    const raw = err && err.message ? err.message : String(err || 'Unknown error')
+    if (/Failed to fetch|NetworkError|Load failed/i.test(raw)) {
+      return 'Local AI bridge is not reachable. Start it with `npm run bridge`, then try Login with Browser again.'
+    }
+    if (/Codex app-server exited|spawn codex ENOENT|Unknown bridge connection/i.test(raw)) {
+      return 'Codex CLI is not available. Install it with `npm i -g @openai/codex@latest`, restart the bridge, then try again.'
+    }
+    return 'Login failed: ' + raw
+  }
+
+  function bridgeUnavailableText(err) {
+    const raw = err && err.message ? err.message : String(err || '')
+    if (/Failed to fetch|NetworkError|Load failed/i.test(raw)) return 'Bridge offline'
+    if (/Codex app-server exited|spawn codex ENOENT/i.test(raw)) return 'Codex CLI unavailable'
+    return 'Bridge error'
+  }
+
+  function authFixHint(err) {
+    const raw = err && err.message ? err.message : String(err || '')
+    if (/Codex app-server exited|spawn codex ENOENT/i.test(raw)) return 'Install: npm i -g @openai/codex@latest'
+    return 'Start: npm run bridge'
+  }
+
+  function setAuthState(connectionId, status, loginBtn, logoutBtn, next, bridgeHint) {
+    const result = next || (EF.ai && EF.ai.authStatus ? EF.ai.authStatus(connectionId) : null)
+    const state = result && result.state
+    if (status) status.textContent = authResultText(result, state || 'Not signed in')
+    const signedIn = state === 'signed_in'
+    if (bridgeHint) bridgeHint.textContent = ''
+    if (loginBtn) {
+      loginBtn.style.display = signedIn ? 'none' : ''
+      loginBtn.disabled = false
+      loginBtn.title = ''
+    }
+    if (logoutBtn) logoutBtn.style.display = signedIn ? '' : 'none'
   }
 
   function activateConnection(connectionId) {
@@ -665,5 +817,51 @@
     const agent = EF.ai.getActiveAgent()
     if (!agent || agent.connection !== connectionId) return
     EF.ai.updateAgent(agent.id, { model: modelId })
+  }
+
+  function addCustomConnection(root) {
+    if (!EF.ai || !EF.ai.createCustomConnection) return
+    const ui = EF.ui
+    ui.prompt({
+      title: 'Add AI Connection',
+      message: 'Connection name',
+      placeholder: 'My Provider',
+      okLabel: 'Next',
+    }).then(function (name) {
+      if (name == null) return
+      ui.prompt({
+        title: 'Add AI Connection',
+        message: 'OpenAI-compatible Base URL',
+        placeholder: 'https://api.example.com/v1',
+        okLabel: 'Add',
+      }).then(function (baseUrl) {
+        if (baseUrl == null) return
+        const c = EF.ai.createCustomConnection({ label: name || 'Custom OpenAI', baseUrl: baseUrl })
+        activateConnection(c.id)
+        if (ui.toast) ui.toast({ kind: 'success', message: 'Connection added' })
+        refreshSettingsPage(root)
+      })
+    })
+  }
+
+  function refreshSettingsPage(root) {
+    const parent = root.parentNode
+    if (!parent) return
+    const next = renderAiSettings()
+    parent.replaceChild(next, root)
+  }
+
+  function aiSearchText() {
+    const parts = ['AI connection provider api key auth login sign in model base url custom provider local bridge ChatGPT Codex Claude Code OpenAI Anthropic DeepSeek Ollama OpenRouter Groq Mistral xAI']
+    if (EF.ai && EF.ai.connectionOptions) {
+      const options = EF.ai.connectionOptions()
+      for (let i = 0; i < options.length; i++) {
+        const id = options[i].id
+        const conn = EF.ai.getConnection && EF.ai.getConnection(id)
+        const config = conn && conn.configDefaults || {}
+        parts.push([id, options[i].label, options[i].provider, options[i].authType, options[i].transportType, Object.keys(config).join(' '), Object.keys(config).map(function (k) { return config[k] }).join(' ')].join(' '))
+      }
+    }
+    return parts.join(' ')
   }
 })(window.EF = window.EF || {})

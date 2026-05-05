@@ -41,11 +41,9 @@
         return '[' + e.level.toUpperCase() + '] ' + formatSource(e.source) + ' — ' + e.message +
           (e.stack ? '\n' + e.stack : '')
       }).join('\n')
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(text).then(function () {
-          ui.toast({ kind: 'success', message: 'Copied ' + visible.length + ' log entries' })
-        })
-      }
+      ui.copyText(text).then(function () {
+        ui.toast({ kind: 'success', message: 'Copied ' + visible.length + ' log entries' })
+      })
     })
     bar.appendChild(copyBtn)
     const clearBtn = ui.button({ text: 'Clear', kind: 'ghost', size: 'sm' })

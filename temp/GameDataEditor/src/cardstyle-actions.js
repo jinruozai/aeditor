@@ -137,22 +137,7 @@
   }
 
   function copyText(text) {
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      return navigator.clipboard.writeText(text).catch(function () { fallbackCopyText(text); });
-    }
-    fallbackCopyText(text);
-    return Promise.resolve();
-  }
-
-  function fallbackCopyText(text) {
-    var ta = document.createElement('textarea');
-    ta.value = text;
-    ta.setAttribute('readonly', '');
-    ta.style.cssText = 'position:fixed;left:-9999px;top:0;';
-    document.body.appendChild(ta);
-    ta.select();
-    document.execCommand('copy');
-    ta.remove();
+    return EF.ui.copyText(text);
   }
 
   GDE.cardStyleActions = {

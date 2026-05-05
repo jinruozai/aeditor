@@ -1,139 +1,56 @@
 # EditorFrame AI System Design
 
-Status: final model contract
+Status: final model contract  
 Scope: framework-level AI runtime, panels, extension contracts
 
 ## 1. Goal
 
 EditorFrame provides a generic AI workbench for editor applications:
 
-- group/agent organization
-- many parallel agents
-- provider/model abstraction
+- parallel agents
+- connection/model abstraction
 - structured resource references and resolvers
 - context capture from editor UI
-- tools with preview/approval flow
-- reusable panels for groups, agents, chat, and transcript
-- global skill, template, plugin, provider, and context-provider extension points
+- tools with preview/approval/apply flow
+- reusable agent list, chat input, and message panels
+- extension points for providers, auth, transports, resources, context, skills, tools, and plugins
 
-The framework must not know GameDataEditor tables, game assets, card styles, or project schemas. Those belong to application adapters.
+The framework never knows GameDataEditor tables, assets, card styles, schemas, or project rules. Applications register those as resources, skills, and tools.
 
-## 2. Core Principle
+## 2. Core Model
 
-There is no session concept.
+There is no session concept, no group concept, and no path identity.
 
-The AI model has only two project-visible entities:
+The AI runtime has one runnable entity:
 
-- `Group`: a pure UI folder for organizing agents.
-- `Agent`: the only runnable entity.
+```js
+Agent
+```
 
-Groups never own runtime state. They do not own messages, context, resources, permissions, providers, or models. Deleting or moving a group only changes UI organization; it must not delete or mutate agents unless an explicit agent operation is called.
-
-Agents own their complete runtime state:
+Agents are flat runtime records. Parent/child is represented only by `parentAgentId`; it controls UI nesting, ownership, and default permissions. Agent `id` is the only stable identity. Agent `name` is a display label and may repeat.
 
 ```js
 {
   id,
-  groupId,
   name,
-  messages,
-  contextRefs,
-  memory,
-  state,
-  provider,
-  model,
-  mode,
-  status,
-  createdAt,
-  updatedAt,
-  meta
-}
-```
-
-## 3. Framework Ownership
-
-Framework owns:
-
-- `EF.ai` namespace
-- group store
-- agent store
-- resource reference store
-- active agent selection
-- global provider registry
-- global model/provider option discovery
-- global resource resolver registry
-- global context provider registry
-- global tool registry
-- global skill registry
-- global agent template registry
-- global plugin contribution registry
-- permission resolver
-- runtime scheduler
-- common AI panels
-- common transcript/tool-call UI
-
-Applications own:
-
-- domain prompts
-- domain resource resolvers
-- domain context providers
-- domain tools
-- validation and apply logic
-- project AI defaults
-- project skills and templates
-- project plugins
-
-## 4. Store Shape
-
-The public store is flat and session-free:
-
-```js
-EF.ai.groups          // signal<Group[]>
-EF.ai.agents          // signal<Agent[]>
-EF.ai.resources       // signal<ResourceRef[]>
-EF.ai.activeAgentId   // signal<string|null>
-```
-
-### Group
-
-```js
-{
-  id,
-  parentId,       // null for root-level UI folder
-  name,
+  parentAgentId,
   order,
-  collapsed,
-  createdAt,
-  updatedAt,
-  meta
-}
-```
-
-Group operations:
-
-```js
-EF.ai.createGroup({ name, parentId, order, collapsed, meta })
-EF.ai.moveGroup(groupId, { parentId, order })
-EF.ai.deleteGroup(groupId)
-```
-
-`deleteGroup` removes only the folder. Agents previously pointing to that group are reparented to `null` unless a future explicit option says otherwise.
-
-### Agent
-
-```js
-{
-  id,
-  groupId,
-  name,
+  connection,
+  model,
+  permissionMode,
+  status,
+  statusText,
+  activeMessageId,
+  activeQuestId,
   messages,
+  queue,
+  inbox,
+  quests,
   contextRefs,
   memory,
   state,
-  provider,
-  model,
-  mode,        // "chat" | "goal"
-  status,      // "idle" | "queued" | "running" | "waiting" | "done" | "error"
+  skillRefs,
+  toolRefs,
   permissions,
   createdAt,
   updatedAt,
@@ -141,500 +58,170 @@ EF.ai.deleteGroup(groupId)
 }
 ```
 
-Agent operations:
+## 3. Store Shape
 
 ```js
-EF.ai.createAgent({ groupId, name, provider, model, mode, contextRefs, memory, state, permissions, meta })
-EF.ai.renameAgent(agentId, name)
-EF.ai.moveAgent(agentId, { groupId, order })
-EF.ai.reparentAgent(agentId, groupId)
-EF.ai.deleteAgent(agentId)
+EF.ai.agents
+EF.ai.resources
+EF.ai.activeAgentId
 ```
 
-`moveAgent` is for ordering and grouping. `reparentAgent` is the narrow group-only operation used by UI trees and drag/drop.
+No framework API exposes `groups`, `groupId`, or agent `path`.
 
-### Message
+## 4. Agent APIs
 
-Messages live on the target agent:
+```js
+EF.ai.createAgent({ name, parentAgentId, connection, model, systemPrompt, contextRefs, skillRefs, toolRefs, permissions, memory, state, meta })
+EF.ai.renameAgent(agentId, name)
+EF.ai.moveAgent(agentId, { parentAgentId, order })
+EF.ai.reparentAgent(agentId, parentAgentId, order)
+EF.ai.deleteAgent(agentId)
+EF.ai.selectAgent(agentId)
+```
+
+Deletion removes the agent and all descendants. Reparenting rejects cycles.
+
+## 5. Messages And Queue
+
+Every visible chat card is a `Message` with a stable id.
 
 ```js
 {
   id,
-  from,          // "user" | "agent:<id>" | "system" | "tool:<id>"
-  role,          // "user" | "assistant" | "system" | "tool"
+  agentId,
+  from,
+  role,
   content,
+  status,
   contextRefs,
   attachments,
   toolCalls,
-  createdAt,
-  status,
+  questId,
+  resultForQuestId,
   meta
 }
 ```
 
-API:
+User input always enters the target agent queue:
 
 ```js
-EF.ai.sendMessage(agentId, message, actor)
-EF.ai.runAgent(agentId)
-EF.ai.stopAgent(agentId)
+EF.ai.message.send(agentId, {
+  content,
+  contextRefs,
+  attachments,
+  priority,
+  interrupt,
+  guidance
+})
 ```
 
-`sendMessage` appends to `agent.messages` and schedules that agent only. Agent-to-agent messaging uses the same API with an actor of another agent id.
+If the agent is idle, the scheduler starts immediately. If it is running, the message stays queued. If `interrupt` is true, the current run is stopped and the new message goes to the front. `guidance` is a lightweight instruction attached to the queued message and included in current request context so the running agent can avoid conflicting work.
 
-## 5. Resources
+## 6. Quests
 
-Resources are references, not embedded domain data:
+A quest is a cross-agent task index. The quest id is the request message id on the target agent.
 
 ```js
 {
   id,
-  resolver,
-  uri,
-  title,
-  kind,
-  summary,
-  meta,
-  createdAt
+  fromAgentId,
+  toAgentId,
+  requestMessageId,
+  status,
+  resultMessageId,
+  summary
 }
 ```
 
-Resolvers are global capabilities:
-
 ```js
-EF.ai.registerResourceResolver("gde", {
-  canResolve(ref, ctx) {},
-  resolve(ref, ctx) {},
-  summarize(ref, ctx) {}
-})
+EF.ai.agent.send(toAgentId, { fromAgentId, content, contextRefs, attachments, priority, interrupt, guidance })
+EF.ai.quest.read(agentId, questId, actor)
+EF.ai.quest.result(agentId, questId, actor)
 ```
 
-Agents reference resources through `agent.contextRefs`. Provider requests resolve only the resources allowed for the actor and target agent.
+`quest.result` is the model-facing preferred read path. It returns status and, once completed, the exact result message/content in one call.
 
-## 6. Global Capabilities
+Delegation does not force the sender to wait. The sender may continue local work, dispatch more quests, or stop. Child completion appends an inbox notification; it does not interrupt a running sender.
 
-The following are globally registered. Agents only reference them by id.
+At each sender scheduler checkpoint, the runtime may enqueue one continuation for the completed inbox event batch that is available at that moment. The continuation may read all completed results in that batch. Still-running sibling quests are non-blocking background and must not be waited on unless the user or agent explicitly requested "wait for all".
 
-```js
-EF.ai.registerProvider(id, provider)
-EF.ai.registerContextProvider(id, provider)
-EF.ai.registerTool(id, tool)
-EF.ai.registerSkill(id, skill)
-EF.ai.registerAgentTemplate(id, template)
-EF.ai.registerPlugin(id, plugin)
-EF.ai.registerResourceResolver(id, resolver)
+## 7. Orchestration Tools
+
+The built-in tool surface is intentionally small:
+
+```text
+agent.read
+agent.create
+agent.delegate
+agent.reparent
+agent.delete
+agent.send
+quest.read
+quest.result
+message.read
+agent.stop
 ```
 
-Capabilities must not store agent-local runtime state. Runtime data belongs on `Agent`.
+`agent.delegate` is the preferred high-level operation for create/reuse + send. Tools never accept or return `groupId` or agent `path`.
 
-## 7. Permissions
+## 8. Mentions
 
-Permissions are agent-target based, not path/session based.
+Chat input can render agent mentions inline. A visible mention such as `@poet` stores an agent id internally:
+
+```js
+{ type: 'agent-ref', agentId: 'a_xxx', label: 'poet' }
+```
+
+Names are not identity. Duplicate names are resolved by the mention picker. Model-facing text must include the id, for example:
+
+```text
+@poet(agent:a_xxx)
+```
+
+## 9. Permissions
 
 Default rules:
 
 - user can read/send/manage all agents
-- an agent can read itself
-- an agent can read summaries of agents it manages
-- an agent can send messages only where permission allows
-- an agent can manage only agents explicitly delegated to it
+- an agent can read/write itself
+- an agent can read summaries of descendants
+- an agent can send to descendants
+- an agent can manage descendants
+- an agent can read quest results for quests it created
+- child agents should not create further child agents unless explicitly requested
 
-API:
+Permissions are resolved by agent id and `parentAgentId` ancestry. Application resource permissions may still use resource paths such as `gde`, but those paths are not agent identity.
 
-```js
-EF.ai.canRead(actor, targetAgentId, scope)
-EF.ai.canSend(actor, targetAgentId)
-EF.ai.canManage(actor, targetAgentId)
-```
+## 10. Context Building
 
-`actor` is `"user"` or an agent id.
+The framework builds model context. Providers and local bridges only transport requests.
 
-Permission scopes:
+Each request may include:
 
-```js
-"agent.summary"
-"agent.full"
-"messages.read"
-"messages.send"
-"resources.read"
-"memory.read"
-"memory.write"
-"tool.call"
-"tool.apply"
-"agent.manage"
-```
+- current agent id/name/parent id
+- current message
+- recent local messages within model budget
+- the current completed inbox event batch, when processing inbox continuation work
+- pending quest summaries as non-blocking background
+- queued message summaries
+- explicit context refs and attachments
+- available tools and skills
+- project/plugin rules
 
-Applications and plugins may add policy hooks:
+It must not automatically include full child transcripts. The model calls `quest.result` when it needs exact child results.
 
-```js
-EF.ai.setPermissionResolver(function (ctx, next) {
-  return next(ctx)
-})
-```
+## 11. UI Projection
 
-## 8. Runtime Modes
+AgentList renders the `parentAgentId` tree. It must:
 
-### Chat Mode
+- show a single status dot per agent
+- show queue/inbox counts compactly
+- auto-expand parent agents when a child is created
+- not auto-select a child created by a tool
+- support drag/drop reparenting by agent id
 
-One inbound message creates one assistant turn:
+Chat input sends queued messages while the active agent is running. Empty input turns the send button into Stop.
 
-1. receive user, system, tool, or agent message
-2. resolve allowed resources and context providers
-3. call provider
-4. append response to the same agent
-5. stop
+Messages render tool calls and quest activity compactly by default, with large details collapsed.
 
-### Goal Mode
-
-Goal mode loops until completion or policy limit:
-
-```js
-state: {
-  goalPolicy: {
-    maxTurns: 20,
-    maxToolCalls: 50,
-    requireUserApprovalForApply: true,
-    stopWhen: "self_check_passed"
-  }
-}
-```
-
-Goal mode must always have bounded limits. Infinite autonomous loops are not allowed.
-
-## 9. Provider Model
-
-Provider interface:
-
-```js
-EF.ai.registerProvider("openai-compatible", {
-  models(config) {},
-  send(request, ctx) {},
-  abort(runId) {}
-})
-```
-
-Request:
-
-```js
-{
-  agent,
-  provider,
-  model,
-  messages,
-  resources,
-  tools,
-  skills,
-  responseFormat,
-  stream
-}
-```
-
-Provider types:
-
-- OpenAI-compatible HTTP endpoint
-- Anthropic-compatible endpoint
-- local bridge
-- mock provider for testing
-- plugin provider
-
-Browser API key mode is allowed for local/personal use, but framework should also support local bridge mode so production setups do not expose keys in the front end.
-
-## 10. Context Providers
-
-Context providers are global and structured:
-
-```js
-EF.ai.registerContextProvider("selection", {
-  match(target, event) {},
-  capture(target, event) {}
-})
-```
-
-Captured context is stored as resource refs when it should persist on an agent. Temporary run context may be included directly in the provider request.
-
-Recommended interactions:
-
-- application-chosen context menu entry: "Ask AI"
-- drag selection to AI context area
-- inspector row action: "Send to AI"
-- keyboard shortcuts chosen by the application
-
-Framework supplies protocol and UI. Applications register domain providers.
-
-## 11. Tool Calls
-
-Framework tool contract:
-
-```js
-EF.ai.registerTool("name", {
-  title,
-  description,
-  schema,
-  permissions,
-  preview(args, ctx) {},
-  run(args, ctx) {},
-  apply(result, ctx) {}
-})
-```
-
-Tool call lifecycle:
-
-```txt
-proposed -> previewed -> approved -> running -> completed
-proposed -> rejected
-running -> failed
-```
-
-`preview` is required for editor data changes. It lets the UI show a diff before applying.
-
-Built-in orchestration tools are registered by the framework under the existing `EF.ai` tool registry. Their ids use the short `agent.*` / `group.*` form, not `ai.agent.*`, because they are already scoped by `EF.ai.registerTool`.
-
-```txt
-group.read
-group.create
-group.reparent
-group.delete
-agent.read
-agent.create
-agent.reparent
-agent.delete
-agent.send
-agent.stop
-```
-
-`agent.create`, `agent.reparent`, `agent.delete`, `group.create`, `group.reparent`, and `group.delete` are preview/apply tools. Preview returns the intended structural change and must not mutate store state; apply commits the change after `tool.apply` permission passes.
-
-Agent-targeted tools preserve the agent permission boundary:
-
-- `agent.read` requires readable target access.
-- `agent.send` requires send access to the target agent.
-- `agent.stop`, `agent.reparent`, and `agent.delete` require manage access to the target agent.
-- Creating or reparenting under a parent agent requires managing that parent, except an agent may create or place descendants under itself.
-
-Groups are pure UI folders and do not carry runtime permissions. Group mutation tools are therefore bounded by the tool call/apply permission on the calling agent; they do not grant access to any agent runtime state.
-
-The built-in orchestration skill should prefer a shallow delegation tree. A root/top-level agent may create child agents when delegation materially helps. An agent that is already a child agent must not create another child agent unless the user explicitly asks for deeper delegation or names that hierarchy. This keeps ordinary workflows to a main-agent plus child-agent model while preserving deeper paths as an advanced capability.
-
-Final delegation rules:
-
-- Top-level agents may create direct child agents for clearly separable work.
-- Child agents may report, ask for context, and send messages back to their parent.
-- Child agents must not create grandchildren by default.
-- A child agent may create a deeper child only when the user explicitly asks for nested delegation or names that hierarchy.
-- Delegation does not bypass tool permissions, resource permissions, approval requirements, or patch preview requirements.
-
-## 12. Skills, Templates, Plugins
-
-Skills are prompt/runtime packages:
-
-```js
-{
-  id,
-  title,
-  version,
-  description,
-  systemPrompt,
-  rules,
-  examples,
-  tools,
-  contextPolicy,
-  outputSchemas
-}
-```
-
-Agent templates are reusable creation presets:
-
-```js
-{
-  id,
-  title,
-  defaults: {
-    provider,
-    model,
-    mode,
-    memory,
-    state,
-    contextRefs,
-    permissions
-  },
-  skills
-}
-```
-
-Plugins contribute global capabilities:
-
-```js
-{
-  providers: [],
-  skills: [],
-  tools: [],
-  contextProviders: [],
-  resourceResolvers: [],
-  agentTemplates: []
-}
-```
-
-Plugin code cannot bypass permission checks.
-
-## 13. Panels
-
-Framework provides generic panel components:
-
-Final component IDs:
-
-| ID | Purpose |
-| --- | --- |
-| `ai-agents-list` | Agent/group browser and management |
-| `ai-chatinput` | Active agent composer, target chips, provider/model/mode/permission controls |
-| `ai-messages` | Active agent transcript, tool calls, patch previews, and results |
-
-No old AI panel component IDs or aliases are supported.
-
-### AI Agents
-
-Responsibilities:
-
-- group tree
-- agent list/tree
-- create/rename/move/reparent/delete groups
-- create/rename/move/reparent/delete agents
-- active agent selection
-- status display
-- search/filter
-
-### AI Chat
-
-Responsibilities:
-
-- active provider/model
-- active agent
-- mode switch: chat/goal
-- context/resource chips
-- attachments
-- input box
-- send/stop/regenerate
-- tool permission mode
-
-### AI Transcript
-
-Responsibilities:
-
-- active agent message timeline
-- streamed output
-- tool call cards
-- tool result cards
-- patch/diff preview
-- agent-to-agent messages
-- status and errors
-
-The panels must be usable by any EditorFrame application without project code.
-
-## 14. Persistence
-
-Framework should support pluggable persistence:
-
-```js
-EF.ai.createStore({
-  storage: indexedDbStorage | memoryStorage | customStorage
-})
-```
-
-Default:
-
-- groups, agents, resources, messages, and settings in IndexedDB
-- temporary attachments in IndexedDB
-- provider API keys either localStorage/IndexedDB for personal use or external local bridge
-
-## 15. Public API Contract
-
-```js
-EF.ai.groups
-EF.ai.agents
-EF.ai.resources
-EF.ai.activeAgentId
-
-EF.ai.createGroup(partial)
-EF.ai.moveGroup(groupId, patch)
-EF.ai.deleteGroup(groupId)
-
-EF.ai.createAgent(partial)
-EF.ai.renameAgent(agentId, name)
-EF.ai.moveAgent(agentId, patch)
-EF.ai.reparentAgent(agentId, groupId)
-EF.ai.deleteAgent(agentId)
-
-EF.ai.sendMessage(agentId, message, actor)
-EF.ai.runAgent(agentId)
-EF.ai.stopAgent(agentId)
-
-EF.ai.canRead(actor, targetAgentId, scope)
-EF.ai.canSend(actor, targetAgentId)
-EF.ai.canManage(actor, targetAgentId)
-
-EF.ai.registerProvider(id, provider)
-EF.ai.registerTool(id, tool)
-EF.ai.registerSkill(id, skill)
-EF.ai.registerContextProvider(id, provider)
-EF.ai.registerResourceResolver(id, resolver)
-EF.ai.registerAgentTemplate(id, template)
-EF.ai.registerPlugin(id, plugin)
-```
-
-Forbidden legacy surface:
-
-```js
-EF.ai.sessions
-EF.ai.activeSessionId
-EF.ai.createSession()
-EF.ai.deleteSession()
-EF.ai.selectSession()
-EF.ai.findSession()
-```
-
-## 16. Implementation Phases
-
-Phase 1:
-
-- session removal
-- flat group/agent/resource store
-- agent runtime
-- mock provider
-- provider registry
-- contract tests
-
-Phase 2:
-
-- AI Agents panel
-- AI Chat panel
-- AI Transcript panel
-- resource chips
-- context provider protocol
-
-Phase 3:
-
-- tool registry
-- preview/apply lifecycle
-- permission resolver
-- goal mode loop
-
-Phase 4:
-
-- skills
-- agent templates
-- plugin contributions
-- robust persistence and export/import
-
-## 17. Design Decision
-
-Most of the AI system belongs in EditorFrame.
-
-Project layers should only add:
-
-- domain resource resolvers
-- domain context providers
-- domain tools
-- domain skills
-- project defaults
-- validation/apply logic
-
-This keeps AI collaboration reusable for any editor built on EditorFrame while leaving domain authority in the application.
+Provider responses that contain side-effecting tools are action turns. Final user-visible answer content should be produced in a non-action continuation after the tools have executed. This keeps delegation order truthful: the runtime dispatches children first, then the parent continues local work or handles completed event batches.

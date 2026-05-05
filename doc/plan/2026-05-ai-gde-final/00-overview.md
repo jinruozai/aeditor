@@ -7,17 +7,19 @@ Make editorframe's AI system a reusable editor capability, then make GameDataEdi
 The final model is:
 
 ```text
-editor object -> AI Target -> resource resolver -> tool/patch -> preview -> approval -> history
+editor object -> AI Target -> resource resolver -> tool/patch -> ChangeSet -> approval -> history
 ```
 
-The framework owns the generic protocol, UI panels, agent/group store, provider runtime, permissions, target transport, tool-call lifecycle, and settings integration.
+The framework-level review contract is defined in `doc/change-set-review-system.md`. GDE patch previews must convert to `ef.changeSet` instead of inventing a private diff UI.
+
+The framework owns the generic protocol, UI panels, agent/group store, connection/auth/transport runtime, permissions, target transport, tool-call lifecycle, and settings integration.
 
 GameDataEditor owns game-data semantics: tables, type config, entity IDs, asset references, card styles, validation rules, and GDE-specific tools/skills.
 
 ## Product Principles
 
 - **Precise**: AI never guesses where to edit. It receives stable target URIs and calls tools for full data.
-- **Safe**: Every mutation goes through preview/approval/history unless explicitly configured otherwise by the host.
+- **Safe**: Every mutation goes through ChangeSet preview/approval/history unless explicitly configured otherwise by the host.
 - **Composable**: Any editor built on editorframe can register targets, tools, skills, and plugins without modifying framework internals.
 - **Low ceremony**: Adding AI to a panel should usually mean binding targets and registering a few tools.
 - **No compatibility baggage**: final IDs and schemas only. No legacy aliases or silent format adapters.
@@ -54,7 +56,7 @@ AI operation rules:
 
 Done:
 
-- Framework AI store, providers, messages, tool-call lifecycle, settings, target protocol.
+- Framework AI store, connections, messages, tool-call lifecycle, settings, target protocol.
 - Framework panels:
   - `ai-agents-list`
   - `ai-chatinput`
@@ -63,12 +65,13 @@ Done:
 - GDE has initial targets for table/entity/field/asset/card-style.
 - GDE has initial tools for summary, schema, row query, entity/field read, references, search, card style, patch preview/apply.
 - GDE patch flow writes through `State` and captures history.
+- Framework ChangeSet design contract is documented and will govern patch preview rendering.
 
 Main gaps:
 
 - Not all editable GDE surfaces are target-bound yet.
 - Patch schema is powerful but not fully tested.
-- Tool-call message UI needs richer domain diff rendering.
+- Tool-call message UI needs framework ChangeSet rendering and GDE semantic renderers.
 - Permission UI and tool approval still need final polish.
 - GDE skill needs stricter operational guidance for bulk edits and type config.
 - Browser-level smoke is still manual.
@@ -91,7 +94,8 @@ Main gaps:
    - Ensure every write returns a preview that can be rendered in `ai-messages`.
 
 4. **Approval And History Loop**
-   - Render GDE patch previews as readable diffs.
+   - Render GDE patch previews through `EF.ui.changeReview`.
+   - Convert GDE patch previews to `ef.changeSet`.
    - Apply only after explicit approval.
    - Capture one history entry per approved patch.
    - Provide clear failure output when validation or permission fails.
@@ -104,7 +108,7 @@ Main gaps:
 6. **Final UI Polish**
    - Make AI panels visually consistent with the rest of editorframe.
    - Keep Chat in the lower dock, Message in the right dock, AgentList in the left dock for GDE.
-   - Ensure settings, provider selection, model loading, permission selection, target chips, and tool blocks are compact and readable.
+   - Ensure settings, connection selection, model loading, permission selection, target chips, and tool blocks are compact and readable.
 
 7. **Docs And Release Gate**
    - Update design docs with final IDs only.

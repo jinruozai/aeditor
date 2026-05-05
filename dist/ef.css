@@ -3021,6 +3021,46 @@ body.ef-dragging-vertical,   body.ef-dragging-vertical *   { cursor: ns-resize !
 }
 .ef-ui-table-td:last-child { border-right: 0; }
 
+/* ── gridSelection ─────────────────────────────────────────────── */
+.ef-ui-grid-marquee {
+  position: absolute;
+  z-index: 5;
+  border: 1px solid var(--ef-accent);
+  background: color-mix(in srgb, var(--ef-accent) 14%, transparent);
+  pointer-events: none;
+  box-sizing: border-box;
+}
+
+.ef-ui-grid-drag-ghost {
+  position: fixed;
+  z-index: var(--ef-z-popover);
+  transform: translate(10px, 10px);
+  min-width: 52px;
+  max-width: 180px;
+  padding: 4px 8px;
+  border: 1px solid var(--ef-accent);
+  border-radius: var(--ef-r-2);
+  background: var(--ef-bg-raised);
+  color: var(--ef-fg-1);
+  box-shadow: var(--ef-shadow-3);
+  font: var(--ef-fs-sm) var(--ef-font-ui);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  pointer-events: none;
+}
+
+.ef-ui-grid-drop-indicator {
+  position: absolute;
+  z-index: 6;
+  display: none;
+  width: 2px;
+  border-radius: var(--ef-r-pill);
+  background: var(--ef-accent);
+  box-shadow: 0 0 8px var(--ef-accent);
+  pointer-events: none;
+}
+
 /* ── breadcrumbs ────────────────────────────────────────────────── */
 .ef-ui-crumbs {
   display: flex;
@@ -3444,6 +3484,197 @@ body.ef-dragging-vertical,   body.ef-dragging-vertical *   { cursor: ns-resize !
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--ef-accent) 30%, transparent);
 }
 
+.ef-change-review {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ef-space-2);
+  min-width: 0;
+  color: var(--ef-fg-1);
+  font: var(--ef-fs-sm) var(--ef-font-ui);
+}
+.ef-change-review-head,
+.ef-change-review-resource-head,
+.ef-change-review-change-meta,
+.ef-change-review-diff,
+.ef-change-review-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--ef-space-2);
+}
+.ef-change-review-head {
+  padding-bottom: var(--ef-space-1);
+  border-bottom: 1px solid var(--ef-border);
+}
+.ef-change-review-title-block {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+.ef-change-review-title {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--ef-fg-0);
+  font-weight: 650;
+}
+.ef-change-review-summary,
+.ef-change-review-description,
+.ef-change-review-resource-subtitle,
+.ef-change-review-change-summary {
+  color: var(--ef-fg-3);
+  font-size: var(--ef-fs-xs);
+  line-height: 1.35;
+}
+.ef-change-review-actions {
+  flex: 0 0 auto;
+  margin-left: auto;
+}
+.ef-change-review-status {
+  flex: 0 0 auto;
+  padding: 1px 6px;
+  border: 1px solid var(--ef-border);
+  border-radius: var(--ef-r-pill);
+  color: var(--ef-fg-3);
+  font-size: var(--ef-fs-xs);
+  line-height: 16px;
+}
+.ef-change-review-status-applied {
+  border-color: color-mix(in srgb, var(--ef-success) 40%, var(--ef-border));
+  color: var(--ef-success);
+}
+.ef-change-review-status-failed {
+  border-color: color-mix(in srgb, var(--ef-error) 40%, var(--ef-border));
+  color: var(--ef-error);
+}
+.ef-change-review-status-rejected {
+  border-color: color-mix(in srgb, var(--ef-warning) 40%, var(--ef-border));
+  color: var(--ef-warning);
+}
+.ef-change-review-validation {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.ef-change-review-validation-item {
+  padding: 4px 7px;
+  border: 1px solid color-mix(in srgb, var(--ef-error) 35%, var(--ef-border));
+  border-radius: var(--ef-r-2);
+  background: color-mix(in srgb, var(--ef-error) 10%, var(--ef-bg-1));
+  color: var(--ef-error);
+}
+.ef-change-review-resources,
+.ef-change-review-changes {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ef-space-1);
+}
+.ef-change-review-resource {
+  border: 1px solid var(--ef-border);
+  border-radius: var(--ef-r-2);
+  background: var(--ef-bg-1);
+  overflow: hidden;
+}
+.ef-change-review-resource-head {
+  width: 100%;
+  padding: 6px 8px;
+  border: 0;
+  border-bottom: 1px solid var(--ef-border);
+  background: var(--ef-bg-2);
+  color: inherit;
+  text-align: left;
+}
+.ef-change-review-resource-label {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+.ef-change-review-resource-title {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--ef-fg-0);
+  font-weight: 600;
+}
+.ef-change-review-change {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 7px 8px;
+  border-bottom: 1px solid color-mix(in srgb, var(--ef-border) 70%, transparent);
+}
+.ef-change-review-change:last-child {
+  border-bottom: 0;
+}
+.ef-change-review-change-meta {
+  flex-wrap: wrap;
+}
+.ef-change-review-op,
+.ef-change-review-path {
+  flex: 0 1 auto;
+  min-width: 0;
+  padding: 1px 6px;
+  border: 1px solid var(--ef-border);
+  border-radius: var(--ef-r-pill);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--ef-fs-xs);
+}
+.ef-change-review-op {
+  color: var(--ef-accent);
+  text-transform: uppercase;
+}
+.ef-change-review-diff {
+  align-items: stretch;
+}
+.ef-change-review-value {
+  display: grid;
+  grid-template-columns: 54px minmax(0, 1fr);
+  flex: 1 1 0;
+  min-width: 0;
+  border: 1px solid var(--ef-border);
+  border-radius: var(--ef-r-2);
+  overflow: hidden;
+  background: var(--ef-bg-0);
+}
+.ef-change-review-value-before {
+  border-color: color-mix(in srgb, var(--ef-error) 24%, var(--ef-border));
+}
+.ef-change-review-value-after {
+  border-color: color-mix(in srgb, var(--ef-success) 24%, var(--ef-border));
+}
+.ef-change-review-value-label {
+  padding: 4px 6px;
+  border-right: 1px solid var(--ef-border);
+  background: var(--ef-bg-2);
+  color: var(--ef-fg-3);
+  font-size: var(--ef-fs-xs);
+}
+.ef-change-review-value-text {
+  min-width: 0;
+  padding: 4px 6px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--ef-fg-1);
+  font: var(--ef-fs-xs) var(--ef-font-mono);
+}
+.ef-change-review-empty {
+  color: var(--ef-fg-3);
+  font-style: italic;
+}
+
+@media (max-width: 720px) {
+  .ef-change-review-head,
+  .ef-change-review-diff {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .ef-change-review-actions {
+    margin-left: 0;
+  }
+}
+
 /* ════ style/ui-overlay.css ════ */
 /* editorframe — UI library: overlay widgets
  *
@@ -3816,6 +4047,7 @@ body.ef-dragging-vertical,   body.ef-dragging-vertical *   { cursor: ns-resize !
   color: var(--ef-fg-1);
   font: var(--ef-fs-sm) var(--ef-font-ui);
   box-sizing: border-box;
+  container-type: inline-size;
 }
 
 .ef-ai-toolbar,
@@ -3833,6 +4065,11 @@ body.ef-dragging-vertical,   body.ef-dragging-vertical *   { cursor: ns-resize !
 
 .ef-ai-toolbar {
   justify-content: flex-start;
+}
+
+.ef-ai-agents .ef-ai-toolbar .ef-ui-btn {
+  flex: 1 1 auto;
+  justify-content: center;
 }
 
 .ef-ai-scroll {
@@ -4105,6 +4342,27 @@ body.ef-dragging-vertical,   body.ef-dragging-vertical *   { cursor: ns-resize !
   min-width: 0;
 }
 
+.ef-ai-context-meter {
+  --ef-ai-context-pct: 0;
+  width: 16px;
+  height: 16px;
+  flex: 0 0 auto;
+  border-radius: 999px;
+  background:
+    conic-gradient(var(--ef-fg-2) calc(var(--ef-ai-context-pct) * 1%), color-mix(in srgb, var(--ef-fg-3) 24%, transparent) 0),
+    var(--ef-bg-2);
+  position: relative;
+  opacity: .86;
+}
+
+.ef-ai-context-meter::after {
+  content: '';
+  position: absolute;
+  inset: 4px;
+  border-radius: inherit;
+  background: var(--ef-bg-1);
+}
+
 .ef-ai-provider-control .ef-ui-select-label,
 .ef-ai-model-control .ef-ui-select-label,
 .ef-ai-mode-control .ef-ui-select-label {
@@ -4148,7 +4406,7 @@ body.ef-dragging-vertical,   body.ef-dragging-vertical *   { cursor: ns-resize !
 .ef-ai-transcript-scroll {
   flex: 1 1 auto;
   min-height: 0;
-  padding: var(--ef-space-2) 100px;
+  padding: var(--ef-space-2) clamp(10px, calc((100cqw - 400px) * 0.125 + 10px), 100px);
   box-sizing: border-box;
   background: var(--ef-bg-0);
 }
@@ -4297,9 +4555,9 @@ body.ef-dragging-vertical,   body.ef-dragging-vertical *   { cursor: ns-resize !
   background: transparent;
 }
 
-.ef-ai-message-row-status-running .ef-ai-message,
-.ef-ai-message-row-status-queued .ef-ai-message,
-.ef-ai-message-row-status-waiting .ef-ai-message {
+.ef-ai-message-row-assistant.ef-ai-message-row-status-running .ef-ai-message,
+.ef-ai-message-row-assistant.ef-ai-message-row-status-queued .ef-ai-message,
+.ef-ai-message-row-assistant.ef-ai-message-row-status-waiting .ef-ai-message {
   border-color: color-mix(in srgb, var(--ef-warn) 42%, var(--ef-border));
 }
 
@@ -4411,7 +4669,7 @@ body.ef-dragging-vertical,   body.ef-dragging-vertical *   { cursor: ns-resize !
   overflow: auto;
 }
 
-.ef-ai-message-row-status-running .ef-ai-message-content::after {
+.ef-ai-message-row-assistant.ef-ai-message-row-status-running .ef-ai-message-content::after {
   content: '';
   width: 6px;
   height: 14px;
@@ -4436,7 +4694,7 @@ body.ef-dragging-vertical,   body.ef-dragging-vertical *   { cursor: ns-resize !
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .ef-ai-message-row-status-running .ef-ai-message-content::after {
+  .ef-ai-message-row-assistant.ef-ai-message-row-status-running .ef-ai-message-content::after {
     animation: none;
   }
 }
@@ -4518,6 +4776,10 @@ body.ef-dragging-vertical,   body.ef-dragging-vertical *   { cursor: ns-resize !
   overflow: hidden;
 }
 
+.ef-ai-tool-call:not([open]) {
+  background: color-mix(in srgb, var(--ef-bg-1) 74%, transparent);
+}
+
 .ef-ai-tool-call-head {
   display: flex;
   align-items: center;
@@ -4528,6 +4790,32 @@ body.ef-dragging-vertical,   body.ef-dragging-vertical *   { cursor: ns-resize !
   border-bottom: 1px solid var(--ef-border);
   background: var(--ef-bg-raised);
   font: var(--ef-fs-xs) var(--ef-font-mono);
+  cursor: pointer;
+  list-style: none;
+}
+
+.ef-ai-tool-call-head::-webkit-details-marker {
+  display: none;
+}
+
+.ef-ai-tool-call-head::before {
+  content: '›';
+  flex: 0 0 auto;
+  color: var(--ef-fg-3);
+  transform: rotate(0deg);
+}
+
+.ef-ai-tool-call[open] .ef-ai-tool-call-head::before {
+  transform: rotate(90deg);
+}
+
+.ef-ai-tool-call-head-right {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--ef-space-1);
+  min-width: 0;
+  flex: 0 0 auto;
 }
 
 .ef-ai-tool-call-name {
@@ -4537,6 +4825,16 @@ body.ef-dragging-vertical,   body.ef-dragging-vertical *   { cursor: ns-resize !
   white-space: nowrap;
   color: var(--ef-fg-1);
   font-weight: 700;
+}
+
+.ef-ai-tool-call-summary {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--ef-fg-3);
+  font: var(--ef-fs-xs) var(--ef-font-mono);
 }
 
 .ef-ai-tool-call-status {
@@ -4573,9 +4871,23 @@ body.ef-dragging-vertical,   body.ef-dragging-vertical *   { cursor: ns-resize !
   align-items: center;
   flex-wrap: wrap;
   gap: var(--ef-space-1);
-  padding: var(--ef-space-1) var(--ef-space-2);
-  border-bottom: 1px solid var(--ef-border);
-  background: var(--ef-bg-1);
+  padding: 0;
+}
+
+.ef-ai-tool-call-actions .ef-ui-switch {
+  gap: var(--ef-space-1);
+  color: var(--ef-fg-2);
+  font: var(--ef-fs-xs) var(--ef-font-ui);
+}
+
+.ef-ai-tool-call-actions .ef-ui-switch-track {
+  width: 24px;
+  height: 14px;
+}
+
+.ef-ai-tool-call-actions .ef-ui-switch-knob {
+  width: 10px;
+  height: 10px;
 }
 
 .ef-ai-tool-call-permission {
@@ -4586,13 +4898,6 @@ body.ef-dragging-vertical,   body.ef-dragging-vertical *   { cursor: ns-resize !
 
 .ef-ai-tool-call-block {
   border-top: 1px solid var(--ef-border);
-}
-
-.ef-ai-tool-call-block-title {
-  padding: var(--ef-space-1) var(--ef-space-2) 0;
-  color: var(--ef-fg-3);
-  font: var(--ef-fs-xs) var(--ef-font-mono);
-  text-transform: uppercase;
 }
 
 .ef-ai-tool-call-code {
@@ -4620,120 +4925,137 @@ body.ef-dragging-vertical,   body.ef-dragging-vertical *   { cursor: ns-resize !
   color: var(--ef-error);
 }
 
-.ef-ai-gde-patch {
-  display: flex;
-  flex-direction: column;
-  gap: var(--ef-space-2);
-  padding: var(--ef-space-2);
-  background: var(--ef-bg-0);
-}
-
-.ef-ai-gde-patch-head,
-.ef-ai-gde-patch-change-meta,
-.ef-ai-gde-patch-diff,
-.ef-ai-gde-patch-chip {
+.ef-ai-quest-activity {
   display: flex;
   align-items: center;
-  min-width: 0;
+  gap: var(--ef-space-1);
+  min-height: 26px;
+  padding: var(--ef-space-1) var(--ef-space-2);
+  border-top: 1px solid var(--ef-border);
+  color: var(--ef-fg-2);
+  font: var(--ef-fs-xs) var(--ef-font-ui);
 }
 
-.ef-ai-gde-patch-head {
-  justify-content: space-between;
-  gap: var(--ef-space-2);
-}
-
-.ef-ai-gde-patch-title {
+.ef-ai-quest-agent,
+.ef-ai-quest-id {
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  color: var(--ef-fg-0);
+}
+
+.ef-ai-quest-agent {
+  max-width: 120px;
+  color: var(--ef-fg-1);
   font-weight: 700;
 }
 
-.ef-ai-gde-patch-status {
-  flex: 0 0 auto;
-  padding: 1px 6px;
-  border: 1px solid var(--ef-border);
-  border-radius: 999px;
+.ef-ai-quest-id {
+  max-width: 160px;
+  color: var(--ef-fg-3);
   font: var(--ef-fs-xs) var(--ef-font-mono);
 }
 
-.ef-ai-gde-patch-status-ok {
-  border-color: color-mix(in srgb, var(--ef-success) 42%, var(--ef-border));
-  color: var(--ef-success);
-  background: color-mix(in srgb, var(--ef-success) 10%, var(--ef-bg-1));
-}
-
-.ef-ai-gde-patch-status-error {
-  border-color: color-mix(in srgb, var(--ef-error) 42%, var(--ef-border));
-  color: var(--ef-error);
-  background: color-mix(in srgb, var(--ef-error) 10%, var(--ef-bg-1));
-}
-
-.ef-ai-gde-patch-errors {
-  display: flex;
-  flex-direction: column;
-  gap: var(--ef-space-1);
-}
-
-.ef-ai-gde-patch-error {
-  padding: 3px 6px;
-  border: 1px solid color-mix(in srgb, var(--ef-error) 38%, var(--ef-border));
-  border-radius: var(--ef-r-1);
-  color: var(--ef-error);
-  background: color-mix(in srgb, var(--ef-error) 10%, var(--ef-bg-1));
-  font: var(--ef-fs-xs) var(--ef-font-mono);
-  overflow-wrap: anywhere;
-}
-
-.ef-ai-gde-patch-changes {
-  display: flex;
-  flex-direction: column;
-  gap: var(--ef-space-1);
-}
-
-.ef-ai-gde-patch-change {
-  display: flex;
-  flex-direction: column;
-  gap: var(--ef-space-1);
-  padding: var(--ef-space-1);
-  border: 1px solid var(--ef-border);
-  border-radius: var(--ef-r-1);
-  background: var(--ef-bg-1);
-}
-
-.ef-ai-gde-patch-change-meta {
-  flex-wrap: wrap;
-  gap: var(--ef-space-1);
-}
-
-.ef-ai-gde-patch-change-index,
-.ef-ai-gde-patch-chip {
+.ef-ai-quest-status {
   flex: 0 0 auto;
-  border: 1px solid var(--ef-border);
+  padding: 1px 5px;
   border-radius: 999px;
   background: var(--ef-bg-2);
+  color: var(--ef-warn);
   font: var(--ef-fs-xs) var(--ef-font-mono);
-  line-height: 17px;
+  text-transform: uppercase;
 }
 
-.ef-ai-gde-patch-change-index {
-  padding: 0 6px;
+.ef-ai-quest-completed .ef-ai-quest-status {
+  color: var(--ef-success);
+}
+
+.ef-ai-quest-failed .ef-ai-quest-status,
+.ef-ai-quest-stopped .ef-ai-quest-status {
+  color: var(--ef-error);
+}
+
+.ef-ai-quest-time {
+  flex: 0 0 auto;
+  margin-left: auto;
   color: var(--ef-fg-3);
+  font: var(--ef-fs-xs) var(--ef-font-mono);
 }
 
-.ef-ai-gde-patch-chip {
-  gap: 4px;
+.ef-ai-message-row-runtime {
+  justify-content: flex-start;
+  padding-inline: 0;
+}
+
+.ef-ai-message-row-runtime .ef-ai-message-stack {
+  width: 100%;
+  max-width: none;
+  min-width: 0;
+}
+
+.ef-ai-runtime-event {
+  display: flex;
+  align-items: center;
+  gap: var(--ef-space-1);
+  min-height: 34px;
+  padding: var(--ef-space-1) var(--ef-space-2);
+  border: 1px solid color-mix(in srgb, var(--ef-warn) 42%, var(--ef-border));
+  border-radius: var(--ef-r-2);
+  background:
+    linear-gradient(90deg, color-mix(in srgb, var(--ef-warn) 18%, transparent), transparent 42%),
+    color-mix(in srgb, var(--ef-warn) 8%, var(--ef-bg-1));
+  color: var(--ef-fg-1);
+  box-shadow: inset 3px 0 0 color-mix(in srgb, var(--ef-warn) 78%, var(--ef-accent));
+  box-sizing: border-box;
   max-width: 100%;
-  padding: 0 6px;
+  min-width: 0;
+  overflow: hidden;
 }
 
-.ef-ai-gde-patch-chip-label {
-  color: var(--ef-accent);
+.ef-ai-runtime-event-label {
+  flex: 0 0 auto;
+  color: var(--ef-warn);
+  font-weight: 700;
 }
 
-.ef-ai-gde-patch-chip-value {
+.ef-ai-runtime-event-completed {
+  border-color: color-mix(in srgb, var(--ef-success) 42%, var(--ef-border));
+  background:
+    linear-gradient(90deg, color-mix(in srgb, var(--ef-success) 16%, transparent), transparent 42%),
+    color-mix(in srgb, var(--ef-success) 7%, var(--ef-bg-1));
+  box-shadow: inset 3px 0 0 color-mix(in srgb, var(--ef-success) 78%, var(--ef-accent));
+}
+
+.ef-ai-runtime-event-completed .ef-ai-runtime-event-label {
+  color: var(--ef-success);
+}
+
+.ef-ai-runtime-event-failed,
+.ef-ai-runtime-event-stopped {
+  border-color: color-mix(in srgb, var(--ef-error) 46%, var(--ef-border));
+  background:
+    linear-gradient(90deg, color-mix(in srgb, var(--ef-error) 16%, transparent), transparent 42%),
+    color-mix(in srgb, var(--ef-error) 7%, var(--ef-bg-1));
+  box-shadow: inset 3px 0 0 color-mix(in srgb, var(--ef-error) 78%, var(--ef-accent));
+}
+
+.ef-ai-runtime-event-failed .ef-ai-runtime-event-label,
+.ef-ai-runtime-event-stopped .ef-ai-runtime-event-label {
+  color: var(--ef-error);
+}
+
+.ef-ai-runtime-event-agent {
+  flex: 0 1 auto;
+  max-width: 110px;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--ef-fg-2);
+}
+
+.ef-ai-runtime-event-summary {
+  flex: 1 1 auto;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -4741,54 +5063,27 @@ body.ef-dragging-vertical,   body.ef-dragging-vertical *   { cursor: ns-resize !
   color: var(--ef-fg-1);
 }
 
-.ef-ai-gde-patch-summary {
-  color: var(--ef-fg-1);
-  line-height: 1.4;
-  overflow-wrap: anywhere;
-}
-
-.ef-ai-gde-patch-diff {
-  align-items: stretch;
-  gap: var(--ef-space-1);
-}
-
-.ef-ai-gde-patch-value {
-  display: grid;
-  grid-template-columns: 48px minmax(0, 1fr);
-  align-items: start;
-  flex: 1 1 0;
-  min-width: 0;
-  border: 1px solid var(--ef-border);
+.ef-ai-runtime-event-action {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  min-width: 56px;
+  height: var(--ef-size-h-sm);
+  padding: 0 10px;
+  border: 1px solid color-mix(in srgb, var(--ef-warn) 38%, var(--ef-border));
   border-radius: var(--ef-r-1);
-  overflow: hidden;
+  background: color-mix(in srgb, var(--ef-bg-2) 86%, var(--ef-warn));
+  color: var(--ef-fg-0);
+  font: var(--ef-fs-sm) var(--ef-font-ui);
+  white-space: nowrap;
+  cursor: pointer;
 }
 
-.ef-ai-gde-patch-value-before {
-  border-color: color-mix(in srgb, var(--ef-error) 24%, var(--ef-border));
-}
-
-.ef-ai-gde-patch-value-after {
-  border-color: color-mix(in srgb, var(--ef-success) 24%, var(--ef-border));
-}
-
-.ef-ai-gde-patch-value-label {
-  height: 100%;
-  padding: 4px 6px;
-  color: var(--ef-fg-3);
-  background: var(--ef-bg-2);
-  font: var(--ef-fs-xs) var(--ef-font-mono);
-  text-transform: uppercase;
-  box-sizing: border-box;
-}
-
-.ef-ai-gde-patch-value-text {
-  min-width: 0;
-  padding: 4px 6px;
-  color: var(--ef-fg-1);
-  background: var(--ef-bg-0);
-  font: var(--ef-fs-xs) var(--ef-font-mono);
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
+.ef-ai-runtime-event-action:hover {
+  border-color: color-mix(in srgb, var(--ef-warn) 64%, var(--ef-border-hover));
+  background: color-mix(in srgb, var(--ef-bg-3) 80%, var(--ef-warn));
 }
 
 @media (max-width: 520px) {
@@ -4818,9 +5113,6 @@ body.ef-dragging-vertical,   body.ef-dragging-vertical *   { cursor: ns-resize !
   }
   .ef-ai-message-row-user .ef-ai-message-stack {
     max-width: 92%;
-  }
-  .ef-ai-gde-patch-diff {
-    flex-direction: column;
   }
 }
 
@@ -5109,9 +5401,23 @@ body.ef-dragging-vertical,   body.ef-dragging-vertical *   { cursor: ns-resize !
   gap: var(--ef-space-1);
 }
 
+.ef-settings-auth-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--ef-space-2);
+  min-width: 0;
+  flex-wrap: wrap;
+}
+
 .ef-settings-provider-status {
   color: var(--ef-fg-3);
   font: var(--ef-fs-xs) var(--ef-font-ui);
+  white-space: nowrap;
+}
+
+.ef-settings-auth-hint {
+  color: var(--ef-fg-3);
+  font: var(--ef-fs-xs) var(--ef-font-mono);
   white-space: nowrap;
 }
 

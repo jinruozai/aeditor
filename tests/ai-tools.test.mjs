@@ -1,4 +1,4 @@
-import assert from 'node:assert/strict'
+﻿import assert from 'node:assert/strict'
 import { readFileSync, readdirSync } from 'node:fs'
 import { spawnSync } from 'node:child_process'
 import { join, relative } from 'node:path'
@@ -11,8 +11,13 @@ for (const file of [
   'src/core/log.js',
   'src/ai/store.js',
   'src/ai/connection.js',
+  'src/ai/adapter.js',
   'src/ai/provider.js',
+  'src/ai/provider-auth.js',
+  'src/ai/provider-transports.js',
+  'src/ai/provider-connections.js',
   'src/ai/context.js',
+  'src/ai/request.js',
   'src/ai/runtime.js',
 ]) {
   vm.runInThisContext(readFileSync(file, 'utf8'), { filename: file })
@@ -51,9 +56,19 @@ ai.registerTool('edit-record', {
   },
   apply: function (result, ctx) {
     applyCtx = ctx
-    return { status: 'applied', id: result.id, after: result.after }
+    return { applied: true, id: result.id, after: result.after }
   },
 })
+
+const defaultToolAgent = ai.createAgent({
+  name: 'Default Tool Agent',
+  path: 'tools/default',
+  connection: 'mock',
+})
+const defaultToolRequest = ai.makeRequest(defaultToolAgent, null, 'run_default_tools', 'user', 0)
+assert.deepEqual(defaultToolRequest.tools, ['edit-record'])
+assert.equal(defaultToolRequest.toolSpecs.length, 1)
+assert.equal(defaultToolRequest.toolSpecs[0].id, 'edit-record')
 
 const proposed = ai.createToolCall(agent.id, {
   toolId: 'edit-record',
@@ -82,8 +97,86 @@ assert.equal(runCtx.toolCall.id, proposed.id)
 
 const applied = ai.applyToolCall(agent.id, proposed.id, 'user')
 assert.equal(applied.status, 'applied')
-assert.deepEqual(applied.applyResult, { status: 'applied', id: 'sword', after: 12 })
+assert.deepEqual(applied.applyResult, { applied: true, id: 'sword', after: 12 })
 assert.equal(applyCtx.toolCall.id, proposed.id)
+
+ai.registerTool('semantic-fail', {
+  run: function () { return { patch: { type: 'gde.patch' } } },
+  apply: function () {
+    return {
+      ok: false,
+      validation: { errors: [{ path: 'ops[0]', message: 'invalid patch' }] },
+    }
+  },
+})
+const semanticFail = ai.createToolCall(agent.id, { toolId: 'semantic-fail' }, 'user')
+assert.equal(ai.approveToolCall(agent.id, semanticFail.id, 'user').status, 'approved')
+const semanticRun = ai.runToolCall(agent.id, semanticFail.id, 'user')
+await semanticRun.promise
+const semanticApplied = ai.applyToolCall(agent.id, semanticFail.id, 'user')
+assert.equal(semanticApplied.status, 'failed')
+assert.match(semanticApplied.error, /invalid patch/)
+
+ai.registerTool('async-apply', {
+  run: function () { return { id: 'async' } },
+  apply: function (result) {
+    return Promise.resolve({ applied: true, id: result.id })
+  },
+})
+const asyncCall = ai.createToolCall(agent.id, { toolId: 'async-apply' }, 'user')
+assert.equal(ai.approveToolCall(agent.id, asyncCall.id, 'user').status, 'approved')
+const asyncRun = ai.runToolCall(agent.id, asyncCall.id, 'user')
+await asyncRun.promise
+const asyncApply = ai.applyToolCall(agent.id, asyncCall.id, 'user')
+assert.equal(asyncApply.toolCall.status, 'applying')
+const asyncDone = await asyncApply.promise
+assert.equal(asyncDone.status, 'applied')
+assert.deepEqual(asyncDone.applyResult, { applied: true, id: 'async' })
+
+ai.registerTool('async-apply-fail', {
+  run: function () { return { id: 'async-fail' } },
+  apply: function () {
+    return Promise.reject(new Error('async apply failed'))
+  },
+})
+const asyncFailCall = ai.createToolCall(agent.id, { toolId: 'async-apply-fail' }, 'user')
+assert.equal(ai.approveToolCall(agent.id, asyncFailCall.id, 'user').status, 'approved')
+const asyncFailRun = ai.runToolCall(agent.id, asyncFailCall.id, 'user')
+await asyncFailRun.promise
+const asyncFailApply = ai.applyToolCall(agent.id, asyncFailCall.id, 'user')
+const asyncFailed = await asyncFailApply.promise
+assert.equal(asyncFailed.status, 'failed')
+assert.equal(asyncFailed.error, 'async apply failed')
+
+ai.registerTransport('generated-tool-calls', {
+  send: function () {
+    return {
+      role: 'assistant',
+      content: '',
+      toolCalls: [
+        { toolId: 'edit-record', args: { id: 'first' } },
+        { toolId: 'edit-record', args: { id: 'second' } },
+      ],
+    }
+  },
+})
+ai.registerConnection('generated-tool-calls', { auth: { type: 'none' }, transport: { type: 'generated-tool-calls' }, configDefaults: {} })
+const generatedCallAgent = ai.createAgent({
+  name: 'Generated Calls',
+  path: 'tools/generated',
+  connection: 'generated-tool-calls',
+})
+const normalizedRun = ai.message.send(generatedCallAgent.id, 'make calls', 'user')
+await normalizedRun.promise
+const generatedMessage = ai.findAgent(generatedCallAgent.id).messages.find(function (message) {
+  return message.role === 'assistant'
+})
+assert.notEqual(generatedMessage.toolCalls[0].id, generatedMessage.toolCalls[1].id)
+
+const decodedTextTool = ai.decodeTextToolResponse('Before\n```json\n{"ef_tool_calls":[{"toolId":"read-number","args":{"id":"answer"}}]}\n```\nAfter')
+assert.equal(decodedTextTool.content, 'Before\n\nAfter')
+assert.equal(decodedTextTool.toolCalls.length, 1)
+assert.equal(decodedTextTool.toolCalls[0].toolId, 'read-number')
 
 const rejected = ai.createToolCall(agent.id, {
   toolId: 'edit-record',
@@ -149,7 +242,7 @@ const loopAgent = ai.createAgent({
   connection: 'tool-loop',
   toolRefs: ['read-number'],
 })
-const loopRun = ai.sendMessage(loopAgent.id, 'start', 'user')
+const loopRun = ai.message.send(loopAgent.id, 'start', 'user')
 const loopReply = await loopRun.promise
 assert.equal(loopReply.content, 'Tool says 42')
 assert.equal(loopRequests.length, 2)

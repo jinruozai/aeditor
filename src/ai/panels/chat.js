@@ -3,11 +3,6 @@
 
   const ui = EF.ui
 
-  const MODE_OPTIONS = [
-    { value: 'chat', label: 'Chat' },
-    { value: 'goal', label: 'Goal' },
-  ]
-
   const PERMISSION_OPTIONS = [
     { value: 'default', label: 'Default permissions', icon: 'settings' },
     { value: 'auto', label: 'Auto review', icon: 'clock' },
@@ -51,7 +46,7 @@
   }
 
   function connectionOptions() {
-    if (EF.ai.connectionOptions) return optionsFrom(EF.ai.connectionOptions())
+    if (EF.ai.connectionOptions) return EF.ai.connectionOptions()
     return EF.ai.connections ? optionsFrom(EF.ai.connections) : optionsFrom(EF.ai.listConnections())
   }
 
@@ -89,6 +84,50 @@
     return out
   }
 
+  function modelContextLimit(modelId) {
+    const id = String(modelId || '').toLowerCase()
+    if (id.indexOf('gpt-5.5') >= 0) return 400000
+    if (id.indexOf('gpt-5') >= 0) return 400000
+    if (id.indexOf('claude') >= 0) return 200000
+    if (id.indexOf('gemini') >= 0) return 1000000
+    if (id.indexOf('deepseek') >= 0) return 64000
+    return 128000
+  }
+
+  function textOfContent(content) {
+    if (content == null) return ''
+    if (typeof content === 'string') return content
+    if (content && typeof content === 'object' && content.type === 'rich-prompt') {
+      return content.renderedText || (EF.ai.richPrompt && EF.ai.richPrompt.toModelText ? EF.ai.richPrompt.toModelText(content) : '')
+    }
+    try { return JSON.stringify(content) } catch (_) { return String(content) }
+  }
+
+  function estimateTokens(text) {
+    const s = String(text || '')
+    let ascii = 0
+    let wide = 0
+    for (let i = 0; i < s.length; i++) {
+      if (s.charCodeAt(i) < 128) ascii++
+      else wide++
+    }
+    return Math.ceil(ascii / 4 + wide * 0.8)
+  }
+
+  function contextEstimate(agent, draftValue) {
+    const parts = []
+    const messages = agent && agent.messages || []
+    for (let i = 0; i < messages.length; i++) {
+      const msg = messages[i]
+      if (msg.status === 'running') continue
+      parts.push((msg.role || 'message') + ': ' + textOfContent(msg.content != null ? msg.content : msg.text))
+    }
+    if (draftValue && !EF.ai.richPrompt.isEmpty(draftValue)) {
+      parts.push('draft: ' + EF.ai.richPrompt.toModelText(draftValue))
+    }
+    return estimateTokens(parts.join('\n\n'))
+  }
+
   function configuredConnectionOptions() {
     const connections = connectionOptions()
     const statuses = EF.ai.connectionStatus ? (read(EF.ai.connectionStatus) || {}) : {}
@@ -102,7 +141,7 @@
       const isLocal = id === 'ollama' || id === 'local-bridge'
       const isSubscription = p.authType === 'subscriptionBridge'
       const loaded = (Array.isArray(loadedMap) ? loadedMap : loadedMap[id]) || []
-      const opts = modelOptions(id, { loadedOnly: isLocal || (isSubscription && !cfg.defaultModel && !loaded.length) })
+      const opts = modelOptions(id, { loadedOnly: isLocal })
       const hasCredential = !!cfg.apiKey
       const signedIn = statuses[id] && statuses[id].state === 'signed_in'
       const hasConfiguredLocal = (isLocal || p.authType === 'localBridge') && (!!cfg.defaultModel || !!loaded.length)
@@ -138,7 +177,6 @@
         out.push({
           value: modelValue(g.id, m.value),
           label: m.label || m.value,
-          subLabel: g.label,
         })
       }
     }
@@ -207,7 +245,6 @@
     const props = propsSig.peek() || {}
     const connection = EF.signal(props.connection || defaultConnection())
     const model = EF.signal(props.model || defaultModel(connection.peek()))
-    const mode = EF.signal(props.mode || 'chat')
     const permissionMode = EF.signal(props.permissionMode || 'full')
     const draft = EF.signal(EF.ai.richPrompt.empty())
     const hasTarget = EF.derived(function () { return !!activeAgent() })
@@ -215,13 +252,18 @@
       const a = activeAgent()
       return !!(a && (a.status === 'running' || a.status === 'queued'))
     })
+    const stoppable = EF.derived(function () {
+      const a = activeAgent()
+      return !!(a && (a.status === 'running' || a.status === 'waiting_approval'))
+    })
     const controlDisabled = EF.derived(function () { return !hasTarget() })
-    const sendDisabled = EF.derived(function () { return !hasTarget() || (!busy() && EF.ai.richPrompt.isEmpty(draft())) })
-    const sendIcon = EF.derived(function () { return busy() ? 'square' : 'arrow-up' })
+    const sendDisabled = EF.derived(function () { return !hasTarget() || (EF.ai.richPrompt.isEmpty(draft()) && !stoppable()) })
+    const sendIcon = EF.derived(function () { return stoppable() && EF.ai.richPrompt.isEmpty(draft()) ? 'square' : 'arrow-up' })
 
     const root = ui.h('div', 'ef-ai-panel ef-ai-chat')
     ui.collect(root, hasTarget.dispose)
     ui.collect(root, busy.dispose)
+    ui.collect(root, stoppable.dispose)
     ui.collect(root, controlDisabled.dispose)
     ui.collect(root, sendDisabled.dispose)
     ui.collect(root, sendIcon.dispose)
@@ -271,8 +313,25 @@
       onClick: function (ev) { openPermissionMenu(ev.currentTarget, permissionMode) },
     })
     const modelSlot = ui.h('div', 'ef-ai-model-control')
-    const modeSlot = ui.h('div', 'ef-ai-mode-control')
-    const sendTitle = EF.derived(function () { return busy() ? 'Stop' : 'Send' })
+    const contextMeter = ui.h('div', 'ef-ai-context-meter')
+    const contextTip = EF.derived(function () {
+      const a = activeAgent()
+      const used = contextEstimate(a, draft())
+      const limit = modelContextLimit(model())
+      const pct = Math.min(100, Math.round(used / limit * 100))
+      return 'Context ' + pct + '%\n' + used.toLocaleString() + ' / ' + limit.toLocaleString() + ' tokens (estimated)'
+    })
+    ui.collect(root, contextTip.dispose)
+    ui.tooltip(contextMeter, { text: contextTip, side: 'top', delay: 250 })
+    ui.collect(root, EF.effect(function () {
+      const a = activeAgent()
+      const used = contextEstimate(a, draft())
+      const limit = modelContextLimit(model())
+      const pct = Math.max(0, Math.min(1, used / limit))
+      contextMeter.style.setProperty('--ef-ai-context-pct', String(pct * 100))
+      contextMeter.setAttribute('aria-label', contextTip())
+    }))
+    const sendTitle = EF.derived(function () { return stoppable() && EF.ai.richPrompt.isEmpty(draft()) ? 'Stop' : (busy() ? 'Queue message' : 'Send') })
     ui.collect(root, sendTitle.dispose)
     const send = ui.iconButton({
       icon: sendIcon,
@@ -283,8 +342,8 @@
     })
     leftActions.appendChild(add)
     leftActions.appendChild(permission)
+    rightActions.appendChild(contextMeter)
     rightActions.appendChild(modelSlot)
-    rightActions.appendChild(modeSlot)
     rightActions.appendChild(send)
     actions.appendChild(leftActions)
     actions.appendChild(rightActions)
@@ -307,6 +366,7 @@
         placeholder: 'Model',
         variant: 'minimal',
         autoWidth: true,
+        side: 'top',
         disabled: controlDisabled,
         onChange: function (v) {
           const parsed = parseModelValue(v)
@@ -338,24 +398,7 @@
       }
       connection.set(a.connection || defaultConnection())
       model.set(a.model || defaultModel(a.connection || defaultConnection()))
-      mode.set(a.mode || 'chat')
       permissionMode.set(a.permissionMode || 'full')
-    }))
-
-    ui.collect(root, EF.effect(function () {
-      disposeTree(modeSlot.firstChild)
-      modeSlot.appendChild(ui.select({
-        value: mode,
-        options: MODE_OPTIONS,
-        placeholder: 'Mode',
-        variant: 'minimal',
-        autoWidth: true,
-        disabled: controlDisabled,
-        onChange: function (v) {
-          mode.set(v)
-          updateCurrentAgent({ mode: v })
-        },
-      }))
     }))
 
     return root
@@ -378,36 +421,34 @@
     function sendClick() {
       const agent = activeAgent()
       if (!agent) return
-      if (busy()) {
+      const currentDraft = EF.ai.richPrompt.normalize(draft.peek())
+      if (EF.ai.richPrompt.isEmpty(currentDraft) && stoppable()) {
         EF.ai.stopAgent(agent.id)
         return
       }
-      const currentDraft = EF.ai.richPrompt.normalize(draft.peek())
       if (EF.ai.richPrompt.isEmpty(currentDraft)) return
       const refs = EF.ai.richPrompt.refs(currentDraft)
       const content = EF.ai.richPrompt.content(currentDraft)
       EF.ai.updateAgent(agent.id, {
         connection: connection.peek(),
         model: model.peek() || defaultModel(connection.peek()),
-        mode: mode.peek(),
         permissionMode: permissionMode.peek(),
         stream: !!connectionConfig(connection.peek()).stream,
       })
       const meta = {
         connection: connection.peek(),
         model: model.peek() || defaultModel(connection.peek()),
-        mode: mode.peek(),
         permissionMode: permissionMode.peek(),
         resourceRefs: refs,
         renderedText: content.renderedText,
       }
-      EF.ai.sendMessage(agent.id, { content: content, contextRefs: refs, meta: meta }, 'user')
+      EF.ai.message.send(agent.id, { content: content, contextRefs: refs, meta: meta, from: 'user' })
       draft.set(EF.ai.richPrompt.empty())
     }
   }
 
   EF.registerComponent('ai-chatinput', {
-    defaults: function () { return { title: 'AI Send', icon: 'message-circle', props: { mode: 'chat' } } },
+    defaults: function () { return { title: 'AI Send', icon: 'message-circle', props: {} } },
     factory: factory,
     dispose: disposeTree,
   })

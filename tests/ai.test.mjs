@@ -7,8 +7,14 @@ vm.runInThisContext(readFileSync('src/core/signal.js', 'utf8'), { filename: 'sig
 vm.runInThisContext(readFileSync('src/core/log.js', 'utf8'), { filename: 'log.js' })
 vm.runInThisContext(readFileSync('src/ai/store.js', 'utf8'), { filename: 'ai/store.js' })
 vm.runInThisContext(readFileSync('src/ai/connection.js', 'utf8'), { filename: 'ai/connection.js' })
+vm.runInThisContext(readFileSync('src/ai/adapter.js', 'utf8'), { filename: 'ai/adapter.js' })
 vm.runInThisContext(readFileSync('src/ai/provider.js', 'utf8'), { filename: 'ai/provider.js' })
+vm.runInThisContext(readFileSync('src/ai/provider-auth.js', 'utf8'), { filename: 'ai/provider-auth.js' })
+vm.runInThisContext(readFileSync('src/ai/provider-transports.js', 'utf8'), { filename: 'ai/provider-transports.js' })
+vm.runInThisContext(readFileSync('src/ai/provider-connections.js', 'utf8'), { filename: 'ai/provider-connections.js' })
 vm.runInThisContext(readFileSync('src/ai/context.js', 'utf8'), { filename: 'ai/context.js' })
+vm.runInThisContext(readFileSync('src/ai/change-set.js', 'utf8'), { filename: 'ai/change-set.js' })
+vm.runInThisContext(readFileSync('src/ai/request.js', 'utf8'), { filename: 'ai/request.js' })
 vm.runInThisContext(readFileSync('src/ai/runtime.js', 'utf8'), { filename: 'ai/runtime.js' })
 
 const EF = window.EF
@@ -30,22 +36,22 @@ function assertNoSessionSurface() {
   assert.equal('selectSession' in ai, false)
   assert.equal('findSession' in ai, false)
 
-  assert.deepEqual(ai.groups(), [])
+  assert.equal('groups' in ai, false)
+  assert.equal('createGroup' in ai, false)
+  assert.equal('deleteGroup' in ai, false)
+  assert.equal('moveGroup' in ai, false)
+  assert.equal('findAgentByPath' in ai, false)
+  assert.equal('setAgentPath' in ai, false)
   assert.deepEqual(ai.agents(), [])
   assert.deepEqual(ai.resources(), [])
   assert.equal(ai.activeAgentId(), null)
 }
 
-function assertGroupsAreUiFolders() {
-  const root = ai.createGroup({ name: 'Root', order: 10, collapsed: true, meta: { ui: 'folder' } })
-  const child = ai.createGroup({ name: 'Child', parentId: root.id, order: 2 })
-  const peer = ai.createGroup({ name: 'Peer' })
+function assertAgentsAreIdBasedTree() {
   const agent = ai.createAgent({
     name: 'Planner',
-    groupId: child.id,
     connection: 'mock',
     model: 'fast',
-    mode: 'chat',
     messages: [{ role: 'system', from: 'system', content: 'keep' }],
     contextRefs: ['ctx-1'],
     memory: { facts: ['stable'] },
@@ -53,57 +59,62 @@ function assertGroupsAreUiFolders() {
     permissions: { paths: [{ path: 'planner', mode: 'readwrite' }] },
     meta: { owner: 'test' },
   })
+  const child = ai.createAgent({
+    name: 'Planner',
+    parentAgentId: agent.id,
+    select: false,
+    order: 2,
+  })
+  const peer = ai.createAgent({ name: 'Peer', select: false })
+  const background = ai.createAgent({
+    name: 'Background',
+    select: false,
+  })
+  ai.deleteAgent(background.id)
 
-  assert.deepEqual(ids(ai.groups()), [root.id, child.id, peer.id])
-  assert.equal(byId(ai.groups(), root.id).collapsed, true)
-  assert.equal(byId(ai.groups(), child.id).parentId, root.id)
   assert.equal(ai.activeAgentId(), agent.id)
+  assert.equal(child.name, agent.name)
+  assert.notEqual(child.id, agent.id)
+  assert.equal(byId(ai.agents(), child.id).parentAgentId, agent.id)
+  assert.equal('path' in byId(ai.agents(), agent.id), false)
+  assert.equal('groupId' in byId(ai.agents(), agent.id), false)
 
-  const beforeMove = byId(ai.agents(), agent.id)
-  ai.moveGroup(child.id, { parentId: peer.id, order: 0 })
-  const afterMove = byId(ai.agents(), agent.id)
-  assert.equal(byId(ai.groups(), child.id).parentId, peer.id)
-  assert.equal(byId(ai.groups(), child.id).order, 0)
-  assert.equal(afterMove.groupId, beforeMove.groupId)
+  const beforeMove = byId(ai.agents(), child.id)
+  ai.reparentAgent(child.id, peer.id, 0)
+  const afterMove = byId(ai.agents(), child.id)
+  assert.equal(afterMove.parentAgentId, peer.id)
+  assert.equal(afterMove.order, 0)
   assert.deepEqual(afterMove.messages, beforeMove.messages)
   assert.deepEqual(afterMove.contextRefs, beforeMove.contextRefs)
   assert.deepEqual(afterMove.memory, beforeMove.memory)
   assert.deepEqual(afterMove.state, beforeMove.state)
   assert.equal(afterMove.connection, beforeMove.connection)
   assert.equal(afterMove.model, beforeMove.model)
-  assert.equal(afterMove.mode, beforeMove.mode)
   assert.equal(afterMove.status, beforeMove.status)
 
-  const deleted = ai.deleteGroup(child.id)
-  const afterDelete = byId(ai.agents(), agent.id)
-  assert.equal(deleted.id, child.id)
-  assert.equal(afterDelete.groupId, null)
-  assert.deepEqual(afterDelete.messages, beforeMove.messages)
-  assert.deepEqual(afterDelete.contextRefs, beforeMove.contextRefs)
-  assert.deepEqual(afterDelete.memory, beforeMove.memory)
-  assert.deepEqual(afterDelete.state, beforeMove.state)
+  const deleted = ai.deleteAgent(peer.id)
+  assert.equal(deleted.id, peer.id)
+  assert.equal(ai.findAgent(child.id), null)
 
-  return { agent: afterDelete, peer: peer }
+  return { agent: byId(ai.agents(), agent.id) }
 }
 
-function assertAgentRuntimeState(seedAgent, targetGroup) {
+function assertAgentRuntimeState(seedAgent) {
   const renamed = ai.renameAgent(seedAgent.id, 'Runtime Planner')
   assert.equal(renamed.name, 'Runtime Planner')
 
-  const moved = ai.moveAgent(seedAgent.id, { groupId: targetGroup.id, order: 4 })
-  assert.equal(moved.groupId, targetGroup.id)
+  const moved = ai.moveAgent(seedAgent.id, { parentAgentId: null, order: 4 })
+  assert.equal(moved.parentAgentId, null)
   assert.equal(moved.order, 4)
 
-  const child = ai.createAgent({ name: 'Child Agent', path: moved.path + '/child', groupId: targetGroup.id })
-  const nested = ai.createAgent({ name: 'Nested Agent', path: moved.path + '/child/nested', groupId: targetGroup.id })
-  const rootMoved = ai.setAgentPath(seedAgent.id, 'runtime-root')
-  assert.equal(rootMoved.path, 'runtime-root')
-  assert.equal(byId(ai.agents(), child.id).path, 'runtime-root/child')
-  assert.equal(byId(ai.agents(), nested.id).path, 'runtime-root/child/nested')
+  const child = ai.createAgent({ name: 'Child Agent', parentAgentId: seedAgent.id, select: false })
+  const nested = ai.createAgent({ name: 'Nested Agent', parentAgentId: child.id, select: false })
+  assert.equal(ai.isDescendant(seedAgent.id, child.id), true)
+  assert.equal(ai.isDescendant(seedAgent.id, nested.id), true)
 
-  const reparented = ai.reparentAgent(child.id, seedAgent.id)
-  assert.equal(reparented.path, 'runtime-root/child')
-  assert.equal(byId(ai.agents(), nested.id).path, 'runtime-root/child/nested')
+  const reparented = ai.reparentAgent(child.id, null)
+  assert.equal(reparented.parentAgentId, null)
+  assert.equal(byId(ai.agents(), nested.id).parentAgentId, child.id)
 
   const updated = ai.updateAgent(seedAgent.id, {
     contextRefs: ['ctx-2'],
@@ -128,6 +139,7 @@ function assertAgentRuntimeState(seedAgent, targetGroup) {
   assert.equal(appended.from, 'agent:' + seedAgent.id)
   assert.equal(appended.status, 'done')
   assert.equal(byId(ai.agents(), seedAgent.id).messages.length, 2)
+  ai.deleteAgent(child.id)
 }
 
 function assertResourceResolverContract(agentId) {
@@ -169,18 +181,20 @@ function assertResourceResolverContract(agentId) {
 function assertPermissionContract(agentId) {
   const managed = ai.createAgent({
     name: 'Managed',
-    path: 'runtime/managed',
-    groupId: null,
+    parentAgentId: agentId,
+    select: false,
     permissions: { paths: [{ path: 'runtime/managed', mode: 'read' }] },
   })
+  const sibling = ai.createAgent({ name: 'Sibling', select: false })
 
   assert.equal(ai.canRead('user', agentId, 'agent.full'), true)
   assert.equal(ai.canSend('user', agentId), true)
   assert.equal(ai.canManage('user', agentId), true)
   assert.equal(ai.canRead(agentId, agentId, 'messages.read'), true)
   assert.equal(ai.canSend(agentId, agentId), true)
-  assert.equal(ai.canManage(agentId, agentId), false)
+  assert.equal(ai.canManage(agentId, agentId), true)
   assert.equal(ai.canRead(agentId, managed.id, 'agent.summary'), true)
+  assert.equal(ai.canRead(agentId, sibling.id, 'agent.summary'), false)
 
   if (typeof ai.setPermissionResolver === 'function') {
     const calls = []
@@ -193,6 +207,7 @@ function assertPermissionContract(agentId) {
     assert.equal(calls.length > 0, true)
   }
 
+  ai.deleteAgent(sibling.id)
   return managed
 }
 
@@ -209,7 +224,7 @@ function assertRegistryContracts(agentId) {
   ai.registerSkill('review', { id: 'review', title: 'Review', tools: ['diff-preview'] })
   ai.registerAgentTemplate('goal-reviewer', {
     id: 'goal-reviewer',
-    defaults: { connection: 'mock', model: 'fast', mode: 'goal' },
+    defaults: { connection: 'mock', model: 'fast' },
     skills: ['review'],
   })
   ai.registerContextProvider('selection', {
@@ -226,20 +241,17 @@ function assertRegistryContracts(agentId) {
   assert.equal(ai.getTool('diff-preview').apply({ ok: true }).applied, true)
   assert.equal(ai.getSkill('review').title, 'Review')
   assert.equal(ai.getSkill('plugin-skill').title, 'Plugin Skill')
-  assert.equal(ai.getAgentTemplate('goal-reviewer').defaults.mode, 'goal')
+  assert.equal(ai.getAgentTemplate('goal-reviewer').defaults.model, 'fast')
   assert.equal(ai.getContextProvider('selection').capture().text, 'selected')
   assert.equal(ai.getPlugin('registry-test') != null, true)
 
   ai.updateAgent(agentId, {
     skillRefs: ['review'],
     toolRefs: ['diff-preview'],
-    mode: 'goal',
     state: {
-      goalPolicy: {
-        maxTurns: 3,
-        maxToolCalls: 5,
-        requireUserApprovalForApply: true,
-        stopWhen: 'self_check_passed',
+      projectRule: {
+        maxRows: 3,
+        reviewLevel: 'strict',
       },
     },
   })
@@ -263,7 +275,7 @@ async function assertSendRunStatusAndRequest(agentId, resourceCheck) {
   ai.registerConnection('capture', { auth: { type: 'none' }, transport: { type: 'capture' }, configDefaults: {} })
 
   ai.updateAgent(agentId, { connection: 'capture', model: 'reasoning' })
-  const sent = ai.sendMessage(agentId, { content: 'balance sword prices' }, 'user')
+  const sent = ai.message.send(agentId, { content: 'balance sword prices' }, 'user')
   assert.equal(sent.message.role, 'user')
   assert.equal(sent.message.from, 'user')
   assert.equal(sent.message.content, 'balance sword prices')
@@ -278,8 +290,7 @@ async function assertSendRunStatusAndRequest(agentId, resourceCheck) {
   assert.equal(afterSend.messages.at(-1).content, 'captured balance sword prices')
   assert.equal(callCount, 1)
   assert.equal(requestSeen.agent.id, agentId)
-  assert.equal(requestSeen.agent.mode, 'goal')
-  assert.equal(requestSeen.agent.state.goalPolicy.maxTurns, 3)
+  assert.equal(requestSeen.agent.state.projectRule.maxRows, 3)
   assert.equal(requestSeen.connection, 'capture')
   assert.equal(requestSeen.model, 'reasoning')
   assert.deepEqual(requestSeen.resources, [{ uri: 'case://selection/item-1', text: 'resolved:case://selection/item-1' }])
@@ -287,7 +298,7 @@ async function assertSendRunStatusAndRequest(agentId, resourceCheck) {
   assert.deepEqual(requestSeen.skills, ['review'])
   assert.equal(ctxSeen.canRead(agentId), true)
   assert.equal(ctxSeen.canSend(agentId), true)
-  assert.equal(ctxSeen.canManage(agentId), false)
+  assert.equal(ctxSeen.canManage(agentId), true)
   resourceCheck.assertResolved()
 }
 
@@ -308,8 +319,8 @@ async function assertStopAgent(agentId) {
 }
 
 assertNoSessionSurface()
-const seed = assertGroupsAreUiFolders()
-assertAgentRuntimeState(seed.agent, seed.peer)
+const seed = assertAgentsAreIdBasedTree()
+assertAgentRuntimeState(seed.agent)
 const resourceCheck = assertResourceResolverContract(seed.agent.id)
 const managed = assertPermissionContract(seed.agent.id)
 assertRegistryContracts(seed.agent.id)
@@ -394,12 +405,35 @@ function assertGdePatchPreviewRendering() {
     dispose: function (el) { if (el && el.remove) el.remove() },
     collect: function () {},
     button: function (opts) { return this.h('button', 'ef-ui-btn', { text: opts.text || '' }) },
+    'switch': function (opts) { return this.h('label', 'ef-ui-switch', { text: opts.label || '' }) },
     copyButton: function () { return this.h('button', 'ef-ui-copy-btn', { text: 'Copy' }) },
     scrollArea: function () { return this.h('div', 'ef-ui-scrollarea') },
   }
   window.EF.registerComponent = function (name, spec) { components[name] = spec }
+  vm.runInThisContext(readFileSync('src/ui/data/changeReview.js', 'utf8'), { filename: 'ui/data/changeReview.js' })
   vm.runInThisContext(readFileSync('src/ai/panels/transcript.js', 'utf8'), { filename: 'ai/panels/transcript.js' })
 
+  const preview = EF.changeSet.normalize({
+    title: 'Tune swords',
+    validation: { ok: false, errors: [{ path: 'ops[0].field', message: 'Field not in struct_def: missing' }] },
+    resources: [{
+      uri: 'gde://entity/data%2Fitems/100',
+      kind: 'gde.entity',
+      title: 'Iron Sword',
+      subtitle: 'data/items / 100',
+      changes: [{
+        id: 'op_1',
+        kind: 'gde.field',
+        operation: 'update',
+        path: 'price',
+        title: 'setField',
+        summary: 'data/items/100.price = 25',
+        before: 20,
+        after: 25,
+      }],
+    }],
+    apply: { mode: 'atomic', adapter: 'gde.patch', payload: { type: 'gde.patch', ops: [] } },
+  })
   const previewAgent = ai.createAgent({
     name: 'Patch Viewer',
     messages: [{
@@ -408,22 +442,7 @@ function assertGdePatchPreviewRendering() {
       toolCalls: [{
         id: 'call-1',
         name: 'gde.patch',
-        preview: {
-          ok: false,
-          title: 'Tune swords',
-          patch: { type: 'gde.patch', ops: [] },
-          validation: { ok: false, errors: [{ path: 'ops[0].field', message: 'Field not in struct_def: missing' }] },
-          changes: [{
-            index: 0,
-            op: 'setField',
-            table: 'data/items',
-            id: '100',
-            field: 'price',
-            summary: 'data/items/100.price = 25',
-            before: 20,
-            after: 25,
-          }],
-        },
+        preview: preview,
         result: { ok: true, value: 1 },
       }],
     }],
@@ -433,15 +452,15 @@ function assertGdePatchPreviewRendering() {
   const root = components['ai-messages'].factory(null, {})
   const text = collectText(root)
   assert.match(text, /Tune swords/)
-  assert.match(text, /ERRORS/)
+  assert.match(text, /failed/)
   assert.match(text, /ops\[0\]\.field: Field not in struct_def: missing/)
-  assert.match(text, /setField/)
+  assert.match(text, /Iron Sword/)
   assert.match(text, /data\/items/)
   assert.match(text, /100/)
   assert.match(text, /price/)
-  assert.match(text, /before\s+20/)
-  assert.match(text, /after\s+25/)
-  assert.match(text, /"value": 1/)
+  assert.match(text, /Before\s+20/)
+  assert.match(text, /After\s+25/)
+  assert.doesNotMatch(text, /"value": 1/)
 }
 
 assertGdePatchPreviewRendering()

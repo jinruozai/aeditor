@@ -6,7 +6,11 @@ global.window = { EF: {} }
 vm.runInThisContext(readFileSync('src/core/signal.js', 'utf8'), { filename: 'signal.js' })
 vm.runInThisContext(readFileSync('src/core/settings.js', 'utf8'), { filename: 'settings.js' })
 vm.runInThisContext(readFileSync('src/ai/connection.js', 'utf8'), { filename: 'ai/connection.js' })
+vm.runInThisContext(readFileSync('src/ai/adapter.js', 'utf8'), { filename: 'ai/adapter.js' })
 vm.runInThisContext(readFileSync('src/ai/provider.js', 'utf8'), { filename: 'ai/provider.js' })
+vm.runInThisContext(readFileSync('src/ai/provider-auth.js', 'utf8'), { filename: 'ai/provider-auth.js' })
+vm.runInThisContext(readFileSync('src/ai/provider-transports.js', 'utf8'), { filename: 'ai/provider-transports.js' })
+vm.runInThisContext(readFileSync('src/ai/provider-connections.js', 'utf8'), { filename: 'ai/provider-connections.js' })
 
 const EF = window.EF
 const ai = EF.ai
@@ -92,6 +96,15 @@ assert.deepEqual(ai.listConnections(), [
   'local-bridge',
 ])
 assert.equal(ai.connectionOptions()[1].label, 'OpenAI API')
+assert.equal(ai.getConnectionConfig('deepseek').baseUrl, 'https://api.deepseek.com/v1')
+assert.equal(ai.getConnectionConfig('ollama').baseUrl, 'http://127.0.0.1:11434/v1')
+assert.equal(ai.getConnectionConfig('openai-codex').defaultModel, 'gpt-5.5')
+assert.deepEqual(ai.modelHints('openai-codex').slice(0, 2), ['gpt-5.5', 'gpt-5.5-pro'])
+
+const custom = ai.createCustomConnection({ label: 'Studio Gateway', baseUrl: 'https://studio.test/v1' })
+assert.equal(custom.id, 'studio-gateway')
+assert.equal(ai.getConnectionConfig(custom.id).baseUrl, 'https://studio.test/v1')
+assert.equal(ai.getConnection(custom.id).custom, true)
 
 EF.settings.set(ai.connectionConfigKey('openai-api', 'baseUrl'), 'https://openai.test/v1/')
 EF.settings.set(ai.connectionConfigKey('openai-api', 'apiKey'), 'openai-key')
