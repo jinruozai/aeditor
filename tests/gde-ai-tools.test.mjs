@@ -104,6 +104,8 @@ const previewTool = EF.ai.getTool('gde.previewPatch')
 assert.equal(typeof previewTool.run, 'function')
 assert.equal(typeof previewTool.apply, 'function')
 assert.deepEqual(previewTool.permissions, { call: true, apply: true })
+assert.equal(previewTool.schema.type, 'object')
+assert.equal(previewTool.schema.properties.patch.properties.ops.items.oneOf.some((item) => item.properties.op.enum[0] === 'setFieldMany'), true)
 
 const patch = {
   type: 'gde.patch',
@@ -149,6 +151,8 @@ assert.equal(batchSet.type, 'ef.changeSet')
 assert.deepEqual(batchSet.apply.payload.ops, [
   { op: 'setFieldMany', table: 'data/items', ids: ['100', '200'], field: 'kind', value: 'loot' },
 ])
+assert.deepEqual(EF.ai.getTool('gde.planBatchSetFields').schema.required, ['table'])
+assert.equal(EF.ai.getTool('gde.planBatchCreateEntities').schema.properties.entities.minItems, 1)
 
 const batchCreate = EF.ai.getTool('gde.planBatchCreateEntities').run({
   table: 'data/items',

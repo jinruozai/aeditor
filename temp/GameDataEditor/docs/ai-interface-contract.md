@@ -116,10 +116,15 @@ The registry is the single source for:
 - known operation names
 - table/entity requirements
 - operation category used by review UI
-- future generated schema shown to AI tools
+- generated schema shown to AI tools
 
 Validation, preview, apply, and ChangeSet rendering should use this registry
 instead of duplicating operation lists.
+
+`gde.previewPatch`, `gde.applyPatch`, and `gde.validatePatch` expose the
+registry-generated patch schema. Batch planning tools expose narrow schemas so
+models choose a small parameter surface before the generated patch reaches the
+canonical mutation pipeline.
 
 ## 5. Batch Planning Tools
 

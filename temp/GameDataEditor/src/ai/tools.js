@@ -36,7 +36,7 @@
     tool('gde.getField', 'Get field', 'Read one field value with FieldDef and resolved TypeConfig.', { table: 'string', id: 'string', field: 'string' }, function (args) {
       return GDE.ai.fieldPayload(args.table, args.id, args.field);
     });
-    tool('gde.validatePatch', 'Validate GDE patch', 'Validate a patch without applying it.', { patch: 'gde.patch' }, function (args) {
+    tool('gde.validatePatch', 'Validate GDE patch', 'Validate a patch without applying it.', patchToolSchema(), function (args) {
       return GDE.ai.validatePatch(args.patch || args);
     });
     tool('gde.findReferences', 'Find references', 'Find ref_id and raw id references to an entity.', { id: 'string' }, function (args) {
@@ -72,31 +72,23 @@
     tool('gde.replaceAssetReferences', 'Replace asset references', 'Return a patch that replaces asset URLs across table fields.', { from: 'string', to: 'string' }, function (args) {
       return replaceAssetReferences(args.from, args.to);
     });
-    tool('gde.planBatchSetFields', 'Plan batch field update', 'Create a preview for setting one or more fields on enumerated or queried rows.', {
-      table: 'string', ids: 'array', field: 'string', value: 'any', fields: 'object', query: 'string', filterField: 'string', filterValue: 'any', title: 'string'
-    }, function (args) {
+    tool('gde.planBatchSetFields', 'Plan batch field update', 'Create a preview for setting one or more fields on enumerated or queried rows.', batchSetFieldsSchema(), function (args) {
       return planBatchSetFields(args || {});
     });
-    tool('gde.planBatchCreateEntities', 'Plan batch entity creation', 'Create a preview for adding multiple entities to a table.', {
-      table: 'string', entities: 'array', title: 'string'
-    }, function (args) {
+    tool('gde.planBatchCreateEntities', 'Plan batch entity creation', 'Create a preview for adding multiple entities to a table.', batchCreateEntitiesSchema(), function (args) {
       return planBatchCreateEntities(args || {});
     });
-    tool('gde.planBatchDeleteEntities', 'Plan batch entity deletion', 'Create a preview for deleting enumerated or queried rows.', {
-      table: 'string', ids: 'array', query: 'string', filterField: 'string', filterValue: 'any', title: 'string'
-    }, function (args) {
+    tool('gde.planBatchDeleteEntities', 'Plan batch entity deletion', 'Create a preview for deleting enumerated or queried rows.', batchDeleteEntitiesSchema(), function (args) {
       return planBatchDeleteEntities(args || {});
     });
-    tool('gde.planBalanceNumericField', 'Plan numeric field balance', 'Create a preview for multiplying, adding, clamping, and rounding a numeric field.', {
-      table: 'string', field: 'string', ids: 'array', query: 'string', multiplier: 'number', add: 'number', min: 'number', max: 'number', round: 'boolean', title: 'string'
-    }, function (args) {
+    tool('gde.planBalanceNumericField', 'Plan numeric field balance', 'Create a preview for multiplying, adding, clamping, and rounding a numeric field.', balanceNumericFieldSchema(), function (args) {
       return planBalanceNumericField(args || {});
     });
 
     EF.ai.registerTool('gde.previewPatch', {
       title: 'Preview GDE patch',
       description: 'Validate and preview a GDE patch. The approved preview can be applied from the message UI.',
-      schema: { patch: 'gde.patch' },
+      schema: patchToolSchema(),
       permissions: { call: true, apply: true },
       preview: GDE.ai.previewPatchChangeSet,
       run: GDE.ai.previewPatchChangeSet,
@@ -105,7 +97,7 @@
     EF.ai.registerTool('gde.applyPatch', {
       title: 'Apply GDE patch',
       description: 'Apply an approved GDE patch through State and History.',
-      schema: { patch: 'gde.patch' },
+      schema: patchToolSchema(),
       permissions: { call: true, apply: true },
       preview: GDE.ai.previewPatchChangeSet,
       run: GDE.ai.previewPatchChangeSet,
@@ -121,6 +113,85 @@
       permissions: { call: true, apply: false },
       run: run,
     });
+  }
+
+  function patchToolSchema() {
+    return {
+      type: 'object',
+      required: ['patch'],
+      additionalProperties: false,
+      properties: {
+        patch: GDE.ai.patchOps.patchSchema(),
+      },
+    };
+  }
+
+  function batchSetFieldsSchema() {
+    return {
+      type: 'object',
+      required: ['table'],
+      additionalProperties: false,
+      properties: {
+        table: { type: 'string' },
+        ids: { type: 'array', items: { type: 'string' } },
+        field: { type: 'string', description: 'Single field to edit when fields is omitted.' },
+        value: { description: 'Value for field.' },
+        fields: { type: 'object', description: 'Field values keyed by field path.' },
+        query: { type: 'string' },
+        filterField: { type: 'string' },
+        filterValue: {},
+        title: { type: 'string' },
+      },
+    };
+  }
+
+  function batchCreateEntitiesSchema() {
+    return {
+      type: 'object',
+      required: ['table', 'entities'],
+      additionalProperties: false,
+      properties: {
+        table: { type: 'string' },
+        entities: { type: 'array', minItems: 1, items: { type: 'object' } },
+        title: { type: 'string' },
+      },
+    };
+  }
+
+  function batchDeleteEntitiesSchema() {
+    return {
+      type: 'object',
+      required: ['table'],
+      additionalProperties: false,
+      properties: {
+        table: { type: 'string' },
+        ids: { type: 'array', items: { type: 'string' } },
+        query: { type: 'string' },
+        filterField: { type: 'string' },
+        filterValue: {},
+        title: { type: 'string' },
+      },
+    };
+  }
+
+  function balanceNumericFieldSchema() {
+    return {
+      type: 'object',
+      required: ['table', 'field'],
+      additionalProperties: false,
+      properties: {
+        table: { type: 'string' },
+        field: { type: 'string' },
+        ids: { type: 'array', items: { type: 'string' } },
+        query: { type: 'string' },
+        multiplier: { type: 'number', description: 'Default 1.' },
+        add: { type: 'number', description: 'Default 0.' },
+        min: { type: 'number' },
+        max: { type: 'number' },
+        round: { type: 'boolean' },
+        title: { type: 'string' },
+      },
+    };
   }
 
   function findReferences(id) {

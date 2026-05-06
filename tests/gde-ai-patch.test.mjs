@@ -151,6 +151,8 @@ vm.runInThisContext(readFileSync('temp/GameDataEditor/src/ai/patch.js', 'utf8'),
 assert.equal(GDE.ai.patchOps.has('setField'), true)
 assert.equal(GDE.ai.patchOps.requiresTable('setField'), true)
 assert.equal(GDE.ai.patchOps.requiresEntity('setField'), true)
+assert.deepEqual(GDE.ai.patchOps.schema('setField').required, ['op', 'table', 'id', 'field', 'value'])
+assert.equal(GDE.ai.patchOps.patchSchema().properties.ops.items.oneOf.length >= 20, true)
 
 const valid = {
   type: 'gde.patch',
