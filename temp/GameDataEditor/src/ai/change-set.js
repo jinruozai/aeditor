@@ -116,9 +116,7 @@
   }
 
   function operationFor(change) {
-    if (change.op && /^add|^upsert|^duplicate/.test(change.op)) return 'insert';
-    if (change.op && /^delete/.test(change.op)) return 'delete';
-    return 'update';
+    return GDE.ai.patchOps ? GDE.ai.patchOps.operation(change.op) : 'update';
   }
 
   function changePath(change) {

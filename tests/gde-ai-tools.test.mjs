@@ -57,6 +57,9 @@ global.window.GDE = global.GDE
 vm.runInThisContext(readFileSync('temp/GameDataEditor/src/ai/change-set.js', 'utf8'), {
   filename: 'temp/GameDataEditor/src/ai/change-set.js',
 })
+vm.runInThisContext(readFileSync('temp/GameDataEditor/src/ai/patch-ops.js', 'utf8'), {
+  filename: 'temp/GameDataEditor/src/ai/patch-ops.js',
+})
 vm.runInThisContext(readFileSync('temp/GameDataEditor/src/ai/tools.js', 'utf8'), {
   filename: 'temp/GameDataEditor/src/ai/tools.js',
 })

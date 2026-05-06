@@ -57,6 +57,7 @@
     var files = [
       'src/ai/core.js',
       'src/ai/resources.js',
+      'src/ai/patch-ops.js',
       'src/ai/patch.js',
       'src/ai/change-set.js',
       'src/ai/tools.js',
@@ -283,4 +284,3 @@
     }
   });
 })();
-

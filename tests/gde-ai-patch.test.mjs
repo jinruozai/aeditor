@@ -141,9 +141,16 @@ global.GDE = {
 }
 global.window.GDE = global.GDE
 
+vm.runInThisContext(readFileSync('temp/GameDataEditor/src/ai/patch-ops.js', 'utf8'), {
+  filename: 'temp/GameDataEditor/src/ai/patch-ops.js',
+})
 vm.runInThisContext(readFileSync('temp/GameDataEditor/src/ai/patch.js', 'utf8'), {
   filename: 'temp/GameDataEditor/src/ai/patch.js',
 })
+
+assert.equal(GDE.ai.patchOps.has('setField'), true)
+assert.equal(GDE.ai.patchOps.requiresTable('setField'), true)
+assert.equal(GDE.ai.patchOps.requiresEntity('setField'), true)
 
 const valid = {
   type: 'gde.patch',
@@ -176,6 +183,9 @@ const badField = GDE.ai.validatePatch({
 })
 assert.equal(badField.ok, false)
 assert.equal(badField.errors.some((e) => e.message.includes('Field not in struct_def')), true)
+assert.equal(badField.errors[0].code, 'FIELD_NOT_FOUND')
+assert.deepEqual(badField.errors[0].allowedValues, ['icon', 'meta', 'name', 'price', 'target'])
+assert.equal(typeof badField.errors[0].suggestedFix, 'string')
 
 const badRef = GDE.ai.validatePatch({
   type: 'gde.patch',

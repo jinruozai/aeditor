@@ -5,6 +5,7 @@
   'use strict';
 
   var clone = GDE.ai.clone;
+  var patchOps = GDE.ai.patchOps;
 
   function validatePatch(patch) {
     var errors = [];
@@ -29,14 +30,32 @@
     var tm = State.tableMap();
     var gd = State.gameData();
     var table = op.table && tm[op.table];
-    if (needsTable(op.op) && !table) errors.push(err(p + '.table', 'Table not found: ' + op.table));
+    if (needsTable(op.op) && !table) errors.push(err(p + '.table', 'Table not found: ' + op.table, {
+      code: 'TABLE_NOT_FOUND',
+      expected: 'existing table path',
+      received: op.table,
+      allowedValues: Object.keys(tm).sort(),
+      suggestedFix: 'Call gde.getProjectSummary or use an existing table path.',
+    }));
     if (needsEntity(op.op) && (!op.id || !gd[String(op.id)] || !table || (table.id || []).indexOf(String(op.id)) < 0)) {
-      errors.push(err(p + '.id', 'Entity not found in table: ' + op.id));
+      errors.push(err(p + '.id', 'Entity not found in table: ' + op.id, {
+        code: 'ENTITY_NOT_FOUND',
+        expected: 'entity id in table ' + op.table,
+        received: op.id,
+        allowedValues: table ? (table.id || []).slice() : [],
+        suggestedFix: 'Call gde.queryRows to enumerate ids before editing.',
+      }));
     }
     if ((op.op === 'setField' || op.op === 'setFieldMany' || op.op === 'setFields' || op.op === 'setFieldsMany') && table) {
       var fields = (op.op === 'setField' || op.op === 'setFieldMany') ? [op.field] : Object.keys(op.fields || {});
       fields.forEach(function (field) {
-        if (!field || !(rootField(field) in (table.struct_def || {}))) errors.push(err(p + '.field', 'Field not in struct_def: ' + field));
+        if (!field || !(rootField(field) in (table.struct_def || {}))) errors.push(err(p + '.field', 'Field not in struct_def: ' + field, {
+          code: 'FIELD_NOT_FOUND',
+          expected: 'field declared in table struct_def',
+          received: field,
+          allowedValues: Object.keys(table.struct_def || {}).sort(),
+          suggestedFix: 'Call gde.getTableSchema and use a declared field, or add the field to struct_def in the same patch.',
+        }));
         else validateValue((op.op === 'setField' || op.op === 'setFieldMany' ? op.value : op.fields[field]), table.struct_def[rootField(field)], p + '.' + field, errors);
       });
     }
@@ -45,7 +64,13 @@
     if (op.op === 'setFieldMany' && (!op.ids || !op.ids.length)) errors.push(err(p + '.ids', 'Expected ids'));
     if ((op.op === 'setFieldMany' || op.op === 'setFieldsMany' || op.op === 'deleteEntities') && table) {
       (op.ids || []).forEach(function (id) {
-        if (!gd[String(id)] || (table.id || []).indexOf(String(id)) < 0) errors.push(err(p + '.ids', 'Entity not found in table: ' + id));
+        if (!gd[String(id)] || (table.id || []).indexOf(String(id)) < 0) errors.push(err(p + '.ids', 'Entity not found in table: ' + id, {
+          code: 'ENTITY_NOT_FOUND',
+          expected: 'entity id in table ' + op.table,
+          received: id,
+          allowedValues: (table.id || []).slice(),
+          suggestedFix: 'Call gde.queryRows to enumerate ids before bulk editing.',
+        }));
       });
     }
     if (op.op === 'setFieldsMany' && (!op.ids || !op.ids.length || !op.fields || typeof op.fields !== 'object')) errors.push(err(p + '.fields', 'Expected ids and fields'));
@@ -75,7 +100,13 @@
     if (op.op === 'updateCardNode') validateUpdateCardNode(op, p, errors);
     if (op.op === 'addCardNode') validateAddCardNode(op, p, errors);
     if (op.op === 'deleteCardNode') validateDeleteCardNode(op, p, errors);
-    if (!knownOp(op.op)) errors.push(err(p + '.op', 'Unsupported op: ' + op.op));
+    if (!knownOp(op.op)) errors.push(err(p + '.op', 'Unsupported op: ' + op.op, {
+      code: 'UNSUPPORTED_OP',
+      expected: 'registered GDE patch op',
+      received: op.op,
+      allowedValues: patchOps.list().map(function (spec) { return spec.op; }).sort(),
+      suggestedFix: 'Use one of the registered patch operations.',
+    }));
   }
 
   function validateUpdateCardNode(op, path, errors) {
@@ -153,7 +184,13 @@
   function validateEntityFields(fields, table, path, errors) {
     var sd = table.struct_def || {};
     Object.keys(fields || {}).forEach(function (field) {
-      if (!(rootField(field) in sd)) errors.push(err(path + '.' + field, 'Field not in struct_def: ' + field));
+      if (!(rootField(field) in sd)) errors.push(err(path + '.' + field, 'Field not in struct_def: ' + field, {
+        code: 'FIELD_NOT_FOUND',
+        expected: 'field declared in table struct_def',
+        received: field,
+        allowedValues: Object.keys(sd).sort(),
+        suggestedFix: 'Use a declared field, or add it to struct_def in the same patch.',
+      }));
       else validateValue(fields[field], sd[rootField(field)], path + '.' + field, errors);
     });
   }
@@ -426,15 +463,15 @@
   }
 
   function needsTable(op) {
-    return ['setField','setFieldMany','setFields','setFieldsMany','addEntity','updateEntity','deleteEntity','deleteEntities','duplicateEntity','reorderEntities','renameTable','deleteTable','updateStructDef','setTableCardStyle','setAssetReference','clearAssetReference'].indexOf(op) >= 0;
+    return patchOps.requiresTable(op);
   }
 
   function needsEntity(op) {
-    return ['setField','setFields','updateEntity','deleteEntity','duplicateEntity','setAssetReference','clearAssetReference'].indexOf(op) >= 0;
+    return patchOps.requiresEntity(op);
   }
 
   function knownOp(op) {
-    return ['setField','setFieldMany','setFields','setFieldsMany','addEntity','updateEntity','deleteEntity','deleteEntities','duplicateEntity','reorderEntities','addTable','renameTable','deleteTable','updateStructDef','upsertType','deleteType','setTableCardStyle','upsertCardStyle','updateCardNode','addCardNode','deleteCardNode','setAssetReference','clearAssetReference'].indexOf(op) >= 0;
+    return patchOps.has(op);
   }
 
   function rootField(field) {
@@ -535,8 +572,24 @@
     return target;
   }
 
-  function err(path, message) {
-    return { path: path, message: message };
+  function err(path, message, extra) {
+    return Object.assign({
+      code: inferErrorCode(message),
+      path: path,
+      message: message,
+    }, extra || {});
+  }
+
+  function inferErrorCode(message) {
+    if (/Table not found/.test(message)) return 'TABLE_NOT_FOUND';
+    if (/Entity not found/.test(message)) return 'ENTITY_NOT_FOUND';
+    if (/Field not in struct_def/.test(message)) return 'FIELD_NOT_FOUND';
+    if (/Reference id not found/.test(message)) return 'REFERENCE_NOT_FOUND';
+    if (/Asset not found/.test(message)) return 'ASSET_NOT_FOUND';
+    if (/Unknown field type/.test(message)) return 'UNKNOWN_FIELD_TYPE';
+    if (/Unsupported op/.test(message)) return 'UNSUPPORTED_OP';
+    if (/Expected/.test(message)) return 'INVALID_TYPE';
+    return 'VALIDATION_ERROR';
   }
 
   GDE.ai.validatePatch = validatePatch;
