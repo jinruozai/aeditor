@@ -72,6 +72,26 @@
     tool('gde.replaceAssetReferences', 'Replace asset references', 'Return a patch that replaces asset URLs across table fields.', { from: 'string', to: 'string' }, function (args) {
       return replaceAssetReferences(args.from, args.to);
     });
+    tool('gde.planBatchSetFields', 'Plan batch field update', 'Create a preview for setting one or more fields on enumerated or queried rows.', {
+      table: 'string', ids: 'array', field: 'string', value: 'any', fields: 'object', query: 'string', filterField: 'string', filterValue: 'any', title: 'string'
+    }, function (args) {
+      return planBatchSetFields(args || {});
+    });
+    tool('gde.planBatchCreateEntities', 'Plan batch entity creation', 'Create a preview for adding multiple entities to a table.', {
+      table: 'string', entities: 'array', title: 'string'
+    }, function (args) {
+      return planBatchCreateEntities(args || {});
+    });
+    tool('gde.planBatchDeleteEntities', 'Plan batch entity deletion', 'Create a preview for deleting enumerated or queried rows.', {
+      table: 'string', ids: 'array', query: 'string', filterField: 'string', filterValue: 'any', title: 'string'
+    }, function (args) {
+      return planBatchDeleteEntities(args || {});
+    });
+    tool('gde.planBalanceNumericField', 'Plan numeric field balance', 'Create a preview for multiplying, adding, clamping, and rounding a numeric field.', {
+      table: 'string', field: 'string', ids: 'array', query: 'string', multiplier: 'number', add: 'number', min: 'number', max: 'number', round: 'boolean', title: 'string'
+    }, function (args) {
+      return planBalanceNumericField(args || {});
+    });
 
     EF.ai.registerTool('gde.previewPatch', {
       title: 'Preview GDE patch',
@@ -250,6 +270,166 @@
         return { op: 'setAssetReference', table: ref.pathKey, id: ref.id, field: ref.path || ref.field, url: to };
       }),
     };
+  }
+
+  function planBatchSetFields(args) {
+    var tableKey = args.table || args.pathKey;
+    var table = State.tableMap()[tableKey];
+    if (!table) return toolError('TABLE_NOT_FOUND', 'table', 'Table not found: ' + tableKey, {
+      expected: 'existing table path',
+      received: tableKey,
+      allowedValues: Object.keys(State.tableMap()).sort(),
+      suggestedFix: 'Call gde.getProjectSummary or use an existing table path.',
+    });
+    var fields = args.fields && typeof args.fields === 'object'
+      ? clone(args.fields)
+      : (args.field ? objectOf(args.field, clone(args.value)) : null);
+    if (!fields || !Object.keys(fields).length) return toolError('MISSING_FIELDS', 'fields', 'Expected fields or field/value.');
+    var fieldError = validatePatchFields(table, fields);
+    if (fieldError) return fieldError;
+    var ids = idsFromArgs(tableKey, args);
+    if (!ids.length) return emptySelectionError(tableKey);
+    var keys = Object.keys(fields);
+    var op = keys.length === 1
+      ? { op: 'setFieldMany', table: tableKey, ids: ids, field: keys[0], value: fields[keys[0]] }
+      : { op: 'setFieldsMany', table: tableKey, ids: ids, fields: fields };
+    return previewPatch({ title: args.title || 'Batch set fields', ops: [op] });
+  }
+
+  function planBatchCreateEntities(args) {
+    var tableKey = args.table || args.pathKey;
+    var table = State.tableMap()[tableKey];
+    if (!table) return toolError('TABLE_NOT_FOUND', 'table', 'Table not found: ' + tableKey, {
+      expected: 'existing table path',
+      received: tableKey,
+      allowedValues: Object.keys(State.tableMap()).sort(),
+      suggestedFix: 'Call gde.getTableSchema before generating entities.',
+    });
+    var entities = Array.isArray(args.entities) ? args.entities : [];
+    if (!entities.length) return toolError('MISSING_ENTITIES', 'entities', 'Expected non-empty entities array.');
+    var ops = [];
+    for (var i = 0; i < entities.length; i++) {
+      var entity = clone(entities[i] || {});
+      var id = entity.id != null ? String(entity.id) : null;
+      delete entity.id;
+      var fieldError = validatePatchFields(table, entity, 'entities[' + i + ']');
+      if (fieldError) return fieldError;
+      var op = { op: 'addEntity', table: tableKey, entity: entity };
+      if (id) op.id = id;
+      ops.push(op);
+    }
+    return previewPatch({ title: args.title || 'Batch create entities', ops: ops });
+  }
+
+  function planBatchDeleteEntities(args) {
+    var tableKey = args.table || args.pathKey;
+    var table = State.tableMap()[tableKey];
+    if (!table) return toolError('TABLE_NOT_FOUND', 'table', 'Table not found: ' + tableKey, {
+      expected: 'existing table path',
+      received: tableKey,
+      allowedValues: Object.keys(State.tableMap()).sort(),
+    });
+    var ids = idsFromArgs(tableKey, args);
+    if (!ids.length) return emptySelectionError(tableKey);
+    return previewPatch({
+      title: args.title || 'Batch delete entities',
+      ops: [{ op: 'deleteEntities', table: tableKey, ids: ids }],
+    });
+  }
+
+  function planBalanceNumericField(args) {
+    var tableKey = args.table || args.pathKey;
+    var table = State.tableMap()[tableKey];
+    if (!table) return toolError('TABLE_NOT_FOUND', 'table', 'Table not found: ' + tableKey, {
+      expected: 'existing table path',
+      received: tableKey,
+      allowedValues: Object.keys(State.tableMap()).sort(),
+    });
+    var field = args.field;
+    var fieldError = validateKnownField(table, field, 'field');
+    if (fieldError) return fieldError;
+    var ids = idsFromArgs(tableKey, args);
+    if (!ids.length) return emptySelectionError(tableKey);
+    var gd = State.gameData();
+    var multiplier = numberOr(args.multiplier, 1);
+    var add = numberOr(args.add, 0);
+    var ops = [];
+    for (var i = 0; i < ids.length; i++) {
+      var id = ids[i];
+      var current = Number((gd[id] || {})[field]);
+      if (!Number.isFinite(current)) return toolError('NON_NUMERIC_VALUE', 'field', 'Value is not numeric: ' + tableKey + '/' + id + '.' + field, {
+        expected: 'numeric field value',
+        received: (gd[id] || {})[field],
+        suggestedFix: 'Use gde.queryRows to inspect values, or choose a numeric field.',
+      });
+      var next = current * multiplier + add;
+      if (typeof args.min === 'number') next = Math.max(args.min, next);
+      if (typeof args.max === 'number') next = Math.min(args.max, next);
+      if (args.round) next = Math.round(next);
+      ops.push({ op: 'setField', table: tableKey, id: id, field: field, value: next });
+    }
+    return previewPatch({ title: args.title || 'Balance numeric field', ops: ops });
+  }
+
+  function previewPatch(patch) {
+    return GDE.ai.previewPatchChangeSet({ patch: Object.assign({ type: 'gde.patch' }, patch) });
+  }
+
+  function idsFromArgs(tableKey, args) {
+    if (args.ids && args.ids.length) return args.ids.map(String);
+    var rows = GDE.ai.queryRows({
+      table: tableKey,
+      field: args.filterField || args.fieldFilter || args.field,
+      value: args.filterValue,
+      query: args.query,
+      limit: 1000,
+    });
+    return rows && rows.rows ? rows.rows.map(function (row) { return String(row.id); }) : [];
+  }
+
+  function validatePatchFields(table, fields, path) {
+    var keys = Object.keys(fields || {});
+    for (var i = 0; i < keys.length; i++) {
+      var hit = validateKnownField(table, keys[i], (path || 'fields') + '.' + keys[i]);
+      if (hit) return hit;
+    }
+    return null;
+  }
+
+  function validateKnownField(table, field, path) {
+    var root = String(field || '').split('.')[0];
+    if (field && root in (table.struct_def || {})) return null;
+    return toolError('FIELD_NOT_FOUND', path || 'field', 'Field not in struct_def: ' + field, {
+      expected: 'field declared in table struct_def',
+      received: field,
+      allowedValues: Object.keys(table.struct_def || {}).sort(),
+      suggestedFix: 'Call gde.getTableSchema and use a declared field, or add the field to struct_def in the same patch.',
+    });
+  }
+
+  function emptySelectionError(tableKey) {
+    return toolError('EMPTY_SELECTION', 'ids', 'No entity ids matched for table: ' + tableKey, {
+      expected: 'non-empty ids array or query/filter matching rows',
+      suggestedFix: 'Call gde.queryRows to enumerate affected ids before planning the batch edit.',
+    });
+  }
+
+  function toolError(code, path, message, extra) {
+    return {
+      ok: false,
+      errors: [Object.assign({ code: code, path: path, message: message }, extra || {})],
+    };
+  }
+
+  function objectOf(key, value) {
+    var out = {};
+    out[key] = value;
+    return out;
+  }
+
+  function numberOr(value, fallback) {
+    var n = Number(value);
+    return Number.isFinite(n) ? n : fallback;
   }
 
   function normalizeTableList(value) {

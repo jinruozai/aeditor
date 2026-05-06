@@ -121,19 +121,19 @@ The registry is the single source for:
 Validation, preview, apply, and ChangeSet rendering should use this registry
 instead of duplicating operation lists.
 
-## 5. Batch Tool Direction
+## 5. Batch Planning Tools
 
 Low-level `gde.patch` stays as the canonical write format. High-level batch
-tools should produce patches, not mutate directly.
+tools produce patch previews, not direct mutations.
 
-Planned tools:
+Current tools:
 
 ```text
 gde.planBatchSetFields
 gde.planBatchCreateEntities
 gde.planBatchDeleteEntities
 gde.planBalanceNumericField
-gde.planStructDefMerge
+gde.planTypeConfigMerge
 ```
 
 These tools should:

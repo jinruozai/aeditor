@@ -20,10 +20,25 @@ vm.runInThisContext(readFileSync('src/ai/change-set.js', 'utf8'), {
 })
 
 let lastPatchCall = null
+const tableMap = {
+  'data/items': {
+    id: ['100', '200'],
+    struct_def: {
+      name: 'string',
+      price: 'int',
+      kind: 'string',
+    },
+  },
+}
+const gameData = {
+  100: { name: 'Sword', price: 10, kind: 'weapon' },
+  200: { name: 'Potion', price: 5, kind: 'consumable' },
+}
 
 global.State = {
   findAssetReferences: () => [],
-  gameData: () => ({ '100': { name: 'Sword' } }),
+  tableMap: () => tableMap,
+  gameData: () => gameData,
 }
 
 global.GDE = {
@@ -44,7 +59,22 @@ global.GDE = {
     projectSummary: () => ({}),
     resolveResource: () => ({}),
     typePayload: () => ({}),
-    queryRows: () => [],
+    queryRows: (args) => {
+      const table = tableMap[args.table]
+      if (!table) return null
+      let ids = (args.ids && args.ids.length ? args.ids : table.id).map(String)
+      if (args.field) {
+        ids = ids.filter((id) => {
+          const value = gameData[id] && gameData[id][args.field]
+          if (args.value !== undefined) return String(value) === String(args.value)
+          if (args.query != null) return String(value == null ? '' : value).toLowerCase().includes(String(args.query).toLowerCase())
+          return value !== undefined
+        })
+      } else if (args.query) {
+        ids = ids.filter((id) => String(id).includes(args.query) || Object.values(gameData[id] || {}).some((v) => String(v).includes(args.query)))
+      }
+      return { table: args.table, total: ids.length, rows: ids.map((id) => ({ id, entity: gameData[id] })) }
+    },
     entityPayload: () => ({}),
     fieldPayload: () => ({}),
     cardStylePayload: () => ({}),
@@ -109,5 +139,55 @@ assert.equal(failedApply.ok, false)
 
 const applyTool = EF.ai.getTool('gde.applyPatch')
 assert.equal(typeof applyTool.apply, 'function')
+
+const batchSet = EF.ai.getTool('gde.planBatchSetFields').run({
+  table: 'data/items',
+  ids: ['100', '200'],
+  fields: { kind: 'loot' },
+})
+assert.equal(batchSet.type, 'ef.changeSet')
+assert.deepEqual(batchSet.apply.payload.ops, [
+  { op: 'setFieldMany', table: 'data/items', ids: ['100', '200'], field: 'kind', value: 'loot' },
+])
+
+const batchCreate = EF.ai.getTool('gde.planBatchCreateEntities').run({
+  table: 'data/items',
+  entities: [{ id: '300', name: 'Axe', price: 20, kind: 'weapon' }],
+})
+assert.equal(batchCreate.type, 'ef.changeSet')
+assert.deepEqual(batchCreate.apply.payload.ops[0], {
+  op: 'addEntity',
+  table: 'data/items',
+  id: '300',
+  entity: { name: 'Axe', price: 20, kind: 'weapon' },
+})
+
+const batchDelete = EF.ai.getTool('gde.planBatchDeleteEntities').run({
+  table: 'data/items',
+  filterField: 'kind',
+  filterValue: 'weapon',
+})
+assert.equal(batchDelete.type, 'ef.changeSet')
+assert.deepEqual(batchDelete.apply.payload.ops[0], { op: 'deleteEntities', table: 'data/items', ids: ['100'] })
+
+const balance = EF.ai.getTool('gde.planBalanceNumericField').run({
+  table: 'data/items',
+  ids: ['100', '200'],
+  field: 'price',
+  multiplier: 2,
+  add: 1,
+  round: true,
+})
+assert.equal(balance.type, 'ef.changeSet')
+assert.deepEqual(balance.apply.payload.ops.map((op) => op.value), [21, 11])
+
+const badBatch = EF.ai.getTool('gde.planBatchSetFields').run({
+  table: 'data/items',
+  ids: ['100'],
+  fields: { missing: 1 },
+})
+assert.equal(badBatch.ok, false)
+assert.equal(badBatch.errors[0].code, 'FIELD_NOT_FOUND')
+assert.deepEqual(badBatch.errors[0].allowedValues, ['kind', 'name', 'price'])
 
 console.log('gde ai tools tests ok')
