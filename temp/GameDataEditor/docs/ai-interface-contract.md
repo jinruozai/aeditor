@@ -95,6 +95,10 @@ Recoverable failure:
 `message` is for humans. `code`, `path`, `allowedValues`, `suggestedFix`, and
 `retryWith` are for AI repair.
 
+GDE exposes `GDE.ai.error(code, path, message, extra)` and
+`GDE.ai.errorResult(code, path, message, extra)` so tools and validators return
+the same error shape.
+
 ## 4. Patch Op Registry
 
 Every patch operation is registered once with metadata:
@@ -158,3 +162,37 @@ These tools should:
 - New field types must be introduced with `upsertType` in the same patch.
 - Asset URLs must be `asset://...` and must exist for `img` / `snd` fields.
 - `ref_id` values must resolve unless intentionally empty.
+
+## 7. Current Implementation Snapshot
+
+Implemented:
+
+- Patch op registry: `GDE.ai.patchOps`
+- Registry-generated `gde.patch` schema
+- `gde.validatePatch`, `gde.previewPatch`, and `gde.applyPatch` use the patch schema
+- Batch planning tools:
+  - `gde.planBatchSetFields`
+  - `gde.planBatchCreateEntities`
+  - `gde.planBatchDeleteEntities`
+  - `gde.planBalanceNumericField`
+- Unified GDE AI error helpers:
+  - `GDE.ai.error`
+  - `GDE.ai.errorResult`
+- Structured validation errors for common repair cases:
+  - missing table
+  - missing entity
+  - missing field
+  - unsupported patch op
+
+Verified:
+
+- `npm run check`
+- `npm run check:gde`
+- `npm run check:dist`
+
+Next work:
+
+- Add richer `retryWith` guidance to patch validation errors.
+- Add semantic ChangeSet renderers for common GDE changes.
+- Add dedicated batch generation helpers for style-guided content generation.
+- Browser-smoke the full AI flow: attach target, ask, preview patch, approve, undo.

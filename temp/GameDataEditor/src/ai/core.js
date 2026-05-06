@@ -13,6 +13,18 @@
     return def && typeof def === 'object' ? def.type || '' : '';
   }
 
+  function aiError(code, path, message, extra) {
+    return Object.assign({
+      code: code || 'ERROR',
+      path: path || '',
+      message: message || code || 'Error',
+    }, extra || {});
+  }
+
+  function errorResult(code, path, message, extra) {
+    return { ok: false, errors: [aiError(code, path, message, extra)] };
+  }
+
   function tableOfEntity(id) {
     var sid = String(id);
     var tm = State.tableMap();
@@ -320,6 +332,8 @@
     attachSelectionToAgent: attachSelectionToAgent,
     askAboutSelection: askAboutSelection,
     clone: clone,
+    error: aiError,
+    errorResult: errorResult,
     fieldTypeName: fieldTypeName,
     tableOfEntity: tableOfEntity,
     entityTitle: entityTitle,

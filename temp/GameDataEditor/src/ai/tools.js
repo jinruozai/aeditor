@@ -486,10 +486,8 @@
   }
 
   function toolError(code, path, message, extra) {
-    return {
-      ok: false,
-      errors: [Object.assign({ code: code, path: path, message: message }, extra || {})],
-    };
+    if (GDE.ai.errorResult) return GDE.ai.errorResult(code, path, message, extra);
+    return { ok: false, errors: [Object.assign({ code: code, path: path, message: message }, extra || {})] };
   }
 
   function objectOf(key, value) {

@@ -573,11 +573,9 @@
   }
 
   function err(path, message, extra) {
-    return Object.assign({
-      code: inferErrorCode(message),
-      path: path,
-      message: message,
-    }, extra || {});
+    var code = extra && extra.code || inferErrorCode(message);
+    if (GDE.ai.error) return GDE.ai.error(code, path, message, extra);
+    return Object.assign({ code: code, path: path, message: message }, extra || {});
   }
 
   function inferErrorCode(message) {
