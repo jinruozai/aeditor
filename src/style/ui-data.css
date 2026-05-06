@@ -343,7 +343,7 @@
   pointer-events: none;
 }
 
-/* ── log panel (built on ui.card + ui.scrollArea + ui.segmented) ─ */
+/* ── log panel ─ */
 .ef-ui-errlog {
   display: flex;
   flex-direction: column;
@@ -390,21 +390,19 @@
 .ef-ui-errlog-row {
   position: relative;
   display: flex;
-  flex-direction: column;
-  gap: 3px;
-  padding: var(--ef-space-2) var(--ef-space-3) var(--ef-space-2) 13px;
-  margin-bottom: var(--ef-space-2);
+  align-items: center;
+  padding: 2px var(--ef-space-2) 2px 9px;
+  margin-bottom: var(--ef-space-1);
   border: 1px solid var(--ef-border);
-  border-radius: var(--ef-r-3);
+  border-radius: var(--ef-r-2);
   cursor: pointer;
   font: var(--ef-fs-sm) var(--ef-font-ui);
   background: color-mix(in srgb, var(--ef-bg-1) 88%, var(--ef-bg-2));
-  box-shadow: var(--ef-shadow-raised);
   transition:
     background var(--ef-dur-fast) var(--ef-ease),
     border-color var(--ef-dur-fast) var(--ef-ease),
     transform var(--ef-dur-fast) var(--ef-ease);
-  min-height: 44px;
+  min-height: 22px;
 }
 .ef-ui-errlog-row::before {
   content: '';
@@ -444,59 +442,12 @@
 .ef-ui-errlog-row-debug::before {
   background: var(--ef-fg-3);
 }
-.ef-ui-errlog-row-head {
-  display: flex;
-  align-items: center;
-  gap: var(--ef-space-2);
-  width: 100%;
-  min-width: 0;
-}
-.ef-ui-errlog-level {
-  flex: 0 0 auto;
-  font: var(--ef-fs-xs) var(--ef-font-mono);
-  letter-spacing: .04em;
-  padding: 1px var(--ef-space-1);
-  border-radius: var(--ef-r-2);
-  background: var(--ef-bg-3);
-  color: var(--ef-fg-2);
-}
-.ef-ui-errlog-level-error {
-  background: color-mix(in srgb, var(--ef-error) 20%, transparent);
-  color: var(--ef-error);
-}
-.ef-ui-errlog-level-warn {
-  background: color-mix(in srgb, var(--ef-warn) 20%, transparent);
-  color: var(--ef-warn);
-}
-.ef-ui-errlog-level-info {
-  background: color-mix(in srgb, var(--ef-accent) 18%, transparent);
-  color: var(--ef-accent);
-}
-.ef-ui-errlog-level-debug {
-  background: var(--ef-bg-3);
-  color: var(--ef-fg-3);
-}
-.ef-ui-errlog-src {
-  flex: 1 1 auto;
-  min-width: 0;
-  color: var(--ef-fg-3);
-  font: var(--ef-fs-xs) var(--ef-font-mono);
-  text-transform: uppercase;
-  letter-spacing: .04em;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.ef-ui-errlog-time {
-  flex: 0 0 auto;
-  color: var(--ef-fg-3);
-  font: var(--ef-fs-xs) var(--ef-font-mono);
-}
 .ef-ui-errlog-msg {
   flex: 1 1 auto;
   width: 100%;
   min-width: 0;
   color: var(--ef-fg-0);
+  line-height: 18px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;

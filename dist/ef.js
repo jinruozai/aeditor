@@ -19720,15 +19720,10 @@
 
   function buildRow(entry) {
     const row = ui.h('div', 'ef-ui-errlog-row ef-ui-errlog-row-' + entry.level)
-    const head = ui.h('div', 'ef-ui-errlog-row-head')
-    head.appendChild(ui.h('span', 'ef-ui-errlog-level ef-ui-errlog-level-' + entry.level, { text: entry.level.toUpperCase() }))
-    head.appendChild(ui.h('span', 'ef-ui-errlog-src',  { text: formatSource(entry.source) }))
-    const time = entry.time ? new Date(entry.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : ''
-    head.appendChild(ui.h('span', 'ef-ui-errlog-time', { text: time }))
-    row.appendChild(head)
     row.appendChild(ui.h('div', 'ef-ui-errlog-msg',  { text: entry.message }))
     // Stack trace lives in the entry data (and console.error fallback) but is
-    // not rendered — the log panel is a one-line scan, not a debugger.
+    // not rendered. Level/source/time are represented by filtering, copy, and
+    // the color strip; the visible list stays message-first.
     row.title = entry.stack ? entry.message + '\n\n' + entry.stack : entry.message
     return row
   }

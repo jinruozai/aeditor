@@ -55,7 +55,7 @@
 
     var sizeInput = ui.numberInput({
       value: sizeSig,
-      min:   80, max: 240, step: 10, precision: 0,
+      min:   80, max: 1000, step: 10, precision: 0,
     });
     // Width for a 3-digit number + both step buttons; flex-shrink:0 so a
     // narrow toolbar doesn't squeeze the input into an unusable sliver.
