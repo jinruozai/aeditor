@@ -87,6 +87,7 @@
       from: spec.from || 'user',
       role: spec.role || 'user',
       content: spec.content == null ? '' : spec.content,
+      reasoning_content: spec.reasoning_content || spec.reasoningContent || null,
       connection: spec.connection || null,
       model: spec.model || null,
       time: spec.time || spec.createdAt || now(),

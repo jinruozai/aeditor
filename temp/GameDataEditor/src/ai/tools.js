@@ -21,12 +21,12 @@
       return t ? { pathKey: args.pathKey, struct_def: clone(t.struct_def || {}), card_style: t.card_style || 'default', ids: (t.id || []).slice() } : null;
     });
     tool('gde.getTableEntities', 'Get table entities', 'Read paged/projected entities from a table.', {
-      pathKey: 'string', table: 'string', ids: 'array', fields: 'array', offset: 'number', limit: 'number', field: 'string', value: 'any', query: 'string'
+      pathKey: 'string', table: 'string', ids: 'array', fields: 'array', offset: 'number', limit: 'number', field: 'string', value: {}, query: 'string'
     }, function (args) {
       return GDE.ai.queryRows(args);
     });
     tool('gde.queryRows', 'Query table rows', 'Read rows by table/id/field with pagination, projection, and simple filters.', {
-      table: 'string', ids: 'array', fields: 'array', offset: 'number', limit: 'number', field: 'string', value: 'any', query: 'string'
+      table: 'string', ids: 'array', fields: 'array', offset: 'number', limit: 'number', field: 'string', value: {}, query: 'string'
     }, function (args) {
       return GDE.ai.queryRows(args);
     });

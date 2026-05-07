@@ -4,6 +4,7 @@
 .ef-ui-list {
   position: relative;
   height: 240px;
+  min-height: 0;
   overflow-y: auto;
   background: var(--ef-bg-1);
   border: 1px solid var(--ef-border);
@@ -36,6 +37,7 @@
 .ef-ui-tree {
   position: relative;
   height: 240px;
+  min-height: 0;
   overflow-y: auto;
   background: var(--ef-bg-1);
   border: 1px solid var(--ef-border);

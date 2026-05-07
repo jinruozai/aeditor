@@ -58,6 +58,13 @@ assert.equal(openAiTools[0].type, 'function')
 assert.equal(openAiTools[0].function.name, 'agent__create')
 assert.equal(openAiTools[0].function.parameters.type, 'object')
 
+const anySchemaTool = ai.openAiTools({ toolSpecs: [{
+  id: 'data.query',
+  schema: { value: 'any', ids: 'array' },
+}] })[0]
+assert.deepEqual(anySchemaTool.function.parameters.properties.value, {})
+assert.deepEqual(anySchemaTool.function.parameters.properties.ids, { type: 'array' })
+
 const openAiMessages = ai.openAiMessages([
   { role: 'assistant', content: 'Done', toolCalls: [{ id: 'call_1', toolId: 'agent.create', args: { name: 'helper' } }] },
   { role: 'tool', id: 'tool_result_1', meta: { toolCallId: 'call_1' }, content: { ok: true } },
@@ -65,6 +72,15 @@ const openAiMessages = ai.openAiMessages([
 assert.equal(openAiMessages[0].tool_calls[0].function.name, 'agent__create')
 assert.equal(openAiMessages[1].role, 'tool')
 assert.equal(openAiMessages[1].tool_call_id, 'call_1')
+
+const deepSeekMessages = ai.openAiMessages([
+  { role: 'assistant', content: '', reasoning_content: 'Need project summary.', toolCalls: [{ id: 'call_ds', toolId: 'gde.getProjectSummary', args: {} }] },
+], { connectionName: 'deepseek' })
+assert.equal(deepSeekMessages[0].reasoning_content, 'Need project summary.')
+const openAiNoReasoning = ai.openAiMessages([
+  { role: 'assistant', content: '', reasoning_content: 'Provider-specific thinking.', toolCalls: [{ id: 'call_openai', toolId: 'gde.getProjectSummary', args: {} }] },
+], { connectionName: 'openai-api' })
+assert.equal('reasoning_content' in openAiNoReasoning[0], false)
 
 const normalized = ai.normalizeOpenAiToolCalls([{
   id: 'call_2',

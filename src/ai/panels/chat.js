@@ -51,6 +51,7 @@
   }
 
   function defaultConnection() {
+    if (EF.settings && EF.settings.values) EF.settings.values()
     if (EF.settings) return EF.settings.get('ai.defaultConnection') || EF.ai.defaultConnection || 'mock'
     return EF.ai.defaultConnection || 'mock'
   }
@@ -370,9 +371,11 @@
         disabled: controlDisabled,
         onChange: function (v) {
           const parsed = parseModelValue(v)
-          connection.set(parsed.connection)
-          model.set(parsed.model)
-          updateCurrentAgent({ connection: parsed.connection, model: parsed.model, stream: !!connectionConfig(parsed.connection).stream })
+          EF.batch(function () {
+            connection.set(parsed.connection)
+            model.set(parsed.model)
+            updateCurrentAgent({ connection: parsed.connection, model: parsed.model, stream: !!connectionConfig(parsed.connection).stream })
+          })
         },
       }))
       let found = false
@@ -382,9 +385,11 @@
         const first = opts.find(function (it) { return it.value })
         if (first) {
           const parsed = parseModelValue(first.value)
-          connection.set(parsed.connection)
-          model.set(parsed.model)
-          updateCurrentAgent({ connection: parsed.connection, model: parsed.model, stream: !!connectionConfig(parsed.connection).stream })
+          EF.batch(function () {
+            connection.set(parsed.connection)
+            model.set(parsed.model)
+            updateCurrentAgent({ connection: parsed.connection, model: parsed.model, stream: !!connectionConfig(parsed.connection).stream })
+          })
         }
       }
     }))

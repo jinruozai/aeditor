@@ -1827,6 +1827,7 @@
       from: spec.from || 'user',
       role: spec.role || 'user',
       content: spec.content == null ? '' : spec.content,
+      reasoning_content: spec.reasoning_content || spec.reasoningContent || null,
       connection: spec.connection || null,
       model: spec.model || null,
       time: spec.time || spec.createdAt || now(),
@@ -2488,6 +2489,7 @@
   }
 
   function customConnections() {
+    if (EF.settings && EF.settings.values) EF.settings.values()
     return EF.settings && EF.settings.get ? (EF.settings.get(CUSTOM_KEY) || []) : []
   }
 
@@ -2581,6 +2583,7 @@
     const c = getConnection(id)
     const defaults = Object.assign({}, (c && c.configDefaults) || {})
     if (EF.settings && c) {
+      if (EF.settings.values) EF.settings.values()
       Object.keys(defaults).forEach(function (key) {
         const value = EF.settings.get(configKey(c.id, key))
         if (value !== undefined) defaults[key] = value
@@ -2751,10 +2754,73 @@
     const props = {}
     Object.keys(schema || {}).forEach(function (key) {
       const value = schema[key]
-      if (typeof value === 'string') props[key] = { type: value === 'array' ? 'array' : value }
+      if (typeof value === 'string') props[key] = value === 'any' ? {} : { type: value === 'array' ? 'array' : value }
       else props[key] = value || {}
     })
     return { type: 'object', properties: props }
+  }
+
+  function compactJson(value, max) {
+    let text = ''
+    try { text = JSON.stringify(value) } catch (_) { text = String(value) }
+    max = max || 6000
+    return text.length > max ? text.slice(0, max) + '...' : text
+  }
+
+  function compactContextRef(ref) {
+    if (!ref || typeof ref !== 'object') return ref
+    const out = {}
+    const keys = ['resolver', 'uri', 'kind', 'title', 'summary', 'meta', 'capabilities', 'tools']
+    for (let i = 0; i < keys.length; i++) {
+      if (ref[keys[i]] != null) out[keys[i]] = ref[keys[i]]
+    }
+    return out
+  }
+
+  function compactRuntimeContextValue(value) {
+    if (value == null) return null
+    if (Array.isArray(value)) return value.map(compactRuntimeContextValue)
+    if (typeof value !== 'object') return value
+    const out = compactContextRef(value)
+    if (value.selection != null) out.selection = value.selection
+    if (value.refs != null) out.refs = value.refs.map(compactContextRef)
+    if (Object.keys(out).length) return out
+    return { value: compactJson(value, 1200) }
+  }
+
+  function runtimeContextMessage(ctx) {
+    const context = ctx && ctx.context || []
+    const items = []
+    for (let i = 0; i < context.length; i++) {
+      const item = context[i] || {}
+      const value = compactRuntimeContextValue(item.value)
+      if (value == null) continue
+      items.push({ id: item.id || '', value: value })
+    }
+    if (!items.length) return null
+    return {
+      id: 'system-runtime-context-' + Date.now().toString(36),
+      from: 'system',
+      role: 'system',
+      status: 'done',
+      content: [
+        'Current editor runtime context.',
+        'Use this to resolve phrases like "current table", "selected rows", "selected nodes", or "active editor".',
+        'This is a navigation summary, not full data. Before modifying data, call the relevant tools to read schemas/entities.',
+        compactJson(items, 6000),
+      ].join('\n'),
+    }
+  }
+
+  function requestWithRuntimeContext(request, ctx) {
+    const message = runtimeContextMessage(ctx)
+    if (!message) return request
+    const messages = request.messages || []
+    let insertAt = 0
+    while (insertAt < messages.length && messages[insertAt] && messages[insertAt].role === 'system') insertAt++
+    return Object.assign({}, request, {
+      messages: messages.slice(0, insertAt).concat([message], messages.slice(insertAt)),
+    })
   }
 
   function toolName(id) {
@@ -2812,6 +2878,8 @@
       const out = { role: m.role || 'user', content: messageText(m.content) }
       const calls = m.toolCalls || []
       if (calls.length) {
+        const reasoning = m.reasoning_content != null ? m.reasoning_content : m.reasoningContent
+        if (reasoning && isDeepSeekRequest(request)) out.reasoning_content = reasoning
         out.tool_calls = calls.map(function (call) {
           return {
             id: call.providerCallId || call.id,
@@ -2839,6 +2907,11 @@
       return outMessages
     }
     return outMessages
+  }
+
+  function isDeepSeekRequest(request) {
+    return String((request && (request.connectionName || request.connection || request.provider)) || '').toLowerCase() === 'deepseek'
+      || String(request && request.model || '').toLowerCase().indexOf('deepseek') >= 0
   }
 
   function anthropicPayloadMessages(messages, request) {
@@ -3016,6 +3089,7 @@
   }
 
   ai.messageText = ai.messageText || messageText
+  ai.requestWithRuntimeContext = requestWithRuntimeContext
   ai.openAiTools = openAiTools
   ai.openAiMessages = openAiMessages
   ai.normalizeOpenAiToolCalls = normalizeOpenAiToolCalls
@@ -3295,6 +3369,7 @@
         return {
           role: message.role || 'assistant',
           content: ai.messageText(message.content),
+          reasoning_content: message.reasoning_content || message.reasoningContent || null,
           toolCalls: ai.normalizeOpenAiToolCalls(message.tool_calls || message.toolCalls || [], request),
           usage: data.usage || null,
         }
@@ -3316,7 +3391,6 @@
     send: function (connection, request, ctx) {
       const config = ai.getConnectionConfig(connection.id)
       const headers = http.authHeaders(config, 'anthropic')
-      const system = ai.anthropicSystem(request.messages)
       const body = {
         model: request.model || config.defaultModel,
         messages: ai.anthropicPayloadMessages(request.messages, request),
@@ -3324,6 +3398,7 @@
         stream: !!(request.stream && config.stream),
       }
       headers['anthropic-version'] = '2023-06-01'
+      const system = ai.anthropicSystem(request.messages)
       if (system) body.system = system
       return http.requestMaybeStream(http.joinUrl(config.baseUrl, '/v1/messages'), {
         method: 'POST',
@@ -5823,26 +5898,49 @@
     return id === 'agent.create' || id === 'agent.delegate'
   }
 
+  function prepareApprovalTool(agentId, call, actor, tool) {
+    let state = ai.getToolCallActionState ? ai.getToolCallActionState(agentId, call.id, actor) : null
+    if (state && state.canPreview) {
+      ai.previewToolCall(agentId, call.id, actor)
+      return Promise.resolve({ done: true })
+    }
+    if (state && state.canApprove) {
+      ai.approveToolCall(agentId, call.id, actor)
+      state = ai.getToolCallActionState ? ai.getToolCallActionState(agentId, call.id, actor) : null
+    }
+    if (state && state.canRun) {
+      const run = ai.runToolCall(agentId, call.id, actor)
+      if (run && run.promise) return run.promise.then(function () { return { done: true } })
+    }
+    return Promise.resolve({ done: !!(tool.preview || tool.run) })
+  }
+
+  function applyPreparedApprovalTool(agentId, call, actor) {
+    const applied = ai.applyToolCall(agentId, call.id, actor)
+    if (applied && applied.promise) {
+      return applied.promise.then(function (done) {
+        appendToolResult(agentId, call, done && (done.applyResult || done.error || done), done && done.status === 'failed' ? 'error' : 'done')
+        return { waiting: false }
+      })
+    }
+    appendToolResult(agentId, call, applied && (applied.applyResult || applied.error || applied), applied && applied.status === 'failed' ? 'error' : 'done')
+    return Promise.resolve({ waiting: false })
+  }
+
   function executeOneToolCall(agentId, call, actor) {
     const tool = ai.getTool(call.toolId)
     if (!tool) {
       appendToolResult(agentId, call, { error: 'Tool not found: ' + call.toolId }, 'error')
       return Promise.resolve({ waiting: false })
     }
-    if (tool.apply && !tool.run) {
-      const previewed = ai.previewToolCall(agentId, call.id, actor)
-      if (previewed && previewed.status === 'previewed' && shouldAutoApplyTool(ai.findAgent(agentId), previewed)) {
-        const applied = ai.applyToolCall(agentId, call.id, actor)
-        if (applied && applied.promise) {
-          return applied.promise.then(function (done) {
-            appendToolResult(agentId, call, done && (done.applyResult || done.error || done), done && done.status === 'failed' ? 'error' : 'done')
-            return { waiting: false }
-          })
-        }
-        appendToolResult(agentId, call, applied && (applied.applyResult || applied.error || applied), applied && applied.status === 'failed' ? 'error' : 'done')
-        return Promise.resolve({ waiting: false })
-      }
-      return Promise.resolve({ waiting: true })
+    if (tool.apply) {
+      return prepareApprovalTool(agentId, call, actor, tool).then(function () {
+        const current = ai.findToolCall ? ai.findToolCall(agentId, call.id) : null
+        const prepared = current && current.toolCall || call
+        return shouldAutoApplyTool(ai.findAgent(agentId), prepared)
+          ? applyPreparedApprovalTool(agentId, call, actor)
+          : { waiting: true }
+      })
     }
     const approved = ai.approveToolCall(agentId, call.id, actor)
     const run = approved && ai.runToolCall(agentId, call.id, actor)
@@ -5879,7 +5977,8 @@
     }
     return Promise.resolve().then(function () {
       request.stream = request.stream || !!provider.stream
-      return provider.stream ? provider.stream(request, ctx) : provider.send(request, ctx)
+      const sendRequest = ai.requestWithRuntimeContext ? ai.requestWithRuntimeContext(request, ctx) : request
+      return provider.stream ? provider.stream(sendRequest, ctx) : provider.send(sendRequest, ctx)
     }).then(function (result) {
       if (controller.signal.aborted) return null
       if (isIterable(result)) {
@@ -11232,9 +11331,9 @@
     'int':          { name: 'Integer', base_type: 'int',    type_render: 'input_int',    default: 0,    mem: 'Standard integer', type_agv: { radix: 'dec' }, support_render: ['input_int','enum','range','toggle','color','id','ref_id'] },
     'float':        { name: 'Float',   base_type: 'float',  type_render: 'input_float',  default: 0.0,  mem: 'Standard floating-point number', type_agv: { decimal_places: 2, percent: false }, support_render: ['input_float','range'] },
     'string':       { name: 'String',  base_type: 'string', type_render: 'input_string', default: '',   mem: 'Standard text', support_render: ['input_string','textarea','enum','img','snd','date'] },
-    'struct':       { name: 'Struct',  base_type: 'struct', type_render: 'struct',       default: [],   mem: 'Composite record' },
-    'array':        { name: 'Array',   base_type: 'array',  type_render: 'array',        default: [],   mem: 'Ordered list' },
-    'var':          { name: 'Any',     base_type: 'var',    type_render: 'input_string', default: null, mem: 'Auto-typed variable' },
+    'struct':       { name: 'Struct',  base_type: 'struct', type_render: 'struct',       default: {},   mem: 'Composite record', support_render: ['struct'] },
+    'array':        { name: 'Array',   base_type: 'array',  type_render: 'array',        default: [],   mem: 'Ordered list', support_render: ['array'] },
+    'var':          { name: 'Any',     base_type: 'var',    type_render: 'input_string', default: null, mem: 'Auto-typed variable', support_render: ['input_string','textarea','input_int','input_float','range','enum','toggle','color','date','img','snd','id','ref_id','struct','array'] },
 
     'enum_int':     { name: 'Enum (int)',    base_type: 'int',    type_render: 'enum',    default: 0,  mem: 'Integer enumeration',  type_agv: { options: { '0': 'Option 1', '1': 'Option 2' } } },
     'enum_string':  { name: 'Enum (string)', base_type: 'string', type_render: 'enum',    default: '', mem: 'String enumeration',   type_agv: { options: {} } },
@@ -11579,6 +11678,17 @@
 
   ui.registerRenderer('input_string', function (a) {
     const agv = a.fieldDef.type_agv || {}
+    if (a.fieldDef.commit === 'blur') {
+      const local = EF.signal(asPlain(a.sig))
+      const el = ui.input({
+        value: local,
+        onChange: function (v) { local.set(v) },
+        onCommit: a.write,
+        type: agv.password ? 'password' : 'text',
+      })
+      ui.collect(el, EF.effect(function () { local.set(asPlain(a.sig)) }))
+      return el
+    }
     return ui.input({ value: a.sig, onChange: a.write, type: agv.password ? 'password' : 'text' })
   })
   ui.registerRenderer('textarea', function (a) {
@@ -13295,8 +13405,13 @@
     function paintPreview(v) {
       thumb.innerHTML = ''
       if (kind === 'image' && v) {
+        const src = typeof o.resolveSrc === 'function' ? o.resolveSrc(v) : v
+        if (!src) {
+          thumb.appendChild(placeholderIcon())
+          return
+        }
         const img = document.createElement('img')
-        img.src = typeof o.resolveSrc === 'function' ? (o.resolveSrc(v) || v) : v
+        img.src = src
         img.onerror = function () { img.remove(); thumb.appendChild(placeholderIcon()) }
         thumb.appendChild(img)
       } else if (kind === 'audio') {
@@ -17355,6 +17470,7 @@
   }
 
   function defaultConnection() {
+    if (EF.settings && EF.settings.values) EF.settings.values()
     if (EF.settings) return EF.settings.get('ai.defaultConnection') || EF.ai.defaultConnection || 'mock'
     return EF.ai.defaultConnection || 'mock'
   }
@@ -17674,9 +17790,11 @@
         disabled: controlDisabled,
         onChange: function (v) {
           const parsed = parseModelValue(v)
-          connection.set(parsed.connection)
-          model.set(parsed.model)
-          updateCurrentAgent({ connection: parsed.connection, model: parsed.model, stream: !!connectionConfig(parsed.connection).stream })
+          EF.batch(function () {
+            connection.set(parsed.connection)
+            model.set(parsed.model)
+            updateCurrentAgent({ connection: parsed.connection, model: parsed.model, stream: !!connectionConfig(parsed.connection).stream })
+          })
         },
       }))
       let found = false
@@ -17686,9 +17804,11 @@
         const first = opts.find(function (it) { return it.value })
         if (first) {
           const parsed = parseModelValue(first.value)
-          connection.set(parsed.connection)
-          model.set(parsed.model)
-          updateCurrentAgent({ connection: parsed.connection, model: parsed.model, stream: !!connectionConfig(parsed.connection).stream })
+          EF.batch(function () {
+            connection.set(parsed.connection)
+            model.set(parsed.model)
+            updateCurrentAgent({ connection: parsed.connection, model: parsed.model, stream: !!connectionConfig(parsed.connection).stream })
+          })
         }
       }
     }))
@@ -18210,7 +18330,6 @@
     const state = EF.ai.getToolCallActionState
       ? EF.ai.getToolCallActionState(agentId, call.id, 'user')
       : null
-    const hasChangeReview = isChangeSet(call.preview) || isChangeSet(call.result)
     const actions = ui.h('div', 'ef-ai-tool-call-actions')
     if (state && (state.canPreview || state.canApply || state.canApprove || state.canRun || state.canReject)) {
       actions.appendChild(ui['switch']({
@@ -18221,15 +18340,13 @@
         },
       }))
     }
+    appendToolButton(actions, 'Reject', state && state.canReject, function () {
+      EF.ai.rejectToolCall(agentId, call.id, 'Rejected by user', 'user')
+      if (EF.ai.resumeAgent) EF.ai.resumeAgent(agentId, 'user')
+    }, 'danger')
     appendToolButton(actions, 'Apply', state && (state.canApply || state.canPreview || state.canApprove || state.canRun), function () {
       applyToolCallSmart(agentId, call)
     }, 'primary')
-    if (!hasChangeReview) {
-      appendToolButton(actions, 'Reject', state && state.canReject, function () {
-        EF.ai.rejectToolCall(agentId, call.id, 'Rejected by user', 'user')
-        if (EF.ai.resumeAgent) EF.ai.resumeAgent(agentId, 'user')
-      }, 'danger')
-    }
     if (actions.firstChild) card.appendChild(actions)
 
     if (state && (!state.callAllowed || (state.hasApply && !state.applyAllowed))) {
@@ -18248,7 +18365,7 @@
     const right = ui.h('div', 'ef-ai-tool-call-head-right')
     right.addEventListener('click', function (ev) { ev.stopPropagation() })
     head.appendChild(ui.h('span', 'ef-ai-tool-call-name', { text: toolName(call) }))
-    right.appendChild(ui.h('span', 'ef-ai-tool-call-status', { text: status }))
+    if (status !== 'previewed') right.appendChild(ui.h('span', 'ef-ai-tool-call-status', { text: status }))
     const args = call.args && Object.keys(call.args).length ? compactArgs(call.args) : ''
     if (args) head.appendChild(ui.h('span', 'ef-ai-tool-call-summary', { text: args }))
 

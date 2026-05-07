@@ -162,6 +162,42 @@ assert.equal(ai.findAgent(approvalAgent.id).messages.some(function (message) {
   return message.content === 'applied and continued'
 }), true)
 
+let approvalRunRequests = 0
+ai.registerTool('approval-run-edit', {
+  run: function (args) { return { before: args.before, after: args.after } },
+  apply: function (preview) { return { applied: true, preview: preview } },
+})
+ai.registerTransport('approval-run-flow', {
+  send: function () {
+    approvalRunRequests += 1
+    if (approvalRunRequests === 1) {
+      return {
+        role: 'assistant',
+        content: '',
+        toolCalls: [{ toolId: 'approval-run-edit', args: { before: 2, after: 3 } }],
+      }
+    }
+    return { role: 'assistant', content: 'continued after run approval' }
+  },
+})
+ai.registerConnection('approval-run-flow', { auth: { type: 'none' }, transport: { type: 'approval-run-flow' }, configDefaults: {} })
+const approvalRunAgent = ai.createAgent({ name: 'Approval Run', parentAgentId: parent.id, connection: 'approval-run-flow', toolRefs: ['approval-run-edit'] })
+const approvalRunFlow = ai.message.send(approvalRunAgent.id, { content: 'needs approval after run' })
+await approvalRunFlow.promise
+assert.equal(ai.findAgent(approvalRunAgent.id).status, 'waiting_approval')
+assert.equal(approvalRunRequests, 1)
+const approvalRunMessage = ai.findAgent(approvalRunAgent.id).messages.find(function (message) {
+  return message.toolCalls && message.toolCalls.length
+})
+const approvalRunCall = approvalRunMessage.toolCalls[0]
+assert.equal(approvalRunCall.status, 'completed')
+assert.equal(ai.applyToolCall(approvalRunAgent.id, approvalRunCall.id, 'user').status, 'applied')
+const resumedRunApproval = ai.resumeAgent(approvalRunAgent.id)
+await resumedRunApproval.promise
+assert.equal(ai.findAgent(approvalRunAgent.id).messages.some(function (message) {
+  return message.content === 'continued after run approval'
+}), true)
+
 let releaseInterrupt
 const interruptedHold = new Promise(function (resolve) { releaseInterrupt = resolve })
 ai.registerTransport('interrupt-hold', {

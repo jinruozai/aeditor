@@ -46,9 +46,9 @@
     'int':          { name: 'Integer', base_type: 'int',    type_render: 'input_int',    default: 0,    mem: 'Standard integer', type_agv: { radix: 'dec' }, support_render: ['input_int','enum','range','toggle','color','id','ref_id'] },
     'float':        { name: 'Float',   base_type: 'float',  type_render: 'input_float',  default: 0.0,  mem: 'Standard floating-point number', type_agv: { decimal_places: 2, percent: false }, support_render: ['input_float','range'] },
     'string':       { name: 'String',  base_type: 'string', type_render: 'input_string', default: '',   mem: 'Standard text', support_render: ['input_string','textarea','enum','img','snd','date'] },
-    'struct':       { name: 'Struct',  base_type: 'struct', type_render: 'struct',       default: [],   mem: 'Composite record' },
-    'array':        { name: 'Array',   base_type: 'array',  type_render: 'array',        default: [],   mem: 'Ordered list' },
-    'var':          { name: 'Any',     base_type: 'var',    type_render: 'input_string', default: null, mem: 'Auto-typed variable' },
+    'struct':       { name: 'Struct',  base_type: 'struct', type_render: 'struct',       default: {},   mem: 'Composite record', support_render: ['struct'] },
+    'array':        { name: 'Array',   base_type: 'array',  type_render: 'array',        default: [],   mem: 'Ordered list', support_render: ['array'] },
+    'var':          { name: 'Any',     base_type: 'var',    type_render: 'input_string', default: null, mem: 'Auto-typed variable', support_render: ['input_string','textarea','input_int','input_float','range','enum','toggle','color','date','img','snd','id','ref_id','struct','array'] },
 
     'enum_int':     { name: 'Enum (int)',    base_type: 'int',    type_render: 'enum',    default: 0,  mem: 'Integer enumeration',  type_agv: { options: { '0': 'Option 1', '1': 'Option 2' } } },
     'enum_string':  { name: 'Enum (string)', base_type: 'string', type_render: 'enum',    default: '', mem: 'String enumeration',   type_agv: { options: {} } },

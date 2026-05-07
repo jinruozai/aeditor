@@ -33,6 +33,24 @@ global.fetch = function (url, opts) {
     }))
   }
   if (String(url).endsWith('/chat/completions')) {
+    const body = JSON.parse((opts && opts.body) || '{}')
+    const last = body.messages && body.messages[body.messages.length - 1]
+    if (last && last.content === 'deepseek tool') {
+      return Promise.resolve(response({
+        choices: [{
+          message: {
+            role: 'assistant',
+            content: 'checking project',
+            reasoning_content: 'I need to inspect the project summary first.',
+            tool_calls: [{
+              id: 'call_ds_summary',
+              type: 'function',
+              function: { name: 'gde__getProjectSummary', arguments: '{}' },
+            }],
+          },
+        }],
+      }))
+    }
     return Promise.resolve(response({
       choices: [{ message: { role: 'assistant', content: 'openai reply' } }],
     }))
@@ -101,6 +119,15 @@ assert.equal(ai.getConnectionConfig('ollama').baseUrl, 'http://127.0.0.1:11434/v
 assert.equal(ai.getConnectionConfig('openai-codex').defaultModel, 'gpt-5.5')
 assert.deepEqual(ai.modelHints('openai-codex').slice(0, 2), ['gpt-5.5', 'gpt-5.5-pro'])
 
+let reactiveDeepSeekKey = ''
+const disposeConfigWatch = EF.effect(function () {
+  reactiveDeepSeekKey = ai.getConnectionConfig('deepseek').apiKey
+})
+assert.equal(reactiveDeepSeekKey, '')
+EF.settings.set(ai.connectionConfigKey('deepseek', 'apiKey'), 'deepseek-key')
+assert.equal(reactiveDeepSeekKey, 'deepseek-key')
+disposeConfigWatch()
+
 const custom = ai.createCustomConnection({ label: 'Studio Gateway', baseUrl: 'https://studio.test/v1' })
 assert.equal(custom.id, 'studio-gateway')
 assert.equal(ai.getConnectionConfig(custom.id).baseUrl, 'https://studio.test/v1')
@@ -154,6 +181,21 @@ assert.equal(openAiToolBody.stream, false)
 assert.equal(openAiToolBody.tools[0].function.name, 'gde__queryRows')
 assert.deepEqual(openAiToolBody.tools[0].function.parameters.properties.table, { type: 'string' })
 assert.deepEqual(openAiToolReply.toolCalls, [])
+
+const deepSeekToolReply = await ai.sendViaConnection('deepseek', {
+  model: 'deepseek-v4-flash',
+  stream: false,
+  messages: [{ role: 'user', content: 'deepseek tool' }],
+  toolSpecs: [{ id: 'gde.getProjectSummary', title: 'Project Summary', description: 'Read project summary', schema: {} }],
+}, { signal: null })
+assert.equal(deepSeekToolReply.reasoning_content, 'I need to inspect the project summary first.')
+assert.equal(deepSeekToolReply.toolCalls[0].toolId, 'gde.getProjectSummary')
+const deepSeekReplay = ai.openAiMessages([
+  { role: 'assistant', content: deepSeekToolReply.content, reasoning_content: deepSeekToolReply.reasoning_content, toolCalls: deepSeekToolReply.toolCalls },
+  { role: 'tool', meta: { toolCallId: deepSeekToolReply.toolCalls[0].id }, content: { ok: true } },
+], { connectionName: 'deepseek' })
+assert.equal(deepSeekReplay[0].reasoning_content, 'I need to inspect the project summary first.')
+assert.equal(deepSeekReplay[0].tool_calls[0].id, 'call_ds_summary')
 
 EF.settings.set(ai.connectionConfigKey('deepseek', 'baseUrl'), 'https://stream.test/v1')
 EF.settings.set(ai.connectionConfigKey('deepseek', 'defaultModel'), 'deepseek-v4-flash')

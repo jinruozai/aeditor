@@ -2816,6 +2816,7 @@ body.ef-dragging-vertical,   body.ef-dragging-vertical *   { cursor: ns-resize !
 .ef-ui-list {
   position: relative;
   height: 240px;
+  min-height: 0;
   overflow-y: auto;
   background: var(--ef-bg-1);
   border: 1px solid var(--ef-border);
@@ -2848,6 +2849,7 @@ body.ef-dragging-vertical,   body.ef-dragging-vertical *   { cursor: ns-resize !
 .ef-ui-tree {
   position: relative;
   height: 240px;
+  min-height: 0;
   overflow-y: auto;
   background: var(--ef-bg-1);
   border: 1px solid var(--ef-border);

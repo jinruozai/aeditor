@@ -46,10 +46,73 @@
     const props = {}
     Object.keys(schema || {}).forEach(function (key) {
       const value = schema[key]
-      if (typeof value === 'string') props[key] = { type: value === 'array' ? 'array' : value }
+      if (typeof value === 'string') props[key] = value === 'any' ? {} : { type: value === 'array' ? 'array' : value }
       else props[key] = value || {}
     })
     return { type: 'object', properties: props }
+  }
+
+  function compactJson(value, max) {
+    let text = ''
+    try { text = JSON.stringify(value) } catch (_) { text = String(value) }
+    max = max || 6000
+    return text.length > max ? text.slice(0, max) + '...' : text
+  }
+
+  function compactContextRef(ref) {
+    if (!ref || typeof ref !== 'object') return ref
+    const out = {}
+    const keys = ['resolver', 'uri', 'kind', 'title', 'summary', 'meta', 'capabilities', 'tools']
+    for (let i = 0; i < keys.length; i++) {
+      if (ref[keys[i]] != null) out[keys[i]] = ref[keys[i]]
+    }
+    return out
+  }
+
+  function compactRuntimeContextValue(value) {
+    if (value == null) return null
+    if (Array.isArray(value)) return value.map(compactRuntimeContextValue)
+    if (typeof value !== 'object') return value
+    const out = compactContextRef(value)
+    if (value.selection != null) out.selection = value.selection
+    if (value.refs != null) out.refs = value.refs.map(compactContextRef)
+    if (Object.keys(out).length) return out
+    return { value: compactJson(value, 1200) }
+  }
+
+  function runtimeContextMessage(ctx) {
+    const context = ctx && ctx.context || []
+    const items = []
+    for (let i = 0; i < context.length; i++) {
+      const item = context[i] || {}
+      const value = compactRuntimeContextValue(item.value)
+      if (value == null) continue
+      items.push({ id: item.id || '', value: value })
+    }
+    if (!items.length) return null
+    return {
+      id: 'system-runtime-context-' + Date.now().toString(36),
+      from: 'system',
+      role: 'system',
+      status: 'done',
+      content: [
+        'Current editor runtime context.',
+        'Use this to resolve phrases like "current table", "selected rows", "selected nodes", or "active editor".',
+        'This is a navigation summary, not full data. Before modifying data, call the relevant tools to read schemas/entities.',
+        compactJson(items, 6000),
+      ].join('\n'),
+    }
+  }
+
+  function requestWithRuntimeContext(request, ctx) {
+    const message = runtimeContextMessage(ctx)
+    if (!message) return request
+    const messages = request.messages || []
+    let insertAt = 0
+    while (insertAt < messages.length && messages[insertAt] && messages[insertAt].role === 'system') insertAt++
+    return Object.assign({}, request, {
+      messages: messages.slice(0, insertAt).concat([message], messages.slice(insertAt)),
+    })
   }
 
   function toolName(id) {
@@ -107,6 +170,8 @@
       const out = { role: m.role || 'user', content: messageText(m.content) }
       const calls = m.toolCalls || []
       if (calls.length) {
+        const reasoning = m.reasoning_content != null ? m.reasoning_content : m.reasoningContent
+        if (reasoning && isDeepSeekRequest(request)) out.reasoning_content = reasoning
         out.tool_calls = calls.map(function (call) {
           return {
             id: call.providerCallId || call.id,
@@ -134,6 +199,11 @@
       return outMessages
     }
     return outMessages
+  }
+
+  function isDeepSeekRequest(request) {
+    return String((request && (request.connectionName || request.connection || request.provider)) || '').toLowerCase() === 'deepseek'
+      || String(request && request.model || '').toLowerCase().indexOf('deepseek') >= 0
   }
 
   function anthropicPayloadMessages(messages, request) {
@@ -311,6 +381,7 @@
   }
 
   ai.messageText = ai.messageText || messageText
+  ai.requestWithRuntimeContext = requestWithRuntimeContext
   ai.openAiTools = openAiTools
   ai.openAiMessages = openAiMessages
   ai.normalizeOpenAiToolCalls = normalizeOpenAiToolCalls

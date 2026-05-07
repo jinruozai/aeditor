@@ -60,6 +60,7 @@
         return {
           role: message.role || 'assistant',
           content: ai.messageText(message.content),
+          reasoning_content: message.reasoning_content || message.reasoningContent || null,
           toolCalls: ai.normalizeOpenAiToolCalls(message.tool_calls || message.toolCalls || [], request),
           usage: data.usage || null,
         }
@@ -81,7 +82,6 @@
     send: function (connection, request, ctx) {
       const config = ai.getConnectionConfig(connection.id)
       const headers = http.authHeaders(config, 'anthropic')
-      const system = ai.anthropicSystem(request.messages)
       const body = {
         model: request.model || config.defaultModel,
         messages: ai.anthropicPayloadMessages(request.messages, request),
@@ -89,6 +89,7 @@
         stream: !!(request.stream && config.stream),
       }
       headers['anthropic-version'] = '2023-06-01'
+      const system = ai.anthropicSystem(request.messages)
       if (system) body.system = system
       return http.requestMaybeStream(http.joinUrl(config.baseUrl, '/v1/messages'), {
         method: 'POST',

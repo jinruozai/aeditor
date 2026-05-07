@@ -20,15 +20,17 @@
   // survives edits. type_render options follow whichever renderers are
   // currently registered at first lookup; rebuilding the cache happens only
   // if a new renderer gets registered after this panel first opens.
-  var _schemaCache = null;
+  var _schemaCache = {};
   var _schemaKindCount = -1;
-  function buildTypeDefSchema() {
+  function buildTypeDefSchema(baseType) {
     var kinds = ui.listRenderKinds();
-    if (_schemaCache && _schemaKindCount === kinds.length) return _schemaCache;
+    var base = baseType || 'string';
+    var cacheKey = base + ':' + kinds.length;
+    if (_schemaCache[cacheKey] && _schemaKindCount === kinds.length) return _schemaCache[cacheKey];
     var kindOpts = {};
-    kinds.forEach(function (k) { kindOpts[k] = k; });
-    _schemaCache = {
-      key:         { type: 'string' },
+    renderKindsForBase(base, kinds).forEach(function (k) { kindOpts[k] = k; });
+    _schemaCache[cacheKey] = {
+      key:         { type: 'string', commit: 'blur' },
       name:        { type: 'string' },
       base_type:   { type: 'enum_string', type_agv: { options: { int: 'int', float: 'float', string: 'string', struct: 'struct', array: 'array', var: 'var' } } },
       type_render: { type: 'enum_string', type_agv: { options: kindOpts } },
@@ -37,7 +39,7 @@
       type_agv:    { type: 'string', mem: 'Render args (JSON object)' },
     };
     _schemaKindCount = kinds.length;
-    return _schemaCache;
+    return _schemaCache[cacheKey];
   }
 
   // Exposed so tables' struct_def override editor can render exactly the
@@ -64,6 +66,37 @@
     };
   }
 
+  function renderKindsForBase(baseType, registered) {
+    var base = State.resolveType(baseType) || ui.resolveType(baseType) || {};
+    var support = base.support_render || [];
+    if (!support.length) support = [base.type_render || baseType || 'input_string'];
+    var available = {};
+    (registered || ui.listRenderKinds()).forEach(function (k) { available[k] = true; });
+    var out = support.filter(function (k) { return available[k]; });
+    return out.length ? out : ['input_string'];
+  }
+
+  function defaultRenderForBase(baseType) {
+    return renderKindsForBase(baseType)[0] || 'input_string';
+  }
+
+  function defaultValueForBase(baseType) {
+    if (baseType === 'int') return 0;
+    if (baseType === 'float') return 0;
+    if (baseType === 'string') return '';
+    if (baseType === 'struct') return {};
+    if (baseType === 'array') return [];
+    return null;
+  }
+
+  function valueMatchesBase(baseType, value) {
+    if (baseType === 'int' || baseType === 'float') return typeof value === 'number' && isFinite(value);
+    if (baseType === 'string') return typeof value === 'string';
+    if (baseType === 'struct') return !!value && typeof value === 'object' && !Array.isArray(value);
+    if (baseType === 'array') return Array.isArray(value);
+    return true;
+  }
+
   function applyEdit(key, field, nv) {
     if (field === 'key') {
       if (!nv || nv === key) return;
@@ -77,7 +110,14 @@
     }
     var current = State.resolveType(key) || {};
     var patch = {};
-    if (field === 'default') {
+    if (field === 'base_type') {
+      patch.base_type = nv;
+      if (renderKindsForBase(nv).indexOf(current.type_render) < 0) patch.type_render = defaultRenderForBase(nv);
+      if (!valueMatchesBase(nv, current.default)) patch.default = defaultValueForBase(nv);
+    } else if (field === 'type_render') {
+      if (renderKindsForBase(current.base_type || 'string').indexOf(nv) < 0) return;
+      patch.type_render = nv;
+    } else if (field === 'default') {
       try { patch[field] = JSON.parse(nv); } catch (_) { patch[field] = nv; }
     } else if (field === 'type_agv') {
       // Invalid JSON = silently skip; user keeps typing, the raw string
@@ -92,7 +132,10 @@
   Inspector.registerKind('typeconfig', {
     title:     function (sel) { return sel.key; },
     disabled:  function (sel) { return !State.projectTypeConfig()[sel.key]; },
-    schema:    function ()    { return buildTypeDefSchema(); },
+    schema:    function (sel) {
+      var td = State.resolveType(sel.key) || {};
+      return buildTypeDefSchema(td.base_type || 'string');
+    },
     value:     function (sel) { return toFormValue(State.resolveType(sel.key), sel.key); },
     onChange:  function (sel, field, nv) { applyEdit(sel.key, field, nv); },
     dataTopic: function ()    { return 'typeconfig:changed'; },
@@ -308,6 +351,4 @@
     defaults: function () { return { title: 'TypeConfig', props: {} }; },
   });
 })();
-
-
 

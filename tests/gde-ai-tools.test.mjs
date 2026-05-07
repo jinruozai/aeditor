@@ -106,6 +106,8 @@ assert.equal(typeof previewTool.apply, 'function')
 assert.deepEqual(previewTool.permissions, { call: true, apply: true })
 assert.equal(previewTool.schema.type, 'object')
 assert.equal(previewTool.schema.properties.patch.properties.ops.items.oneOf.some((item) => item.properties.op.enum[0] === 'setFieldMany'), true)
+assert.deepEqual(EF.ai.getTool('gde.getTableEntities').schema.value, {})
+assert.deepEqual(EF.ai.getTool('gde.queryRows').schema.value, {})
 
 const patch = {
   type: 'gde.patch',

@@ -196,7 +196,7 @@
     EF.ai.registerContextProvider('gde.active-table', {
       capture: function () {
         var pathKey = State.activeTable.peek();
-        return pathKey ? { resolver: 'gde', uri: 'gde://table/' + pathKey, kind: 'gde.table', title: pathKey } : null;
+        return pathKey ? GDE.ai.tableTarget(pathKey) : null;
       },
     });
   }

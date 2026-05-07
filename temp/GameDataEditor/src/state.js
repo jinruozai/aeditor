@@ -790,23 +790,24 @@
   // Callers don't care which table owns the id — that stays internal.
   function resolveEntityDisplay(id) {
     if (!id) return null;
+    var sid = String(id);
     var tm = tableMap();
     var owner = null;
     var keys = Object.keys(tm);
     for (var i = 0; i < keys.length; i++) {
-      if ((tm[keys[i]].id || []).indexOf(id) >= 0) { owner = keys[i]; break; }
+      if ((tm[keys[i]].id || []).indexOf(sid) >= 0) { owner = keys[i]; break; }
     }
     if (!owner) return null;
     var sd = tm[owner].struct_def || {};
     var idDef = sd.id || {};
     var refName = idDef.ref_name || 'name';
     var refShow = idDef.ref_show || '';
-    var entity = gameData()[id] || null;
+    var entity = gameData()[sid] || null;
     var nameVal = entity ? entity[refName] : null;
     var showVal = refShow && entity ? entity[refShow] : undefined;
     var showDef = refShow ? (sd[refShow] ? resolveFieldDef(sd[refShow]) : null) : null;
     return {
-      name:    (nameVal != null && nameVal !== '') ? String(nameVal) : String(id),
+      name:    (nameVal != null && nameVal !== '') ? String(nameVal) : sid,
       show:    showVal,
       showDef: showDef,
       entity:  entity,

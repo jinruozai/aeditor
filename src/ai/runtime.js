@@ -227,26 +227,49 @@
     return id === 'agent.create' || id === 'agent.delegate'
   }
 
+  function prepareApprovalTool(agentId, call, actor, tool) {
+    let state = ai.getToolCallActionState ? ai.getToolCallActionState(agentId, call.id, actor) : null
+    if (state && state.canPreview) {
+      ai.previewToolCall(agentId, call.id, actor)
+      return Promise.resolve({ done: true })
+    }
+    if (state && state.canApprove) {
+      ai.approveToolCall(agentId, call.id, actor)
+      state = ai.getToolCallActionState ? ai.getToolCallActionState(agentId, call.id, actor) : null
+    }
+    if (state && state.canRun) {
+      const run = ai.runToolCall(agentId, call.id, actor)
+      if (run && run.promise) return run.promise.then(function () { return { done: true } })
+    }
+    return Promise.resolve({ done: !!(tool.preview || tool.run) })
+  }
+
+  function applyPreparedApprovalTool(agentId, call, actor) {
+    const applied = ai.applyToolCall(agentId, call.id, actor)
+    if (applied && applied.promise) {
+      return applied.promise.then(function (done) {
+        appendToolResult(agentId, call, done && (done.applyResult || done.error || done), done && done.status === 'failed' ? 'error' : 'done')
+        return { waiting: false }
+      })
+    }
+    appendToolResult(agentId, call, applied && (applied.applyResult || applied.error || applied), applied && applied.status === 'failed' ? 'error' : 'done')
+    return Promise.resolve({ waiting: false })
+  }
+
   function executeOneToolCall(agentId, call, actor) {
     const tool = ai.getTool(call.toolId)
     if (!tool) {
       appendToolResult(agentId, call, { error: 'Tool not found: ' + call.toolId }, 'error')
       return Promise.resolve({ waiting: false })
     }
-    if (tool.apply && !tool.run) {
-      const previewed = ai.previewToolCall(agentId, call.id, actor)
-      if (previewed && previewed.status === 'previewed' && shouldAutoApplyTool(ai.findAgent(agentId), previewed)) {
-        const applied = ai.applyToolCall(agentId, call.id, actor)
-        if (applied && applied.promise) {
-          return applied.promise.then(function (done) {
-            appendToolResult(agentId, call, done && (done.applyResult || done.error || done), done && done.status === 'failed' ? 'error' : 'done')
-            return { waiting: false }
-          })
-        }
-        appendToolResult(agentId, call, applied && (applied.applyResult || applied.error || applied), applied && applied.status === 'failed' ? 'error' : 'done')
-        return Promise.resolve({ waiting: false })
-      }
-      return Promise.resolve({ waiting: true })
+    if (tool.apply) {
+      return prepareApprovalTool(agentId, call, actor, tool).then(function () {
+        const current = ai.findToolCall ? ai.findToolCall(agentId, call.id) : null
+        const prepared = current && current.toolCall || call
+        return shouldAutoApplyTool(ai.findAgent(agentId), prepared)
+          ? applyPreparedApprovalTool(agentId, call, actor)
+          : { waiting: true }
+      })
     }
     const approved = ai.approveToolCall(agentId, call.id, actor)
     const run = approved && ai.runToolCall(agentId, call.id, actor)
@@ -283,7 +306,8 @@
     }
     return Promise.resolve().then(function () {
       request.stream = request.stream || !!provider.stream
-      return provider.stream ? provider.stream(request, ctx) : provider.send(request, ctx)
+      const sendRequest = ai.requestWithRuntimeContext ? ai.requestWithRuntimeContext(request, ctx) : request
+      return provider.stream ? provider.stream(sendRequest, ctx) : provider.send(sendRequest, ctx)
     }).then(function (result) {
       if (controller.signal.aborted) return null
       if (isIterable(result)) {
@@ -745,4 +769,3 @@
   ai.message.send = function (agentId, spec) { return queueMessage(agentId, spec || {}, (spec && spec.from) || 'user') }
   ai.agent.send = sendAgentQuest
 })(window.EF = window.EF || {})
-

@@ -227,7 +227,10 @@
 
   // 5. Seed one pinned table panel so the center doesn't start empty.
   var firstTable = Object.keys(State.tableMap())[0] || null;
-  if (firstTable) State.openTable(firstTable, { transient: false });
+  if (firstTable) {
+    State.openTable(firstTable, { transient: false });
+    State.setSelection({ kind: 'table_meta', pathKey: firstTable });
+  }
 
   // 6. Sync State.activeTable FROM the center dock's activeId. This is the
   //    single source of truth for "which table is being edited" �?every

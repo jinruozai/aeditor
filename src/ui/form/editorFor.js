@@ -44,6 +44,17 @@
 
   ui.registerRenderer('input_string', function (a) {
     const agv = a.fieldDef.type_agv || {}
+    if (a.fieldDef.commit === 'blur') {
+      const local = EF.signal(asPlain(a.sig))
+      const el = ui.input({
+        value: local,
+        onChange: function (v) { local.set(v) },
+        onCommit: a.write,
+        type: agv.password ? 'password' : 'text',
+      })
+      ui.collect(el, EF.effect(function () { local.set(asPlain(a.sig)) }))
+      return el
+    }
     return ui.input({ value: a.sig, onChange: a.write, type: agv.password ? 'password' : 'text' })
   })
   ui.registerRenderer('textarea', function (a) {

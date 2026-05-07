@@ -18,6 +18,28 @@
 
   var ui = EF.ui;
 
+  function isExternalAssetUrl(value) {
+    return /^(https?:|data:|blob:)/i.test(String(value || ''));
+  }
+
+  function resolveAssetPreview(value) {
+    if (!value) return '';
+    if (ProjectIO.assets.isAssetUrl(value)) return ProjectIO.assets.urlFor(value);
+    return isExternalAssetUrl(value) ? String(value) : '';
+  }
+
+  function assetValueExists(value) {
+    if (!value) return true;
+    if (ProjectIO.assets.isAssetUrl(value)) return ProjectIO.assets.exists(value);
+    return isExternalAssetUrl(value);
+  }
+
+  function canRenderRefShow(fieldDef, value) {
+    if (!fieldDef) return false;
+    if (fieldDef.type_render === 'img') return !!resolveAssetPreview(value);
+    return true;
+  }
+
   function registerAssetRenderers() {
     function assetRenderer(kind, accept) {
       return function (args) {
@@ -28,8 +50,8 @@
           kind: kind,
           accept: agv.accept || accept,
           placeholder: agv.placeholder || agv.suffix || '',
-          resolveSrc: function (v) { return ProjectIO.assets.urlFor(v); },
-          exists: function (v) { return !ProjectIO.assets.isAssetUrl(v) || ProjectIO.assets.exists(v); },
+          resolveSrc: resolveAssetPreview,
+          exists: assetValueExists,
           onFile: function (file) {
             return ProjectIO.assets.importFile(file, kind, {
               mode: 'property',
@@ -101,13 +123,17 @@
       }
       face.classList.remove('is-empty');
       var info = State.resolveEntityDisplay(id);
-      if (info && info.showDef) {
+      if (info && info.showDef && canRenderRefShow(info.showDef, info.show)) {
         // Render the ref_show field using its own editor, read-only.
-        var showSig = EF.signal(info.show);
-        var editor = ui.editorFor(info.showDef, showSig, function () {}, { readonly: true });
-        editor.classList.add('gde-refid-show');
-        face.appendChild(editor);
-        faceCleanup = function () { try { ui.dispose(editor) } catch (_) {} };
+        try {
+          var showSig = EF.signal(info.show);
+          var editor = ui.editorFor(info.showDef, showSig, function () {}, { readonly: true });
+          editor.classList.add('gde-refid-show');
+          face.appendChild(editor);
+          faceCleanup = function () { try { ui.dispose(editor) } catch (_) {} };
+        } catch (_) {
+          face.textContent = String(id);
+        }
       } else {
         face.textContent = String(id);
       }
@@ -443,7 +469,7 @@
     if (!refs.length) return {};
     var first = (tm[refs[0].pathKey] || {}).struct_def || {};
     var out = {};
-    Object.keys(first).forEach(function (field) {
+    Object.keys(first).filter(function (field) { return field !== 'id'; }).forEach(function (field) {
       var sig = fieldTypeSignature(first[field]);
       for (var i = 1; i < refs.length; i++) {
         var sd = (tm[refs[i].pathKey] || {}).struct_def || {};
@@ -632,12 +658,13 @@
     var lastKeySig = '';
     function renderFields(force) {
       var sd = (State.tableMap()[pathKey] || {}).struct_def || {};
-      var keySig = Object.keys(sd).sort().join('|');
+      var fieldKeys = Object.keys(sd).filter(function (k) { return k !== 'id'; });
+      var keySig = fieldKeys.sort().join('|');
       if (!force && keySig === lastKeySig && fieldsWrap.children.length > 0) return;
       lastKeySig = keySig;
       Array.from(fieldsWrap.children).forEach(function (c) { try { ui.dispose(c); } catch (_) {} });
       GDE.clear(fieldsWrap);
-      Object.keys(sd).forEach(function (k) { fieldsWrap.appendChild(buildFieldRow(k)); });
+      fieldKeys.forEach(function (k) { fieldsWrap.appendChild(buildFieldRow(k)); });
       var addBtn = ui.button({
         kind: 'ghost', size: 'sm', text: '+ Add field',
         onClick: function (ev) { openFieldPicker(ev.currentTarget); },
@@ -663,7 +690,8 @@
       var tc = ui.getTypeConfig();
       var sd = (State.tableMap()[pathKey] || {}).struct_def || {};
       var fd = sd[fieldName] || {};
-      var def = fd.type ? tc[fd.type] : null;
+      var typeKey = fd.type || ''; 
+      var def = typeKey ? tc[typeKey] : null;
       var known = !!def;
 
       var row = ui.h('div', 'gde-tm-field' + (known ? '' : ' is-unknown'));
@@ -671,7 +699,7 @@
       var caret = ui.h('span', 'gde-tm-caret', { text: '>' });
       var nameEl = ui.h('span', 'gde-tm-field-name', { text: fieldName });
       var typeEl = ui.h('span', 'gde-tm-field-type', {
-        text: known ? ((def.base_type || '?') + ' ¡¤ ' + (def.type_render || '?')) : 'unknown type',
+        text: known ? ((def.base_type || '?') + ' / ' + (def.type_render || '?')) : 'unknown type',
       });
       var delBtn = ui.iconButton({
         icon: 'trash', title: 'Delete field', size: 'sm', kind: 'ghost',
@@ -709,8 +737,8 @@
           body.appendChild(known
             ? buildOverrideEditor(fieldName, def)
             : ui.h('div', 'gde-tm-unknown-hint', {
-                text: 'Field "' + fieldName + '" is not registered in TypeConfig. '
-                    + 'Add a TypeConfig entry with this name to enable overrides.',
+                text: 'Field "' + fieldName + '" uses unknown type "' + (typeKey || '(none)') + '". '
+                    + 'Pick a registered TypeConfig entry for this field.',
               }));
         }
       });
@@ -724,7 +752,7 @@
     // Each row uses `ui.editorFor` so enum rows render as proper selects
     // (base_type, type_render), matching the TypeConfig panel visually.
     function buildOverrideEditor(fieldName, typeDef) {
-      var schema = TypeDefSchema.build();
+      var schema = TypeDefSchema.build(typeDef.base_type || 'string');
       var identity = TypeDefSchema.IDENTITY_KEYS;
       var editor = ui.h('div', 'gde-tm-override-editor');
       Object.keys(schema).forEach(function (sub) {
@@ -748,7 +776,8 @@
       var row = ui.h('div', 'gde-tm-override-row is-identity');
       row.appendChild(ui.h('span', 'gde-tm-override-label', { text: sub }));
       var cell = ui.h('span', 'gde-tm-override-cell');
-      var val  = (sub === 'key') ? fieldName : typeDef[sub];
+      var sd = (State.tableMap()[pathKey] || {}).struct_def || {};
+      var val  = (sub === 'key') ? ((sd[fieldName] || {}).type || fieldName) : typeDef[sub];
       var sig  = EF.signal(subToStr(sub, val));
       var editorEl = ui.editorFor(fieldDef, sig, function () {}, {});
       editorEl.classList.add('gde-tm-override-component');
@@ -919,7 +948,7 @@
       }
       function commit(key) {
         var sd = (State.tableMap()[pathKey] || {}).struct_def || {};
-        var next = Object.assign({}, sd); next[key] = {};   // empty override = inherit
+        var next = Object.assign({}, sd); next[key] = { type: key };
         State.updateStructDef(pathKey, next);
         close();
       }

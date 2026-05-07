@@ -40,6 +40,7 @@
   }
 
   function customConnections() {
+    if (EF.settings && EF.settings.values) EF.settings.values()
     return EF.settings && EF.settings.get ? (EF.settings.get(CUSTOM_KEY) || []) : []
   }
 
@@ -133,6 +134,7 @@
     const c = getConnection(id)
     const defaults = Object.assign({}, (c && c.configDefaults) || {})
     if (EF.settings && c) {
+      if (EF.settings.values) EF.settings.values()
       Object.keys(defaults).forEach(function (key) {
         const value = EF.settings.get(configKey(c.id, key))
         if (value !== undefined) defaults[key] = value

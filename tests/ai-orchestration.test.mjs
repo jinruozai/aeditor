@@ -103,6 +103,18 @@ ai.registerTransport('capture-send', {
   },
 })
 ai.registerConnection('capture-send', { auth: { type: 'none' }, transport: { type: 'capture-send' }, configDefaults: {} })
+ai.registerContextProvider('test.active-table', {
+  capture: function () {
+    return {
+      resolver: 'test',
+      uri: 'test://table/data/items',
+      kind: 'test.table',
+      title: 'data/items',
+      meta: { table: 'data/items' },
+      tools: ['test.getTableSchema', 'test.patchRows'],
+    }
+  },
+})
 ai.updateAgent(createdAgent.id, { connection: 'capture-send' })
 const sent = await runCall(root.id, 'agent.send', { agentId: createdAgent.id, content: 'work item' }, root.id)
 assert.equal(sent.status, 'completed')
@@ -115,6 +127,12 @@ const resultMessage = ai.message.read(createdAgent.id, quest.resultId, root.id)
 assert.equal(resultMessage.content, 'done')
 assert.equal(ai.quest.result(createdAgent.id, sent.result.questId, root.id).content, 'done')
 assert.equal(sentRequest.agent.id, createdAgent.id)
+assert.equal(sentRequest.messages.some(function (message) {
+  return message.role === 'system'
+    && String(message.content || '').indexOf('Current editor runtime context') >= 0
+    && String(message.content || '').indexOf('test.active-table') >= 0
+    && String(message.content || '').indexOf('data/items') >= 0
+}), true)
 
 ai.updateAgent(root.id, { connection: 'mock' })
 const delegatedExisting = previewApply(root.id, 'agent.delegate', {

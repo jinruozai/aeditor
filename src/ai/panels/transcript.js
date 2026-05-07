@@ -449,7 +449,6 @@
     const state = EF.ai.getToolCallActionState
       ? EF.ai.getToolCallActionState(agentId, call.id, 'user')
       : null
-    const hasChangeReview = isChangeSet(call.preview) || isChangeSet(call.result)
     const actions = ui.h('div', 'ef-ai-tool-call-actions')
     if (state && (state.canPreview || state.canApply || state.canApprove || state.canRun || state.canReject)) {
       actions.appendChild(ui['switch']({
@@ -460,15 +459,13 @@
         },
       }))
     }
+    appendToolButton(actions, 'Reject', state && state.canReject, function () {
+      EF.ai.rejectToolCall(agentId, call.id, 'Rejected by user', 'user')
+      if (EF.ai.resumeAgent) EF.ai.resumeAgent(agentId, 'user')
+    }, 'danger')
     appendToolButton(actions, 'Apply', state && (state.canApply || state.canPreview || state.canApprove || state.canRun), function () {
       applyToolCallSmart(agentId, call)
     }, 'primary')
-    if (!hasChangeReview) {
-      appendToolButton(actions, 'Reject', state && state.canReject, function () {
-        EF.ai.rejectToolCall(agentId, call.id, 'Rejected by user', 'user')
-        if (EF.ai.resumeAgent) EF.ai.resumeAgent(agentId, 'user')
-      }, 'danger')
-    }
     if (actions.firstChild) card.appendChild(actions)
 
     if (state && (!state.callAllowed || (state.hasApply && !state.applyAllowed))) {
@@ -487,7 +484,7 @@
     const right = ui.h('div', 'ef-ai-tool-call-head-right')
     right.addEventListener('click', function (ev) { ev.stopPropagation() })
     head.appendChild(ui.h('span', 'ef-ai-tool-call-name', { text: toolName(call) }))
-    right.appendChild(ui.h('span', 'ef-ai-tool-call-status', { text: status }))
+    if (status !== 'previewed') right.appendChild(ui.h('span', 'ef-ai-tool-call-status', { text: status }))
     const args = call.args && Object.keys(call.args).length ? compactArgs(call.args) : ''
     if (args) head.appendChild(ui.h('span', 'ef-ai-tool-call-summary', { text: args }))
 

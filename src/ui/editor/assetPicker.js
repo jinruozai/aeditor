@@ -46,8 +46,13 @@
     function paintPreview(v) {
       thumb.innerHTML = ''
       if (kind === 'image' && v) {
+        const src = typeof o.resolveSrc === 'function' ? o.resolveSrc(v) : v
+        if (!src) {
+          thumb.appendChild(placeholderIcon())
+          return
+        }
         const img = document.createElement('img')
-        img.src = typeof o.resolveSrc === 'function' ? (o.resolveSrc(v) || v) : v
+        img.src = src
         img.onerror = function () { img.remove(); thumb.appendChild(placeholderIcon()) }
         thumb.appendChild(img)
       } else if (kind === 'audio') {

@@ -310,9 +310,22 @@
       body.appendChild(wrap);
     }
 
+    function scrollToEntity(id) {
+      var sid = String(id == null ? '' : id);
+      if (!sid) return;
+      requestAnimationFrame(function () {
+        var nodes = body.querySelectorAll('[data-id]');
+        for (var i = 0; i < nodes.length; i++) {
+          if (nodes[i].dataset.id !== sid) continue;
+          nodes[i].scrollIntoView({ block: 'nearest', inline: 'nearest' });
+          return;
+        }
+      });
+    }
+
     function pushSelection() {
       if (selectedIds.size === 0) {
-        State.setSelection(null);
+        State.setSelection({ kind: 'table_meta', pathKey: pathKey });
       } else {
         State.setSelection({
           kind: 'card_data',
@@ -500,10 +513,11 @@
     });
     ctx.bus.on('nav:goto', function (p) {
       if (p && p.pathKey === pathKey && p.id) {
-        selectedIds.clear(); selectedIds.add(p.id);
-        lastClicked = p.id;
+        selectedIds.clear(); selectedIds.add(String(p.id));
+        lastClicked = String(p.id);
         pushSelection();
         renderBody();
+        scrollToEntity(p.id);
       }
     });
 
@@ -520,6 +534,7 @@
           lastClicked = sel.lastId || sel.id || nextIds[nextIds.length - 1] || null;
           renderBody();
         }
+        scrollToEntity(sel.id || lastClicked);
         return;
       }
       if (selectedIds.size > 0) {
@@ -551,6 +566,14 @@
     }
 
     applyLocale();
+    var initialSel = State.selection.peek && State.selection.peek();
+    if (initialSel && initialSel.kind === 'card_data' && initialSel.pathKey === pathKey) {
+      var initialIds = (initialSel.ids && initialSel.ids.length ? initialSel.ids : (initialSel.id ? [initialSel.id] : [])).map(String);
+      selectedIds = new Set(initialIds);
+      lastClicked = initialSel.lastId || initialSel.id || initialIds[initialIds.length - 1] || null;
+      renderBody();
+      scrollToEntity(lastClicked);
+    }
     return root;
   }
 
