@@ -34,12 +34,6 @@
     return isExternalAssetUrl(value);
   }
 
-  function canRenderRefShow(fieldDef, value) {
-    if (!fieldDef) return false;
-    if (fieldDef.type_render === 'img') return !!resolveAssetPreview(value);
-    return true;
-  }
-
   function registerAssetRenderers() {
     function assetRenderer(kind, accept) {
       return function (args) {
@@ -70,13 +64,14 @@
 
   // Project-specific ref_id renderer.
   //
-  // Display: paints the target entity's `ref_show` field using that
-  // field's own renderer (readonly). When the table's struct_def.id
-  // declares no ref_show, falls back to showing the raw id as text.
+  // Display: shows the target entity name, with an optional icon before it.
+  // Text comes from id.ref_name (default: name, falling back to id). Icon
+  // comes from id.ref_icon (default: icon) only when that field exists and
+  // resolves to a renderable asset URL.
   //
-  // Edit: pencil button swaps to a popover picker â€?text input + a
+  // Edit: clicking the field opens a popover picker - text input + a
   // filtered list of `<id> : <ref_name>` rows, with typed substring
-  // highlighted. â†‘â†“ / Enter / Esc / click-to-commit. Supports id or
+  // highlighted. Up/down / Enter / Esc / click-to-commit. Supports id or
   // ref_name matching.
   //
   // Drop target: accepts `application/ef.entity+json` dragged from the
@@ -87,14 +82,13 @@
     var write = args.write;
 
     var root = ui.h('div', 'gde-refid');
+    root.tabIndex = 0;
+    root.title = 'Edit reference';
     var face = ui.h('div', 'gde-refid-face');
-    var editBtn = ui.iconButton({
-      icon: 'edit', title: 'Edit reference', size: 'sm', kind: 'ghost',
-      onClick: function () { openPicker(); },
-    });
     var gotoBtn = ui.iconButton({
       icon: 'arrow-right', title: 'Go to target', size: 'sm', kind: 'ghost',
-      onClick: function () {
+      onClick: function (ev) {
+        if (ev) ev.stopPropagation();
         var id = sig.peek();
         if (id == null || id === 0) return;
         var info = State.resolveEntityDisplay(id);
@@ -106,7 +100,11 @@
         if (pk) EF.bus.emit('nav:goto', { pathKey: pk, id: sid });
       },
     });
-    root.appendChild(face); root.appendChild(editBtn); root.appendChild(gotoBtn);
+    root.appendChild(face); root.appendChild(gotoBtn);
+    root.addEventListener('click', function () { openPicker(); });
+    root.addEventListener('keydown', function (ev) {
+      if (ev.key === 'Enter' || ev.key === ' ') { openPicker(); ev.preventDefault(); }
+    });
 
     // Paint the display face. Re-runs on signal change + gameData change
     // (so e.g. renaming the target entity updates the face live).
@@ -123,20 +121,15 @@
       }
       face.classList.remove('is-empty');
       var info = State.resolveEntityDisplay(id);
-      if (info && info.showDef && canRenderRefShow(info.showDef, info.show)) {
-        // Render the ref_show field using its own editor, read-only.
-        try {
-          var showSig = EF.signal(info.show);
-          var editor = ui.editorFor(info.showDef, showSig, function () {}, { readonly: true });
-          editor.classList.add('gde-refid-show');
-          face.appendChild(editor);
-          faceCleanup = function () { try { ui.dispose(editor) } catch (_) {} };
-        } catch (_) {
-          face.textContent = String(id);
-        }
-      } else {
-        face.textContent = String(id);
+      var name = info ? info.name : String(id);
+      var iconUrl = info && info.icon ? resolveAssetPreview(info.icon) : '';
+      if (iconUrl) {
+        var img = ui.h('img', 'gde-refid-icon');
+        img.src = iconUrl;
+        img.alt = '';
+        face.appendChild(img);
       }
+      face.appendChild(ui.h('span', 'gde-refid-name', { text: name }));
     });
 
     // Drop target â€?accept dragged entities or plain-text ids.
@@ -179,7 +172,7 @@
           if (!q
             || sid.toLowerCase().indexOf(qLow) >= 0
             || (label && label.toLowerCase().indexOf(qLow) >= 0)) {
-            hits.push({ id: sid, label: label });
+            hits.push({ id: sid, label: label, icon: info.icon });
           }
         });
         candidates = hits.slice(0, 50);
@@ -196,6 +189,13 @@
         candidates.forEach(function (c, i) {
           var row = ui.h('div', 'gde-refid-picker-row');
           if (i === focusIdx) row.classList.add('is-focused');
+          var iconUrl = c.icon ? resolveAssetPreview(c.icon) : '';
+          if (iconUrl) {
+            var icon = ui.h('img', 'gde-refid-icon');
+            icon.src = iconUrl;
+            icon.alt = '';
+            row.appendChild(icon);
+          }
           row.appendChild(mark(c.id, q));
           row.appendChild(ui.h('span', 'gde-refid-picker-sep', { text: ' : ' }));
           row.appendChild(mark(c.label, q));
@@ -604,7 +604,7 @@
     ui.collect(root, ctx.bus.on('cardstyles:changed', mountStyleSelect));
     ui.collect(root, ctx.bus.on('tables:changed', function () { styleSig.set(currentStyleKey()); }));
     // Reference display. These are table-level id metadata: ref_name drives
-    // picker/list labels; ref_show drives the rendered ref_id face.
+    // picker/list labels; ref_icon optionally paints a small icon before it.
     var refLab = ui.h('div', 'gde-tm-section-label', { text: 'Reference Display' });
     var refBox = ui.h('div', 'gde-tm-ref-display');
     root.appendChild(refLab);
@@ -619,10 +619,10 @@
       var fields = Object.keys(sd).filter(function (k) { return k !== 'id'; }).sort();
       var opts = [{ value: '', label: '(default)' }];
       fields.forEach(function (k) { opts.push({ value: k, label: k }); });
-      var nameSig = EF.signal(idDef.ref_name || '');
-      var showSig = EF.signal(idDef.ref_show || '');
+      var nameSig = EF.signal(idDef.ref_name || 'name');
+      var iconSig = EF.signal(idDef.ref_icon || 'icon');
       refBox.appendChild(refRow('ref_name', nameSig, opts, function (v) { setRefDisplay('ref_name', v); }));
-      refBox.appendChild(refRow('ref_show', showSig, opts, function (v) { setRefDisplay('ref_show', v); }));
+      refBox.appendChild(refRow('ref_icon', iconSig, opts, function (v) { setRefDisplay('ref_icon', v); }));
     }
     ui.collect(root, ctx.bus.on('tables:changed', mountRefDisplay));
 
@@ -639,7 +639,7 @@
       var idDef = Object.assign({}, sd.id || { type: 'id' });
       if (value) idDef[key] = value;
       else delete idDef[key];
-      if (!idDef.ref_name && !idDef.ref_show && idDef.type === 'id') delete sd.id;
+      if (!idDef.ref_name && !idDef.ref_icon && idDef.type === 'id') delete sd.id;
       else sd.id = idDef;
       State.updateStructDef(pathKey, sd);
     }

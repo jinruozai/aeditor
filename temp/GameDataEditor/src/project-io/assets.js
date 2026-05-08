@@ -106,9 +106,11 @@
     var ext = extension(file, ctx.kind || kindFromFile(file));
     var sel = ctx.selection || {};
     var table = cleanPath((sel.pathKey || (sel.items && sel.items[0] && sel.items[0].pathKey) || State.activeTable.peek() || 'data'));
-    var id = clean((sel.id || (sel.ids && sel.ids[0]) || (sel.items && sel.items[0] && sel.items[0].id) || 'asset'));
+    var id = sel.id || (sel.ids && sel.ids[0]) || (sel.items && sel.items[0] && sel.items[0].id) || '';
+    var info = id ? State.resolveEntityDisplay(id) : null;
+    var name = clean((info && info.name) || id || 'asset');
     var field = clean(ctx.field || 'asset');
-    var base = table ? table + '/' + id : id;
+    var base = table ? table + '/' + name : name;
     var first = makeUrl(base + ext);
     if (!exists(first)) return first;
     var second = makeUrl(base + '_' + field + ext);
@@ -460,15 +462,25 @@
     return changed ? out : v;
   }
 
-  async function loadFromDirectory(dir) {
+  async function loadFromDirectory(dir, options) {
+    options = options || {};
+    var progress = options.progress;
     clear();
     try {
+      report(progress, 'Scanning assets...');
       var assetDir = await dir.getDirectoryHandle(ASSET_DIR, { create: false });
       await readFolders(assetDir, '');
+      var handles = [];
       await walk(assetDir, '', async function (path, fileHandle) {
-        var file = await fileHandle.getFile();
-        cache(path, file);
+        handles.push({ path: path, handle: fileHandle });
       });
+      for (var i = 0; i < handles.length; i++) {
+        report(progress, 'Reading assets...', i, handles.length, handles[i].path);
+        var file = await handles[i].handle.getFile();
+        cache(handles[i].path, file);
+        await yieldUI();
+      }
+      report(progress, 'Reading assets...', handles.length, handles.length);
     } catch (_) {}
     changed();
   }
@@ -491,24 +503,37 @@
     }
   }
 
-  function loadFromZip(entries) {
+  function loadFromZip(entries, options) {
+    options = options || {};
+    var progress = options.progress;
     clear();
-    Object.keys(entries || {}).forEach(function (diskPath) {
+    var paths = Object.keys(entries || {});
+    paths.forEach(function (diskPath, index) {
       var url = diskToUrl(diskPath);
       if (!url) return;
+      report(progress, 'Loading assets...', index, paths.length, diskPath);
       var path = urlToPath(url);
       cache(path, new Blob([entries[diskPath]], { type: mime(path) }));
     });
+    report(progress, 'Loading assets...', paths.length, paths.length);
     changed();
   }
 
-  async function writeToDirectory(dir) {
+  async function writeToDirectory(dir, options) {
+    options = options || {};
+    var progress = options.progress;
+    report(progress, 'Writing assets...');
     var assetDir = await dir.getDirectoryHandle(ASSET_DIR, { create: true });
     await removeMissing(assetDir, '');
     var folderList = Object.keys(folders).filter(Boolean).sort();
     for (var f = 0; f < folderList.length; f++) await ensureFolder(assetDir, folderList[f]);
     var paths = Object.keys(files).sort();
-    for (var i = 0; i < paths.length; i++) await writeBlob(assetDir, paths[i], files[paths[i]].blob);
+    for (var i = 0; i < paths.length; i++) {
+      report(progress, 'Writing assets...', i, paths.length, paths[i]);
+      await writeBlob(assetDir, paths[i], files[paths[i]].blob);
+      await yieldUI();
+    }
+    report(progress, 'Writing assets...', paths.length, paths.length);
   }
 
   async function ensureFolder(root, path) {
@@ -550,12 +575,17 @@
     await writable.close();
   }
 
-  async function zipEntries() {
+  async function zipEntries(options) {
+    options = options || {};
+    var progress = options.progress;
     var out = {};
     var paths = Object.keys(files).sort();
     for (var i = 0; i < paths.length; i++) {
+      report(progress, 'Packing assets...', i, paths.length, paths[i]);
       out[pathToDisk(paths[i])] = new Uint8Array(await files[paths[i]].blob.arrayBuffer());
+      await yieldUI();
     }
+    report(progress, 'Packing assets...', paths.length, paths.length);
     return out;
   }
 
@@ -657,6 +687,22 @@
       if (path.indexOf(dir + '/') === 0) t = Math.max(t, files[path].mtime || 0);
     });
     return t;
+  }
+
+  function report(progress, message, current, total, detail) {
+    if (typeof progress !== 'function') return;
+    progress({
+      message: message,
+      current: current,
+      total: total,
+      detail: detail || '',
+      indeterminate: !(total > 0),
+    });
+  }
+
+  function yieldUI() {
+    if (window.GDE && GDE.loading && GDE.loading.nextFrame) return GDE.loading.nextFrame();
+    return Promise.resolve();
   }
 
   function uniqueFolderPath(path) {

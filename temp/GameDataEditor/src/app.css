@@ -338,6 +338,112 @@ body {
   background: var(--gde-well-bg);
   border-color: var(--gde-line);
 }
+.gde-refid {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+}
+.gde-refid-face {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.gde-refid .ef-ui-icon-btn {
+  cursor: default;
+}
+.gde-refid-icon {
+  width: 20px;
+  height: 20px;
+  flex: 0 0 auto;
+  object-fit: contain;
+  border-radius: var(--ef-r-1);
+}
+.gde-refid-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.gde-refid-picker-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.gde-loading-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, .38);
+  backdrop-filter: blur(2px);
+}
+
+.gde-loading-overlay.is-hiding {
+  opacity: 0;
+  transition: opacity 120ms ease;
+}
+
+.gde-loading-panel {
+  width: min(420px, calc(100vw - 48px));
+  padding: 18px 18px 16px;
+  border: 1px solid var(--ef-border);
+  border-radius: var(--ef-r-3);
+  background: var(--ef-bg-1);
+  box-shadow: var(--ef-shadow-3);
+  color: var(--ef-fg-0);
+}
+
+.gde-loading-title {
+  font: 700 var(--ef-fs-lg) var(--ef-font-ui);
+}
+
+.gde-loading-message {
+  min-height: 18px;
+  margin-top: 8px;
+  color: var(--ef-fg-1);
+  font: var(--ef-fs-sm) var(--ef-font-ui);
+}
+
+.gde-loading-track {
+  position: relative;
+  height: 6px;
+  margin-top: 14px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--ef-bg-3);
+}
+
+.gde-loading-bar {
+  width: 0;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--ef-accent);
+  transition: width 120ms ease;
+}
+
+.gde-loading-track.is-indeterminate .gde-loading-bar {
+  position: absolute;
+  width: 38%;
+  animation: gde-loading-sweep 1s ease-in-out infinite;
+}
+
+.gde-loading-detail {
+  min-height: 16px;
+  margin-top: 8px;
+  color: var(--ef-fg-3);
+  font: var(--ef-fs-xs) var(--ef-font-mono);
+}
+
+@keyframes gde-loading-sweep {
+  0% { left: -40%; }
+  100% { left: 102%; }
+}
 
 .gde-history {
   height: 100%;

@@ -1,256 +1,153 @@
-﻿/**
- * Seed data 锟?builtin TypeConfig + a small demo project.
- * The builtin TypeConfig is the source-of-truth for known types; project-level
- * TypeConfig loaded from gamedata.json overrides individual fields on top.
+/**
+ * Seed data - builtin TypeConfig and optional project templates.
  */
 (function () {
   'use strict';
 
-  // Project-specific compound types only. All primitive types (int/float/
-  // string/struct/array/var/bool/color/date/img/snd/id/ref_id/enum_*/range_*/
-  // percent) come from the framework's DEFAULT_BUILTIN 锟?no duplication.
   var BUILTIN = {
-    "id_num":     { name: "ID+Num",        base_type: "struct", type_render: "struct", default: [0,0],   mem: "Reference id + quantity",       struct_def: { id_num:     { id: "ref_id", num: "int" } } },
-    "id_string":  { name: "ID+String",     base_type: "struct", type_render: "struct", default: [0,""],  mem: "Reference id + free text",      struct_def: { id_string:  { id: "ref_id", str: "string" } } },
-    "string_num": { name: "String+Num",    base_type: "struct", type_render: "struct", default: ["",0],  mem: "Free text + quantity",          struct_def: { string_num: { str: "string", num: "int" } } },
-    "img_num":    { name: "Image+Num",     base_type: "struct", type_render: "struct", default: ["",0],  mem: "Image asset + quantity",        struct_def: { img_num:    { img: "img", num: "int" } } },
-    "snd_num":    { name: "Audio+Num",     base_type: "struct", type_render: "struct", default: ["",0],  mem: "Audio asset + quantity",        struct_def: { snd_num:    { snd: "snd", num: "int" } } },
-    "img_string": { name: "Image+String",  base_type: "struct", type_render: "struct", default: ["",""], mem: "Image asset + label",           struct_def: { img_string: { img: "img", str: "string" } } },
-    "snd_string": { name: "Audio+String",  base_type: "struct", type_render: "struct", default: ["",""], mem: "Audio asset + label",           struct_def: { snd_string: { snd: "snd", str: "string" } } }
+    "id_num":     { name: "ID+Num",        base_type: "struct", type_render: "struct", default: { id: 0, num: 0 },    mem: "Reference id + quantity",       struct_def: { id_num:     { id: "ref_id", num: "int" } } },
+    "id_string":  { name: "ID+String",     base_type: "struct", type_render: "struct", default: { id: 0, str: "" },   mem: "Reference id + free text",      struct_def: { id_string:  { id: "ref_id", str: "string" } } },
+    "string_num": { name: "String+Num",    base_type: "struct", type_render: "struct", default: { str: "", num: 0 },  mem: "Free text + quantity",          struct_def: { string_num: { str: "string", num: "int" } } },
+    "img_num":    { name: "Image+Num",     base_type: "struct", type_render: "struct", default: { img: "", num: 0 },  mem: "Image asset + quantity",        struct_def: { img_num:    { img: "img", num: "int" } } },
+    "snd_num":    { name: "Audio+Num",     base_type: "struct", type_render: "struct", default: { snd: "", num: 0 },  mem: "Audio asset + quantity",        struct_def: { snd_num:    { snd: "snd", num: "int" } } },
+    "img_string": { name: "Image+String",  base_type: "struct", type_render: "struct", default: { img: "", str: "" }, mem: "Image asset + label",           struct_def: { img_string: { img: "img", str: "string" } } },
+    "snd_string": { name: "Audio+String",  base_type: "struct", type_render: "struct", default: { snd: "", str: "" }, mem: "Audio asset + label",           struct_def: { snd_string: { snd: "snd", str: "string" } } }
   };
 
-  // 鈹€鈹€鈹€鈹€鈹€ Demo project 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
-  // A tiny RPG-ish dataset so the editor opens with something to click.
-  function buildDemo() {
-    // Project-level type extensions
-    var projectTC = {
-      "rarity_enum": {
-        name: "Rarity", base_type: "int", type_render: "enum", default: 1,
-        mem: "Item rarity tier", type_agv: {
-          options: { "1": "Common", "2": "Uncommon", "3": "Rare", "4": "Epic", "5": "Legendary" }
-        }
-      },
-      "item_kind": {
-        name: "ItemKind", base_type: "string", type_render: "enum", default: "weapon",
-        mem: "Item category", type_agv: {
-          options: { "weapon": "Weapon", "armor": "Armor", "consumable": "Consumable", "material": "Material" }
-        }
-      }
-    };
-
-    var items = {
-      struct_def: {
-        "name":      { type: "string", mem: "Display name" },
-        "icon":      { type: "img", mem: "Icon asset" },
-        "kind":      { type: "item_kind", mem: "Category" },
-        "rarity":    { type: "rarity_enum", mem: "Rarity tier" },
-        "level":     { type: "range_int", mem: "Required level", type_agv: { min: 1, max: 60 } },
-        "price":     { type: "int", mem: "Shop price" },
-        "tint":      { type: "color", mem: "Icon tint" },
-        "stackable": { type: "bool", mem: "Can stack in inventory" },
-        "tags":      { type: "array", mem: "Freeform tags", type_agv: { elem_type: "string" } },
-        "desc":      { type: "string", mem: "Description" }
-      },
-      entities: [
-        { name: "Iron Sword",      icon: "https://picsum.photos/seed/iron-sword/200/200",   kind: "weapon",     rarity: 2, level: 5,  price: 120, tint: 0xC0C0C0, stackable: 0, tags: ["melee","sword"],     desc: "A reliable iron blade." },
-        { name: "Steel Longsword", icon: "https://picsum.photos/seed/steel-longsword/200/200",   kind: "weapon",     rarity: 3, level: 15, price: 480, tint: 0xE0E8F0, stackable: 0, tags: ["melee","sword"],     desc: "Forged in the northern kilns." },
-        { name: "Dragon Fang",     icon: "https://picsum.photos/seed/dragon-fang/200/200",  kind: "weapon",     rarity: 5, level: 45, price: 9999,tint: 0xFFB347, stackable: 0, tags: ["melee","legendary"], desc: "Said to be the tooth of a wyrm." },
-        { name: "Healing Potion",  icon: "https://picsum.photos/seed/healing-potion/200/200",     kind: "consumable", rarity: 1, level: 1,  price: 20,  tint: 0xFF4444, stackable: 1, tags: ["potion","heal"],     desc: "Restores 50 HP." },
-        { name: "Mana Elixir",     icon: "https://picsum.photos/seed/mana-elixir/200/200",    kind: "consumable", rarity: 2, level: 5,  price: 60,  tint: 0x4477FF, stackable: 1, tags: ["potion","mana"],     desc: "Restores 80 MP." },
-        { name: "Leather Vest",    icon: "https://picsum.photos/seed/leather-vest/200/200",   kind: "armor",      rarity: 1, level: 3,  price: 90,  tint: 0x8B5A2B, stackable: 0, tags: ["light","chest"],     desc: "Basic leather protection." },
-        { name: "Obsidian Plate",  icon: "https://picsum.photos/seed/obsidian-plate/200/200", kind: "armor",      rarity: 4, level: 30, price: 3200,tint: 0x222233, stackable: 0, tags: ["heavy","chest"],     desc: "Dark as a starless sky." },
-        { name: "Iron Ore",        icon: "https://picsum.photos/seed/iron-ore/200/200",   kind: "material",   rarity: 1, level: 1,  price: 4,   tint: 0x808080, stackable: 1, tags: ["ore"],                desc: "Crafting material." },
-        { name: "Mythril Nugget",  icon: "https://picsum.photos/seed/mythril-nugget/200/200",    kind: "material",   rarity: 4, level: 1,  price: 750, tint: 0x9FF0FF, stackable: 1, tags: ["ore","rare"],         desc: "Shines with an inner light." }
-      ]
-    };
-
-    var characters = {
-      struct_def: {
-        "name":     { type: "string", mem: "Display name" },
-        "portrait": { type: "img", mem: "Portrait" },
-        "class":    { type: "enum_string", mem: "Class", type_agv: { options: { warrior:"Warrior", mage:"Mage", rogue:"Rogue", cleric:"Cleric" } } },
-        "level":    { type: "range_int", mem: "Level", type_agv: { min: 1, max: 60 } },
-        "hp":       { type: "int", mem: "Max HP" },
-        "mp":       { type: "int", mem: "Max MP" },
-        "crit":     { type: "percent", mem: "Crit rate" },
-        "alive":    { type: "bool", mem: "Alive" },
-        "starter":  { type: "ref_id", mem: "Starter item" },
-        "bio":      { type: "string", mem: "Biography" }
-      },
-      entities: [
-        { name: "Aria",   portrait: "https://i.pravatar.cc/150?img=47", class: "mage",    level: 12, hp: 340,  mp: 620, crit: 0.15, alive: 1, starter: 0, bio: "A prodigy of the crystal tower." },
-        { name: "Borin",  portrait: "https://i.pravatar.cc/150?img=12", class: "warrior", level: 18, hp: 980,  mp: 120, crit: 0.08, alive: 1, starter: 0, bio: "Hill-folk warrior with a stubborn streak." },
-        { name: "Celie",  portrait: "https://i.pravatar.cc/150?img=32", class: "rogue",   level: 10, hp: 420,  mp: 240, crit: 0.32, alive: 1, starter: 0, bio: "Vanished from three cities and counting." },
-        { name: "Dara",   portrait: "https://i.pravatar.cc/150?img=49", class: "cleric",  level: 14, hp: 520,  mp: 540, crit: 0.10, alive: 0, starter: 0, bio: "Taken by the tides, they say." }
-      ]
-    };
-
-    var shops = {
-      struct_def: {
-        "name":     { type: "string", mem: "Shop name" },
-        "banner":   { type: "img", mem: "Banner image" },
-        "open":     { type: "bool", mem: "Currently open" },
-        "stock":    { type: "array", mem: "Items sold", type_agv: { elem_type: "id_num" } },
-        "notes":    { type: "string", mem: "Notes" }
-      },
-      entities: [
-        { name: "Old Town Arms",         banner: "https://picsum.photos/seed/old-town-arms/400/200", open: 1, stock: [[0,5],[0,2]],   notes: "Weekdays only." },
-        { name: "Whispering Apothecary", banner: "https://picsum.photos/seed/apothecary/400/200",    open: 1, stock: [[0,99],[0,99]], notes: "Discount on potions Fridays." }
-      ]
-    };
-
-    return { projectTC: projectTC, tables: { 'data/items': items, 'data/characters': characters, 'data/shops': shops } };
+  function icon(name, color) {
+    return 'https://api.iconify.design/game-icons:' + name + '.svg?color=%23' + color;
   }
 
-  // Default cardStyle = 120x120 absolute card with the 'id' field shown
-  // centered at the bottom. Shipped as the fallback every table inherits.
-  function buildDemoCardStyles() {
-    return {
-      'default': {
-        name: 'Default',
-        root: {
-          id: 'root',
-          component: 'absolute',
-          props: {
-            width: 120,
-            height: 168,
-            background: 'var(--ef-bg-0)',
-            borderRadius: 10,
-          },
-          bindings: {},
-          children: [
-            {
-              id: 'id-text',
-              component: 'text',
-              props: {
-                textAlign: 'center',
-                size: 'sm',
-              },
-              bindings: {
-                value: { source: 'field', field: 'id' },
-              },
-              layout: {
-                aMin: { x: 0, y: 1 },
-                aMax: { x: 1, y: 1 },
-                oMin: { x: 0, y: -22 },
-                oMax: { x: 0, y: -4 },
-              },
-              children: [],
-            },
-            {
-              id: 'image-1-moookklv',
-              component: 'image',
-              props: {
-                background: '',
-                borderColor: '',
-                borderWidth: null,
-                borderStyle: 'solid',
-                borderRadius: null,
-                padding: null,
-                opacity: null,
-                shadowX: null,
-                shadowY: null,
-                shadowBlur: null,
-                shadowColor: '',
-                src: '',
-                alt: '',
-                objectFit: 'cover',
-              },
-              bindings: {
-                src: { source: 'field', field: 'icon' },
-              },
-              children: [],
-              layout: {
-                aMin: { x: 0, y: 0 },
-                aMax: { x: 1, y: 1 },
-                oMin: { x: 10, y: 10 },
-                oMax: { x: -10, y: -60 },
-              },
-            },
-            {
-              id: 'text-2-mooolapk',
-              component: 'text',
-              props: {
-                background: '',
-                borderColor: '',
-                borderWidth: null,
-                borderStyle: 'solid',
-                borderRadius: null,
-                padding: null,
-                opacity: null,
-                shadowX: null,
-                shadowY: null,
-                shadowBlur: null,
-                shadowColor: '',
-                color: '',
-                fontFamily: '',
-                fontSize: null,
-                fontWeight: '',
-                fontStyle: '',
-                textAlign: 'center',
-                verticalAlign: 'middle',
-                letterSpacing: null,
-                lineHeight: null,
-                textDecoration: '',
-                value: 'Text',
-                variant: 'body',
-                size: 'md',
-                clamp: null,
-              },
-              bindings: {
-                value: { source: 'field', field: 'name' },
-              },
-              children: [],
-              layout: {
-                aMin: { x: 0, y: 1 },
-                aMax: { x: 1, y: 1 },
-                oMin: { x: 0, y: -45 },
-                oMax: { x: 0, y: -26 },
-              },
-            },
-          ],
-        },
-      },
-    };
-  }
-  function install() {
+  function installBuiltins() {
     State.setBuiltinTypeConfig(BUILTIN);
-    var demo = buildDemo();
+  }
+
+  function applyProject(snapshot, sourceName) {
+    installBuiltins();
+    ProjectIO.codec.applySnapshot(snapshot, sourceName);
+  }
+
+  function newProject(options) {
+    options = options || {};
+    installBuiltins();
+    if (window.ProjectIO && ProjectIO.assets) ProjectIO.assets.clear();
+    applyProject({
+      project: { name: options.name || 'Untitled', version: 0 },
+      type_config: {},
+      card_styles: { 'default': ProjectIO.codec.defaultCardStyle() },
+      tables: {},
+    }, options.name || 'Untitled');
+    State.setWorkspaceInfo(null);
+    if (options.dirty) State.markDirty();
+    else State.clearDirty();
+    if (window.GDE && GDE.history) GDE.history.reset(t('history.new_project'), { saved: !options.dirty });
+  }
+
+  function table(structDef, entities) {
+    return { struct_def: structDef, entities: entities };
+  }
+
+  function baseStruct(extra) {
+    return Object.assign({
+      id:   { type: 'id', ref_name: 'name', ref_icon: 'icon' },
+      name: { type: 'string', mem: 'Display name' },
+      icon: { type: 'img', mem: 'Icon asset' },
+    }, extra || {});
+  }
+
+  function buildDemoSnapshot() {
+    var currency = table(baseStruct(), [
+      { name: '金币', icon: icon('two-coins', 'f5c84c') },
+      { name: '钻石', icon: icon('cut-diamond', '67d8ff') },
+    ]);
+
+    var attrs = table(baseStruct(), [
+      { name: '血量', icon: icon('heart-plus', 'ef5b5b') },
+      { name: '攻击', icon: icon('sword-wound', 'f08a42') },
+      { name: '防御', icon: icon('shield', '72a8ff') },
+      { name: '移动速度', icon: icon('run', '6ee7b7') },
+    ]);
+
+    var roles = table(baseStruct({
+      mem: { type: 'string', mem: 'Description' },
+      property: { type: 'array', mem: 'Character properties', type_agv: { elem_type: 'id_num' } },
+    }), [
+      { name: '张三', icon: icon('person', '7dd3fc'), mem: '均衡型角色。', property: [] },
+      { name: '李四', icon: icon('hooded-figure', 'c4b5fd'), mem: '高攻击角色。', property: [] },
+      { name: '王五', icon: icon('guards', '86efac'), mem: '防御型角色。', property: [] },
+      { name: '赵六', icon: icon('running-ninja', 'fda4af'), mem: '高速角色。', property: [] },
+    ]);
+
+    return {
+      project: { name: 'Demo Project', version: 0 },
+      type_config: {},
+      card_styles: buildDemoCardStyles(),
+      tables: {
+        '货币': currency,
+        '属性': attrs,
+        '角色': roles,
+      },
+    };
+  }
+
+  function materializeTables(rawTables) {
     var tables = {};
-    Object.keys(demo.tables).forEach(function (pathKey) {
-      var t = demo.tables[pathKey];
+    Object.keys(rawTables).forEach(function (pathKey) {
+      var raw = rawTables[pathKey];
       var ids = [];
       var entities = {};
-      t.entities.forEach(function (e) {
+      raw.entities.forEach(function (entity) {
         var id = State.genId();
-        entities[id] = e;
         ids.push(id);
+        entities[id] = Object.assign({}, entity);
       });
-      tables[pathKey] = { struct_def: t.struct_def, id: ids, entities: entities, card_style: 'default' };
+      tables[pathKey] = {
+        struct_def: raw.struct_def,
+        id: ids,
+        entities: entities,
+        card_style: 'default',
+      };
     });
+    return tables;
+  }
 
-    // Wire first shop's stock[0].id to first item, and starter -> Iron Sword.
-    var itemIds = tables['data/items'].id;
-    var charIds = tables['data/characters'].id;
-    var shopIds = tables['data/shops'].id;
-    if (itemIds[0] && charIds.length) charIds.forEach(function (cid) { tables['data/characters'].entities[cid].starter = itemIds[0]; });
-    if (shopIds[0] && itemIds.length >= 2) {
-      tables['data/shops'].entities[shopIds[0]].stock = [[itemIds[0], 5], [itemIds[1], 2]];
-    }
-    if (shopIds[1] && itemIds.length >= 5) {
-      tables['data/shops'].entities[shopIds[1]].stock = [[itemIds[3], 99], [itemIds[4], 99]];
-    }
+  function wireDemoRefs(tables) {
+    var attrIds = tables['属性'].id;
+    var roleIds = tables['角色'].id;
+    var data = tables['角色'].entities;
+    var values = [
+      [[0, 120], [1, 18], [2, 10], [3, 8]],
+      [[0, 95],  [1, 32], [2, 6],  [3, 10]],
+      [[0, 160], [1, 14], [2, 28], [3, 6]],
+      [[0, 85],  [1, 20], [2, 8],  [3, 16]],
+    ];
+    roleIds.forEach(function (id, i) {
+      data[id].property = values[i].map(function (pair) { return { id: attrIds[pair[0]], num: pair[1] }; });
+    });
+  }
 
-    ProjectIO.codec.applySnapshot({
-      project: { name: 'Demo Project', version: 0 },
-      type_config: demo.projectTC,
-      card_styles: buildDemoCardStyles(),
-      tables: tables,
-    }, 'Demo Project');
-    State.setWorkspaceInfo({ kind: 'demo', name: 'Demo Project' });
+  function loadTemplate(key) {
+    if (key !== 'demo') throw new Error('Unknown template: ' + key);
+    installBuiltins();
+    if (window.ProjectIO && ProjectIO.assets) ProjectIO.assets.clear();
+    var snapshot = buildDemoSnapshot();
+    snapshot.tables = materializeTables(snapshot.tables);
+    wireDemoRefs(snapshot.tables);
+    applyProject(snapshot, 'Demo Project');
+    State.setWorkspaceInfo({ kind: 'template', name: 'Demo Project' });
     State.clearDirty();
     if (window.GDE && GDE.history) GDE.history.reset(t('history.open_demo'), { saved: true });
   }
 
-  window.Seed = { install: install, BUILTIN: BUILTIN };
+  function buildDemoCardStyles() {
+    return { 'default': ProjectIO.codec.defaultCardStyle() };
+  }
+
+  window.Seed = {
+    BUILTIN: BUILTIN,
+    installBuiltins: installBuiltins,
+    newProject: newProject,
+    loadTemplate: loadTemplate,
+    install: function () { loadTemplate('demo'); },
+  };
 })();

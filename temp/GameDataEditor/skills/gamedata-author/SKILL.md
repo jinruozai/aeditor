@@ -17,37 +17,34 @@ Before editing data, inspect:
 2. The target table file(s) for `_table.struct_def`.
 3. Any referenced tables whose ids are used by `ref_id`, `id_num`, or arrays of refs.
 4. Existing `asset/` paths before changing image or sound fields.
-5. `plugin/manifest.json` and plugin skill files when project-specific renderers, validators, animation formats, or AI rules are present.
 
 Load `references/data-contract.md` for the full schema and invariants. Load `references/examples.md` when creating new table families, id catalogs, custom types, or ref-heavy data.
 
 ## Core Rules
 
-- The only special project directories are `asset/` and `plugin/`; all other JSON files are data candidates.
-- Any `.json` outside `gamedata.json`, `asset/`, and `plugin/` is a table file and must contain `_table`.
-- Never treat files under `plugin/` as data tables.
+- The only special project directory is `asset/`; all other JSON files are data candidates.
+- Any `.json` outside `gamedata.json` and `asset/` is a table file and must contain `_table`.
 - Every entity lives at a top-level id key beside `_table`.
 - Entity ids are strings in JSON object keys and should be globally unique across the whole project.
 - Prefer 15-digit decimal ids that are safe in JavaScript number/string conversions.
 - Entity fields must come from that table's `_table.struct_def`.
 - Every `struct_def[field].type` must resolve to a builtin type, a project `type_config` entry, or a known compound type.
 - When adding a domain field such as `currency`, `tag`, `rarity`, `attribute`, or `damage_type`, add or reuse a project `type_config` entry with the same field/type name so future tables converge on one dictionary.
-- Use `ref_id` for links to other entities; use `id_num` for `[refId, quantity]`; use arrays for lists.
+- Use `ref_id` for links to other entities; use `id_num` for `{ "id": refId, "num": quantity }`; use arrays for lists.
 - Do not duplicate referenced entity data inside another entity. Store the target id and resolve by id.
 - Use `asset://relative/path.ext` for project assets. The disk file must live under `asset/relative/path.ext`.
-- Project-specific editor behavior lives under `plugin/` and must not be copied into core table data.
+- Project-specific editor behavior belongs in a separate editor extension project, not inside the data directory.
 - Never write absolute paths, `..`, comments, trailing commas, `NaN`, or `Infinity`.
 
 ## Editing Workflow
 
 1. Map the domain concept to tables first: catalogs such as attributes, currencies, factions, tags, skills, items, recipes, characters, levels.
-2. Put plugin manifests, plugin private JSON, and project AI rules under `plugin/`, never beside data tables.
-3. Decide ids and references. Shared concepts get their own row and are referenced by id.
-4. Reuse existing `type_config` entries. If a field name appears in `struct_def` but not in `type_config`, create a matching `type_config` entry unless it is only a truly local temporary field.
-5. Add or update `_table.struct_def` before writing entity values.
-6. Fill every entity with values matching the resolved base type and renderer constraints.
-7. Add required assets under `asset/` and write matching `asset://` URLs.
-8. Run the validation script if available:
+2. Decide ids and references. Shared concepts get their own row and are referenced by id.
+3. Reuse existing `type_config` entries. If a field name appears in `struct_def` but not in `type_config`, create a matching `type_config` entry unless it is only a truly local temporary field.
+4. Add or update `_table.struct_def` before writing entity values.
+5. Fill every entity with values matching the resolved base type and renderer constraints.
+6. Add required assets under `asset/` and write matching `asset://` URLs.
+7. Run the validation script if available:
 
 ```bash
 node temp/GameDataEditor/skills/gamedata-author/scripts/validate-gamedata-project.mjs <project-root>

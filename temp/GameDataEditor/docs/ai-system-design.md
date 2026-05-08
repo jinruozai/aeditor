@@ -20,7 +20,6 @@ GameDataEditor owns:
 - approve/apply integration with `State`
 - project-local skills
 - project templates
-- project plugin AI contributions
 
 ## 2. Framework Model Used By GDE
 
@@ -473,44 +472,7 @@ EF.ai.registerAgentTemplate("gde.table-designer", {
 
 Templates create agents. They do not create sessions.
 
-## 13. Project Plugins
-
-Project-local `plugin/` can contribute AI capabilities.
-
-Example manifest:
-
-```json
-{
-  "ai": {
-    "skills": ["plugin/combat/combat-skill.json"],
-    "tools": ["combat.balanceCurve", "combat.validateFormula"],
-    "contextProviders": ["combat.animationClip"],
-    "resourceResolvers": ["combat://*"],
-    "agentTemplates": ["combat.balance-agent"]
-  }
-}
-```
-
-Plugin contributions:
-
-- custom resource resolvers
-- custom context providers
-- custom tools
-- custom skills
-- custom templates
-- custom validation
-- custom asset viewers
-- custom patch operation handlers
-
-Rules:
-
-- plugin tools must use `EF.ai.registerTool`
-- plugin context providers must return structured context
-- plugin resource resolvers must return JSON-serializable payloads
-- plugin write tools require preview/apply lifecycle
-- plugin patches must still pass core GDE validation
-
-## 14. Agent Usage Pattern
+## 13. Agent Usage Pattern
 
 Recommended UI groups:
 
@@ -543,7 +505,7 @@ Use `goal` mode for longer tasks:
 
 Use `chat` mode for direct questions.
 
-## 15. GDE Panels
+## 14. GDE Panels
 
 GameDataEditor can use framework panels directly:
 
@@ -559,7 +521,7 @@ Default layout suggestion:
 
 GDE may add toolbar buttons or menu entries, but should not fork the generic AI panel implementations unless a domain-specific view is required.
 
-## 16. AI Settings
+## 15. AI Settings
 
 GDE should expose an AI tab in settings that writes framework config:
 
@@ -584,7 +546,7 @@ Project defaults:
 }
 ```
 
-## 17. Minimal Project Work
+## 16. Minimal Project Work
 
 Most implementation is framework-level.
 
@@ -597,6 +559,5 @@ GameDataEditor needs only:
 5. ship the Game Data Designer skill
 6. register project agent templates
 7. add AI settings defaults
-8. optionally register project plugin AI contributions
 
 This keeps GameDataEditor a domain adapter rather than a custom AI app.

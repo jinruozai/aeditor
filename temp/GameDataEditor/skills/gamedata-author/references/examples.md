@@ -1,17 +1,5 @@
 # GameDataEditor Examples
 
-## Plugin Files Are Not Tables
-
-Project-specific editor code and plugin configuration must live under `plugin/`:
-
-```text
-plugin/manifest.json
-plugin/animation/plugin.js
-plugin/animation/skill.md
-```
-
-Do not create ordinary project-root JSON such as `animation-plugin.json` for plugin config. Outside `gamedata.json`, `asset/`, and `plugin/`, every `.json` is treated as a data table and must contain `_table`.
-
 ## Catalog-First Design
 
 Use small catalog tables for reusable concepts, then reference ids.
@@ -116,7 +104,7 @@ Use custom structs for repeated value groups.
       "name": "StatValue",
       "base_type": "struct",
       "type_render": "struct",
-      "default": [0, 0],
+      "default": { "attribute": 0, "value": 0 },
       "mem": "Attribute id + numeric value",
       "struct_def": {
         "stat_value": {

@@ -158,8 +158,10 @@
     }
 
     if (!isPopup) {
-      const demoGroup = EF.ai.createGroup({ name: 'Demo AI' })
-      EF.ai.createAgent({ name: 'main', path: 'demo/main', groupId: demoGroup.id })
+      const agents = EF.ai.agents.peek()
+      const demoAgent = agents.find(function (agent) { return agent.name === 'main' }) ||
+        EF.ai.createAgent({ name: 'main', select: false })
+      EF.ai.selectAgent(demoAgent.id)
     }
 
     const layout = createDockLayout(document.getElementById('app'), {

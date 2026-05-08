@@ -51,6 +51,9 @@
         { label: t('toolbar.new'), onClick: doNew },
         { label: t('toolbar.open_folder'), disabled: !ProjectIO.fsWorkspace.supported(), onClick: doOpenFolder },
         { label: t('toolbar.recent'), items: recentItems },
+        { label: t('toolbar.template'), items: [
+          { label: t('toolbar.template.demo'), onClick: function () { doOpenTemplate('demo'); } },
+        ]},
         { separator: true },
         { label: t('toolbar.save'), onClick: doSave },
         { label: t('toolbar.save_as'), disabled: !ProjectIO.fsWorkspace.supported(), onClick: doSaveAs },
@@ -125,27 +128,29 @@
       okLabel: t('toolbar.new.discard'),
     }).then(function (ok) {
       if (!ok) return;
-      if (window.GDE && GDE.plugins) GDE.plugins.deactivateAll();
       ProjectIO.fsWorkspace.setWorkspace(null);
-      ProjectIO.assets.clear();
-      State.setWorkspaceInfo(null);
-      State.setProjectTypeConfig({});
-      State.setProjectCardStyles({ 'default': ProjectIO.codec.defaultCardStyle() });
-      State.setGameData({});
-      State.setTableMap({});
-      State.projectName.set('Untitled');
-      State.version.set(0);
-      State.closeAllTabs();
-      State.setSelection(null);
-      State.markDirty();
-      if (window.GDE && GDE.history) GDE.history.reset(t('history.new_project'));
+      Seed.newProject({ name: 'Untitled', dirty: true });
       State.log('info', 'New project created');
     });
   }
 
+  function doOpenTemplate(key) {
+    EF.ui.confirm({
+      title:   t('toolbar.template.title'),
+      message: t('toolbar.template.message'),
+      danger:  true,
+      okLabel: t('toolbar.template.open'),
+    }).then(function (ok) {
+      if (!ok) return;
+      ProjectIO.fsWorkspace.setWorkspace(null);
+      Seed.loadTemplate(key);
+      State.log('info', 'Opened template: ' + key);
+    });
+  }
+
   async function doOpenFolder() {
-    await run('Open folder', async function () {
-      var ws = await ProjectIO.fsWorkspace.openFolder();
+    await run('Open folder', async function (progress) {
+      var ws = await ProjectIO.fsWorkspace.openFolder({ progress: progress });
       State.setWorkspaceInfo({ kind: 'folder', name: ws.name });
       State.clearDirty();
       await ProjectIO.recent.put(ws);
@@ -154,9 +159,9 @@
   }
 
   async function doSave() {
-    await run('Save', async function () {
+    await run('Save', async function (progress) {
       if (window.GDE && GDE.history) GDE.history.flush();
-      var ws = await ProjectIO.fsWorkspace.save();
+      var ws = await ProjectIO.fsWorkspace.save({ progress: progress });
       State.setWorkspaceInfo({ kind: 'folder', name: ws.name });
       State.clearDirty();
       if (window.GDE && GDE.history) GDE.history.markSaved();
@@ -166,8 +171,8 @@
   }
 
   async function doSaveAs() {
-    await run('Save as', async function () {
-      var ws = await ProjectIO.fsWorkspace.saveAs();
+    await run('Save as', async function (progress) {
+      var ws = await ProjectIO.fsWorkspace.saveAs({ progress: progress });
       State.setWorkspaceInfo({ kind: 'folder', name: ws.name });
       State.clearDirty();
       await ProjectIO.recent.put(ws);
@@ -182,8 +187,8 @@
     input.onchange = function () {
       var file = input.files && input.files[0];
       if (!file) return;
-      run('Import zip', async function () {
-        await ProjectIO.zipWorkspace.importZip(file);
+      run('Import zip', async function (progress) {
+        await ProjectIO.zipWorkspace.importZip(file, { progress: progress });
         ProjectIO.fsWorkspace.setWorkspace(null);
         State.setWorkspaceInfo({ kind: 'zip', name: file.name });
         State.clearDirty();
@@ -194,15 +199,15 @@
   }
 
   async function doExportZip() {
-    await run('Export zip', async function () {
-      await ProjectIO.zipWorkspace.exportZip();
+    await run('Export zip', async function (progress) {
+      await ProjectIO.zipWorkspace.exportZip({ progress: progress });
       State.log('info', 'Exported zip');
     });
   }
 
   async function openRecent(item) {
-    await run('Open recent', async function () {
-      await ProjectIO.fsWorkspace.loadFromHandle(item.handle);
+    await run('Open recent', async function (progress) {
+      await ProjectIO.fsWorkspace.loadFromHandle(item.handle, { progress: progress });
       ProjectIO.fsWorkspace.setWorkspace({ kind: 'folder', name: item.name, handle: item.handle });
       State.setWorkspaceInfo({ kind: 'folder', name: item.name });
       State.clearDirty();
@@ -212,7 +217,13 @@
   }
 
   async function run(label, fn) {
-    try { await fn(); }
+    try {
+      if (window.GDE && GDE.loading) {
+        await GDE.loading.run({ title: label, message: 'Starting...' }, fn);
+      } else {
+        await fn(function () {});
+      }
+    }
     catch (e) { State.log('error', label + ': ' + e.message); State.showLogPanel(); }
   }
 

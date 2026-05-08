@@ -13,41 +13,50 @@
     return typeof window.showDirectoryPicker === 'function';
   }
 
-  async function openFolder() {
+  async function openFolder(options) {
+    options = options || {};
     if (!supported()) throw new Error('This browser does not support folder access.');
     var dir = await window.showDirectoryPicker({ mode: 'readwrite' });
-    await loadFromHandle(dir);
+    await loadFromHandle(dir, options);
     current = { kind: 'folder', name: dir.name, handle: dir };
     return current;
   }
 
-  async function saveAs() {
+  async function saveAs(options) {
+    options = options || {};
     if (!supported()) throw new Error('This browser does not support folder access.');
     var dir = await window.showDirectoryPicker({ mode: 'readwrite' });
     current = { kind: 'folder', name: dir.name, handle: dir };
-    await save();
+    await save(options);
     return current;
   }
 
-  async function save() {
-    if (!current || !current.handle) return saveAs();
+  async function save(options) {
+    options = options || {};
+    if (!current || !current.handle) return saveAs(options);
+    var progress = options.progress;
+    report(progress, 'Checking folder permission...');
     await ensurePermission(current.handle);
+    report(progress, 'Serializing project...');
     var snapshot = c().exportSnapshot();
     var files = c().snapshotToFiles(snapshot);
-    await writeProjectFiles(current.handle, files);
-    await writePluginFiles(current.handle);
-    await ProjectIO.assets.writeToDirectory(current.handle);
+    await writeProjectFiles(current.handle, files, progress);
+    await ProjectIO.assets.writeToDirectory(current.handle, { progress: progress });
+    report(progress, 'Save complete', 1, 1);
     return current;
   }
 
-  async function loadFromHandle(dir) {
+  async function loadFromHandle(dir, options) {
+    options = options || {};
+    var progress = options.progress;
+    report(progress, 'Checking folder permission...');
     await ensurePermission(dir);
-    var files = await readProjectFiles(dir);
-    var pluginFiles = await readPluginFiles(dir);
-    if (window.GDE && GDE.plugins) await GDE.plugins.loadProject(pluginFiles, dir.name);
-    await ProjectIO.assets.loadFromDirectory(dir);
+    var files = await readProjectFiles(dir, progress);
+    await ProjectIO.assets.loadFromDirectory(dir, { progress: progress });
+    report(progress, 'Applying project data...');
     c().applySnapshot(c().filesToSnapshot(files), dir.name);
     if (window.GDE && GDE.history) GDE.history.reset(t('history.open_project', { name: dir.name }), { saved: true });
+    report(progress, 'Project loaded', 1, 1);
   }
 
   async function ensurePermission(handle) {
@@ -62,27 +71,22 @@
     throw new Error('Folder permission denied.');
   }
 
-  async function readProjectFiles(dir) {
+  async function readProjectFiles(dir, progress) {
     var files = {};
+    var handles = [];
+    report(progress, 'Scanning JSON files...');
     await walk(dir, '', async function (path, fileHandle) {
       if (isSpecialPath(path)) return;
       if (!/\.json$/i.test(path)) return;
-      var file = await fileHandle.getFile();
-      files[path] = await file.text();
+      handles.push({ path: path, handle: fileHandle });
     });
-    return files;
-  }
-
-  async function readPluginFiles(dir) {
-    var files = {};
-    try {
-      var pluginDir = await dir.getDirectoryHandle('plugin', { create: false });
-      await walk(pluginDir, 'plugin', async function (path, fileHandle) {
-        if (!/\.(json|js|css|md|txt)$/i.test(path)) return;
-        var file = await fileHandle.getFile();
-        files[path] = await file.text();
-      });
-    } catch (_) {}
+    for (var i = 0; i < handles.length; i++) {
+      report(progress, 'Reading JSON files...', i, handles.length, handles[i].path);
+      var file = await handles[i].handle.getFile();
+      files[handles[i].path] = await file.text();
+      await yieldUI();
+    }
+    report(progress, 'Reading JSON files...', handles.length, handles.length);
     return files;
   }
 
@@ -94,7 +98,8 @@
     }
   }
 
-  async function writeProjectFiles(dir, files) {
+  async function writeProjectFiles(dir, files, progress) {
+    report(progress, 'Scanning old project files...');
     var existing = await listProjectJsonFiles(dir);
     var wanted = {};
     Object.keys(files).forEach(function (path) { wanted[path] = true; });
@@ -106,8 +111,11 @@
     }
     var paths = Object.keys(files).sort();
     for (var j = 0; j < paths.length; j++) {
+      report(progress, 'Writing JSON files...', j, paths.length, paths[j]);
       await writeTextFile(dir, paths[j], files[paths[j]]);
+      await yieldUI();
     }
+    report(progress, 'Writing JSON files...', paths.length, paths.length);
   }
 
   async function listProjectJsonFiles(dir) {
@@ -126,18 +134,8 @@
     return out;
   }
 
-  async function writePluginFiles(dir) {
-    var files = window.GDE && GDE.plugins ? GDE.plugins.files() : {};
-    var paths = Object.keys(files).sort();
-    for (var i = 0; i < paths.length; i++) {
-      await writeTextFile(dir, paths[i], files[paths[i]]);
-    }
-  }
-
   function isSpecialPath(path) {
-    return path === 'asset' || path === 'plugin'
-        || path.indexOf('asset/') === 0
-        || path.indexOf('plugin/') === 0;
+    return path === 'asset' || path.indexOf('asset/') === 0;
   }
 
   async function writeTextFile(root, path, text) {
@@ -165,6 +163,22 @@
 
   function workspace() { return current; }
   function setWorkspace(ws) { current = ws || null; }
+
+  function report(progress, message, current, total, detail) {
+    if (typeof progress !== 'function') return;
+    progress({
+      message: message,
+      current: current,
+      total: total,
+      detail: detail || '',
+      indeterminate: !(total > 0),
+    });
+  }
+
+  function yieldUI() {
+    if (window.GDE && GDE.loading && GDE.loading.nextFrame) return GDE.loading.nextFrame();
+    return Promise.resolve();
+  }
 
   window.ProjectIO = window.ProjectIO || {};
   window.ProjectIO.fsWorkspace = {

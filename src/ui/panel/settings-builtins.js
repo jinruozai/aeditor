@@ -42,8 +42,8 @@
 
   EF.settings.registerPage('theme-editor', {
     section: 'theme',
-    title: 'Theme',
-    icon: 'palette',
+    title: 'Appearance',
+    icon: 'sliders',
     order: 0,
     replacesSchema: true,
     factory: renderThemeSettings,
@@ -90,8 +90,8 @@
 
   EF.settings.registerPage('ai', {
     section: 'ai',
-    title: 'AI',
-    icon: 'user',
+    title: 'Connections',
+    icon: 'link',
     order: 0,
     replacesSchema: true,
     searchText: aiSearchText,

@@ -13,6 +13,8 @@
     'app.title': 'GameDataEditor',
 
     'toolbar.new': 'New',
+    'toolbar.template': 'Open Template',
+    'toolbar.template.demo': 'Demo',
     'toolbar.open_folder': 'Open Folder...',
     'toolbar.recent': 'Open Recent',
     'toolbar.save': 'Save',
@@ -32,6 +34,9 @@
     'toolbar.new.title': 'New Project',
     'toolbar.new.message': 'Discard current project and start a new one?',
     'toolbar.new.discard': 'Discard',
+    'toolbar.template.title': 'Open Template',
+    'toolbar.template.message': 'Discard current project and open this template?',
+    'toolbar.template.open': 'Open',
 
     'panel.tablemap': 'Tables',
     'panel.typeconfig': 'TypeConfig',
@@ -243,6 +248,8 @@
     'app.title': '游戏数据编辑器',
 
     'toolbar.new': '新建',
+    'toolbar.template': '打开模板',
+    'toolbar.template.demo': 'Demo',
     'toolbar.open_folder': '打开文件夹...',
     'toolbar.recent': '最近打开',
     'toolbar.save': '保存',
@@ -262,6 +269,9 @@
     'toolbar.new.title': '新建项目',
     'toolbar.new.message': '放弃当前项目并新建一个空项目？',
     'toolbar.new.discard': '放弃',
+    'toolbar.template.title': '打开模板',
+    'toolbar.template.message': '放弃当前项目并打开这个模板？',
+    'toolbar.template.open': '打开',
 
     'panel.tablemap': '表',
     'panel.typeconfig': '类型配置',

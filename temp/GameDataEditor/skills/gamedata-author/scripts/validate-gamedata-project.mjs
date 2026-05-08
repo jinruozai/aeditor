@@ -79,11 +79,11 @@ const knownTypes = new Set([...builtin, ...Object.keys(projectTC)]);
 
 for (const abs of walk(root).filter((p) => p.toLowerCase().endsWith('.json'))) {
   if (rel(abs) === 'gamedata.json') continue;
-  if (rel(abs).startsWith('asset/') || rel(abs).startsWith('plugin/')) continue;
+  if (rel(abs).startsWith('asset/')) continue;
   const raw = readJson(abs);
   if (!raw) continue;
   if (!raw._table || typeof raw._table !== 'object') {
-    fail(`${rel(abs)}: JSON outside asset/ and plugin/ must be a table with top-level _table`);
+    fail(`${rel(abs)}: JSON outside asset/ must be a table with top-level _table`);
     continue;
   }
   const tablePath = rel(abs).replace(/\.json$/i, '');
@@ -193,8 +193,18 @@ function inspectValue(value, fieldDef, where) {
     }
     return;
   }
-  if (fieldTypeName(fieldDef) === 'id_num' && Array.isArray(value)) {
-    refs.push({ value: value[0], where: `${where}[0]` });
+  if (base === 'struct') {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+      warn(`${where}: expected object`);
+      return;
+    }
+    const fields = normalizeStructDef(resolved.struct_def);
+    Object.keys(fields).forEach((field) => {
+      if (Object.prototype.hasOwnProperty.call(value, field)) {
+        inspectValue(value[field], fields[field], `${where}.${field}`);
+      }
+    });
+    return;
   }
   collectLooseAssets(value, where);
 }
@@ -208,6 +218,16 @@ function collectLooseAssets(value, where) {
   if (Array.isArray(value)) {
     value.forEach((v, i) => collectLooseAssets(v, `${where}[${i}]`));
   }
+  if (value && typeof value === 'object') {
+    Object.keys(value).forEach((k) => collectLooseAssets(value[k], `${where}.${k}`));
+  }
+}
+
+function normalizeStructDef(def) {
+  if (!def || typeof def !== 'object') return {};
+  const keys = Object.keys(def);
+  if (keys.length === 1 && def[keys[0]] && typeof def[keys[0]] === 'object') return def[keys[0]];
+  return def;
 }
 
 function resolveFieldDef(fieldDef) {

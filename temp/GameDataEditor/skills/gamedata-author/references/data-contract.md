@@ -8,7 +8,6 @@ This reference is the source of truth for AI agents editing GameDataEditor data 
 project-root/
   gamedata.json
   asset/
-  plugin/
   Items.json
   Characters/Heroes.json
   asset/Items/100000000000001.png
@@ -18,52 +17,12 @@ project-root/
 Rules:
 
 - `gamedata.json` is optional but strongly recommended.
-- The only special directories are `asset/` and `plugin/`.
+- The only special directory is `asset/`.
 - `asset/` contains game resources referenced by `asset://...`.
-- `plugin/` contains GameDataEditor project plugins and AI rules. It is never table data.
 - Every table is one `.json` file with a top-level `_table` object.
 - Table path equals file path without `.json`, using `/`.
-- Any `.json` outside `gamedata.json`, `asset/`, and `plugin/` is a data table and must contain top-level `_table`.
-- Put plugin-owned config JSON under `plugin/`, not beside data tables.
-
-## Plugin Directory
-
-Project-specific editor capabilities live under `plugin/`:
-
-```text
-plugin/
-  manifest.json
-  animation/plugin.js
-  animation/plugin.css
-  animation/skill.md
-  ai/project-skill.md
-```
-
-`plugin/manifest.json`:
-
-```json
-{
-  "schema": 1,
-  "plugins": [
-    {
-      "id": "mygame.animation",
-      "name": "Animation Tools",
-      "version": 1,
-      "scripts": ["animation/plugin.js"],
-      "styles": ["animation/plugin.css"],
-      "skills": ["animation/skill.md"]
-    }
-  ],
-  "ai": { "skill": "ai/project-skill.md" }
-}
-```
-
-Rules:
-
-- AI should read plugin skills before editing plugin-owned formats.
-- AI should not modify `plugin/` unless explicitly asked to develop editor plugins.
-- Plugin field renderers are namespaced. If a plugin registers `clip` under id `mygame.animation`, `type_config.type_render` should use `mygame.animation.clip`.
-- Plugin files are preserved in project zip export and ignored by table scanning.
+- Any `.json` outside `gamedata.json` and `asset/` is a data table and must contain top-level `_table`.
+- Project-specific editor behavior belongs in a separate editor extension project, not inside the data directory.
 
 ## gamedata.json
 
@@ -141,7 +100,7 @@ Common properties:
 - `group`: optional property panel group.
 - `desc`: optional longer description.
 - `ref_name`: optional field used as display text when this table is referenced.
-- `ref_show`: optional field rendered in readonly preview when this table is referenced.
+- `ref_icon`: optional image field shown before `ref_name` when this table is referenced.
 
 ## TypeConfig
 
@@ -207,7 +166,7 @@ Value conventions:
 - `snd`: string, prefer `asset://...`.
 - `id` / `ref_id`: entity reference value. Prefer numeric JSON value when possible; entity object keys remain strings.
 - `array`: JSON array.
-- `struct`: for shortcut compound types, usually an array, such as `id_num` = `[id, num]`.
+- `struct`: JSON object. Shortcut compound types also use named fields, such as `id_num` = `{ "id": 123, "num": 10 }`.
 
 ## References And Catalog Tables
 
@@ -243,7 +202,7 @@ Reference discipline:
 - Store only the target id where a link is needed.
 - Do not copy target names, icons, or stats unless denormalization is explicitly requested.
 - If using `ref_id`, ensure the id exists in exactly one table.
-- Use `id_num` for quantity pairs such as `[currencyId, amount]` or `[itemId, count]`.
+- Use `id_num` for quantity pairs such as `{ "id": currencyId, "num": amount }` or `{ "id": itemId, "num": count }`.
 - Use arrays of ids for many-to-many links.
 
 ## Assets

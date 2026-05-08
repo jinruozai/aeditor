@@ -517,7 +517,7 @@
 .ef-dock-content {
   flex: 1 1 auto;
   min-width: 0; min-height: 0;
-  overflow: auto;
+  overflow: hidden;
   position: relative;
 }
 .ef-panel {
@@ -1196,27 +1196,37 @@ body.ef-dragging-vertical,   body.ef-dragging-vertical *   { cursor: ns-resize !
 .ef-ui-num {
   display: inline-flex;
   align-items: center;
+  gap: 2px;
   height: var(--ef-size-h-md);
-  background: var(--ef-bg-2);
-  border: 1px solid var(--ef-border-input);
-  border-radius: var(--ef-r-2);
-  overflow: hidden;
   cursor: ew-resize;
   user-select: none;
   min-width: 0;
 }
-.ef-ui-num:hover { border-color: var(--ef-border-strong); }
-.ef-ui-num:focus-within { border-color: var(--ef-accent); }
+.ef-ui-num-body {
+  display: inline-flex;
+  align-items: center;
+  height: 100%;
+  min-width: 0;
+  flex: 1 1 auto;
+  overflow: hidden;
+  background: var(--ef-bg-2);
+  border: 1px solid var(--ef-border-input);
+  border-radius: var(--ef-r-2);
+  box-sizing: border-box;
+}
+.ef-ui-num:hover .ef-ui-num-body { border-color: var(--ef-border-strong); }
+.ef-ui-num:focus-within .ef-ui-num-body { border-color: var(--ef-accent); }
 .ef-ui-num-label {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  flex: 0 0 auto;
   min-width: 16px;
   padding: 0 var(--ef-space-1);
-  background: var(--ef-bg-3);
   color: var(--ef-fg-1);
   font: 600 var(--ef-fs-sm) var(--ef-font-ui);
   height: 100%;
+  box-sizing: border-box;
 }
 .ef-ui-num-step {
   width: 18px; height: 100%;
@@ -1248,14 +1258,14 @@ body.ef-dragging-vertical,   body.ef-dragging-vertical *   { cursor: ns-resize !
   cursor: ew-resize;
 }
 .ef-ui-num-label { cursor: ew-resize; }
-.ef-ui-num-scrubbing { background: var(--ef-accent-bg); }
+.ef-ui-num-scrubbing .ef-ui-num-body { background: var(--ef-accent-bg); }
 .ef-ui-num-scrubbing .ef-ui-num-text { cursor: ew-resize; }
 .ef-ui-num-editing .ef-ui-num-text {
   cursor: text;
   user-select: text;
   background: var(--ef-bg-1);
 }
-.ef-ui-num-editing { background: var(--ef-bg-1); }
+.ef-ui-num-editing .ef-ui-num-body { background: var(--ef-bg-1); }
 
 /* ── vectorInput ────────────────────────────────────────────────── */
 .ef-ui-vec {

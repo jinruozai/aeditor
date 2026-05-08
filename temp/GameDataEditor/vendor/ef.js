@@ -10032,12 +10032,14 @@
 
     const el  = ui.h('div', 'ef-ui-num')
     const lab = ui.h('span', 'ef-ui-num-label')
+    const body = ui.h('span', 'ef-ui-num-body')
     const dec = ui.h('button', 'ef-ui-num-step ef-ui-num-step-l', { type: 'button', text: '‹' })
     const txt = ui.h('input', 'ef-ui-num-text', { type: 'text' })
     const inc = ui.h('button', 'ef-ui-num-step ef-ui-num-step-r', { type: 'button', text: '›' })
     const sfx = ui.h('span', 'ef-ui-num-suffix')
     txt.readOnly = true
-    el.appendChild(lab); el.appendChild(dec); el.appendChild(txt); el.appendChild(inc); el.appendChild(sfx)
+    body.appendChild(dec); body.appendChild(txt); body.appendChild(inc); body.appendChild(sfx)
+    el.appendChild(lab); el.appendChild(body)
 
     ui.bindText(lab, label)
     ui.bind(el, label,  function (v) { lab.style.display = (v == null || v === '') ? 'none' : '' })
@@ -18835,8 +18837,8 @@
 
   EF.settings.registerPage('theme-editor', {
     section: 'theme',
-    title: 'Theme',
-    icon: 'palette',
+    title: 'Appearance',
+    icon: 'sliders',
     order: 0,
     replacesSchema: true,
     factory: renderThemeSettings,
@@ -18883,8 +18885,8 @@
 
   EF.settings.registerPage('ai', {
     section: 'ai',
-    title: 'AI',
-    icon: 'user',
+    title: 'Connections',
+    icon: 'link',
     order: 0,
     replacesSchema: true,
     searchText: aiSearchText,

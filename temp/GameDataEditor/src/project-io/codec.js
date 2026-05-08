@@ -67,7 +67,7 @@
       State.version.set((snap.project && Number(snap.project.version)) || 0);
     }
     if (!options.preserveTabs) State.closeAllTabs();
-    if (!options.preserveSelection) State.setSelection(null);
+    if (!options.preserveSelection) State.selectFirstTable();
     Normalize.normalizeAll();
   }
 
@@ -104,7 +104,7 @@
           base_type:   resolved.base_type || 'string',
           type_render: resolved.type_render || 'input_string',
         };
-        ['default','mem','type_agv','card_style','ref_name','ref_show','support_render','struct_def'].forEach(function (k) {
+        ['default','mem','type_agv','card_style','ref_name','ref_icon','support_render','struct_def'].forEach(function (k) {
           if (resolved[k] !== undefined) promoted[k] = deepClone(resolved[k]);
         });
 
@@ -136,19 +136,54 @@
       root: {
         id: 'root',
         component: 'absolute',
-        props: { width: 120, height: 168, background: 'var(--ef-bg-0)', borderRadius: 6 },
+        props: { width: 120, height: 140, background: 'var(--ef-bg-0)', borderRadius: 10 },
         bindings: {},
-        children: [{
-          id: 'id-text',
-          component: 'text',
-          props: { textAlign: 'center', size: 'sm' },
-          bindings: { value: { source: 'field', field: 'id' } },
-          layout: {
-            aMin: { x: 0, y: 1 }, aMax: { x: 1, y: 1 },
-            oMin: { x: 0, y: -22 }, oMax: { x: 0, y: -4 },
+        children: [
+          {
+            id: 'icon',
+            component: 'image',
+            props: {
+              src: '',
+              alt: '',
+              objectFit: 'contain',
+              padding: 10,
+              borderWidth: 2,
+              background: '#2a2a2a',
+              borderRadius: 8,
+              borderColor: '#9c9c9c',
+            },
+            bindings: { src: { source: 'field', field: 'icon' } },
+            children: [],
+            layout: {
+              aMin: { x: 0, y: 0 },
+              aMax: { x: 1, y: 1 },
+              oMin: { x: 8, y: 8 },
+              oMax: { x: -8, y: -32 },
+            },
           },
-          children: [],
-        }],
+          {
+            id: 'name',
+            component: 'text',
+            props: {
+              value: '',
+              textAlign: 'center',
+              verticalAlign: 'middle',
+              size: 'md',
+              borderWidth: 0,
+              background: '#cfcfcf',
+              color: '#000000',
+              borderRadius: 3,
+            },
+            bindings: { value: { source: 'field', field: 'name' } },
+            children: [],
+            layout: {
+              aMin: { x: 0, y: 1 },
+              aMax: { x: 1, y: 1 },
+              oMin: { x: 8, y: -30 },
+              oMax: { x: -8, y: -6 },
+            },
+          },
+        ],
       },
     };
   }

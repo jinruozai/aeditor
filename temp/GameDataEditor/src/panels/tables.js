@@ -180,7 +180,22 @@
     }
 
     // ── Click dispatch ─────────────────────────────────────────────
+    function nodeRowId(node) {
+      if (!node) return '';
+      return node.kind === 'table' ? 't:' + node.pk : node.kind === 'entity' ? 'e:' + node.entityId : '';
+    }
+
+    function shouldPinOpen(node, idsBefore, nodesAfter) {
+      return nodesAfter.length === 1 && idsBefore.indexOf(nodeRowId(node)) >= 0;
+    }
+
+    function openNodeTable(node, pin) {
+      State.openTable(node.pk, { transient: !pin });
+      EF.bus.emit('ui:openTable', { pathKey: node.pk });
+    }
+
     function handleSelect(ids) {
+      var previousTreeSelection = selectedSig.peek() || [];
       var nodes = (ids || []).map(findNode).filter(Boolean);
       if (!nodes.length) { State.setSelection(null); return; }
       var last = nodes[nodes.length - 1];
@@ -192,6 +207,7 @@
         var sameTable = entities.every(function (n) { return n.pk === pk; });
         var entityIds = entities.map(function (n) { return n.entityId; });
         var refs = entities.map(function (n) { return { pathKey: n.pk, id: n.entityId }; });
+        var entityPin = shouldPinOpen(last, previousTreeSelection, nodes);
         State.setSelection({
           kind: 'card_data',
           pathKey: sameTable ? pk : last.pk,
@@ -200,35 +216,34 @@
           id: last.entityId,
           lastId: last.entityId,
         });
-        State.openTable(last.pk, { transient: true });
-        EF.bus.emit('ui:openTable', { pathKey: last.pk });
+        openNodeTable(last, entityPin);
         return;
       }
 
       if (tables.length && tables.length === nodes.length) {
         var pathKeys = tables.map(function (n) { return n.pk; });
+        var pin = shouldPinOpen(last, previousTreeSelection, nodes);
         if (pathKeys.length > 1) {
           State.setSelection({ kind: 'table_meta_many', pathKeys: pathKeys, pathKey: last.pk });
         } else {
           State.setSelection({ kind: 'table_meta', pathKey: last.pk });
         }
-        // Table click = open table tab + make Inspector show the table's
-        // own property form (kind='table_meta'). This also implicitly
-        // clears any previous card_data selection, which tabledata.js
-        // listens to and uses to drop its local card selection highlights.
-        State.openTable(last.pk, { transient: true });
-        EF.bus.emit('ui:openTable', { pathKey: last.pk });
+        // First click previews. Clicking an already-selected row, or the
+        // second click of a double-click, promotes that table tab to permanent.
+        openNodeTable(last, pin);
         return;
       }
 
       // A table/entity range is ambiguous as an edit target. Use the
       // last clicked row as the semantic selection, matching desktop editors.
       if (last.kind === 'entity') {
+        var mixedEntityPin = shouldPinOpen(last, previousTreeSelection, nodes);
         State.setSelection({ kind: 'card_data', pathKey: last.pk, ids: [last.entityId], id: last.entityId, lastId: last.entityId });
-        State.openTable(last.pk, { transient: true });
+        openNodeTable(last, mixedEntityPin);
       } else {
+        var mixedTablePin = shouldPinOpen(last, previousTreeSelection, nodes);
         State.setSelection({ kind: 'table_meta', pathKey: last.pk });
-        State.openTable(last.pk, { transient: true });
+        openNodeTable(last, mixedTablePin);
       }
     }
 
@@ -356,11 +371,13 @@
       search:   searchSig,
       searchBehavior: 'filter',
       onSelect:       handleSelect,
-      // Single click: tables select-and-expand (standard tree behavior
-      // *plus* top-level selection); entities just select. No special
-      // dblclick semantics �?tables open + expand on first click.
+      // Single click selects. Tables expand from the arrow or double-click,
+      // avoiding accidental long-list expansion while browsing table metadata.
       onRowClick: function (node) {
-        return node.kind === 'table' ? 'select-and-toggle' : 'select';
+        return 'select';
+      },
+      onRowDblClick: function (node) {
+        return node.kind === 'table' ? 'toggle' : 'activate';
       },
       // Entity rows are drag sources �?drop into a ref_id field or any
       // other consumer that accepts application/ef.entity+json. Tables

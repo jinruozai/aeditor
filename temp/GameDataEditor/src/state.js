@@ -72,6 +72,43 @@
     return id;
   }
 
+  function _stableStringify(value) {
+    if (value == null) return '';
+    if (Array.isArray(value)) return '[' + value.map(_stableStringify).join(',') + ']';
+    if (typeof value === 'object') {
+      return '{' + Object.keys(value).sort().map(function (key) {
+        return JSON.stringify(key) + ':' + _stableStringify(value[key]);
+      }).join(',') + '}';
+    }
+    return JSON.stringify(value);
+  }
+
+  function _samePanelIntent(a, b) {
+    if (!a || !b || a.component !== b.component) return false;
+    if (a.name && b.name) return a.name === b.name;
+    return _stableStringify(a.props || {}) === _stableStringify(b.props || {});
+  }
+
+  function _findMainPanel(panel) {
+    if (!_handle || !panel) return null;
+    var tree = _handle.tree();
+    var found = null;
+    (function walk(n) {
+      if (!n || found) return;
+      if (n.type === 'dock' && n.name === _centerDockName) {
+        for (var i = 0; i < n.panels.length; i++) {
+          if (_samePanelIntent(n.panels[i], panel)) {
+            found = { panel: n.panels[i], dockId: n.id };
+            return;
+          }
+        }
+      } else if (n.type === 'split') {
+        n.children.forEach(walk);
+      }
+    })(tree);
+    return found;
+  }
+
   function _findTablePanel(pathKey) {
     if (!_handle) return null;
     var tree = _handle.tree();
@@ -685,78 +722,72 @@
     if (hit) _handle.activatePanel(hit.panel.id);
   }
 
+  function firstTablePath() {
+    var keys = Object.keys(tableMap()).sort();
+    return keys[0] || null;
+  }
+
+  function selectFirstTable(opts) {
+    var pathKey = firstTablePath();
+    if (!pathKey) {
+      setSelection(null);
+      return null;
+    }
+    if (!opts || opts.open !== false) openTable(pathKey, { transient: false });
+    setSelection({ kind: 'table_meta', pathKey: pathKey });
+    return pathKey;
+  }
+
   // ---------- Tab management ----------
+  function openMainPanel(panel, opts) {
+    if (!panel || !_handle) return null;
+    opts = opts || {};
+    var transient = opts.transient != null ? !!opts.transient : true;
+    var hit = _findMainPanel(panel);
+    if (hit) {
+      _handle.activatePanel(hit.panel.id);
+      if (!transient && hit.panel.transient) _handle.promotePanel(hit.panel.id);
+      return { panelId: hit.panel.id, created: false };
+    }
+    var dockId = _centerDockId();
+    if (!dockId) return null;
+    var ret = _handle.addPanel(dockId, panel, { transient: transient });
+    return { panelId: ret && ret.panelId, created: true };
+  }
+
   // openTable(pathKey, { transient }) — opens or activates the table panel.
   // If a panel for this pathKey already exists, it's activated (and optionally
   // promoted). Otherwise a new panel is added to the center dock. Framework-
   // level transient slot auto-evicts an existing transient panel (§ 4.4).
   function openTable(pathKey, opts) {
     if (!pathKey || !_handle) return;
-    var transient = opts && opts.transient != null ? !!opts.transient : true;
-    var hit = _findTablePanel(pathKey);
-    if (hit) {
-      _handle.activatePanel(hit.panel.id);
-      if (!transient && hit.panel.transient) _handle.promotePanel(hit.panel.id);
-      return;
-    }
-    var dockId = _centerDockId();
-    if (!dockId) return;
-    _handle.addPanel(dockId, {
+    openMainPanel({
+      name: 'table:' + pathKey,
       component: 'gde-table-data',
       title:  _shortName(pathKey),
       props:  { pathKey: pathKey },
-    }, { transient: transient });
+    }, opts);
   }
   function openCardStyle(styleKey, opts) {
     if (!styleKey || !_handle) return;
-    var transient = opts && opts.transient != null ? !!opts.transient : true;
-    var hit = _findCardStylePanel(styleKey);
-    if (hit) {
-      _handle.activatePanel(hit.panel.id);
-      if (!transient && hit.panel.transient) _handle.promotePanel(hit.panel.id);
-      return;
-    }
-    var dockId = _centerDockId();
-    if (!dockId) return;
     var def = projectCardStyles()[styleKey] || {};
-    var ret = _handle.addPanel(dockId, {
+    openMainPanel({
+      name: 'cardstyle:' + styleKey,
       component: 'gde-cardstyle-editor',
       title:  def.name || styleKey,
       icon:   'columns',
       props:  { styleKey: styleKey },
-    }, { transient: transient });
-    _handle.activatePanel(ret.panelId);
+    }, opts);
   }
   function openSettings() {
     if (!_handle) return;
-    var dockId = _centerDockId();
-    if (!dockId) return;
-    var tree = _handle.tree();
-    var found = null;
-    (function walk(n) {
-      if (!n || found) return;
-      if (n.type === 'dock' && n.name === _centerDockName) {
-        for (var i = 0; i < n.panels.length; i++) {
-          if (n.panels[i].component === 'settings') {
-            found = n.panels[i];
-            return;
-          }
-        }
-      } else if (n.type === 'split') {
-        n.children.forEach(walk);
-      }
-    })(tree);
-    if (found) {
-      _handle.activatePanel(found.id);
-      return;
-    }
-    var ret = _handle.addPanel(dockId, {
+    openMainPanel({
+      name: 'settings',
       component: 'settings',
       title: t('panel.settings') || 'Settings',
       icon: 'settings',
       props: {},
     }, { transient: false });
-    _handle.activatePanel(ret.panelId);
   }
   function closeTab(pathKey) {
     var hit = _findTablePanel(pathKey);
@@ -782,11 +813,8 @@
   // resolveEntityDisplay(id) — single entry point for "how does this
   // entity present itself elsewhere?". Driven entirely by the owning
   // table's struct_def.id contract:
-  //   ref_name (default 'name') — the field whose value is the row's
-  //                                human-readable name (combobox rows,
-  //                                inspector titles, tree labels)
-  //   ref_show (default unset)  — the field whose renderer paints the
-  //                                visual face of the row (ref_id chip)
+  //   ref_name (default 'name') — text shown for this entity.
+  //   ref_icon (default 'icon') — optional image shown before the text.
   // Callers don't care which table owns the id — that stays internal.
   function resolveEntityDisplay(id) {
     if (!id) return null;
@@ -801,16 +829,14 @@
     var sd = tm[owner].struct_def || {};
     var idDef = sd.id || {};
     var refName = idDef.ref_name || 'name';
-    var refShow = idDef.ref_show || '';
+    var refIcon = idDef.ref_icon || 'icon';
     var entity = gameData()[sid] || null;
-    var nameVal = entity ? entity[refName] : null;
-    var showVal = refShow && entity ? entity[refShow] : undefined;
-    var showDef = refShow ? (sd[refShow] ? resolveFieldDef(sd[refShow]) : null) : null;
+    var nameVal = refName && sd[refName] && entity ? entity[refName] : null;
+    var iconVal = refIcon && sd[refIcon] && entity ? entity[refIcon] : undefined;
     return {
-      name:    (nameVal != null && nameVal !== '') ? String(nameVal) : sid,
-      show:    showVal,
-      showDef: showDef,
-      entity:  entity,
+      name:   (nameVal != null && nameVal !== '') ? String(nameVal) : sid,
+      icon:   iconVal,
+      entity: entity,
     };
   }
 
@@ -965,7 +991,7 @@
   //                              overrides disappear)
   //
   // "format" here = base_type + type_render (the type's identity). Non-identity
-  // attributes (mem / default / type_agv / card_style / ref_name / ref_show)
+  // attributes (mem / default / type_agv / card_style / ref_name / ref_icon)
   // migrate into the newly-pushed TC entry on push; they get dropped on clear.
   function previewMergeStructDef(pathKey) {
     var tbl = tableMap()[pathKey];
@@ -1014,7 +1040,7 @@
           base_type:   resolved.base_type   || 'string',
           type_render: resolved.type_render || 'input_string',
         };
-        ['default','mem','type_agv','card_style','ref_name','ref_show'].forEach(function (k) {
+        ['default','mem','type_agv','card_style','ref_name','ref_icon'].forEach(function (k) {
           if (resolved[k] !== undefined) nu[k] = resolved[k];
         });
         newPTC[f] = nu;
@@ -1144,6 +1170,9 @@
     setEntityFieldMany: setEntityFieldMany,
     clearAssetReferences: clearAssetReferences,
     setActiveTable: setActiveTable,
+    firstTablePath: firstTablePath,
+    selectFirstTable: selectFirstTable,
+    openMainPanel: openMainPanel,
     openTable: openTable,
     openCardStyle: openCardStyle,
     openSettings: openSettings,

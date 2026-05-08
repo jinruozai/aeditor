@@ -74,8 +74,8 @@
     });
   }
 
-  // 1. Seed the demo dataset (synchronous �?keeps file:// double-click working).
-  Seed.install();
+  // 1. Start with an empty in-memory project. Templates are explicit menu actions.
+  Seed.newProject({ name: 'Untitled', dirty: false });
 
   // 2. Build the initial layout tree.
   var leftDock = EF.dock({
@@ -214,7 +214,6 @@
     for (var i = appCleanups.length - 1; i >= 0; i--) appCleanups[i]();
     appCleanups = [];
     if (window.GDE && GDE.clear) GDE.clear(document.getElementById('gde-topbar'));
-    if (window.GDE && GDE.plugins) GDE.plugins.deactivateAll();
     if (State.destroy) State.destroy();
     handle.destroy();
     window.__gde.handle = null;
@@ -226,11 +225,7 @@
   State._setLayout(handle, 'center');
 
   // 5. Seed one pinned table panel so the center doesn't start empty.
-  var firstTable = Object.keys(State.tableMap())[0] || null;
-  if (firstTable) {
-    State.openTable(firstTable, { transient: false });
-    State.setSelection({ kind: 'table_meta', pathKey: firstTable });
-  }
+  State.selectFirstTable();
 
   // 6. Sync State.activeTable FROM the center dock's activeId. This is the
   //    single source of truth for "which table is being edited" �?every
