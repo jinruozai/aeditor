@@ -1,40 +1,121 @@
 # editorframe
 
-纯前端、零依赖、零构建的 **Blender 风格编辑器 UI 框架**。
+纯前端、零依赖、零构建的 **Blender 风格通用编辑器 UI 框架**。
 
 [![npm](https://img.shields.io/npm/v/@gooooo/editorframe.svg)](https://www.npmjs.com/package/@gooooo/editorframe)
 [![license](https://img.shields.io/npm/l/@gooooo/editorframe.svg)](./LICENSE)
 
+editorframe 用一套极简统一的模型解决编辑器开发里最常见、也最容易变复杂的问题：布局、停靠、面板、工具栏、组件、属性编辑、日志、设置、AI 上下文和变更审批。开发者只需要写自己的 panel 和组件，再用 dock 把它们组织起来，就可以做数据编辑器、关卡编辑器、资源管理器、节点编辑器、调试工具、AI 辅助工作台等各种专业编辑器。
+
+![EditorFrame screenshot](./screenshots/ScreenShot_2026-05-09_180752_282.png)
+
 ---
 
-## 理念
+## 核心思想
 
-你只需要做两件事:
+编辑器不是一堆特殊页面，而是同一个结构的不同组合：
 
-1. **写 component** —— 每个 component 就是一个返回 DOM 元素的函数
-2. **用 dock 组织它们** —— 把 component 放进 panel,把 panel 放进 dock,编辑器就写好了
-
-不管是多标签编辑区、侧边栏树、可折叠底部面板、弹出窗口,都是**同一个 dock + 不同配置**。
-
+```text
+Layout
+└─ Dock
+   ├─ Toolbar
+   │  └─ toolbar component
+   └─ Panel
+      └─ component
 ```
-Layout(N 叉分割树)
- └─ Dock ×M            ← 可分裂 / 合并 / 调整大小的矩形容器
-     ├─ Toolbar         ← tab 栏 + 自定义按钮(可选)
-     └─ Panel ×N        ← 每个 panel 装一个 component,同一时刻只显示 active 那个
+
+- **Dock** 是可分裂、合并、拖拽调整、接收 panel 的矩形容器。
+- **Panel** 是编辑器里的一个工作单元，例如表格、属性面板、资源浏览器、日志、AI 对话。
+- **Component** 是真正渲染 UI 的函数，panel 内容、toolbar 按钮、tab 栏本质上都是 component。
+- **Toolbar 没有特权组件**，tab 栏、按钮、菜单都走同一套 component 注册机制。
+- **非 active panel 从 DOM detach**，不是 `display:none`，所以多标签编辑器可以保持状态又避免后台面板参与 layout/paint。
+- **所有结构都是 JSON 可序列化的 tree**，方便保存、恢复、跨窗口迁移，也方便 AI 理解和修改。
+
+这套设计的目标是：少概念、少例外、组合能力强。复杂编辑器不是靠堆特殊代码做出来，而是由 dock、panel、component、signal、bus 这几件事稳定组合出来。
+
+---
+
+## 适合做什么
+
+- 多标签代码/文本/数据编辑器
+- 游戏数据、关卡、资源、配置编辑器
+- 类 Blender / Godot / VS Code 的 dock 工作台
+- 内部工具、运营后台、调试面板、可视化工具
+- 带 AI 助手的编辑器，让 AI 读取局部上下文、生成变更、等待用户审批后应用
+
+editorframe 只负责通用编辑器框架，不绑定任何业务数据结构。业务层只需要注册自己的 panel、数据组件、AI tool 和上下文 provider。
+
+---
+
+## 特性
+
+- **零构建**：直接 `<script>` 引入，`file://` 双击也能跑。
+- **零依赖**：不用 React、Vue、npm runtime 或打包工具。
+- **单命名空间**：所有 API 都在 `window.EF` 下。
+- **Blender 风格 dock**：分裂、合并、拖动 tab、弹出窗口、focus mode、折叠 dock。
+- **统一组件注册**：panel、toolbar、tab、内置 UI 都是同一种 component。
+- **50+ 内置 UI 组件**：form、data、overlay、container、property editor、change review。
+- **响应式 signal**：轻量 signal/effect/batch/onCleanup，不引入框架。
+- **跨面板 bus**：panel 之间解耦通信，dispose 时自动退订。
+- **主题系统**：dark / dracula / light，并支持语义化 CSS token 定制。
+- **AI 集成层**：agent、tool、resource、context provider、rich prompt、change set、权限审批和多 provider 连接。
+
+---
+
+## AI 集成
+
+editorframe 把 AI 当作编辑器框架的一等能力，而不是业务代码里的临时接口。核心目标是让开发者可以精确地把“当前编辑器里的某一部分”发送给 AI，并让 AI 通过受控 tool 读取、预览和修改数据。
+
+AI 层提供：
+
+- **Agent runtime**：创建 agent、发送消息、停止任务、查看 transcript。
+- **Provider 连接**：OpenAI-compatible、Anthropic、DeepSeek、Ollama、OpenRouter、Groq、Mistral、xAI、本地 bridge 等。
+- **Tool 注册**：业务编辑器可以注册 `project.getSummary`、`table.updateRows`、`asset.rename` 之类的工具。
+- **Resource / target**：把当前选中的对象、文件、图片、表格行、节点树片段作为可引用资源插入 prompt。
+- **Context provider**：按当前 agent、当前 panel、当前 selection 自动捕获上下文。
+- **ChangeSet**：AI 生成的修改先变成可审查的 change set，用户 Apply / Reject 后才落地。
+- **权限模型**：read / write / manage / send 等操作可以按 agent 和资源控制，也支持 Always allow。
+
+示意：
+
+```js
+EF.ai.registerTool('game.table.createEntity', {
+  title: 'Create Entity',
+  description: 'Create one entity in a game data table.',
+  schema: {
+    table: 'string',
+    entity: 'object',
+  },
+  run: function (args, ctx) {
+    // 读取当前项目状态，返回预览或直接执行安全读操作
+  },
+  apply: function (args, ctx) {
+    // 用户批准后真正写入
+  },
+})
+
+EF.ai.registerContextProvider('current-selection', {
+  capture: function (target, event, ctx) {
+    return {
+      panel: 'inspector',
+      selection: window.currentSelectionSnapshot(),
+    }
+  },
+})
 ```
+
+这样 AI 不需要猜整个应用状态，也不需要硬编码业务逻辑。编辑器告诉 AI：你能看什么、能调用什么、哪些变更需要审批。
 
 ---
 
 ## 安装
 
 ```html
-<!-- CDN（推荐） -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@gooooo/editorframe@1/dist/ef.css">
 <script src="https://cdn.jsdelivr.net/npm/@gooooo/editorframe@1/dist/ef.js"></script>
 ```
 
 ```bash
-# 或 npm
 npm install @gooooo/editorframe
 ```
 
@@ -42,9 +123,9 @@ npm install @gooooo/editorframe
 
 ---
 
-## 快速上手
+## 快速开始
 
-### 第一步：注册 component
+注册一个 component：
 
 ```js
 EF.registerComponent('my-editor', {
@@ -58,7 +139,7 @@ EF.registerComponent('my-editor', {
 })
 ```
 
-### 第二步：构建布局 + 挂载
+创建 dock 布局：
 
 ```js
 var layout = EF.createDockLayout(document.getElementById('app'), {
@@ -73,146 +154,84 @@ var layout = EF.createDockLayout(document.getElementById('app'), {
     EF.dock({
       toolbar: { direction: 'top', items: [{ component: 'tab-standard' }] },
       panels: [
-        EF.panel({ component: 'my-editor', title: 'readme', props: { file: 'readme.md' } }),
+        EF.panel({ component: 'log', title: 'Log', icon: 'list' }),
       ],
     }),
-  ], [0.5, 0.5]),
+  ], [0.65, 0.35]),
 })
 ```
 
-完成。你已经有了一个双栏、多标签、可拖拽分割的编辑器。
+完成。你已经有了一个双栏、多标签、可拖拽分割、可继续扩展的编辑器。
 
 ---
 
 ## Component
 
-Component 是编辑器里的一切内容。通过 `EF.registerComponent(name, spec)` 注册,注册后在任何 dock 里当 panel 或 toolbar 组件用。
+Component 是 editorframe 的最小扩展单元。注册后，它可以作为 panel 内容，也可以作为 toolbar item。
 
 ```js
 EF.registerComponent('my-component', {
-  // 必需：创建 DOM 元素
   factory: function (propsSig, ctx) {
     var props = propsSig.peek() || {}
     var el = document.createElement('div')
-    // props 是面板的参数（JSON 可序列化的 plain object）
-    // ctx 是框架提供的上下文（见下一节）
     return el
   },
 
-  // 可选：面板关闭时清理资源
-  dispose: function (el) { /* 取消订阅 / 关 WebSocket / ... */ },
+  defaults: function () {
+    return { title: 'My Component', icon: 'box', props: {} }
+  },
 
-  // 可选：新建面板时的默认参数（角拖分裂时框架会调这个）
-  defaults: function () { return { title: 'My Component', props: {} } },
+  dispose: function (el) {
+    // 清理订阅、timer、WebSocket、Worker 等资源
+  },
 
-  // 可选：跨窗口弹出时的状态序列化
-  serialize: function (el) { return { scrollTop: el.scrollTop } },
-  deserialize: function (el, state) { el.scrollTop = state.scrollTop },
+  serialize: function (el) {
+    return { scrollTop: el.scrollTop }
+  },
+
+  deserialize: function (el, state) {
+    el.scrollTop = state.scrollTop || 0
+  },
 })
 ```
 
+`props` 必须是 JSON 可序列化的 plain object。需要跨 panel 通信时，用 `ctx.bus`；需要编辑器状态时，用 signal 或 context provider。
+
 ---
 
-## ctx —— component 的全部能力
+## ctx
 
-每个 component 的 `factory(propsSig, ctx)` 都会收到 `ctx`。**不需要访问全局变量,不需要轮询,不需要手动遍历 tree** —— `ctx` 提供的全是响应式 signal,值变了自动通知。
-
-### ctx.panel —— 面板级操作
+每个 component 的 `factory(propsSig, ctx)` 都会收到统一上下文。
 
 ```js
-// 读（都是 signal,用 EF.effect 订阅会自动重跑）
-ctx.panel.title()              // 当前标题
-ctx.panel.dirty()              // 是否有未保存的修改
-ctx.panel.props()              // 当前 props
-
-// 写
-ctx.panel.setTitle('new name')
+ctx.panel.title()
+ctx.panel.setTitle('New Title')
 ctx.panel.setDirty(true)
-ctx.panel.setIcon('📄')
-ctx.panel.setBadge('3')        // tab 上的小角标
-ctx.panel.updateProps({ file: 'b.js' })  // 浅合并到 props（低频操作）
+ctx.panel.updateProps({ file: 'b.js' })
+ctx.panel.close()
+ctx.panel.popOut()
+ctx.panel.promote()
 
-// 动作
-ctx.panel.close()              // 关闭自己
-ctx.panel.popOut()             // 弹出为独立窗口
-ctx.panel.promote()            // 从预览升级为常驻（见"Transient Panel"）
-```
-
-### ctx.dock —— 所在 dock 的操作
-
-```js
-// 读（signal）
-ctx.dock.id()                  // dock id
-ctx.dock.panels()              // 当前 dock 的所有 PanelData[]
-ctx.dock.activeId()            // 当前 active panel 的 id
-ctx.dock.collapsed()           // 是否折叠
-ctx.dock.focused()             // 是否全屏聚焦
-
-// 写
+ctx.dock.panels()
+ctx.dock.activeId()
+ctx.dock.addPanel({ component: 'editor', title: 'New' })
 ctx.dock.activatePanel(panelId)
-ctx.dock.removePanel(panelId)
-ctx.dock.addPanel({ component: 'xxx', title: 'New' })  // 返回 { panelId }
-ctx.dock.setCollapsed(true)
 ctx.dock.toggleFocus()
-```
 
-### ctx.bus —— 跨面板通讯
-
-```js
-// 发事件
 ctx.bus.emit('file:saved', { path: '/main.js' })
+ctx.bus.on('file:saved', function (data) {})
 
-// 订阅事件（面板关闭时自动取消订阅,不泄漏）
-ctx.bus.on('file:saved', function (data) {
-  console.log('Saved:', data.path)
-})
+ctx.active
+ctx.onCleanup(function () {})
 ```
 
-### ctx.active / ctx.onCleanup
-
-```js
-ctx.active      // signal<boolean>：我的 DOM 是否挂载在页面上
-ctx.onCleanup(fn)  // 注册清理函数,面板销毁时自动调
-```
-
-### 重要：toolbar component 也有 ctx
-
-**toolbar 组件和 panel 组件用的是同一套 ctx**。区别只有一点：
-
-- **Panel component** 和 **dynamic toolbar component**：`ctx.panel` + `ctx.dock` 都有
-- **Static toolbar component**（写在 `dock.toolbar.items[]` 里的）：只有 `ctx.dock`，没有 `ctx.panel`
-
-所以自定义 toolbar 组件**不需要全局变量,不需要 `requestAnimationFrame` 轮询** —— 直接用 `ctx.dock.panels()` / `ctx.dock.activeId()` / `ctx.dock.collapsed()` 等 signal,配合 `EF.effect` 自动响应变化：
-
-```js
-EF.registerComponent('my-toolbar', {
-  factory: function (propsSig, ctx) {
-    var el = document.createElement('div')
-    // 响应式：dock 的 panels 或 activeId 变了会自动重跑
-    EF.effect(function () {
-      var panels = ctx.dock.panels()
-      var activeId = ctx.dock.activeId()
-      el.innerHTML = ''
-      panels.forEach(function (p) {
-        var btn = document.createElement('button')
-        btn.textContent = p.icon || p.title
-        if (p.id === activeId) btn.classList.add('active')
-        btn.onclick = function () { ctx.dock.activatePanel(p.id) }
-        el.appendChild(btn)
-      })
-    })
-    return el
-  },
-})
-```
+Static toolbar component 没有 `ctx.panel`，但有 `ctx.dock`。这让 tab 栏、侧边栏按钮、dock 菜单都可以用同一套响应式上下文实现。
 
 ---
 
-## Dock 配置
+## Dock 模式
 
-Dock 不是一种类型，是一种配法。以下是常见的几种模式：
-
-### 多标签编辑区（最常见）
+多标签编辑区：
 
 ```js
 EF.dock({
@@ -224,220 +243,109 @@ EF.dock({
 })
 ```
 
-### 侧边栏（图标切换 + 点击折叠）
+侧边栏：
 
 ```js
 EF.dock({
-  toolbar: {
-    direction: 'left',   // 工具栏在左侧，竖向图标条
-    items: [{ component: 'tab-collapsible' }],  // 点击已激活的 tab 折叠 dock
-  },
+  toolbar: { direction: 'left', items: [{ component: 'tab-collapsible' }] },
   panels: [
-    EF.panel({ component: 'file-tree', title: 'Files', icon: '📁' }),
-    EF.panel({ component: 'search',    title: 'Search', icon: '🔍' }),
-    EF.panel({ component: 'settings',  title: 'Config', icon: '⚙' }),
+    EF.panel({ component: 'file-tree', title: 'Files', icon: 'folder' }),
+    EF.panel({ component: 'search', title: 'Search', icon: 'search' }),
+    EF.panel({ component: 'settings', title: 'Settings', icon: 'settings' }),
   ],
 })
 ```
 
-### 可折叠底部面板（日志、终端）
+固定 inspector：
 
 ```js
 EF.dock({
-  toolbar: {
-    direction: 'top',
-    items: [{ component: 'tab-collapsible' }],  // 点 tab 折叠/展开
-  },
-  collapsed: true,  // 初始折叠
   panels: [
-    EF.panel({ component: 'log',      title: 'Log' }),
-    EF.panel({ component: 'terminal', title: 'Terminal' }),
+    EF.panel({ component: 'inspector', title: 'Inspector' }),
   ],
 })
 ```
 
-### 固定单面板（无 tab 栏）
+预览 panel：
 
 ```js
-EF.dock({
-  // 不配 toolbar = 没有 tab 栏，content 区占满整个 dock
-  panels: [ EF.panel({ component: 'inspector', title: 'Inspector' }) ],
-})
-```
-
-### 只有工具栏的 dock（无 panel content）
-
-```js
-EF.dock({
-  toolbar: { direction: 'top', items: [{ component: 'my-menubar' }] },
-  // panels 为空 = content 区是空 div
-})
-```
-
----
-
-## 内置 Tab Component
-
-框架自带三种 tab 组件，写在 `toolbar.items` 里直接用：
-
-| Component 名 | 效果 | 典型场景 |
-|---|---|---|
-| `tab-standard` | 标准 tab 栏,带关闭按钮 | 多标签编辑区 |
-| `tab-compact` | 紧凑模式,单 panel 时自动隐藏 tab 栏 | 预览面板 |
-| `tab-collapsible` | 点击已激活的 tab 折叠/展开整个 dock | 侧边栏、底部面板 |
-
-Tab 不是特殊机制 —— 它就是一个普通的 toolbar component，内部订阅 `ctx.dock.panels()` 来渲染 tab 按钮。你可以写自己的 tab 组件完全替换它。
-
----
-
-## Transient Panel（预览模式）
-
-单击预览、双击固定 —— VS Code / Blender 都用的模式：
-
-```js
-// 单击文件：打开预览（tab 显示斜体，新的预览自动替换旧的）
 layout.addPanel('editor-dock', {
-  component: 'editor', title: 'preview.js', props: { file: 'preview.js' }
+  component: 'editor',
+  title: 'preview.js',
+  props: { file: 'preview.js' },
 }, { transient: true })
 
-// 双击文件（或在 component 内部）：升级为常驻
 ctx.panel.promote()
 ```
 
 ---
 
-## 运行时 API（LayoutHandle）
+## 内置 UI
 
-`createDockLayout` 返回一个 handle，用于在运行时操作布局：
-
-```js
-var layout = EF.createDockLayout(el, { tree: tree })
-
-// 添加面板（返回 { panelId }）
-var result = layout.addPanel(dockId, { component: 'editor', title: 'New' })
-
-// 关闭面板
-layout.removePanel(panelId)
-
-// 激活面板
-layout.activatePanel(panelId)
-
-// 移动面板到另一个 dock
-layout.movePanel(panelId, targetDockId)
-
-// 升级 transient 为常驻
-layout.promotePanel(panelId)
-
-// 分裂 dock（返回 { newDockId, newPanelId? }）
-layout.splitDock(dockId, 'horizontal', 'after', 0.5)
-
-// 合并 dock（返回 false 表示被 dirty panel 阻止）
-layout.mergeDocks(winnerId, loserId)
-
-// 读 / 写 / 订阅 tree
-layout.tree()
-layout.setTree(newTree)
-layout.subscribe(function (tree) { /* tree 变了 */ })
-```
-
----
-
-## 纯函数 API
-
-框架也暴露了一组不可变树的纯函数，用于直接操作 tree（高级场景）：
-
-```js
-// 查询
-EF.findDock(tree, dockId)        // → { node, path } | null
-EF.findPanel(tree, panelId)      // → { panel, dockId, path } | null
-
-// 写入（返回新 tree，不可变）
-EF.addPanel(tree, dockId, partial, opts)  // → { tree, panelId }
-EF.removePanel(tree, panelId)             // → tree
-EF.activatePanel(tree, panelId)           // → tree（注意：只需 panelId,不需要 dockId）
-EF.movePanel(tree, panelId, dstDockId)    // → tree
-EF.updatePanel(tree, panelId, patch)      // → tree
-EF.promotePanel(tree, panelId)            // → tree
-EF.setCollapsed(tree, dockId, bool)       // → tree
-EF.setFocused(tree, dockId, bool)         // → tree
-EF.splitDock(tree, dockId, dir, side, ratio, opts)  // → { tree, newDockId, newPanelId? }
-EF.mergeDocks(tree, winnerId, loserId)    // → { tree, discardedPanels }
-```
-
-> **提示**：大多数场景用 `layout.xxx()` 就够了（它内部就是调纯函数 + setTree）。只有需要在一次 batch 里做多步操作时才需要直接操作纯函数。
-
----
-
-## 内置 UI 组件库
-
-`EF.ui.*` 提供 50+ 即用组件,全部基于"调用方持有 signal"的设计：
+`EF.ui.*` 提供 50+ 组件，统一基于 caller-owned signal：
 
 ```js
 var name = EF.signal('world')
-var input = EF.ui.input({ value: name, placeholder: 'Enter name' })
-var btn = EF.ui.button({ label: 'Greet', onClick: function () { alert('Hello ' + name()) } })
+var input = EF.ui.input({ value: name, placeholder: 'Name' })
+var button = EF.ui.button({
+  label: 'Greet',
+  onClick: function () { alert('Hello ' + name()) },
+})
 ```
 
-**Base**: button / iconButton / icon / tooltip / popover / kbd / badge / tag / spinner / divider
-**Form**: input / textarea / numberInput / vectorInput / slider / rangeSlider / checkbox / switch / radio / segmented / select / combobox / colorInput / dateInput / enumInput / tagInput / tab
-**Editor**: gradientInput / curveInput / codeInput / pathInput / fileInput / assetPicker
-**Container**: section / propRow / card / scrollArea / tabPanel
-**Data**（虚拟化）: list / tree / table / breadcrumbs / progressBar
-**Overlay**: menu / modal / drawer / alert / toast
-**Schema-driven**: **propertyEditor** / **propertyPanel** + **TypeConfig**（`setTypeConfig` / `resolveFieldDef` / `registerRenderer`）— declare a StructDef, get the whole inspector form for free
-
-### 图标集
-
-`ui.icon({ name: 'search' })` resolves to a framework-bundled [Lucide](https://lucide.dev) SVG icon (ISC-licensed, ~40 curated glyphs). `iconButton` / tab widgets accept the same name strings. Override or extend:
-
-```js
-EF.ui.registerIcon('my-icon', '<path d="M10 5v14"/>')
-```
+- **Base**：button / iconButton / icon / tooltip / popover / badge / tag / spinner / divider
+- **Form**：input / textarea / numberInput / vectorInput / slider / checkbox / switch / select / combobox / colorInput / dateInput / enumInput / tagInput
+- **Editor**：gradientInput / curveInput / codeInput / pathInput / fileInput / assetPicker
+- **Container**：section / propRow / card / scrollArea / tabPanel
+- **Data**：list / tree / table / breadcrumbs / progressBar
+- **Overlay**：menu / modal / drawer / alert / toast
+- **Schema-driven**：propertyEditor / propertyPanel / TypeConfig / renderer registry
+- **AI**：chat、agents、transcript、changeReview、rich prompt resources
 
 ---
 
-## 跨面板通讯
+## Runtime API
 
-Signal 适合**状态**（有当前值,晚订阅也能读到），Bus 适合**事件**（一次性通知,错过不补）：
+`createDockLayout` 返回 layout handle：
 
 ```js
-// 状态 → signal
-var currentFile = EF.signal('main.js')
-
-// 事件 → bus
-ctx.bus.emit('file:saved', { path: '/main.js' })
-ctx.bus.on('file:saved', function (data) { /* ... */ })  // 面板关闭自动退订
+layout.addPanel(dockId, { component: 'editor', title: 'New' })
+layout.removePanel(panelId)
+layout.activatePanel(panelId)
+layout.movePanel(panelId, targetDockId)
+layout.promotePanel(panelId)
+layout.splitDock(dockId, 'horizontal', 'after', 0.5)
+layout.mergeDocks(winnerId, loserId)
+layout.tree()
+layout.setTree(nextTree)
+layout.subscribe(function (tree) {})
 ```
 
----
+也可以直接用不可变纯函数操作 tree：
 
-## Dock 的交互能力
-
-| 能力 | 说明 |
-|---|---|
-| **角拖分裂** | 拖拽 dock 角落的三角把一个 dock 拆成两个 |
-| **边缘合并** | 拖拽三角到相邻 dock 吞并它（dirty panel 有保护） |
-| **跨 dock 拖放** | 拖 tab 到另一个 dock,panel 连同状态一起迁移,零重建 |
-| **弹出独立窗口** | `ctx.panel.popOut()` 或拖 tab 到窗口外 |
-| **Focus 全屏** | `ctx.dock.toggleFocus()`,dock 铺满整个视口 |
-| **折叠 / 展开** | `ctx.dock.setCollapsed(true)`,dock 缩成一条 toolbar |
-| **Transient** | `addPanel(id, partial, { transient: true })`,单击预览 / 双击固定 |
-| **Accept 白名单** | `dock({ accept: ['editor'] })`,只接受指定类型的 panel |
-| **LRU 内存控制** | `createDockLayout(el, { tree, lru: { max: 10 } })`，自动淘汰最久未用的非 dirty panel |
+```js
+EF.addPanel(tree, dockId, partial, opts)
+EF.removePanel(tree, panelId)
+EF.activatePanel(tree, panelId)
+EF.movePanel(tree, panelId, dstDockId)
+EF.updatePanel(tree, panelId, patch)
+EF.splitDock(tree, dockId, dir, side, ratio, opts)
+EF.mergeDocks(tree, winnerId, loserId)
+```
 
 ---
 
 ## 主题
 
-三套内置主题,通过 `EF.theme` 或 `data-ef-theme` 属性切换。默认 `dark` 不需要设置；也可以把属性设在某个 `.ef-root` 上做单实例主题：
+内置 `dark`、`dracula`、`light` 三套主题。
 
 ```js
+EF.theme.set('dark')
 EF.theme.set('dracula')
 EF.theme.set('light')
-EF.theme.set('dark', someEditorRoot)
 ```
 
-自定义主题优先改语义化 authoring tokens,不用理解内部灰阶编号：
+自定义主题优先改语义 token：
 
 ```css
 :root {
@@ -445,97 +353,11 @@ EF.theme.set('dark', someEditorRoot)
   --ef-surface-field: #171a20;
   --ef-text-primary: #f3f6fb;
   --ef-text-muted: #8b95a5;
-  --ef-brand: #ff6b6b;
+  --ef-brand: #569eff;
   --ef-state-danger: #ff5c5c;
   --ef-r-2: 8px;
-  --ef-dur-slow: 300ms;
 }
 ```
-
-组件内部仍消费稳定的 role tokens,例如 `--ef-bg-1`、`--ef-fg-0`、`--ef-border`、`--ef-accent`。旧的 `--ef-c-00..11` 灰阶仍保留为高级/兼容层。
-
----
-
-## 完整示例
-
-```html
-<!DOCTYPE html>
-<html>
-<head>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@gooooo/editorframe@1/dist/ef.css">
-  <style> html, body { margin: 0; height: 100% } #app { width: 100vw; height: 100vh } </style>
-</head>
-<body>
-  <div id="app"></div>
-  <script src="https://cdn.jsdelivr.net/npm/@gooooo/editorframe@1/dist/ef.js"></script>
-  <script>
-    // 注册两个 component
-    EF.registerComponent('note', {
-      factory: function (propsSig, ctx) {
-        var el = document.createElement('div')
-        el.style.padding = '16px'
-        el.appendChild(EF.ui.textarea({
-          value: EF.signal(props.text || ''),
-          placeholder: 'Type something...',
-        }))
-        return el
-      },
-      defaults: function () { return { title: 'Note', props: { text: '' } } },
-    })
-
-    EF.registerComponent('clock', {
-      factory: function (propsSig, ctx) {
-        var el = document.createElement('div')
-        el.style.cssText = 'padding:16px; font-size:24px; font-family:monospace'
-        var timer = setInterval(function () {
-          el.textContent = new Date().toLocaleTimeString()
-        }, 1000)
-        ctx.onCleanup(function () { clearInterval(timer) })
-        el.textContent = new Date().toLocaleTimeString()
-        return el
-      },
-    })
-
-    // 布局：左侧多标签笔记，右上单面板时钟，右下可折叠日志
-    var layout = EF.createDockLayout(document.getElementById('app'), {
-      tree: EF.split('horizontal', [
-        EF.dock({
-          toolbar: { direction: 'top', items: [{ component: 'tab-standard' }] },
-          panels: [
-            EF.panel({ component: 'note', title: 'Note 1', props: { text: 'Hello' } }),
-            EF.panel({ component: 'note', title: 'Note 2', props: { text: 'World' } }),
-          ],
-        }),
-        EF.split('vertical', [
-          EF.dock({
-            toolbar: { direction: 'top', items: [{ component: 'tab-compact' }] },
-            panels: [ EF.panel({ component: 'clock', title: 'Clock' }) ],
-          }),
-          EF.dock({
-            toolbar: { direction: 'top', items: [{ component: 'tab-collapsible' }] },
-            collapsed: true,
-            panels: [ EF.panel({ component: 'note', title: 'Scratch Pad' }) ],
-          }),
-        ], [0.7, 0.3]),
-      ], [0.5, 0.5]),
-    })
-  </script>
-</body>
-</html>
-```
-
----
-
-## 常见误区
-
-| 误区 | 正确做法 |
-|---|---|
-| 在 toolbar component 里用全局变量 + RAF 轮询 tree 状态 | 用 `ctx.dock.panels()` / `ctx.dock.activeId()` 等 signal + `EF.effect` 自动响应 |
-| `EF.activatePanel(tree, dockId, panelId)` | 签名是 `EF.activatePanel(tree, panelId)`,不需要传 dockId |
-| 自己写折叠/展开逻辑 | 用内置 `tab-collapsible` 或 `ctx.dock.setCollapsed(bool)` |
-| 自己写 tab 栏组件 | 先试内置的 `tab-standard` / `tab-compact` / `tab-collapsible`，不满足再自定义 |
-| 在 `factory(propsSig, ctx)` 里高频调 `ctx.panel.updateProps()` | `updateProps` 会触发 tree 重建,只在用户保存等低频时机调 |
-| `props` 里塞函数 / DOM / Map | props 必须 JSON 可序列化,传行为用 `ctx.bus` |
 
 ---
 
@@ -544,11 +366,18 @@ EF.theme.set('dark', someEditorRoot)
 ```bash
 git clone https://gitee.com/lazygoo/editor-frame.git
 cd editor-frame
-node tools/build.mjs --watch     # src/ 变动自动重新拼接到 dist/
-npx http-server -p 5570          # 浏览器访问 http://localhost:5570
+node tools/build.mjs --watch
+npx http-server -p 5570
 ```
 
-`demo/` 下的文件不进 bundle,改完 reload 即可。
+浏览器访问 `http://localhost:5570`。`src/` 改动后需要重新生成 `dist/ef.js` 和 `dist/ef.css`；`demo/` 下文件直接刷新即可。
+
+检查：
+
+```bash
+npm run check
+npm run check:dist
+```
 
 ---
 
@@ -560,6 +389,6 @@ npx http-server -p 5570          # 浏览器访问 http://localhost:5570
 
 ## 更多
 
-- [`AGENTS.md`](./AGENTS.md) —— 当前架构设计 / 数据模型 / API 权威说明
-- [`doc/editor_style.html`](https://gitee.com/lazygoo/editor-frame/blob/master/doc/editor_style.html) —— 视觉调色板参考
-- [`index.html`](https://gitee.com/lazygoo/editor-frame/blob/master/index.html) —— 组件浏览器 demo（50+ UI 组件现场演示）
+- [`AGENTS.md`](./AGENTS.md) — 架构设计、数据模型和项目约束
+- [`doc/editor_style.html`](https://gitee.com/lazygoo/editor-frame/blob/master/doc/editor_style.html) — 视觉调色板参考
+- [`index.html`](https://gitee.com/lazygoo/editor-frame/blob/master/index.html) — 组件浏览器 demo
