@@ -258,6 +258,9 @@
   }
 
   EF.registerComponent('settings', {
+    category: 'panel',
+    label: 'Settings',
+    icon: 'settings',
     defaults: function () { return { title: 'Settings', icon: 'settings', props: {} } },
     factory: factory,
     dispose: disposeTree,

@@ -82,6 +82,13 @@
       layout.markActivation(panelId)
     }
 
+    layout.movePanelToSplit = function (panelId, dstDockId, direction, side, ratio) {
+      if (layout.disposed) return
+      const r = EF.movePanelToSplit(treeSig.peek(), panelId, dstDockId, direction, side, ratio)
+      layout.setTree(r.tree)
+      layout.markActivation(panelId)
+    }
+
     // Preview → permanent promotion. Pure tree rewrite, no runtime impact.
     layout.promotePanel = function (panelId) {
       if (layout.disposed) return
@@ -102,6 +109,7 @@
       toolbarStartEl:        (toolbarParts && toolbarParts.toolbarStartEl) || null,
       toolbarEndEl:          (toolbarParts && toolbarParts.toolbarEndEl)   || null,
       toolbarObserver:       null,
+      toolbarKey:            toolbarKey(dockData.toolbar),
       panelRuntimes:         new Map(),
       staticToolbarRuntimes: [],
     }
@@ -109,8 +117,9 @@
     return runtime
   }
 
-  function updateDockRuntime(dockRuntime, dockData) {
+  function updateDockRuntime(dockRuntime, dockData, layout) {
     dockRuntime.dataSig.set(dockData)
+    syncDockToolbar(dockRuntime, dockData, layout)
     // Refresh runtime.data / dockRef for every existing PanelRuntime whose
     // PanelData is still in this dock. Panels that left this dock will be
     // re-homed by render.js when it visits their new dock.
@@ -140,10 +149,18 @@
   function disposeDockRuntime(dockRuntime) {
     dockRuntime.panelRuntimes.forEach(disposePanelRuntime)
     dockRuntime.panelRuntimes.clear()
+    disposeStaticToolbarRuntimes(dockRuntime)
+    disposeToolbarObserver(dockRuntime)
+  }
+
+  function disposeStaticToolbarRuntimes(dockRuntime) {
     for (let i = 0; i < dockRuntime.staticToolbarRuntimes.length; i++) {
       disposeComponentRuntime(dockRuntime.staticToolbarRuntimes[i])
     }
     dockRuntime.staticToolbarRuntimes.length = 0
+  }
+
+  function disposeToolbarObserver(dockRuntime) {
     if (dockRuntime.toolbarObserver) {
       dockRuntime.toolbarObserver.disconnect()
       dockRuntime.toolbarObserver = null
@@ -170,6 +187,53 @@
     const cl = dockRuntime.dockEl.classList
     cl.toggle('ef-dock-focused',   !!dockData.focused)
     cl.toggle('ef-dock-collapsed', !!dockData.collapsed)
+  }
+
+  function toolbarKey(toolbar) {
+    if (!toolbar) return ''
+    return JSON.stringify({
+      direction: toolbar.direction || 'top',
+      items: (toolbar.items || []).map(function (it) {
+        return {
+          component: it.component,
+          align: it.align || 'start',
+          props: it.props || {},
+        }
+      }),
+    })
+  }
+
+  function syncDockToolbar(dockRuntime, dockData, layout) {
+    const nextKey = toolbarKey(dockData.toolbar)
+    if (dockRuntime.toolbarKey === nextKey) return
+    disposeStaticToolbarRuntimes(dockRuntime)
+    disposeToolbarObserver(dockRuntime)
+    if (dockRuntime.toolbarEl) dockRuntime.toolbarEl.remove()
+    dockRuntime.toolbarEl = null
+    dockRuntime.toolbarStartEl = null
+    dockRuntime.toolbarEndEl = null
+
+    const cl = dockRuntime.dockEl.classList
+    cl.remove('ef-dock-with-toolbar', 'ef-dock-toolbar-top', 'ef-dock-toolbar-bottom', 'ef-dock-toolbar-left', 'ef-dock-toolbar-right', 'ef-dock-toolbar-empty')
+    if (dockData.toolbar) {
+      const dir = dockData.toolbar.direction || 'top'
+      const toolbarEl = document.createElement('div')
+      toolbarEl.className = 'ef-toolbar ef-toolbar-' + dir
+      const start = document.createElement('div')
+      start.className = 'ef-toolbar-start'
+      const end = document.createElement('div')
+      end.className = 'ef-toolbar-end'
+      toolbarEl.appendChild(start)
+      toolbarEl.appendChild(end)
+      dockRuntime.dockEl.insertBefore(toolbarEl, dockRuntime.contentEl)
+      dockRuntime.toolbarEl = toolbarEl
+      dockRuntime.toolbarStartEl = start
+      dockRuntime.toolbarEndEl = end
+      cl.add('ef-dock-with-toolbar', 'ef-dock-toolbar-' + dir)
+      initToolbarVisibility(dockRuntime)
+      createStaticToolbarRuntimes(dockRuntime, dockData, layout)
+    }
+    dockRuntime.toolbarKey = nextKey
   }
 
   // ── Static toolbar runtime construction ───────────────

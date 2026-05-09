@@ -700,7 +700,7 @@
         selected: EF.signal([]),
       }},
       mount: function (s) {
-        const wrap = ui.h('div', null, { style: 'height:180px;width:240px;border:1px solid var(--ef-border);border-radius:4px' })
+        const wrap = ui.h('div', 'demo-data-preview-box', { style: 'height:180px;width:240px' })
         wrap.appendChild(ui.list({
           items: s.items, selected: s.selected, rowHeight: 26,
           render: function (it) { return ui.h('div', null, { text: it, style: 'padding:4px 8px' }) },
@@ -732,7 +732,7 @@
         selected: EF.signal([]),
       }},
       mount: function (s) {
-        const wrap = ui.h('div', null, { style: 'height:200px;width:240px;border:1px solid var(--ef-border);border-radius:4px' })
+        const wrap = ui.h('div', 'demo-data-preview-box', { style: 'height:200px;width:240px' })
         wrap.appendChild(ui.tree({ items: s.items, selected: s.selected }))
         return wrap
       },

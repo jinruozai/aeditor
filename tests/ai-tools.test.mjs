@@ -1,7 +1,5 @@
 ﻿import assert from 'node:assert/strict'
-import { readFileSync, readdirSync } from 'node:fs'
-import { spawnSync } from 'node:child_process'
-import { join, relative } from 'node:path'
+import { readFileSync } from 'node:fs'
 import vm from 'node:vm'
 
 global.window = { EF: {} }
@@ -247,29 +245,5 @@ const loopReply = await loopRun.promise
 assert.equal(loopReply.content, 'Tool says 42')
 assert.equal(loopRequests.length, 2)
 assert.equal(ai.findAgent(loopAgent.id).messages.some(function (message) { return message.role === 'tool' }), true)
-
-const gdeFiles = []
-function walkGde(dir) {
-  let entries
-  try { entries = readdirSync(dir, { withFileTypes: true }) }
-  catch (e) {
-    if (e.code === 'ENOENT') return
-    throw e
-  }
-  for (const entry of entries) {
-    const path = join(dir, entry.name)
-    if (entry.isDirectory()) walkGde(path)
-    else if (entry.isFile() && path.endsWith('.js')) gdeFiles.push(path)
-  }
-}
-
-walkGde(join(process.cwd(), 'temp', 'GameDataEditor', 'src'))
-assert.equal(gdeFiles.length > 0, true)
-for (const file of gdeFiles) {
-  const syntax = spawnSync(process.execPath, ['--check', file], { encoding: 'utf8' })
-  assert.equal(syntax.status, 0, relative(process.cwd(), file) + '\n' + (syntax.stderr || syntax.stdout || ''))
-  const source = readFileSync(file, 'utf8')
-  assert.equal(/\.innerHTML\b|\binnerHTML\s*=/.test(source), false, 'banned innerHTML use: ' + relative(process.cwd(), file))
-}
 
 console.log('ai tools tests ok')

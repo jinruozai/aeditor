@@ -636,6 +636,9 @@
   }
 
   EF.registerComponent('ai-messages', {
+    category: 'panel',
+    label: 'AI Messages',
+    icon: 'message-circle',
     defaults: function () { return { title: 'AI Messages', icon: 'message-circle', props: {} } },
     factory: factory,
     dispose: disposeTree,

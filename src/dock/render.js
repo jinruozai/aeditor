@@ -95,7 +95,7 @@
   function getOrCreateDockEl(dockData, layout) {
     let dr = layout.dockRuntimes.get(dockData.id)
     if (dr) {
-      RT.updateDockRuntime(dr, dockData)
+      RT.updateDockRuntime(dr, dockData, layout)
       return dr.dockEl
     }
 

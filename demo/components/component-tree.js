@@ -16,6 +16,9 @@
   const ui = EF.ui
 
   EF.registerComponent('component-tree', {
+    category: 'panel',
+    label: 'Components',
+    icon: 'list',
     defaults: function () { return { title: 'Components', icon: '☰' } },
     factory: function (propsSig, ctx) { const props = propsSig.peek() || {};
       const root = ui.h('div', 'demo-sidepanel')

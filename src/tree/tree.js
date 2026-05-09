@@ -319,6 +319,31 @@
     return replaceAt(tree, found.path, newDock)
   }
 
+  function removePanelForMove(tree, panelId) {
+    const found = findPanel(tree, panelId)
+    if (!found) return null
+    const dockNode = getAt(tree, found.path)
+    const panelData = dockNode.panels.find(function (p) { return p.id === panelId })
+    const newPanels = dockNode.panels.filter(function (p) { return p.id !== panelId })
+    if (newPanels.length > 0 || found.path.length === 0) {
+      let newActive = dockNode.activeId
+      if (newActive === panelId) newActive = newPanels.length ? newPanels[newPanels.length - 1].id : null
+      return {
+        tree: replaceAt(tree, found.path, Object.assign({}, dockNode, {
+          panels: newPanels,
+          activeId: newActive,
+        })),
+        panel: panelData,
+        srcDockId: found.dockId,
+      }
+    }
+    return {
+      tree: removeAt(tree, found.path),
+      panel: panelData,
+      srcDockId: found.dockId,
+    }
+  }
+
   function updatePanel(tree, panelId, patch) {
     const found = findPanel(tree, panelId)
     if (!found) return tree
@@ -374,11 +399,14 @@
       return replaceAt(tree, found.path, newDock)
     }
 
-    // Cross-dock move: remove from src first, then add to dst.
-    // removePanel preserves topology (only mutates the src dock's panels),
-    // so dstFound.path is still valid in t1.
-    const t1 = removePanel(tree, panelId)
-    const dstDock = getAt(t1, dstFound.path)
+    // Cross-dock move: when the source dock becomes empty, remove that dock
+    // from the split tree. Re-find destination afterwards because paths may
+    // have shifted or a sibling split may have collapsed.
+    const removed = removePanelForMove(tree, panelId)
+    const t1 = removed.tree
+    const nextDst = findDock(t1, dstDockId)
+    if (!nextDst) return tree
+    const dstDock = nextDst.node
     const newPanels = dstDock.panels.slice()
     const insertAt = dstIndex == null ? newPanels.length : dstIndex
     newPanels.splice(insertAt, 0, panelData)
@@ -386,7 +414,36 @@
       panels:   newPanels,
       activeId: panelId, // moved panel becomes active in destination
     })
-    return replaceAt(t1, dstFound.path, newDock)
+    return replaceAt(t1, nextDst.path, newDock)
+  }
+
+  // movePanelToSplit — remove an existing panel, split a target dock, and
+  // place that same PanelData into the newly-created dock. Used by tab drag
+  // five-zone docking. Unlike splitDock's "new editor of same type" seed,
+  // this preserves the moved panel id/data so runtime can re-home its DOM.
+  function movePanelToSplit(tree, panelId, dstDockId, direction, side, ratio) {
+    const found = findPanel(tree, panelId)
+    if (!found) return { tree: tree, newDockId: null }
+    const dstFound = findDock(tree, dstDockId)
+    if (!dstFound) throw new Error('movePanelToSplit: dst dock not found: ' + dstDockId)
+
+    const srcDock = getAt(tree, found.path)
+    const panelData = srcDock.panels.find(function (p) { return p.id === panelId })
+    if (!checkAccept(dstFound.node, panelData.component))
+      throw new Error('movePanelToSplit: dst dock does not accept component "' + panelData.component + '"')
+
+    const removed = removePanelForMove(tree, panelId)
+    const t1 = removed.tree
+    const nextDst = findDock(t1, dstDockId)
+    if (!nextDst) return { tree: tree, newDockId: null }
+    const dstDock = nextDst.node
+    const shell = {}
+    if (dstDock.toolbar) shell.toolbar = dstDock.toolbar
+    if (dstDock.accept != null) shell.accept = dstDock.accept
+    return splitDock(t1, dstDockId, direction, side, ratio, {
+      dock: shell,
+      seedPanels: [panelData],
+    })
   }
 
   function reorderPanel(tree, panelId, newIndex) {
@@ -414,7 +471,7 @@
     ratio = ratio == null ? 0.5 : ratio
     ratio = Math.max(0.05, Math.min(0.95, ratio))
 
-    const newDock = dock({})
+    const newDock = dock((opts && opts.dock) || {})
     if (opts && opts.seedPanels && opts.seedPanels.length > 0) {
       newDock.panels   = opts.seedPanels.map(normalizePanelInput)
       newDock.activeId = newDock.panels[0].id
@@ -548,6 +605,7 @@
   EF.activatePanel = activatePanel
   EF.promotePanel  = promotePanel
   EF.movePanel     = movePanel
+  EF.movePanelToSplit = movePanelToSplit
   EF.reorderPanel  = reorderPanel
   EF.splitDock     = splitDock
   EF.mergeDocks    = mergeDocks

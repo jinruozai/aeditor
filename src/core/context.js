@@ -87,6 +87,10 @@
       id:          scopedDerived(runtime, function () { return dockIdSig() }),
       panels:      scopedDerived(runtime, function () { const d = lookupDock(); return d ? d.panels   : [] }),
       activeId:    scopedDerived(runtime, function () { const d = lookupDock(); return d ? d.activeId : null }),
+      toolbarDirection: scopedDerived(runtime, function () {
+        const d = lookupDock()
+        return d && d.toolbar ? (d.toolbar.direction || 'top') : null
+      }),
       collapsed:   scopedDerived(runtime, function () { const d = lookupDock(); return d ? !!d.collapsed : false }),
       focused:     scopedDerived(runtime, function () { const d = lookupDock(); return d ? !!d.focused   : false }),
       // Pure topology check — false when the dock has no toolbar, is root,

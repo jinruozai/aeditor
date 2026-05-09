@@ -125,6 +125,9 @@
 
   // ── component ────────────────────────────────────────────────────────
   EF.registerComponent('theme-config', {
+    category: 'panel',
+    label: 'Theme',
+    icon: 'palette',
     defaults: function () { return { title: 'Theme', icon: '🎨' } },
     factory: function (propsSig, ctx) { const props = propsSig.peek() || {};
       const root = ui.h('div', 'demo-theme')
@@ -238,9 +241,7 @@
         },
       })
 
-      const spacer = ui.h('div', 'demo-theme-spacer')
       head.appendChild(tabBar)
-      head.appendChild(spacer)
       head.appendChild(modeSel)
       head.appendChild(resetBtn)
       head.appendChild(exportBtn)

@@ -58,6 +58,7 @@ const JS_ORDER = [
 
   // Layer 3 �?dock runtime
   'dock/runtime.js',
+  'dock/menu.js',
   'dock/render.js',
   'dock/interactions.js',
   'dock/panel-drag.js',

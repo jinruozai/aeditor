@@ -453,6 +453,9 @@
   }
 
   EF.registerComponent('ai-chatinput', {
+    category: 'panel',
+    label: 'AI Chat',
+    icon: 'message-circle',
     defaults: function () { return { title: 'AI Send', icon: 'message-circle', props: {} } },
     factory: factory,
     dispose: disposeTree,

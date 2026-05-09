@@ -1,5 +1,4 @@
-// Panel drag (Phase 5 + Phase 6 handoff) — tab tear-out, cross-dock move,
-// same-dock reorder, and pop-out on outside-drop.
+// Panel drag — tab tear-out, tab reorder, five-zone dock drop, and pop-out.
 //
 // Tab widgets call `EF._dock.beginPanelDrag` on pointerdown. This module
 // tracks the threshold, paints a ghost, hit-tests target docks AND target
@@ -8,8 +7,10 @@
 //   • drop on a tab bar       → layout.movePanel(panelId, dstDockId, idx)
 //                               (reorder within srcDock, or cross-dock with
 //                               an explicit insertion slot)
-//   • drop on a dock body     → layout.movePanel(panelId, dstDockId)
+//   • drop on dock center     → layout.movePanel(panelId, dstDockId)
 //                               (append, no index)
+//   • drop on dock edge       → layout.movePanelToSplit(panelId, dstDockId, ...)
+//                               (new dock on that side)
 //   • drop outside any dock   → EF._dock.popOutPanel (§ 4.14, if loaded)
 //
 // Split from dock/interactions.js — that file now owns only the splitter
@@ -33,10 +34,10 @@
     const startX = e.clientX, startY = e.clientY
     let dragging = false
     let ghost = null
-    let lastDockEl = null         // highlighted dock (for drop-target/reject class)
-    let lastIndicator = null      // drop-indicator element inside a tab bar
-    let dropDockId = null         // resolved drop target dock id (null = reject / outside)
-    let dropIndex  = null         // resolved insertion index (null = append)
+    let lastDockEl = null
+    let lastIndicator = null
+    let lastOverlay = null
+    let drop = null
     let done = false
 
     function clearHighlights() {
@@ -47,6 +48,10 @@
       if (lastIndicator) {
         lastIndicator.remove()
         lastIndicator = null
+      }
+      if (lastOverlay) {
+        lastOverlay.remove()
+        lastOverlay = null
       }
     }
 
@@ -62,8 +67,7 @@
       ghost.style.transform = 'translate(' + (ev.clientX + 8) + 'px,' + (ev.clientY + 8) + 'px)'
 
       clearHighlights()
-      dropDockId = null
-      dropIndex  = null
+      drop = null
 
       const el = document.elementFromPoint(ev.clientX, ev.clientY)
       if (!el || !el.closest) return
@@ -95,8 +99,7 @@
       const tabsEl = el.closest('.ef-dock-tabs')
       if (tabsEl && dockEl.contains(tabsEl)) {
         const idx = computeTabInsertionIndex(tabsEl, ev.clientX, ev.clientY, panelId)
-        dropDockId = dstId
-        dropIndex  = idx
+        drop = { kind: 'move', dockId: dstId, index: idx }
         lastIndicator = makeDropIndicator(tabsEl, idx)
         if (dstId !== srcDockId) {
           dockEl.classList.add('ef-drop-target')
@@ -105,13 +108,27 @@
         return
       }
 
-      // On dock body (not tabs) — only cross-dock moves get the big highlight.
-      if (dstId !== srcDockId) {
+      const zone = classifyDockZone(dockEl, ev.clientX, ev.clientY)
+      if (zone.kind === 'center') {
+        if (dstId === srcDockId) return
         dockEl.classList.add('ef-drop-target')
         lastDockEl = dockEl
-        dropDockId = dstId
-        dropIndex  = null   // append
+        drop = { kind: 'move', dockId: dstId, index: null }
+        lastOverlay = makeDockDropOverlay(dockEl, zone)
+        return
       }
+
+      dockEl.classList.add('ef-drop-target')
+      lastDockEl = dockEl
+      drop = {
+        kind: 'split',
+        dockId: dstId,
+        zone: zone.name,
+        direction: zone.direction,
+        side: zone.side,
+        ratio: zone.ratio,
+      }
+      lastOverlay = makeDockDropOverlay(dockEl, zone)
     }
 
     function cleanup() {
@@ -129,26 +146,40 @@
     }
 
     function onUp(ev) {
-      const resolvedDock  = dropDockId
-      const resolvedIndex = dropIndex
+      const resolvedDrop = drop
       const wasDragging   = dragging
       if (!cleanup()) return
       if (!wasDragging) return
 
-      if (resolvedDock) {
+      if (resolvedDrop && resolvedDrop.kind === 'move') {
         // Skip same-dock no-op reorders. computeTabInsertionIndex already
         // filters out the dragging tab, so its returned index is in the
         // post-removal list. A reorder is a no-op iff that slot coincides
         // with the panel's original position in the post-removal list,
         // which equals its original `oldIdx` (everything at/after oldIdx
         // shifts down by 1 → insert at oldIdx puts it right back).
-        if (resolvedDock === srcDockId && resolvedIndex != null) {
+        if (resolvedDrop.dockId === srcDockId && resolvedDrop.index != null) {
           const srcDock = EF.findDock(treeSig.peek(), srcDockId).node
           const oldIdx = srcDock.panels.findIndex(function (p) { return p.id === panelId })
-          if (resolvedIndex === oldIdx) return
+          if (resolvedDrop.index === oldIdx) return
         }
         try {
-          layout.movePanel(panelId, resolvedDock, resolvedIndex)
+          layout.movePanel(panelId, resolvedDrop.dockId, resolvedDrop.index)
+        } catch (err) {
+          EF.reportError({ scope: 'global' }, err)
+        }
+        return
+      }
+
+      if (resolvedDrop && resolvedDrop.kind === 'split') {
+        try {
+          layout.movePanelToSplit(
+            panelId,
+            resolvedDrop.dockId,
+            resolvedDrop.direction,
+            resolvedDrop.side,
+            resolvedDrop.ratio
+          )
         } catch (err) {
           EF.reportError({ scope: 'global' }, err)
         }
@@ -192,6 +223,63 @@
       idx++
     }
     return idx
+  }
+
+  function classifyDockZone(dockEl, clientX, clientY) {
+    const r = dockEl.getBoundingClientRect()
+    const x = clamp((clientX - r.left) / Math.max(1, r.width), 0, 1)
+    const y = clamp((clientY - r.top) / Math.max(1, r.height), 0, 1)
+    const edge = 0.24
+    const ratio = 0.28
+    if (x > edge && x < 1 - edge && y > edge && y < 1 - edge) {
+      return { kind: 'center', name: 'center' }
+    }
+    const d = [
+      { name: 'left',   value: x,     direction: 'horizontal', side: 'before' },
+      { name: 'right',  value: 1 - x, direction: 'horizontal', side: 'after' },
+      { name: 'top',    value: y,     direction: 'vertical',   side: 'before' },
+      { name: 'bottom', value: 1 - y, direction: 'vertical',   side: 'after' },
+    ]
+    let best = d[0]
+    for (let i = 1; i < d.length; i++) if (d[i].value < best.value) best = d[i]
+    return Object.assign({ kind: 'split', ratio: ratio }, best)
+  }
+
+  function clamp(v, min, max) { return Math.max(min, Math.min(max, v)) }
+
+  function makeDockDropOverlay(dockEl, zone) {
+    const r = dockEl.getBoundingClientRect()
+    const overlay = document.createElement('div')
+    overlay.className = 'ef-panel-drop-overlay ef-panel-drop-' + zone.name
+    overlay.style.left = r.left + 'px'
+    overlay.style.top = r.top + 'px'
+    overlay.style.width = r.width + 'px'
+    overlay.style.height = r.height + 'px'
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
+    svg.setAttribute('class', 'ef-panel-drop-map')
+    svg.setAttribute('viewBox', '0 0 100 100')
+    svg.setAttribute('preserveAspectRatio', 'none')
+    appendDropShape(svg, 'top',    '0,0 100,0 76,24 24,24', zone.name)
+    appendDropShape(svg, 'left',   '0,0 24,24 24,76 0,100', zone.name)
+    appendDropShape(svg, 'right',  '100,0 100,100 76,76 76,24', zone.name)
+    appendDropShape(svg, 'bottom', '0,100 100,100 76,76 24,76', zone.name)
+    const center = document.createElementNS('http://www.w3.org/2000/svg', 'rect')
+    center.setAttribute('class', 'ef-panel-drop-shape ef-panel-drop-shape-center' + (zone.name === 'center' ? ' ef-panel-drop-active' : ''))
+    center.setAttribute('x', '24')
+    center.setAttribute('y', '24')
+    center.setAttribute('width', '52')
+    center.setAttribute('height', '52')
+    svg.appendChild(center)
+    overlay.appendChild(svg)
+    document.body.appendChild(overlay)
+    return overlay
+  }
+
+  function appendDropShape(svg, name, points, activeName) {
+    const shape = document.createElementNS('http://www.w3.org/2000/svg', 'polygon')
+    shape.setAttribute('class', 'ef-panel-drop-shape ef-panel-drop-shape-' + name + (activeName === name ? ' ef-panel-drop-active' : ''))
+    shape.setAttribute('points', points)
+    svg.appendChild(shape)
   }
 
   // Build a short accent bar between two tabs (or before/after the whole

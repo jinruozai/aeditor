@@ -82,7 +82,6 @@
   overflow-x: auto;
   scrollbar-width: thin;
 }
-.demo-theme-spacer { display: none; } /* legacy; gap handles spacing */
 .demo-theme-head .ef-ui-select { flex: 0 0 96px; width: 96px; min-width: 0; }
 .demo-theme-head .ef-ui-btn    { flex: 0 0 auto; }
 /* Grid the pane so each card is compact, not row-per-row. */
@@ -162,6 +161,18 @@
   min-width: 0;
 }
 .demo-card-stage > * { min-width: 0; max-width: 100%; }
+.demo-data-preview-box {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--ef-border);
+  border-radius: var(--ef-r-1);
+}
+.demo-data-preview-box > .ef-ui-list,
+.demo-data-preview-box > .ef-ui-tree {
+  flex: 1 1 auto;
+  height: auto;
+}
 @keyframes demo-showcase-card-pulse-kf {
   0%   { box-shadow: 0 0 0 0   color-mix(in srgb, var(--ef-accent) 70%, transparent); }
   70%  { box-shadow: 0 0 0 14px color-mix(in srgb, var(--ef-accent) 0%,  transparent); }
@@ -305,4 +316,16 @@
 }
 .demo-prop-host-body .ef-ui-prop-label {
   text-align: left;
+}
+
+/* ── demo dock actions ─────────────────────────────────────────── */
+.demo-dock-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+.ef-toolbar-left .demo-dock-actions,
+.ef-toolbar-right .demo-dock-actions {
+  flex-direction: column;
+  align-items: stretch;
 }

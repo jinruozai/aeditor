@@ -36,6 +36,34 @@ const movedId = tree.panels[0].id
 const movedTree = EF.movePanel(split, movedId, sideId)
 assert.equal(EF.findPanel(movedTree, movedId).dockId, sideId)
 
+const splitTarget = EF.dock({
+  name: 'split-target',
+  toolbar: { direction: 'left', items: [] },
+  accept: ['editor'],
+})
+const splitSource = EF.dock({
+  name: 'split-source',
+  panels: [
+    EF.panel({ component: 'editor', title: 'Split A' }),
+    EF.panel({ component: 'editor', title: 'Split B' }),
+  ],
+})
+const splitTree = EF.split('horizontal', [splitSource, splitTarget], [0.5, 0.5])
+const splitPanelId = splitSource.panels[0].id
+const splitMoved = EF.movePanelToSplit(splitTree, splitPanelId, splitTarget.id, 'vertical', 'before', 0.25)
+const splitMovedPanel = EF.findPanel(splitMoved.tree, splitPanelId)
+assert.equal(splitMovedPanel.dockId, splitMoved.newDockId)
+assert.equal(EF.findDock(splitMoved.tree, splitMoved.newDockId).node.toolbar.direction, 'left')
+assert.equal(EF.findDock(splitMoved.tree, splitSource.id).node.panels.length, 1)
+
+const singleSource = EF.dock({ name: 'single-source', panels: [EF.panel({ component: 'editor', title: 'Only' })] })
+const singleTarget = EF.dock({ name: 'single-target' })
+const singleTree = EF.split('horizontal', [singleSource, singleTarget], [0.5, 0.5])
+const singlePanelId = singleSource.panels[0].id
+const singleMoved = EF.movePanelToSplit(singleTree, singlePanelId, singleTarget.id, 'horizontal', 'after', 0.3)
+assert.equal(EF.findDock(singleMoved.tree, singleSource.id), null)
+assert.equal(EF.findPanel(singleMoved.tree, singlePanelId).dockId, singleMoved.newDockId)
+
 const merge = EF.mergeDocks(movedTree, sideId, dockId)
 assert.ok(Array.isArray(merge.discardedPanels))
 assert.equal(EF.findDock(merge.tree, dockId), null)

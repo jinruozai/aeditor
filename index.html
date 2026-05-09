@@ -42,14 +42,14 @@
     // exposes two icon buttons that drive ctx.dock.* APIs.
     EF.registerComponent('dock-actions', {
       factory: function (propsSig, ctx) {
-        const wrap = ui.h('div', null, { style: 'display:inline-flex;align-items:center;gap:2px' })
+        const wrap = ui.h('div', 'demo-dock-actions')
         wrap.appendChild(ui.iconButton({
-          icon: '⛶',
+          icon: 'maximize',
           title: 'Toggle focus mode',
           onClick: function () { ctx.dock.toggleFocus() },
         }))
         wrap.appendChild(ui.iconButton({
-          icon: '⌃',
+          icon: 'chevron-up',
           title: 'Toggle collapsed',
           onClick: function () { ctx.dock.setCollapsed(!ctx.dock.collapsed()) },
         }))

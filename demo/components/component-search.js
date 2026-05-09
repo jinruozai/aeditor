@@ -7,6 +7,9 @@
   const ui = EF.ui
 
   EF.registerComponent('component-search', {
+    category: 'panel',
+    label: 'Search',
+    icon: 'search',
     defaults: function () { return { title: 'Search', icon: '⌕' } },
     factory: function (propsSig, ctx) { const props = propsSig.peek() || {};
       const root = ui.h('div', 'demo-sidepanel demo-search')

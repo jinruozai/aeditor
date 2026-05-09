@@ -82,6 +82,9 @@
   for (let i = 0; i < catDefs.length; i++) {
     const c = catDefs[i]
     EF.registerComponent('showcase-' + c.id, {
+      category: 'panel',
+      label: c.label,
+      icon: c.icon,
       defaults: (function (cc) {
         return function () { return { title: cc.label, icon: cc.icon } }
       })(c),

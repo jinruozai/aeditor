@@ -91,6 +91,12 @@
 
   function attachCornerDrag(handle, dockId, corner, layout) {
     const treeSig = layout.treeSig
+    handle.addEventListener('contextmenu', function (e) {
+      e.preventDefault()
+      e.stopPropagation()
+      EF._dock.openDockMenu({ x: e.clientX, y: e.clientY }, dockId, layout)
+    })
+
     handle.addEventListener('pointerdown', function (e) {
       if (e.button !== 0) return
       e.preventDefault()

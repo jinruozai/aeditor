@@ -57,6 +57,9 @@
   }
 
   EF.registerComponent('property-panel', {
+    category: 'panel',
+    label: 'Properties',
+    icon: 'settings',
     defaults: function () { return { title: 'Properties', icon: '⚙' } },
     factory: function (propsSig, ctx) { const props = propsSig.peek() || {};
       const root = ui.h('div', 'demo-prop')

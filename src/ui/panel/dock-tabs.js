@@ -10,20 +10,23 @@
 //   tab-standard    closeable + addable                    (editor)
 //   tab-compact     no close, hides when < 2 panels        (properties)
 //   tab-collapsible closeable + click-active collapses     (utility)
-//   tab-sidebar     icon-only vertical + collapsible       (left/right rail)
+//   tab-sidebar     icon-only + collapsible                (rail style)
 //
 // A preset's `props` can override any of the hard-coded defaults on a
 // per-toolbar-item basis — that's how a caller could, e.g., use the
-// sidebar preset but force text mode with `props: { iconOnly: false }`.
+// sidebar preset but force text mode with `props: { iconOnly: false }`,
+// or force a direction with `props: { direction: 'vertical' }`.
 ;(function (EF) {
   'use strict'
 
   function buildDockTabs(p, ctx) {
+    const dockDir = ctx.dock.toolbarDirection ? ctx.dock.toolbarDirection.peek() : null
+    const autoDir = (dockDir === 'left' || dockDir === 'right') ? 'vertical' : 'horizontal'
     const el = EF.ui.tab({
       items:        ctx.dock.panels,     // derived signal<PanelData[]>
       active:       ctx.dock.activeId,   // derived signal<string|null>
       variant:      p.variant  || 'bar',
-      direction:    p.direction,
+      direction:    p.direction || autoDir,
       iconOnly:     p.iconOnly,
       closable:     p.closable != null ? p.closable : true,
       addable:      !!p.addable,
@@ -86,7 +89,6 @@
     factory:  preset({
       variant:     'sidebar',
       iconOnly:    true,
-      direction:   'vertical',
       closable:    false,
       collapsible: true,
     }),

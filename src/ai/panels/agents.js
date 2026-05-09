@@ -264,6 +264,9 @@
   }
 
   EF.registerComponent('ai-agents-list', {
+    category: 'panel',
+    label: 'AI Agents',
+    icon: 'user',
     defaults: function () { return { title: 'AI Agents', icon: 'user', props: {} } },
     factory: factory,
     dispose: disposeTree,
