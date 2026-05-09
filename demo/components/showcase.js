@@ -45,6 +45,9 @@
         if (entry.stageSize === 'lg') card.classList.add('demo-showcase-card-wide')
         card.setAttribute('data-demo-id', entry.id)
         if (entry.description) card.title = entry.description
+        if (EF.ai && EF.ai.attach && Demo.aiTargets) {
+          EF.ai.attach(card, function () { return Demo.aiTargets.component(entry) }, { contextMenu: true })
+        }
 
         const stage = ui.h('div', 'demo-card-stage')
         const mounted = Demo.mount(entry.id)

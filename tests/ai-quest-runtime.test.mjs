@@ -7,6 +7,7 @@ global.window = { EF: {} }
 for (const file of [
   'src/core/signal.js',
   'src/core/log.js',
+  'src/ai/name-generator.js',
   'src/ai/store.js',
   'src/ai/connection.js',
   'src/ai/adapter.js',
@@ -146,7 +147,7 @@ ai.registerTransport('approval-flow', {
   },
 })
 ai.registerConnection('approval-flow', { auth: { type: 'none' }, transport: { type: 'approval-flow' }, configDefaults: {} })
-const approvalAgent = ai.createAgent({ name: 'Approval', parentAgentId: parent.id, connection: 'approval-flow', toolRefs: ['approval-edit'] })
+const approvalAgent = ai.createAgent({ name: 'Approval', parentAgentId: parent.id, connection: 'approval-flow', permissionMode: 'auto', toolRefs: ['approval-edit'] })
 const approvalRun = ai.message.send(approvalAgent.id, { content: 'needs approval' })
 await approvalRun.promise
 assert.equal(ai.findAgent(approvalAgent.id).status, 'waiting_approval')
@@ -181,7 +182,7 @@ ai.registerTransport('approval-run-flow', {
   },
 })
 ai.registerConnection('approval-run-flow', { auth: { type: 'none' }, transport: { type: 'approval-run-flow' }, configDefaults: {} })
-const approvalRunAgent = ai.createAgent({ name: 'Approval Run', parentAgentId: parent.id, connection: 'approval-run-flow', toolRefs: ['approval-run-edit'] })
+const approvalRunAgent = ai.createAgent({ name: 'Approval Run', parentAgentId: parent.id, connection: 'approval-run-flow', permissionMode: 'auto', toolRefs: ['approval-run-edit'] })
 const approvalRunFlow = ai.message.send(approvalRunAgent.id, { content: 'needs approval after run' })
 await approvalRunFlow.promise
 assert.equal(ai.findAgent(approvalRunAgent.id).status, 'waiting_approval')
@@ -196,6 +197,38 @@ const resumedRunApproval = ai.resumeAgent(approvalRunAgent.id)
 await resumedRunApproval.promise
 assert.equal(ai.findAgent(approvalRunAgent.id).messages.some(function (message) {
   return message.content === 'continued after run approval'
+}), true)
+
+let fullAccessRequests = 0
+ai.registerTool('full-access-edit', {
+  preview: function (args) { return { before: args.before, after: args.after } },
+  apply: function (preview) { return { applied: true, preview: preview } },
+})
+ai.registerTransport('full-access-flow', {
+  send: function () {
+    fullAccessRequests += 1
+    if (fullAccessRequests === 1) {
+      return {
+        role: 'assistant',
+        content: '',
+        toolCalls: [{ toolId: 'full-access-edit', args: { before: 'dark', after: 'dracula' } }],
+      }
+    }
+    return { role: 'assistant', content: 'full access continued' }
+  },
+})
+ai.registerConnection('full-access-flow', { auth: { type: 'none' }, transport: { type: 'full-access-flow' }, configDefaults: {} })
+const fullAccessAgent = ai.createAgent({ name: 'Full Access', parentAgentId: parent.id, connection: 'full-access-flow', permissionMode: 'full', toolRefs: ['full-access-edit'] })
+const fullAccessRun = ai.message.send(fullAccessAgent.id, { content: 'apply without asking' })
+await fullAccessRun.promise
+assert.equal(ai.findAgent(fullAccessAgent.id).status, 'idle')
+assert.equal(fullAccessRequests, 2)
+const fullAccessMessage = ai.findAgent(fullAccessAgent.id).messages.find(function (message) {
+  return message.toolCalls && message.toolCalls.length
+})
+assert.equal(fullAccessMessage.toolCalls[0].status, 'applied')
+assert.equal(ai.findAgent(fullAccessAgent.id).messages.some(function (message) {
+  return message.content === 'full access continued'
 }), true)
 
 let releaseInterrupt

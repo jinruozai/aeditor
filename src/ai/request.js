@@ -30,6 +30,10 @@
     const all = ai.resources ? ai.resources.peek() : []
     for (let i = 0; i < refs.length; i++) {
       const ref = resolveResourceRef(refs[i], all)
+      if (ai.readReference) {
+        out.push(ai.readReference(ref, {}, baseCtx))
+        continue
+      }
       const resolver = ref && ai.getResourceResolver && ai.getResourceResolver(ref.resolver || ref.kind)
       const canResolve = !resolver || !resolver.canResolve || resolver.canResolve(ref, baseCtx)
       if (resolver && resolver.resolve && canResolve) out.push(resolver.resolve(ref, baseCtx))
@@ -50,6 +54,8 @@
         kind: item.kind || 'resource',
         summary: item.summary || '',
         meta: item.meta || {},
+        schema: ai.referenceSchema ? ai.referenceSchema(item) : (item.schema || null),
+        capabilities: ai.referenceCapabilities ? ai.referenceCapabilities(item) : (item.capabilities || []),
       }
     })
   }

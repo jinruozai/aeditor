@@ -81,11 +81,12 @@
 
   function createAgentPreview(args, ctx) {
     if (args.parentAgentId) requireManageOrSelf(ctx, args.parentAgentId)
+    const existingNames = ai.agents.peek().map(function (agent) { return agent.name })
     return {
       action: 'create',
       kind: 'agent',
       agent: {
-        name: args.name || 'Agent',
+        name: args.name || ai.generateAgentName(existingNames),
         parentAgentId: args.parentAgentId || null,
         connection: args.connection || (ctx.agent && ctx.agent.connection) || ai.defaultConnection || 'mock',
         model: args.model || (ctx.agent && ctx.agent.model) || '',

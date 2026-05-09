@@ -41,6 +41,7 @@ const JS_ORDER = [
   'core/context.js',
 
   // Layer 2.5 - AI session/agent runtime (no UI dependency)
+  'ai/name-generator.js',
   'ai/store.js',
   'ai/connection.js',
   'ai/adapter.js',
@@ -49,6 +50,7 @@ const JS_ORDER = [
   'ai/provider-transports.js',
   'ai/provider-connections.js',
   'ai/context.js',
+  'ai/reference.js',
   'ai/change-set.js',
   'ai/target.js',
   'ai/rich-prompt.js',

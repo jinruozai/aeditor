@@ -164,6 +164,22 @@
         })
         ctx.onCleanup(stop)
       }
+      function bindThemeTarget(row, name) {
+        if (EF.ai && EF.ai.attach && Demo.aiTargets) {
+          EF.ai.attach(row.querySelector('.ef-ui-prop-label'), function () { return Demo.aiTargets.themeToken(name) }, { contextMenu: true })
+        }
+      }
+      function registerThemeToken(name, label, category, sig, format, parse, extra) {
+        if (!Demo.aiTargets) return
+        Demo.aiTargets.registerThemeToken(Object.assign({
+          name: name,
+          label: label,
+          category: category,
+          signal: sig,
+          format: format,
+          parse: parse,
+        }, extra || {}))
+      }
       function refreshAll() {
         // Remove every tracked inline override first so getComputedStyle
         // resolves from the cascade (reflecting the current theme mode).
@@ -199,6 +215,7 @@
       tabBar.classList.add('demo-theme-tabbar')
 
       const modeSig = EF.signal(localStorage.getItem(THEME_KEY) || 'dark')
+      if (Demo.aiTargets) Demo.aiTargets.registerThemeMode(modeSig)
       const modeSel = ui.select({
         value: modeSig,
         options: [
@@ -258,7 +275,10 @@
           const sig = EF.signal(readToken(name) || '#000000')
           track(sig, name, null, null)
           bindWriter(sig, name, null)
-          wrap.appendChild(ui.propRow({ label: label, control: ui.colorInput({ value: sig }) }))
+          registerThemeToken(name, label, 'palette', sig, null, null, { unit: 'color' })
+          const row = ui.propRow({ label: label, control: ui.colorInput({ value: sig }) })
+          bindThemeTarget(row, name)
+          wrap.appendChild(row)
         }
         return wrap
       }
@@ -270,7 +290,10 @@
           const sig = EF.signal(pxNum(readToken(name)))
           track(sig, name, pxNum, pxFormat)
           bindWriter(sig, name, pxFormat)
-          wrap.appendChild(ui.propRow({ label: label, control: ui.numberInput({ value: sig, min: min, max: max, step: 1, suffix: 'px' }) }))
+          registerThemeToken(name, label, 'px', sig, pxFormat, pxNum, { unit: 'px', min: min, max: max })
+          const prop = ui.propRow({ label: label, control: ui.numberInput({ value: sig, min: min, max: max, step: 1, suffix: 'px' }) })
+          bindThemeTarget(prop, name)
+          wrap.appendChild(prop)
         }
         return wrap
       }
@@ -282,7 +305,10 @@
           const sig = EF.signal(pxNum(readToken(name)))
           track(sig, name, pxNum, msFormat)
           bindWriter(sig, name, msFormat)
-          wrap.appendChild(ui.propRow({ label: label, control: ui.numberInput({ value: sig, min: min, max: max, step: 10, suffix: 'ms' }) }))
+          registerThemeToken(name, label, 'motion', sig, msFormat, pxNum, { unit: 'ms', min: min, max: max })
+          const prop = ui.propRow({ label: label, control: ui.numberInput({ value: sig, min: min, max: max, step: 10, suffix: 'ms' }) })
+          bindThemeTarget(prop, name)
+          wrap.appendChild(prop)
         }
         return wrap
       }
@@ -292,12 +318,18 @@
         const uiFontSig = EF.signal(readToken('--ef-font-ui'))
         track(uiFontSig, '--ef-font-ui', null, null)
         bindWriter(uiFontSig, '--ef-font-ui', null)
-        wrap.appendChild(ui.propRow({ label: 'UI font', control: ui.input({ value: uiFontSig }) }))
+        registerThemeToken('--ef-font-ui', 'UI font', 'typography', uiFontSig, null, null, { unit: 'font' })
+        const uiFontRow = ui.propRow({ label: 'UI font', control: ui.input({ value: uiFontSig }) })
+        bindThemeTarget(uiFontRow, '--ef-font-ui')
+        wrap.appendChild(uiFontRow)
 
         const monoFontSig = EF.signal(readToken('--ef-font-mono'))
         track(monoFontSig, '--ef-font-mono', null, null)
         bindWriter(monoFontSig, '--ef-font-mono', null)
-        wrap.appendChild(ui.propRow({ label: 'Mono font', control: ui.input({ value: monoFontSig }) }))
+        registerThemeToken('--ef-font-mono', 'Mono font', 'typography', monoFontSig, null, null, { unit: 'font' })
+        const monoFontRow = ui.propRow({ label: 'Mono font', control: ui.input({ value: monoFontSig }) })
+        bindThemeTarget(monoFontRow, '--ef-font-mono')
+        wrap.appendChild(monoFontRow)
 
         // Then the size scale
         const sizes = buildPxRows(TYPO_PX)

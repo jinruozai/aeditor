@@ -20,6 +20,7 @@
   }
 
   function normalizeTarget(target) {
+    if (ai.normalizeReference) return ai.normalizeReference(target)
     if (!target) return null
     if (typeof target === 'string') target = { uri: target }
     const uri = String(target.uri || target.id || '')
@@ -32,6 +33,7 @@
       title: target.title || target.label || uri,
       summary: target.summary || '',
       meta: clone(target.meta || {}),
+      schema: clone(target.schema || null),
       capabilities: clone(target.capabilities || []),
       tools: clone(target.tools || []),
     }
@@ -309,7 +311,7 @@
     el.__efCleanups.push(fn)
   }
 
-  function bindTarget(el, targetOrFn, opts) {
+  function attach(el, targetOrFn, opts) {
     opts = opts || {}
     if (opts.draggable !== false) el.draggable = true
     el.dataset.efAiTarget = '1'
@@ -327,17 +329,9 @@
         ev.preventDefault()
         EF.ui.contextMenu({ x: ev.clientX, y: ev.clientY }, [
           {
-            label: 'Attach to AI',
+            label: 'Add to Chat',
             icon: 'plus',
-            onSelect: function () { attachTargetsToAgent(null, targets) },
-          },
-          {
-            label: 'Ask AI',
-            icon: 'message-circle',
-            onSelect: function () {
-              attachTargetsToAgent(null, targets)
-              if (ai.message && ai.message.send) ai.message.send(null, { content: 'Inspect the attached target(s).', from: 'user' })
-            },
+            onSelect: function () { addTargetsToChat(targets) },
           },
         ])
       }
@@ -396,7 +390,8 @@
   ai.attachTargetToAgent = attachTargetToAgent
   ai.attachTargetsToAgent = attachTargetsToAgent
   ai.addTargetsToChat = addTargetsToChat
-  ai.bindTarget = bindTarget
+  ai.attach = attach
+  ai.bindTarget = attach
   ai.installTargetDrop = installTargetDrop
   ai.readTargetFromDragEvent = readTargetFromDragEvent
   ai.writeTargetDragData = writeDragData

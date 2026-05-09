@@ -7,6 +7,7 @@ global.window = { EF: {} }
 for (const file of [
   'src/core/signal.js',
   'src/core/log.js',
+  'src/ai/name-generator.js',
   'src/ai/store.js',
   'src/ai/connection.js',
   'src/ai/adapter.js',

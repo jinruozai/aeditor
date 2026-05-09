@@ -135,7 +135,7 @@
   }
 
   function createAgent(parentAgentId) {
-    EF.ai.createAgent({ name: 'Agent', parentAgentId: parentAgentId || null })
+    EF.ai.createAgent({ parentAgentId: parentAgentId || null })
   }
 
   function renameNode(node) {
@@ -179,7 +179,7 @@
 
     const toolbar = ui.h('div', 'ef-ai-toolbar')
     toolbar.appendChild(ui.button({
-      text: '新对话',
+      text: 'New Chat',
       kind: 'default',
       size: 'sm',
       onClick: function () {

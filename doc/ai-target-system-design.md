@@ -1,7 +1,9 @@
 # AI Target System
 
-Status: final contract
+Status: historical background, superseded by `doc/ai-reference-operation-architecture.md`
 Scope: generic EditorFrame AI target protocol plus GameDataEditor target map
+
+New code should use `EF.ai.attach(...)`, `EF.ai.references`, and `EF.ai.operations`.
 
 EditorFrame AI is not tied to a specific editor. The framework defines how UI objects become stable AI-addressable targets; applications define how those targets resolve into domain data and tools.
 
@@ -40,15 +42,15 @@ EF.ai.registerTargetProvider(id, provider)
 EF.ai.captureTarget(source, ctx)
 EF.ai.normalizeTarget(target)
 EF.ai.addTarget(target)
-EF.ai.bindTarget(el, targetOrFn, opts)
+EF.ai.attach(el, targetOrFn, opts)
 EF.ai.installTargetDrop(el, opts)
 EF.ai.attachTargetsToAgent(agentId, targets)
 ```
 
-`bindTarget` may enable drag, context menu, or both:
+`attach` may enable drag, context menu, or both:
 
 ```js
-EF.ai.bindTarget(el, function () {
+EF.ai.attach(el, function () {
   return {
     resolver: "gde",
     uri: "gde://field/data/items/1001/price",
@@ -168,7 +170,7 @@ They still follow the same rule: targets locate data; project tools preview and 
 ## UX Contract
 
 - Targetable surfaces can be dragged to `ai-chatinput`.
-- Relevant context menus include "Ask AI".
+- Relevant context menus include "Add to Chat".
 - Target chips show `kind + title` and are removable.
 - Sending a message attaches pending targets to the active agent and clears pending chips.
 - Patch previews render in `ai-messages` and require approval before apply.

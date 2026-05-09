@@ -13,6 +13,7 @@ function storage() {
 
 global.window = { EF: {}, localStorage: storage() }
 vm.runInThisContext(readFileSync('src/core/signal.js', 'utf8'), { filename: 'signal.js' })
+vm.runInThisContext(readFileSync('src/ai/name-generator.js', 'utf8'), { filename: 'ai/name-generator.js' })
 vm.runInThisContext(readFileSync('src/ai/store.js', 'utf8'), { filename: 'ai/store.js' })
 
 let ai = window.EF.ai
@@ -46,6 +47,7 @@ assert.deepEqual(stored.agents[1].contextRefs, [])
 
 global.window.EF = {}
 vm.runInThisContext(readFileSync('src/core/signal.js', 'utf8'), { filename: 'signal.js#2' })
+vm.runInThisContext(readFileSync('src/ai/name-generator.js', 'utf8'), { filename: 'ai/name-generator.js#2' })
 vm.runInThisContext(readFileSync('src/ai/store.js', 'utf8'), { filename: 'ai/store.js#2' })
 ai = window.EF.ai
 ai.configurePersistence({ key: 'test.ai' })

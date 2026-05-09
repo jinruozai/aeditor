@@ -22,8 +22,8 @@
     return prefix + '_' + now().toString(36) + '_' + n
   }
 
-  function defaultName(kind, id) {
-    return kind + ' ' + String(id).split('_').pop()
+  function defaultAgentName() {
+    return ai.generateAgentName(agentsSig.peek().map(function (agent) { return agent.name }))
   }
 
   function cleanOrder(order, fallback) {
@@ -51,7 +51,7 @@
     const id = spec.id || makeId('a', nextAgentId++)
     return {
       id: id,
-      name: spec.name || defaultName('Agent', id),
+      name: spec.name || defaultAgentName(),
       parentAgentId: spec.parentAgentId || null,
       order: cleanOrder(spec.order, agentsSig.peek().length),
       connection: spec.connection || ai.defaultConnection || 'mock',
@@ -586,6 +586,15 @@
     return resolvePermission(actorId, targetId, phase === 'apply' ? 'tool.apply' : 'tool.call', { toolId: toolId, phase: phase || 'call' })
   }
 
+  function canUseOperation(actorId, targetId, op, phase, details) {
+    const apply = phase === 'apply'
+    return resolvePermission(actorId, targetId, apply ? 'operation.apply' : 'operation.preview', Object.assign({
+      operation: op,
+      op: op,
+      phase: phase || 'preview',
+    }, details || {}))
+  }
+
   function messageApiRead(agentId, messageId, actor) {
     if (!resolvePermission(actor || 'user', agentId, 'messages.read', { messageId: messageId })) return null
     return readMessage(agentId, messageId)
@@ -681,6 +690,7 @@
   ai.canSend = canSend
   ai.canManage = canManage
   ai.canUseTool = canUseTool
+  ai.canUseOperation = canUseOperation
   ai.setPermissionResolver = setPermissionResolver
   ai.getPermissionResolver = getPermissionResolver
   ai.snapshot = snapshot

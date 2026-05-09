@@ -220,11 +220,13 @@
     return false
   }
 
-  function shouldAutoApplyTool(agent, call) {
-    if (!agent || agent.permissionMode !== 'full') return false
+  function shouldAutoApplyTool(agent, call, state) {
+    if (!agent) return false
     const id = call && (call.toolId || call.name || '')
-    if (ai.isToolAlwaysAllowed && ai.isToolAlwaysAllowed(agent.id, id)) return true
-    return id === 'agent.create' || id === 'agent.delegate'
+    if (ai.isToolAlwaysAllowed && ai.isToolAlwaysAllowed(agent.id, id)) return !!(state && state.canApply)
+    const risk = call && call.preview && call.preview.risk || call && call.result && call.result.risk || ''
+    if (risk === 'destructive' || risk === 'external') return false
+    return agent.permissionMode === 'full' && !!(state && state.canApply)
   }
 
   function prepareApprovalTool(agentId, call, actor, tool) {
@@ -266,7 +268,8 @@
       return prepareApprovalTool(agentId, call, actor, tool).then(function () {
         const current = ai.findToolCall ? ai.findToolCall(agentId, call.id) : null
         const prepared = current && current.toolCall || call
-        return shouldAutoApplyTool(ai.findAgent(agentId), prepared)
+        const state = ai.getToolCallActionState ? ai.getToolCallActionState(agentId, call.id, actor) : null
+        return shouldAutoApplyTool(ai.findAgent(agentId), prepared, state)
           ? applyPreparedApprovalTool(agentId, call, actor)
           : { waiting: true }
       })

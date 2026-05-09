@@ -118,7 +118,11 @@
           const k = keys[i]
           const spec = edit[k]
           const ctrl = buildControl(spec)
-          hostBody.appendChild(ui.propRow({ label: labelFor(k), control: ctrl }))
+          const row = ui.propRow({ label: labelFor(k), control: ctrl })
+          if (EF.ai && EF.ai.attach && Demo.aiTargets) {
+            EF.ai.attach(row.querySelector('.ef-ui-prop-label'), function () { return Demo.aiTargets.property(entry, k, spec) }, { contextMenu: true })
+          }
+          hostBody.appendChild(row)
         }
       }))
 
