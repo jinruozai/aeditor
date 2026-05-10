@@ -29,8 +29,6 @@
     const filter = EF.signal(((propsSig.peek() || {}).level) || 'all')
     const bar = ui.h('div', 'ef-ui-errlog-bar')
     bar.appendChild(ui.select({ value: filter, options: LEVEL_OPTS }))
-    const summary = ui.h('div', 'ef-ui-errlog-summary')
-    bar.appendChild(summary)
     bar.appendChild(ui.h('div', 'ef-ui-errlog-spacer'))
     const copyBtn = ui.button({ text: 'Copy', kind: 'ghost', size: 'sm' })
     copyBtn.addEventListener('click', function () {
@@ -62,7 +60,6 @@
       const list = EF.log()
       const lvl = filter()
       const visible = lvl === 'all' ? list : list.filter(function (e) { return e.level === lvl })
-      summary.textContent = visible.length + ' visible / ' + list.length + ' total'
       scroll.replaceChildren()
       if (visible.length === 0) {
         scroll.appendChild(empty)

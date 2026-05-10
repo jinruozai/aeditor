@@ -315,22 +315,46 @@
     })
     const modelSlot = ui.h('div', 'ef-ai-model-control')
     const contextMeter = ui.h('div', 'ef-ai-context-meter')
+    const contextInfo = EF.signal({ used: 0, limit: modelContextLimit(model.peek()) })
+    let contextTimer = null
+    function scheduleContextEstimate(delay) {
+      if (contextTimer) clearTimeout(contextTimer)
+      contextTimer = setTimeout(function () {
+        contextTimer = null
+        const a = activeAgent()
+        contextInfo.set({
+          used: contextEstimate(a, draft.peek()),
+          limit: modelContextLimit(model.peek()),
+        })
+      }, delay == null ? 260 : delay)
+    }
     const contextTip = EF.derived(function () {
-      const a = activeAgent()
-      const used = contextEstimate(a, draft())
-      const limit = modelContextLimit(model())
+      const info = contextInfo()
+      const used = info.used || 0
+      const limit = info.limit || modelContextLimit(model.peek())
       const pct = Math.min(100, Math.round(used / limit * 100))
       return 'Context ' + pct + '%\n' + used.toLocaleString() + ' / ' + limit.toLocaleString() + ' tokens (estimated)'
     })
     ui.collect(root, contextTip.dispose)
     ui.tooltip(contextMeter, { text: contextTip, side: 'top', delay: 250 })
+    ui.collect(root, function () {
+      if (contextTimer) clearTimeout(contextTimer)
+      contextTimer = null
+    })
     ui.collect(root, EF.effect(function () {
-      const a = activeAgent()
-      const used = contextEstimate(a, draft())
-      const limit = modelContextLimit(model())
+      const info = contextInfo()
+      const used = info.used || 0
+      const limit = info.limit || modelContextLimit(model.peek())
       const pct = Math.max(0, Math.min(1, used / limit))
       contextMeter.style.setProperty('--ef-ai-context-pct', String(pct * 100))
       contextMeter.setAttribute('aria-label', contextTip())
+    }))
+    ui.collect(root, EF.effect(function () {
+      draft()
+      model()
+      const agentId = read(EF.ai.activeAgentId)
+      if (agentId && EF.ai.messageListVersion) EF.ai.messageListVersion(agentId)
+      scheduleContextEstimate()
     }))
     const sendTitle = EF.derived(function () { return stoppable() && EF.ai.richPrompt.isEmpty(draft()) ? 'Stop' : (busy() ? 'Queue message' : 'Send') })
     ui.collect(root, sendTitle.dispose)
@@ -454,9 +478,9 @@
 
   EF.registerComponent('ai-chatinput', {
     category: 'panel',
-    label: 'AI Chat',
+    label: 'AIChatInput',
     icon: 'message-circle',
-    defaults: function () { return { title: 'AI Send', icon: 'message-circle', props: {} } },
+    defaults: function () { return { title: 'AIChatInput', icon: 'message-circle', props: {} } },
     factory: factory,
     dispose: disposeTree,
   })

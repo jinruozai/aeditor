@@ -7,6 +7,9 @@
   const sectionsSig = EF.signal([])
   const schemasSig = EF.signal([])
   const pagesSig = EF.signal([])
+  const sectionMeta = {}
+  const schemaMeta = {}
+  const pageMeta = {}
   const DEFAULT_STORAGE_KEY = 'editorframe.settings.v1'
   let storageKey = DEFAULT_STORAGE_KEY
   let storage = null
@@ -47,7 +50,15 @@
     return next
   }
 
-  function registerSection(id, spec) {
+  function normalizeMeta(meta) {
+    meta = meta || {}
+    const out = {}
+    if (meta.owner != null) out.owner = String(meta.owner)
+    if (meta.layer != null) out.layer = String(meta.layer)
+    return out
+  }
+
+  function registerSection(id, spec, meta) {
     const s = spec || {}
     const section = {
       id: id,
@@ -56,6 +67,7 @@
       description: s.description || '',
       order: s.order != null ? s.order : 0,
     }
+    sectionMeta[id] = normalizeMeta(meta)
     sectionsSig.update(function (list) { return upsert(list, 'id', section) })
     return section
   }
@@ -76,14 +88,16 @@
     }
   }
 
-  function registerSchema(sectionId, schema) {
+  function registerSchema(sectionId, schema, meta) {
     const list = Array.isArray(schema) ? schema : [schema]
+    const m = normalizeMeta(meta)
     const out = []
     schemasSig.update(function (schemas) {
       let next = schemas.slice()
       for (let i = 0; i < list.length; i++) {
         const item = normalizeSchema(sectionId, list[i])
         out.push(item)
+        schemaMeta[item.key] = m
         next = upsert(next, 'key', item)
       }
       return next
@@ -91,7 +105,7 @@
     return Array.isArray(schema) ? out : out[0]
   }
 
-  function registerPage(id, spec) {
+  function registerPage(id, spec, meta) {
     const p = spec || {}
     const page = {
       id: id,
@@ -103,8 +117,29 @@
       replacesSchema: !!p.replacesSchema,
       factory: p.factory,
     }
+    pageMeta[id] = normalizeMeta(meta)
     pagesSig.update(function (list) { return upsert(list, 'id', page) })
     return page
+  }
+
+  function unregisterOwner(owner) {
+    const removed = []
+    const sectionIds = Object.keys(sectionMeta).filter(function (id) { return sectionMeta[id].owner === owner })
+    const schemaKeys = Object.keys(schemaMeta).filter(function (key) { return schemaMeta[key].owner === owner })
+    const pageIds = Object.keys(pageMeta).filter(function (id) { return pageMeta[id].owner === owner })
+    sectionsSig.update(function (list) {
+      return list.filter(function (item) { return sectionIds.indexOf(item.id) < 0 })
+    })
+    schemasSig.update(function (list) {
+      return list.filter(function (item) { return schemaKeys.indexOf(item.key) < 0 })
+    })
+    pagesSig.update(function (list) {
+      return list.filter(function (item) { return pageIds.indexOf(item.id) < 0 })
+    })
+    for (let i = 0; i < sectionIds.length; i++) { delete sectionMeta[sectionIds[i]]; removed.push(sectionIds[i]) }
+    for (let j = 0; j < schemaKeys.length; j++) { delete schemaMeta[schemaKeys[j]]; removed.push(schemaKeys[j]) }
+    for (let k = 0; k < pageIds.length; k++) { delete pageMeta[pageIds[k]]; removed.push(pageIds[k]) }
+    return removed
   }
 
   function findSchema(key) {
@@ -192,6 +227,10 @@
   settings.registerSection = registerSection
   settings.registerSchema = registerSchema
   settings.registerPage = registerPage
+  settings.unregisterOwner = unregisterOwner
+  settings.sectionMeta = function (id) { return Object.assign({}, sectionMeta[id] || {}) }
+  settings.schemaMeta = function (key) { return Object.assign({}, schemaMeta[key] || {}) }
+  settings.pageMeta = function (id) { return Object.assign({}, pageMeta[id] || {}) }
   settings.get = get
   settings.set = set
   settings.reset = reset

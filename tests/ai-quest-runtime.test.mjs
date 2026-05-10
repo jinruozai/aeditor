@@ -231,6 +231,45 @@ assert.equal(ai.findAgent(fullAccessAgent.id).messages.some(function (message) {
   return message.content === 'full access continued'
 }), true)
 
+let cappedRequests = 0
+ai.registerTool('capped-read', {
+  run: function (args) { return { ok: true, id: args.id } },
+})
+ai.registerTransport('capped-tool-flow', {
+  send: function (connection, request) {
+    cappedRequests += 1
+    if (cappedRequests === 1) {
+      return {
+        role: 'assistant',
+        content: '',
+        toolCalls: [{ toolId: 'capped-read', args: { id: 'host' } }],
+      }
+    }
+    assert.equal(request.messages.some(function (message) { return message.role === 'tool' }), true)
+    return { role: 'assistant', content: 'continued after capped tool' }
+  },
+})
+ai.registerConnection('capped-tool-flow', { auth: { type: 'none' }, transport: { type: 'capped-tool-flow' }, configDefaults: {} })
+ai.configureRuntime({ maxToolTurns: 0 })
+const cappedAgent = ai.createAgent({ name: 'Capped Tools', parentAgentId: parent.id, connection: 'capped-tool-flow', permissionMode: 'full', toolRefs: ['capped-read'] })
+const cappedRun = ai.message.send(cappedAgent.id, { content: 'run capped read' })
+await cappedRun.promise
+assert.equal(cappedRequests, 1)
+const cappedToolMessage = ai.findAgent(cappedAgent.id).messages.find(function (message) {
+  return message.toolCalls && message.toolCalls.length
+})
+assert.equal(cappedToolMessage.toolCalls[0].status, 'completed')
+assert.equal(ai.findAgent(cappedAgent.id).messages.some(function (message) {
+  return message.role === 'tool' && message.meta && message.meta.toolCallId === cappedToolMessage.toolCalls[0].id
+}), true)
+const cappedContinue = ai.message.send(cappedAgent.id, { content: 'continue' })
+await cappedContinue.promise
+assert.equal(cappedRequests, 2)
+assert.equal(ai.findAgent(cappedAgent.id).messages.some(function (message) {
+  return message.content === 'continued after capped tool'
+}), true)
+ai.configureRuntime({ maxToolTurns: 8 })
+
 let releaseInterrupt
 const interruptedHold = new Promise(function (resolve) { releaseInterrupt = resolve })
 ai.registerTransport('interrupt-hold', {
@@ -265,6 +304,22 @@ assert.equal(budgetRequest.messages[0].role, 'system')
 assert.equal(budgetRequest.messages[0].content.includes('Do not stop after a partial setup step'), true)
 assert.equal(budgetRequest.messages[0].content.includes('prefer agent.delegate'), true)
 assert.equal(budgetRequest.messages[0].content.includes('quest.result'), true)
+
+const hugeToolAgent = ai.createAgent({ name: 'Huge Tool History', parentAgentId: parent.id, connection: 'quest-capture', model: 'tiny', contextBudgetTokens: 200000 })
+const hugeSource = 'function (propsSig, ctx) {\n' + 'x'.repeat(120000) + '\n}'
+ai.appendMessage(hugeToolAgent.id, {
+  role: 'assistant',
+  content: '',
+  toolCalls: [{ id: 'call_huge', toolId: 'editor.createPanel', args: { id: 'huge', source: hugeSource }, status: 'applied', applyResult: { source: hugeSource } }],
+})
+ai.appendMessage(hugeToolAgent.id, { role: 'tool', content: { applied: true, source: hugeSource }, meta: { toolCallId: 'call_huge' } })
+const hugeInput = ai.appendMessage(hugeToolAgent.id, { role: 'user', content: 'next' })
+const hugeRequest = ai.makeRequest(ai.findAgent(hugeToolAgent.id), hugeInput, 'run_huge', hugeToolAgent.id, 0)
+const hugeAssistant = hugeRequest.messages.find(function (message) { return message.toolCalls && message.toolCalls.length })
+assert.equal(hugeAssistant.toolCalls[0].args.source.length < 5000, true)
+const hugeOpenAi = ai.openAiMessages(hugeRequest.messages, hugeRequest)
+const hugeArgs = JSON.parse(hugeOpenAi.find(function (message) { return message.tool_calls }).tool_calls[0].function.arguments)
+assert.equal(hugeArgs.source.length < 5000, true)
 
 let releaseLimitedA
 let releaseLimitedB

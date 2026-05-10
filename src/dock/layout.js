@@ -51,12 +51,19 @@
       subscribe: function (fn) { return effect(function () { fn(tree()) }) },
 
       addPanel: function (dockId, partial, opts) {
-        return { panelId: layout.addPanel(dockId, partial, opts) }
+        const id = resolveDockId(tree.peek(), dockId)
+        return { panelId: id ? layout.addPanel(id, partial, opts) : null }
+      },
+      addPanelToSplit: function (dockId, dir, side, ratio, partial) {
+        const id = resolveDockId(tree.peek(), dockId)
+        return id ? layout.addPanelToSplit(id, dir, side, ratio, partial) : { newDockId: null, newPanelId: null }
       },
       removePanel:   function (panelId)                      { layout.removePanel(panelId) },
       activatePanel: function (panelId)                      { layout.activatePanel(panelId) },
       promotePanel:  function (panelId)                      { layout.promotePanel(panelId) },
       movePanel:     function (panelId, dstDockId, dstIndex) { layout.movePanel(panelId, dstDockId, dstIndex) },
+      inspectPanel:  function (panelId)                      { return RT.inspectPanel(layout, panelId) },
+      inspectPanels: function ()                             { return RT.inspectPanels(layout) },
 
       splitDock: function (dockId, dir, side, ratio, opts) {
         if (layout.disposed) return { newDockId: null, newPanelId: null }
@@ -97,6 +104,9 @@
 
     // Expose the runtime on the handle for interactions.js (private use).
     handle._runtime = layout
+    if (EF.extensions && EF.extensions.registerLayout) {
+      layout.cleanups.push(EF.extensions.registerLayout(config.name || 'default', handle))
+    }
     return handle
   }
 

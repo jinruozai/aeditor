@@ -5,6 +5,34 @@
   const ai = EF.ai = EF.ai || {}
   const http = ai.provider
 
+  function mergeToolCallDeltas(calls) {
+    const out = []
+    for (let i = 0; i < (calls || []).length; i++) {
+      const delta = calls[i]
+      const index = delta.index != null ? delta.index : findToolCallIndex(out, delta)
+      const at = index >= 0 ? index : out.length
+      const cur = out[at] || {}
+      const next = Object.assign({}, cur)
+      if (delta.id) next.id = delta.id
+      if (delta.type) next.type = delta.type
+      if (delta.function) {
+        const fn = Object.assign({}, next.function || {})
+        if (delta.function.name) fn.name = delta.function.name
+        if (delta.function.arguments != null) fn.arguments = String(fn.arguments || '') + String(delta.function.arguments)
+        next.function = fn
+      }
+      out[at] = next
+    }
+    return out
+  }
+
+  function findToolCallIndex(calls, delta) {
+    if (delta.id) {
+      for (let i = 0; i < calls.length; i++) if (calls[i].id === delta.id) return i
+    }
+    return -1
+  }
+
   ai.registerTransport('mock', {
     send: function (connection, request, ctx) {
       const config = ai.getConnectionConfig(connection.id)
@@ -31,7 +59,7 @@
       const config = ai.getConnectionConfig(connection.id)
       const model = request.model || config.defaultModel
       const tools = ai.openAiTools(request)
-      const stream = !!(request.stream && config.stream && !tools.length)
+      const stream = !!(request.stream && config.stream)
       const body = {
         model: model,
         messages: ai.openAiMessages(request.messages, request),
@@ -49,11 +77,31 @@
         body: JSON.stringify(body),
       }, function (data) {
         const choice = data.choices && data.choices[0]
+        const hasDelta = !!(choice && choice.delta)
         const delta = choice && (choice.delta || choice.message)
-        return delta ? ai.messageText(delta.content) : ''
+        if (!delta) return data.usage ? { usage: data.usage } : ''
+        const out = {
+          text: ai.messageText(delta.content),
+          reasoning_content: delta.reasoning_content || delta.reasoningContent || '',
+          toolCalls: delta.tool_calls || delta.toolCalls || [],
+          usage: data.usage || null,
+        }
+        if (!hasDelta && delta.content != null) {
+          out.snapshot = ai.messageText(delta.content)
+          delete out.text
+        }
+        return out
       }).then(function (data) {
         if (data.streamed && data.deltas) return { deltas: data.deltas }
-        if (data.streamed) return { role: 'assistant', content: data.content, usage: data.usage || null }
+        if (data.streamed) {
+          return {
+            role: 'assistant',
+            content: data.content,
+            reasoning_content: data.reasoning_content || null,
+            toolCalls: ai.normalizeOpenAiToolCalls(mergeToolCallDeltas(data.toolCalls || []), request),
+            usage: data.usage || null,
+          }
+        }
         data = data.data
         const choice = data.choices && data.choices[0]
         const message = (choice && choice.message) || {}
@@ -135,8 +183,8 @@
           stream: !!(request.stream && config.stream),
         })),
       }, function (data) {
-        if (data.delta) return ai.messageText(data.delta)
-        if (data.content) return ai.messageText(data.content)
+        if (data.delta != null) return { text: ai.messageText(data.delta) }
+        if (data.content != null) return { snapshot: ai.messageText(data.content) }
         return ''
       }).then(function (data) {
         if (data.streamed && data.deltas) return { deltas: data.deltas }
@@ -165,8 +213,8 @@
         signal: ctx.signal,
         body: JSON.stringify(encoded),
       }, function (data) {
-        if (data.delta) return ai.messageText(data.delta)
-        if (data.content) return ai.messageText(data.content)
+        if (data.delta != null) return { text: ai.messageText(data.delta) }
+        if (data.content != null) return { snapshot: ai.messageText(data.content) }
         return ''
       }).then(function (data) {
         if (data.streamed && data.deltas) return { deltas: data.deltas }

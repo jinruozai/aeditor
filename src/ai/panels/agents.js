@@ -204,10 +204,9 @@
       trailingSlot: makeStatus,
       leadingSlot: function () { return null },
       labelSlot: makeAgentLabel,
+      actionsVisibility: 'selected',
       actions: function (node) {
         return [
-          { icon: 'user-plus', title: 'New child agent', onClick: function () { createAgent(node.agentId) } },
-          { icon: 'edit', title: 'Rename', onClick: function () { renameNode(node) } },
           { icon: 'trash', title: 'Delete', onClick: function () { deleteNode(node) } },
         ]
       },

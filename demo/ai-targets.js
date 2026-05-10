@@ -51,6 +51,7 @@
   }
 
   function componentTarget(entry) {
+    const props = propMap(entry.id)
     return {
       resolver: 'demo',
       uri: 'demo://component/' + encodeURIComponent(entry.id),
@@ -59,9 +60,11 @@
       summary: entry.description || 'Demo component',
       meta: {
         component: entrySummary(entry),
-        props: propMap(entry.id),
+        props: props,
       },
-      capabilities: ['read'],
+      capabilities: Object.keys(props).map(function (prop) {
+        return { op: 'demo.setProp', risk: 'edit', input: { componentId: entry.id, prop: prop } }
+      }),
       tools: ['editor.readReference', 'editor.applyOperation', 'demo.setProp'],
     }
   }
@@ -299,6 +302,111 @@
     }
   }
 
+  function walkDocks(node, out) {
+    if (!node) return out
+    if (node.type === 'dock') {
+      out.push({
+        id: node.id,
+        name: node.name || node.id,
+        panels: (node.panels || []).map(function (panel) {
+          return { id: panel.id, title: panel.title || panel.component, component: panel.component }
+        }),
+      })
+      return out
+    }
+    for (let i = 0; node.children && i < node.children.length; i++) walkDocks(node.children[i], out)
+    return out
+  }
+
+  function hostDocks() {
+    if (Demo.layout && Demo.layout.tree) {
+      const docks = walkDocks(Demo.layout.tree(), [])
+      const inspected = Demo.layout.inspectPanels ? Demo.layout.inspectPanels() : []
+      const byId = {}
+      for (let i = 0; i < inspected.length; i++) byId[inspected[i].panelId] = inspected[i]
+      for (let j = 0; j < docks.length; j++) {
+        for (let k = 0; k < docks[j].panels.length; k++) {
+          docks[j].panels[k].health = byId[docks[j].panels[k].id] || null
+        }
+      }
+      return docks
+    }
+    return [
+      { name: 'sidebar', panels: [] },
+      { name: 'editor', panels: [] },
+      { name: 'bottom', panels: [] },
+      { name: 'properties', panels: [] },
+    ]
+  }
+
+  function recentErrors() {
+    const list = EF.log && EF.log.peek ? EF.log.peek() : []
+    return list.filter(function (entry) { return entry.level === 'error' }).slice(-10).map(function (entry) {
+      return {
+        time: entry.time,
+        source: entry.source,
+        message: entry.message,
+      }
+    })
+  }
+
+  function hostTarget() {
+    return {
+      resolver: 'editor',
+      uri: 'editor://host',
+      kind: 'editor.host',
+      title: 'EditorFrame Demo Host',
+      summary: 'Current EditorFrame demo shell. Use editor.createPanel for brand-new visible UI panels. Low-level extension and dock operations are internal/advanced paths, not the normal UI creation route.',
+      meta: {
+        docks: hostDocks(),
+        panelHealth: Demo.layout && Demo.layout.inspectPanels ? Demo.layout.inspectPanels() : [],
+        recentErrors: recentErrors(),
+        preferredDockForNewMainPanels: 'editor',
+        generatedPanelGuidelines: [
+          'Use editor.createPanel for new visible UI.',
+          'Prefer EF.ui.* components when they fit the requested UI.',
+          'Use EF.ui.scrollArea for scrollable content instead of raw overflow scrollbars.',
+          'Use EF.ui.tooltip/popover/menu for floating UI; scoped EF.ui overlays close automatically when the panel is no longer active. If you manually append floating DOM outside the root, register it with EF.ui.registerScopedOverlay(anchor, close).',
+          'Make the panel root responsive to dock resize: height 100%, minHeight 0, boxSizing border-box, and avoid fixed viewport dimensions.',
+          'Use flex/grid with minmax(), auto-fit, and container-relative sizing for card grids.',
+        ],
+        createPanelPattern: {
+          tool: 'editor.createPanel',
+          input: {
+            id: 'unique-panel-id',
+            title: 'Panel title',
+            icon: 'box',
+            dock: 'editor',
+            layer: 'session',
+            source: 'function (propsSig, ctx) { const root = document.createElement("div"); root.style.cssText = "height:100%;min-height:0;box-sizing:border-box;display:flex;flex-direction:column;"; const scroll = EF.ui.scrollArea({ children: [] }); scroll.style.flex = "1 1 auto"; scroll.style.minHeight = "0"; root.appendChild(scroll); return root }',
+          },
+        },
+      },
+      capabilities: [
+        { op: 'editor.createPanel', risk: 'code', purpose: 'Create or replace a same-page factory panel and place it into a dock.' },
+      ],
+      tools: ['editor.readReference', 'editor.getCapabilities', 'editor.createPanel', 'editor.applyOperation'],
+    }
+  }
+
+  function readHost(ref) {
+    const target = hostTarget()
+    return {
+      uri: target.uri,
+      kind: target.kind,
+      title: target.title,
+      summary: target.summary,
+      docks: target.meta.docks,
+      panelHealth: target.meta.panelHealth,
+      recentErrors: target.meta.recentErrors,
+      preferredDockForNewMainPanels: target.meta.preferredDockForNewMainPanels,
+      generatedPanelGuidelines: target.meta.generatedPanelGuidelines,
+      createPanelPattern: target.meta.createPanelPattern,
+      capabilities: target.capabilities,
+      tools: target.tools,
+    }
+  }
+
   Demo.aiTargets = {
     component: componentTarget,
     property: propertyTarget,
@@ -353,6 +461,32 @@
     },
   })
 
+  EF.ai.references.register('editor', {
+    read: function (ref) {
+      return ref.uri === 'editor://host' ? readHost(ref) : ref
+    },
+    schema: function (ref) {
+      if (ref.uri !== 'editor://host') return null
+      return {
+        type: 'object',
+        properties: {
+          source: { type: 'string', description: 'Panel factory source for editor.createPanel. Return a responsive dock-filling HTMLElement; prefer EF.ui.* and EF.ui.scrollArea.' },
+          dock: { type: 'string', enum: hostDocks().map(function (dock) { return dock.name }) },
+          component: { type: 'string' },
+        },
+      }
+    },
+    capabilities: function (ref) {
+      return ref.uri === 'editor://host' ? hostTarget().capabilities : []
+    },
+    search: function (query) {
+      const text = String(query && (query.query || query.kind || '') || '').toLowerCase()
+      return /host|dock|panel|window|editor|main|ui|界面|面板|窗口|主视图|背包|inventory/.test(text)
+        ? [hostTarget()]
+        : []
+    },
+  })
+
   EF.ai.operations.register('demo.setProp', {
     title: 'Set Demo Property',
     schema: {
@@ -398,7 +532,7 @@
 
   EF.ai.registerTool('demo.setProp', {
     title: 'Set Demo Property',
-    description: 'Change an editable property in the EditorFrame component explorer demo. Use componentId, prop, and value from demo.property context refs.',
+    description: 'Change an editable property in the EditorFrame component explorer demo. Use only prop keys returned by demo.property refs or by component meta.props; never invent keys such as children if they are not listed.',
     schema: {
       type: 'object',
       required: ['componentId', 'prop', 'value'],

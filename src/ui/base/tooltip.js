@@ -15,6 +15,7 @@
     const delay = o.delay != null ? o.delay : 400
     let timer = null
     let tip = null
+    let unregister = null
 
     function show() {
       if (tip) return
@@ -22,9 +23,11 @@
       ui.bindText(tip, text)
       ui.portal(tip)
       ui.place(target, tip, { side: side, align: 'center', gap: 6 })
+      unregister = ui.registerScopedOverlay(target, hide)
     }
     function hide() {
       if (timer) { clearTimeout(timer); timer = null }
+      if (unregister) { unregister(); unregister = null }
       if (tip) {
         ui.dispose(tip)
         tip = null

@@ -4,7 +4,9 @@
 
   const ai = EF.ai = EF.ai || {}
   const referenceProviders = {}
+  const referenceProviderMeta = {}
   const operations = {}
+  const operationMeta = {}
   const previews = {}
   let transactionDriver = null
   let nextPreviewId = 1
@@ -76,13 +78,44 @@
     return resolver.resolve(r, Object.assign({ options: options || {} }, ctx || {}))
   }
 
-  function registerReferenceProvider(name, provider) {
+  function normalizeMeta(meta) {
+    meta = meta || {}
+    const out = {}
+    if (meta.owner != null) out.owner = String(meta.owner)
+    if (meta.layer != null) out.layer = String(meta.layer)
+    return out
+  }
+
+  function registerReferenceProvider(name, provider, meta) {
     referenceProviders[name] = Object.assign({ id: name }, provider || {})
+    referenceProviderMeta[name] = normalizeMeta(meta)
     return referenceProviders[name]
   }
 
   function getReferenceProvider(name) {
     return referenceProviders[name] || null
+  }
+
+  function unregisterReferenceProvider(name, meta) {
+    if (!referenceProviders[name]) return false
+    const existing = referenceProviderMeta[name] || {}
+    if (meta && meta.owner != null && existing.owner !== meta.owner)
+      throw new Error('unregisterReferenceProvider: owner mismatch for "' + name + '"')
+    delete referenceProviders[name]
+    delete referenceProviderMeta[name]
+    return true
+  }
+
+  function unregisterReferenceProviderOwner(owner) {
+    const removed = []
+    keys(referenceProviderMeta).forEach(function (name) {
+      if (referenceProviderMeta[name].owner === owner) {
+        delete referenceProviders[name]
+        delete referenceProviderMeta[name]
+        removed.push(name)
+      }
+    })
+    return removed
   }
 
   function describeReference(ref, ctx) {
@@ -146,13 +179,36 @@
     return out
   }
 
-  function registerOperation(name, spec) {
+  function registerOperation(name, spec, meta) {
     operations[name] = Object.assign({ id: name }, spec || {})
+    operationMeta[name] = normalizeMeta(meta)
     return operations[name]
   }
 
   function getOperation(name) {
     return operations[name] || null
+  }
+
+  function unregisterOperation(name, meta) {
+    if (!operations[name]) return false
+    const existing = operationMeta[name] || {}
+    if (meta && meta.owner != null && existing.owner !== meta.owner)
+      throw new Error('unregisterOperation: owner mismatch for "' + name + '"')
+    delete operations[name]
+    delete operationMeta[name]
+    return true
+  }
+
+  function unregisterOperationOwner(owner) {
+    const removed = []
+    keys(operationMeta).forEach(function (name) {
+      if (operationMeta[name].owner === owner) {
+        delete operations[name]
+        delete operationMeta[name]
+        removed.push(name)
+      }
+    })
+    return removed
   }
 
   function operationRisk(op, input, ctx) {
@@ -368,8 +424,20 @@
 
   ai.references = {
     register: registerReferenceProvider,
+    unregister: unregisterReferenceProvider,
+    unregisterOwner: unregisterReferenceProviderOwner,
     get: getReferenceProvider,
-    list: function () { return keys(referenceProviders) },
+    list: function (filter) {
+      const names = keys(referenceProviders)
+      if (!filter) return names
+      return names.filter(function (name) {
+        const meta = referenceProviderMeta[name] || {}
+        if (filter.owner != null && meta.owner !== filter.owner) return false
+        if (filter.layer != null && meta.layer !== filter.layer) return false
+        return true
+      })
+    },
+    meta: function (name) { return clone(referenceProviderMeta[name] || {}) },
     normalize: normalizeReference,
     normalizeAll: normalizeReferences,
     describe: describeReference,
@@ -382,8 +450,20 @@
   }
   ai.operations = {
     register: registerOperation,
+    unregister: unregisterOperation,
+    unregisterOwner: unregisterOperationOwner,
     get: getOperation,
-    list: function () { return keys(operations) },
+    list: function (filter) {
+      const names = keys(operations)
+      if (!filter) return names
+      return names.filter(function (name) {
+        const meta = operationMeta[name] || {}
+        if (filter.owner != null && meta.owner !== filter.owner) return false
+        if (filter.layer != null && meta.layer !== filter.layer) return false
+        return true
+      })
+    },
+    meta: function (name) { return clone(operationMeta[name] || {}) },
     risk: operationRisk,
     preview: previewOperation,
     apply: applyOperation,
@@ -397,11 +477,15 @@
   ai.normalizeReference = normalizeReference
   ai.normalizeReferences = normalizeReferences
   ai.registerReferenceProvider = registerReferenceProvider
+  ai.unregisterReferenceProvider = unregisterReferenceProvider
+  ai.unregisterReferenceProviderOwner = unregisterReferenceProviderOwner
   ai.getReferenceProvider = getReferenceProvider
   ai.readReference = readReference
   ai.referenceSchema = referenceSchema
   ai.referenceCapabilities = referenceCapabilities
   ai.registerOperation = registerOperation
+  ai.unregisterOperation = unregisterOperation
+  ai.unregisterOperationOwner = unregisterOperationOwner
   ai.getOperation = getOperation
   ai.previewOperation = previewOperation
   ai.applyOperation = applyOperation

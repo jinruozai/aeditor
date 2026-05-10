@@ -12,9 +12,18 @@
   const agentsSig = EF.signal([])
   const resourcesSig = EF.signal([])
   const activeAgentIdSig = EF.signal(null)
+  const agentVersionSigs = {}
+  const messageListVersionSigs = {}
+  const messageVersionSigs = {}
+  const activeRunStateSigs = {}
   let permissionResolver = null
   let persistenceKey = 'editorframe.ai.v2'
   let persistenceEnabled = true
+  let saveTimer = null
+  const MAX_SNAPSHOT_CONTENT_CHARS = 1000000
+  const MAX_SNAPSHOT_REASONING_CHARS = 65536
+  const MAX_STORED_STATE_CHARS = 5000000
+  const MAX_SNAPSHOT_TOOL_STRING_CHARS = 12000
 
   function now() { return Date.now() }
 
@@ -170,6 +179,63 @@
     return null
   }
 
+  function messageKey(agentId, messageId) {
+    return String(agentId || '') + '/' + String(messageId || '')
+  }
+
+  function versionSig(map, key) {
+    if (!map[key]) map[key] = EF.signal(0)
+    return map[key]
+  }
+
+  function bump(sig) {
+    sig.set(sig.peek() + 1)
+  }
+
+  function bumpMessageList(agentId) {
+    bump(versionSig(messageListVersionSigs, agentId))
+  }
+
+  function bumpAgent(agentId) {
+    bump(versionSig(agentVersionSigs, agentId))
+  }
+
+  function bumpMessage(agentId, messageId) {
+    bump(versionSig(messageVersionSigs, messageKey(agentId, messageId)))
+  }
+
+  function deleteMessageVersionSignals(agentId) {
+    const prefix = String(agentId || '') + '/'
+    Object.keys(messageVersionSigs).forEach(function (key) {
+      if (key.indexOf(prefix) === 0) delete messageVersionSigs[key]
+    })
+  }
+
+  function deleteAgentSignals(agentId) {
+    delete agentVersionSigs[agentId]
+    delete messageListVersionSigs[agentId]
+    delete activeRunStateSigs[agentId]
+    deleteMessageVersionSignals(agentId)
+  }
+
+  function touchMessages(agentId, messages) {
+    bumpMessageList(agentId)
+    for (let i = 0; i < (messages || []).length; i++) bumpMessage(agentId, messages[i].id)
+  }
+
+  function shouldBumpMessageList(patch) {
+    return !!(patch && (
+      patch.status != null ||
+      patch.toolCalls != null ||
+      patch.meta != null ||
+      patch.stats != null ||
+      patch.contextRefs != null ||
+      patch.attachments != null ||
+      patch.questId != null ||
+      patch.resultForQuestId != null
+    ))
+  }
+
   function getActiveAgent() {
     return findAgent(activeAgentIdSig())
   }
@@ -194,11 +260,13 @@
   }
 
   function createAgent(spec) {
+    spec = spec || {}
     const agent = makeAgent(spec)
     if (agent.parentAgentId && (!findAgent(agent.parentAgentId) || isDescendant(agent.id, agent.parentAgentId))) {
       agent.parentAgentId = null
     }
     agentsSig.update(function (agents) { return agents.concat([agent]) })
+    bumpAgent(agent.id)
     if (!spec || spec.select !== false) activeAgentIdSig.set(agent.id)
     return agent
   }
@@ -211,11 +279,15 @@
         out = Object.assign({}, agent, patch || {}, { updatedAt: now() })
         if (patch && patch.parentAgentId && (!findAgent(patch.parentAgentId) || isDescendant(id, patch.parentAgentId))) out.parentAgentId = agent.parentAgentId || null
         if (patch && patch.permissions) out.permissions = normalizePermissionList(patch.permissions)
+        delete out.workingDirectory
+        delete out.workdir
         delete out.path
         delete out.groupId
         return out
       })
     })
+    if (out) bumpAgent(id)
+    if (out && patch && patch.messages) touchMessages(id, out.messages)
     return out
   }
 
@@ -260,6 +332,7 @@
     if (!removed) return null
     const removeIds = new Set([id].concat(descendantIdsOf(id)))
     agentsSig.update(function (agents) { return agents.filter(function (agent) { return !removeIds.has(agent.id) }) })
+    removeIds.forEach(function (agentId) { deleteAgentSignals(agentId) })
     if (removeIds.has(activeAgentIdSig.peek())) {
       const rest = agentsSig.peek()
       activeAgentIdSig.set(rest.length ? rest[0].id : null)
@@ -281,6 +354,35 @@
         return Object.assign({}, agent, { messages: agent.messages.concat([out]), updatedAt: now() })
       })
     })
+    if (out) {
+      bumpMessageList(agentId)
+      bumpMessage(agentId, out.id)
+    }
+    return out
+  }
+
+  function insertMessageAfter(agentId, afterMessageId, message) {
+    let out = null
+    updateAgents(function (agents) {
+      return agents.map(function (agent) {
+        if (agent.id !== agentId) return agent
+        out = makeMessage(Object.assign({}, message || {}, { agentId: agentId }))
+        const messages = agent.messages.slice()
+        let index = messages.length - 1
+        for (let i = 0; i < messages.length; i++) {
+          if (messages[i].id === afterMessageId) {
+            index = i
+            break
+          }
+        }
+        messages.splice(index + 1, 0, out)
+        return Object.assign({}, agent, { messages: messages, updatedAt: now() })
+      })
+    })
+    if (out) {
+      bumpMessageList(agentId)
+      bumpMessage(agentId, out.id)
+    }
     return out
   }
 
@@ -304,6 +406,10 @@
         return Object.assign({}, agent, { messages: messages, updatedAt: now() })
       })
     })
+    if (out) {
+      bumpMessage(agentId, messageId)
+      if (shouldBumpMessageList(patch)) bumpMessageList(agentId)
+    }
     return out
   }
 
@@ -326,6 +432,7 @@
         })
       })
     })
+    if (out) bumpAgent(agentId)
     return out
   }
 
@@ -344,6 +451,7 @@
         return Object.assign({}, agent, { queue: queue, updatedAt: now() })
       })
     })
+    if (out) bumpAgent(agentId)
     return out
   }
 
@@ -448,10 +556,64 @@
   }
 
   function snapshotAgent(agent) {
-    const out = Object.assign({}, agent, { contextRefs: [] })
+    const out = Object.assign({}, agent, {
+      contextRefs: [],
+      messages: (agent.messages || []).map(snapshotMessage),
+    })
     delete out.path
     delete out.groupId
     return out
+  }
+
+  function limitString(value, max) {
+    if (typeof value !== 'string' || value.length <= max) return value
+    return value.slice(0, max) + '\n\n[truncated for persistence]'
+  }
+
+  function snapshotMessage(message) {
+    const out = Object.assign({}, message)
+    out.content = limitString(out.content, MAX_SNAPSHOT_CONTENT_CHARS)
+    out.reasoning_content = limitString(out.reasoning_content, MAX_SNAPSHOT_REASONING_CHARS)
+    if (out.toolCalls && out.toolCalls.length) out.toolCalls = out.toolCalls.map(snapshotToolCall)
+    return out
+  }
+
+  function compactSnapshotValue(value, depth) {
+    if (value == null) return value
+    if (typeof value === 'string') return limitString(value, MAX_SNAPSHOT_TOOL_STRING_CHARS)
+    if (typeof value === 'number' || typeof value === 'boolean') return value
+    if (depth <= 0) return limitString(JSON.stringify(value), MAX_SNAPSHOT_TOOL_STRING_CHARS)
+    if (Array.isArray(value)) {
+      const out = []
+      const n = Math.min(value.length, 32)
+      for (let i = 0; i < n; i++) out.push(compactSnapshotValue(value[i], depth - 1))
+      if (value.length > n) out.push('[+' + (value.length - n) + ' items truncated]')
+      return out
+    }
+    const out = {}
+    const keys = Object.keys(value)
+    const n = Math.min(keys.length, 48)
+    for (let i = 0; i < n; i++) out[keys[i]] = compactSnapshotValue(value[keys[i]], depth - 1)
+    if (keys.length > n) out.__truncatedKeys = keys.length - n
+    return out
+  }
+
+  function snapshotToolCall(call) {
+    return {
+      id: call.id,
+      providerCallId: call.providerCallId,
+      toolId: call.toolId,
+      name: call.name,
+      args: compactSnapshotValue(call.args || {}, 4),
+      status: call.status,
+      actor: call.actor,
+      createdAt: call.createdAt,
+      updatedAt: call.updatedAt,
+      error: limitString(call.error, 4000),
+      preview: compactSnapshotValue(call.preview, 3),
+      result: compactSnapshotValue(call.result, 3),
+      applyResult: compactSnapshotValue(call.applyResult, 3),
+    }
   }
 
   function normalizeRestoredRuntime(agent) {
@@ -478,10 +640,22 @@
   }
 
   function save() {
+    saveTimer = null
     const s = storage()
     if (!s || !persistenceEnabled) return snapshot()
-    s.setItem(persistenceKey, JSON.stringify(snapshot()))
-    return snapshot()
+    const data = snapshot()
+    try {
+      s.setItem(persistenceKey, JSON.stringify(data))
+    } catch (err) {
+      if (EF.reportError) EF.reportError({ scope: 'ai', storage: persistenceKey }, err)
+    }
+    return data
+  }
+
+  function scheduleSave() {
+    if (!persistenceEnabled) return
+    if (saveTimer) clearTimeout(saveTimer)
+    saveTimer = setTimeout(save, 800)
   }
 
   function restore(data) {
@@ -490,6 +664,8 @@
     agentsSig.set((next.agents || []).map(function (agent) { return normalizeRestoredRuntime(makeAgent(agent)) }))
     resourcesSig.set((next.resources || []).map(makeResource))
     activeAgentIdSig.set(next.activeAgentId || (agentsSig.peek()[0] && agentsSig.peek()[0].id) || null)
+    const agents = agentsSig.peek()
+    for (let i = 0; i < agents.length; i++) touchMessages(agents[i].id, agents[i].messages)
     return snapshot()
   }
 
@@ -498,6 +674,10 @@
     if (!s) return null
     try {
       const text = s.getItem(persistenceKey)
+      if (text && text.length > MAX_STORED_STATE_CHARS) {
+        s.removeItem(persistenceKey)
+        return null
+      }
       return text ? JSON.parse(text) : null
     } catch (_) {
       return null
@@ -657,11 +837,95 @@
     return messages.slice()
   }
 
+  function activeAgentMeta() {
+    const id = activeAgentIdSig()
+    if (id) versionSig(agentVersionSigs, id)()
+    const agent = findAgent(id)
+    if (!agent) return null
+    return {
+      id: agent.id,
+      name: agent.name,
+      status: agent.status,
+      statusText: agent.statusText || '',
+      connection: agent.connection,
+      model: agent.model,
+      permissionMode: agent.permissionMode,
+      activeMessageId: agent.activeMessageId || null,
+      activeQuestId: agent.activeQuestId || null,
+      queueLength: (agent.queue || []).length,
+    }
+  }
+
+  function agentMessageIds(agentId) {
+    versionSig(messageListVersionSigs, agentId)()
+    const agent = findAgent(agentId)
+    const messages = agent && agent.messages || []
+    const out = []
+    for (let i = 0; i < messages.length; i++) out.push(messages[i].id)
+    return out
+  }
+
+  function messageVersion(agentId, messageId) {
+    return versionSig(messageVersionSigs, messageKey(agentId, messageId))()
+  }
+
+  function messageListVersion(agentId) {
+    return versionSig(messageListVersionSigs, agentId)()
+  }
+
+  function idleRunState(agentId) {
+    return {
+      agentId: agentId || null,
+      runId: null,
+      messageId: null,
+      state: 'idle',
+      previewTail: '',
+      modelTail: '',
+      activityText: '',
+      previewUpdatedAt: null,
+      startedAt: null,
+      firstTokenAt: null,
+      updatedAt: now(),
+      completedAt: null,
+      usage: null,
+      outputTokens: 0,
+      totalTokens: 0,
+      cost: null,
+      error: null,
+    }
+  }
+
+  function activeRunState(agentId) {
+    return versionSig(activeRunStateSigs, agentId)() || idleRunState(agentId)
+  }
+
+  function peekActiveRunState(agentId) {
+    return versionSig(activeRunStateSigs, agentId).peek() || idleRunState(agentId)
+  }
+
+  function setActiveRunState(agentId, patch) {
+    const sig = versionSig(activeRunStateSigs, agentId)
+    const prev = sig.peek() || idleRunState(agentId)
+    const next = Object.assign({}, prev, patch || {}, {
+      agentId: agentId || (patch && patch.agentId) || prev.agentId || null,
+      updatedAt: now(),
+    })
+    sig.set(next)
+    return next
+  }
+
   ai.agents = agentsSig
   ai.resources = resourcesSig
   ai.activeAgentId = activeAgentIdSig
   ai.findAgent = findAgent
   ai.getActiveAgent = getActiveAgent
+  ai.activeAgentMeta = activeAgentMeta
+  ai.agentMessageIds = agentMessageIds
+  ai.messageVersion = messageVersion
+  ai.messageListVersion = messageListVersion
+  ai.activeRunState = activeRunState
+  ai.peekActiveRunState = peekActiveRunState
+  ai.setActiveRunState = setActiveRunState
   ai.createAgent = createAgent
   ai.updateAgent = updateAgent
   ai.renameAgent = renameAgent
@@ -671,6 +935,7 @@
   ai.selectAgent = selectAgent
   ai.isDescendant = isDescendant
   ai.appendMessage = appendMessage
+  ai.insertMessageAfter = insertMessageAfter
   ai.readMessage = readMessage
   ai.updateMessage = updateMessage
   ai.setAgentStatus = setAgentStatus
@@ -712,6 +977,6 @@
     agentsSig()
     resourcesSig()
     activeAgentIdSig()
-    save()
+    scheduleSave()
   })
 })(window.EF = window.EF || {})

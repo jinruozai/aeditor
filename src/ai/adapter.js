@@ -158,8 +158,50 @@
     })
   }
 
+  function toolCallId(call) {
+    return call && (call.providerCallId || call.id)
+  }
+
+  function toolResponseId(message) {
+    return message && (message.toolCallId || (message.meta && message.meta.toolCallId) || message.id)
+  }
+
+  function normalizeToolMessageOrder(messages) {
+    const toolMessages = {}
+    const body = []
+    for (let i = 0; i < (messages || []).length; i++) {
+      const message = messages[i]
+      if (message && message.role === 'tool') {
+        const id = toolResponseId(message)
+        if (id && !toolMessages[id]) toolMessages[id] = message
+      } else {
+        body.push(message)
+      }
+    }
+    const out = []
+    for (let i = 0; i < body.length; i++) {
+      const message = body[i]
+      const calls = message && message.toolCalls || []
+      if (!calls.length) {
+        out.push(message)
+        continue
+      }
+      const complete = []
+      for (let j = 0; j < calls.length; j++) {
+        const id = toolCallId(calls[j])
+        if (id && toolMessages[id]) complete.push(calls[j])
+      }
+      out.push(complete.length === calls.length
+        ? message
+        : Object.assign({}, message, { toolCalls: complete }))
+      for (let j = 0; j < complete.length; j++) out.push(toolMessages[toolCallId(complete[j])])
+    }
+    return out
+  }
+
   function openAiMessages(messages, request) {
-    const outMessages = (messages || []).map(function (m) {
+    const normalized = normalizeToolMessageOrder(messages || [])
+    const outMessages = normalized.map(function (m) {
       if (m.role === 'tool') {
         return {
           role: 'tool',
@@ -168,10 +210,10 @@
         }
       }
       const out = { role: m.role || 'user', content: messageText(m.content) }
+      const reasoning = m.reasoning_content != null ? m.reasoning_content : m.reasoningContent
+      if ((m.role || 'user') === 'assistant' && reasoning && isDeepSeekRequest(request)) out.reasoning_content = reasoning
       const calls = m.toolCalls || []
       if (calls.length) {
-        const reasoning = m.reasoning_content != null ? m.reasoning_content : m.reasoningContent
-        if (reasoning && isDeepSeekRequest(request)) out.reasoning_content = reasoning
         out.tool_calls = calls.map(function (call) {
           return {
             id: call.providerCallId || call.id,

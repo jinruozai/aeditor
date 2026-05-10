@@ -1,80 +1,32 @@
-/* Demo-only styles for ui-showcase + theme-config panel components. */
+/* Demo-only panel styling. */
 
-/* ── ui-showcase ────────────────────────────────────────────────── */
-.demo-showcase {
+.demo-theme,
+.demo-panel-list,
+.demo-ui-gallery {
   display: flex;
   flex-direction: column;
   height: 100%;
-  background: var(--ef-bg-1);
-}
-.demo-showcase-nav {
-  flex-shrink: 0;
-  padding: var(--ef-space-2) var(--ef-space-3);
-  border-bottom: 1px solid var(--ef-border);
-  background: var(--ef-bg-2);
-}
-/* Flex-wrap so every card keeps its own natural height (no grid row
-   alignment forcing a 160-tall curveInput to stretch the whole row).
-   Each card has an intrinsic flex-basis; large editors get '-wide'. */
-.demo-showcase-body {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-start;
-  align-content: flex-start;
-  gap: var(--ef-space-2);
-  padding: var(--ef-space-2);
-}
-.demo-showcase-body > .demo-showcase-card {
-  flex: 1 1 200px;
-  max-width: 320px;
-}
-.demo-showcase-body > .demo-showcase-card-wide {
-  flex: 1 1 280px;
-  max-width: 420px;
-}
-
-/* The body lives inside an ef-ui-scrollarea — make it scroll. */
-.demo-showcase .ef-ui-scrollarea {
-  flex: 1 1 auto;
-  overflow-y: auto;
-  min-height: 0;
-}
-
-.demo-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--ef-space-2);
-  align-items: center;
-  padding: var(--ef-space-1) 0;
-}
-.demo-row-pad {
-  height: var(--ef-space-2);
-}
-.demo-note {
-  color: var(--ef-fg-3);
-  font: var(--ef-fs-sm) var(--ef-font-ui);
-  padding: var(--ef-space-1) 0;
-}
-
-/* ── theme-config ────────────────────────────────────────────────── */
-.demo-theme {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  background: var(--ef-bg-1);
-}
-/* Single-row header: tab bar (left, shrinks with horizontal scroll if it
-   would overflow) + mode/reset/export (right, always visible). */
-.demo-theme-head {
-  display: flex;
-  flex-wrap: nowrap;
-  align-items: center;
-  gap: var(--ef-space-2);
-  padding: var(--ef-space-2) var(--ef-space-3);
   min-width: 0;
-  border-bottom: 1px solid var(--ef-border);
+  min-height: 0;
+  background: var(--ef-bg-1);
+}
+
+.demo-theme-head,
+.demo-theme-foot,
+.demo-ui-gallery-toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--ef-space-2);
+  padding: var(--ef-space-2) var(--ef-space-3);
   background: var(--ef-bg-2);
   flex-shrink: 0;
+}
+.demo-theme-head,
+.demo-ui-gallery-toolbar {
+  border-bottom: 1px solid var(--ef-border);
+}
+.demo-theme-foot {
+  border-top: 1px solid var(--ef-border);
 }
 .demo-theme-tabbar {
   flex: 1 1 auto;
@@ -82,16 +34,19 @@
   overflow-x: auto;
   scrollbar-width: thin;
 }
-.demo-theme-head .ef-ui-select { flex: 0 0 96px; width: 96px; min-width: 0; }
-.demo-theme-head .ef-ui-btn    { flex: 0 0 auto; }
-/* Grid the pane so each card is compact, not row-per-row. */
+.demo-theme-head .ef-ui-select {
+  flex: 0 0 96px;
+  width: 96px;
+  min-width: 0;
+}
+.demo-theme .ef-ui-scrollarea,
+.demo-panel-list .ef-ui-scrollarea,
+.demo-ui-gallery .ef-ui-scrollarea {
+  flex: 1 1 auto;
+  min-height: 0;
+}
 .demo-theme-host {
   padding: var(--ef-space-2) var(--ef-space-3);
-}
-.demo-theme .ef-ui-scrollarea {
-  flex: 1 1 auto;
-  overflow-y: auto;
-  min-height: 0;
 }
 .demo-theme-pane {
   display: grid;
@@ -105,62 +60,187 @@
   text-align: left;
 }
 
-/* ── tab-body filler used by the tabs showcase panes ────────────── */
-.demo-tab-body {
-  padding: var(--ef-space-3);
-  background: var(--ef-bg-2);
-  border-radius: var(--ef-r-2);
+.demo-panel-list-items {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: var(--ef-space-1);
+}
+.demo-panel-list-row {
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr);
+  align-items: center;
+  gap: var(--ef-space-2);
+  width: 100%;
+  min-height: 34px;
+  padding: var(--ef-space-1) var(--ef-space-2);
+  border: 0;
+  border-radius: var(--ef-r-1);
+  background: transparent;
   color: var(--ef-fg-1);
-  font: var(--ef-fs-md) var(--ef-font-ui);
+  text-align: left;
+  cursor: grab;
 }
-
-/* ── showcase (category) panel ──────────────────────────────────── */
-.demo-showcase .ef-ui-scrollarea { padding: 0; }
-/* Each card is ui.card(); we only add cursor + hover/active + pulse here.
-   The bordered container + head bar come from .ef-ui-card in ui-container.css. */
-.demo-showcase-card {
-  cursor: pointer;
+.demo-panel-list-row:hover {
+  background: var(--ef-hover);
+  color: var(--ef-fg-0);
+}
+.demo-panel-list-row:active {
+  cursor: grabbing;
+}
+.demo-panel-list-text {
   min-width: 0;
-  transition: border-color var(--ef-dur-fast) var(--ef-ease),
-              background   var(--ef-dur-fast) var(--ef-ease),
-              box-shadow   var(--ef-dur-fast) var(--ef-ease);
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
 }
-.demo-showcase-card:hover {
-  border-color: color-mix(in srgb, var(--ef-accent) 40%, var(--ef-border));
-  background: var(--ef-bg-2);
-}
-.demo-showcase-card-active {
-  border-color: var(--ef-accent);
-  box-shadow: 0 0 0 1px var(--ef-accent),
-              0 0 18px -6px color-mix(in srgb, var(--ef-accent) 60%, transparent);
-}
-/* Tighten + de-uppercase the card head for the showcase (default ui.card head
-   is uppercase, which is too heavy when there are 50+ cards on screen). */
-.demo-showcase-card > .ef-ui-card-head {
-  padding: var(--ef-space-2) var(--ef-space-2) var(--ef-space-1);
-  text-transform: none;
-  letter-spacing: 0;
-  border-bottom: 0;
-  font-size: var(--ef-fs-sm);
+.demo-panel-list-name,
+.demo-panel-list-id {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.demo-showcase-card > .ef-ui-card-body { padding: var(--ef-space-2); padding-top: 0; gap: 0; }
-/* Inner "stage" — the dark nested well where the live control sits. */
-.demo-card-stage {
+.demo-panel-list-name {
+  font: var(--ef-fs-sm) var(--ef-font-ui);
+}
+.demo-panel-list-id {
+  color: var(--ef-fg-3);
+  font: var(--ef-fs-xs) var(--ef-font-mono);
+}
+
+.demo-ui-gallery-toolbar {
+  flex-wrap: wrap;
+  align-content: center;
+}
+.demo-ui-gallery-toolbar .ef-ui-num {
+  width: 74px;
+  flex: 0 0 74px;
+}
+.demo-ui-gallery-toolbar .ef-ui-select {
+  width: 112px;
+  flex: 0 0 112px;
+}
+.demo-ui-gallery-tool-label {
+  color: var(--ef-fg-3);
+  font: var(--ef-fs-xs) var(--ef-font-mono);
+}
+.demo-ui-gallery-cats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ef-space-2);
+  min-width: 0;
+}
+.demo-ui-gallery-cats .ef-ui-checkbox {
+  min-height: 22px;
+}
+.demo-ui-gallery-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ef-space-2);
+  padding: var(--ef-space-2);
+}
+.demo-ui-module {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ef-space-2);
+}
+.demo-ui-module-head {
   display: flex;
   align-items: center;
   gap: var(--ef-space-2);
+  min-height: 28px;
+  border: 0;
+  border-radius: var(--ef-r-1);
+  background: transparent;
+  color: var(--ef-fg-1);
+  cursor: pointer;
+  text-align: left;
+}
+.demo-ui-module-head:hover {
+  background: var(--ef-hover);
+  color: var(--ef-fg-0);
+}
+.demo-ui-module-title {
+  font: 650 var(--ef-fs-sm) var(--ef-font-ui);
+}
+.demo-ui-module-count {
+  color: var(--ef-fg-3);
+  font: var(--ef-fs-xs) var(--ef-font-mono);
+}
+.demo-ui-card-grid {
+  display: flex;
   flex-wrap: wrap;
+  align-items: flex-start;
+  gap: var(--ef-space-2);
+}
+.demo-ui-card {
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto auto;
+  gap: 4px;
+  min-width: 88px;
+  min-height: 96px;
   padding: var(--ef-space-2);
-  background: var(--ef-bg-0);
+  border: 1px solid var(--ef-border);
+  border-radius: var(--ef-r-2);
+  background: var(--ef-bg-2);
+  color: var(--ef-fg-1);
+  box-sizing: border-box;
+  cursor: grab;
+  overflow: hidden;
+}
+.demo-ui-card:hover {
+  border-color: color-mix(in srgb, var(--ef-accent) 42%, var(--ef-border));
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--ef-accent) 28%, transparent);
+}
+.demo-ui-card:active {
+  cursor: grabbing;
+}
+.demo-ui-card-stage {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  min-height: 0;
+  padding: var(--ef-space-1);
   border: 1px solid var(--ef-border);
   border-radius: var(--ef-r-1);
-  min-height: 40px;
-  min-width: 0;
+  background: var(--ef-bg-0);
+  overflow: hidden;
 }
-.demo-card-stage > * { min-width: 0; max-width: 100%; }
+.demo-ui-card-stage > * {
+  max-width: 100%;
+  max-height: 100%;
+}
+.demo-ui-card-name,
+.demo-ui-card-meta {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: center;
+}
+.demo-ui-card-name {
+  font: 600 var(--ef-fs-sm) var(--ef-font-ui);
+  color: var(--ef-fg-0);
+}
+.demo-ui-card-meta {
+  font: var(--ef-fs-xs) var(--ef-font-mono);
+  color: var(--ef-fg-3);
+}
+.demo-ui-gallery-error {
+  color: var(--ef-error);
+  font: var(--ef-fs-xs) var(--ef-font-ui);
+  text-align: center;
+}
+.demo-ui-gallery-panel-preview {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--ef-space-1);
+  color: var(--ef-fg-3);
+  font: var(--ef-fs-xs) var(--ef-font-ui);
+}
+
 .demo-data-preview-box {
   display: flex;
   flex-direction: column;
@@ -173,152 +253,7 @@
   flex: 1 1 auto;
   height: auto;
 }
-@keyframes demo-showcase-card-pulse-kf {
-  0%   { box-shadow: 0 0 0 0   color-mix(in srgb, var(--ef-accent) 70%, transparent); }
-  70%  { box-shadow: 0 0 0 14px color-mix(in srgb, var(--ef-accent) 0%,  transparent); }
-  100% { box-shadow: 0 0 0 0   color-mix(in srgb, var(--ef-accent) 0%,  transparent); }
-}
-.demo-showcase-card-pulse { animation: demo-showcase-card-pulse-kf 900ms var(--ef-ease); }
 
-/* ── side panels: component-tree / component-search ─────────────── */
-.demo-sidepanel {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  background: var(--ef-bg-1);
-  min-height: 0;
-}
-.demo-sidepanel-tree.ef-ui-list {
-  flex: 1 1 auto;
-  border: 0;
-  border-radius: 0;
-  height: auto;
-  background: transparent;
-}
-.demo-search {
-  gap: var(--ef-space-2);
-  padding: var(--ef-space-2);
-}
-.demo-search-input { flex-shrink: 0; }
-.demo-search-list.ef-ui-list {
-  flex: 1 1 auto;
-  border: 0;
-  height: auto;
-  background: transparent;
-}
-.demo-search-row {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  padding: 2px 0;
-}
-.demo-search-row-name {
-  font: 500 var(--ef-fs-sm) var(--ef-font-ui);
-  color: var(--ef-fg-0);
-}
-.demo-search-row-cat {
-  font: var(--ef-fs-xs) var(--ef-font-mono);
-  color: var(--ef-fg-3);
-}
-
-/* ── component tree (flat sectioned list) ──────────────────────── */
-.demo-tree-scroll {
-  padding: var(--ef-space-1) 0;
-}
-.demo-tree-section {
-  padding: var(--ef-space-2) var(--ef-space-3) var(--ef-space-1);
-  font: 600 var(--ef-fs-xs) var(--ef-font-ui);
-  color: var(--ef-fg-3);
-  text-transform: uppercase;
-  letter-spacing: .05em;
-  user-select: none;
-}
-.demo-tree-row {
-  padding: 4px var(--ef-space-3) 4px calc(var(--ef-space-3) + var(--ef-space-2));
-  font: var(--ef-fs-sm) var(--ef-font-ui);
-  color: var(--ef-fg-1);
-  cursor: pointer;
-  border-left: 2px solid transparent;
-  transition: background var(--ef-dur-fast) var(--ef-ease);
-}
-.demo-tree-row:hover {
-  background: var(--ef-bg-2);
-}
-.demo-tree-row-active {
-  background: color-mix(in srgb, var(--ef-accent) 18%, transparent);
-  color: var(--ef-fg-0);
-  border-left-color: var(--ef-accent);
-}
-
-/* ── property panel ─────────────────────────────────────────────── */
-.demo-prop {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  background: var(--ef-bg-1);
-  min-height: 0;
-}
-.demo-prop .ef-ui-scrollarea {
-  flex: 1 1 auto;
-  min-height: 0;
-  padding: 0;
-}
-.demo-prop-empty {
-  padding: var(--ef-space-3);
-  color: var(--ef-fg-3);
-  font: var(--ef-fs-sm) var(--ef-font-ui);
-  font-style: italic;
-}
-.demo-prop-host {
-  display: flex;
-  flex-direction: column;
-}
-.demo-prop-host-head {
-  padding: var(--ef-space-3);
-  border-bottom: 1px solid var(--ef-border);
-  background: var(--ef-bg-2);
-}
-.demo-prop-host-body {
-  padding: var(--ef-space-2) var(--ef-space-3);
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-.demo-prop-name {
-  font: 600 var(--ef-fs-lg) var(--ef-font-ui);
-  color: var(--ef-fg-0);
-}
-.demo-prop-id {
-  font: var(--ef-fs-xs) var(--ef-font-mono);
-  color: var(--ef-fg-3);
-  margin-top: 2px;
-}
-.demo-prop-tags {
-  display: flex;
-  gap: var(--ef-space-1);
-  flex-wrap: wrap;
-  margin-top: var(--ef-space-2);
-}
-.demo-prop-desc {
-  margin-top: var(--ef-space-2);
-  color: var(--ef-fg-2);
-  font: var(--ef-fs-sm) var(--ef-font-ui);
-  line-height: 1.5;
-}
-
-/* Override propRow in the property panel only:
-   - label LEFT-aligned (not right-aligned) per user feedback
-   - narrower label column so there's still room for the control in a
-     narrow right dock (users can still hover for the full text) */
-.demo-prop-host-body .ef-ui-prop-row {
-  grid-template-columns: minmax(0, 72px) minmax(0, 1fr);
-  gap: var(--ef-space-2);
-}
-.demo-prop-host-body .ef-ui-prop-label {
-  text-align: left;
-}
-
-/* ── demo dock actions ─────────────────────────────────────────── */
 .demo-dock-actions {
   display: inline-flex;
   align-items: center;

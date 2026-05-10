@@ -62,6 +62,8 @@ assert.equal(streamCtx.runId, streamRequest.runId)
 assert.equal(streamedReply.content, 'alphabetagamma')
 assert.deepEqual(streamedReply.meta, { chunks: ['alpha', 'beta', 'gamma'] })
 assert.equal(byId(ai.agents(), streamed.id).status, 'idle')
+assert.equal(ai.peekActiveRunState(streamed.id).state, 'idle')
+assert.equal(ai.peekActiveRunState(streamed.id).previewTail, 'alphabetagamma')
 
 let release
 const held = new Promise(function (resolve) { release = resolve })
@@ -93,5 +95,103 @@ release()
 assert.equal(await run.promise, null)
 assert.equal(byId(ai.agents(), aborting.id).messages.length, 1)
 assert.equal(byId(ai.agents(), aborting.id).messages[0].status, 'stopped')
+
+ai.registerTool('stream-read', {
+  run: function (args) { return { ok: true, query: args.query } },
+})
+let toolStreamRequests = 0
+ai.registerTransport('stream-tool-flow', {
+  send: function () {
+    toolStreamRequests += 1
+    if (toolStreamRequests === 1) {
+      return {
+        deltas: (async function* () {
+          yield { text: 'Let me check. ' }
+          yield { toolCalls: [{ index: 0, id: 'call_stream_read', type: 'function', function: { name: 'stream-read', arguments: '{"query":' } }] }
+          yield { toolCalls: [{ index: 0, function: { arguments: '"dock"}' } }] }
+        })(),
+      }
+    }
+    return { role: 'assistant', content: 'stream tool continued' }
+  },
+})
+ai.registerConnection('stream-tool-flow', { auth: { type: 'none' }, transport: { type: 'stream-tool-flow' }, configDefaults: {} })
+const streamingTool = ai.createAgent({
+  name: 'Stream Tool',
+  connection: 'stream-tool-flow',
+  permissionMode: 'full',
+  toolRefs: ['stream-read'],
+})
+ai.updateAgent(streamingTool.id, { stream: true })
+const toolRun = ai.message.send(streamingTool.id, { content: 'use streaming tool' }, 'user')
+await toolRun.promise
+assert.equal(toolStreamRequests, 2)
+const toolMessage = byId(ai.agents(), streamingTool.id).messages.find(function (message) {
+  return message.toolCalls && message.toolCalls.length
+})
+assert.equal(toolMessage.content, 'Let me check. ')
+assert.equal(toolMessage.toolCalls[0].toolId, 'stream-read')
+assert.equal(toolMessage.toolCalls[0].args.query, 'dock')
+assert.equal(toolMessage.toolCalls[0].status, 'completed')
+assert.equal(byId(ai.agents(), streamingTool.id).messages.some(function (message) {
+  return message.role === 'tool' && message.meta && message.meta.toolCallId === toolMessage.toolCalls[0].id
+}), true)
+assert.equal(byId(ai.agents(), streamingTool.id).messages.some(function (message) {
+  return message.content === 'stream tool continued'
+}), true)
+
+ai.registerTool('stream-approval-edit', {
+  preview: function (args) { return { before: args.before, after: args.after } },
+  apply: function (preview) { return { applied: true, preview: preview } },
+})
+ai.registerTransport('stream-approval-flow', {
+  send: function () {
+    return {
+      deltas: (async function* () {
+        yield { text: 'Need approval before editing. ' }
+        yield { toolCalls: [{ index: 0, id: 'call_stream_approval', type: 'function', function: { name: 'stream-approval-edit', arguments: '{"before":1,"after":2}' } }] }
+      })(),
+    }
+  },
+})
+ai.registerConnection('stream-approval-flow', { auth: { type: 'none' }, transport: { type: 'stream-approval-flow' }, configDefaults: {} })
+const streamApproval = ai.createAgent({
+  name: 'Stream Approval',
+  connection: 'stream-approval-flow',
+  permissionMode: 'auto',
+  toolRefs: ['stream-approval-edit'],
+})
+ai.updateAgent(streamApproval.id, { stream: true })
+await ai.message.send(streamApproval.id, { content: 'needs approval' }, 'user').promise
+assert.equal(byId(ai.agents(), streamApproval.id).status, 'waiting_approval')
+assert.equal(ai.peekActiveRunState(streamApproval.id).state, 'waiting_approval')
+assert.equal(ai.peekActiveRunState(streamApproval.id).previewTail, 'Need approval before editing. ')
+assert.equal(ai.peekActiveRunState(streamApproval.id).modelTail, 'Need approval before editing. stream-approval-edit{"before":1,"after":2}')
+assert.equal(ai.peekActiveRunState(streamApproval.id).activityText, 'previewing stream-approval-edit · {"before":1,"after":2}')
+
+ai.registerTransport('stream-reasoning-flow', {
+  send: function () {
+    return {
+      deltas: (async function* () {
+        yield { reasoning_content: 'hidden ' }
+        yield { reasoning_content: 'thought', text: 'visible' }
+      })(),
+    }
+  },
+})
+ai.registerConnection('stream-reasoning-flow', { auth: { type: 'none' }, transport: { type: 'stream-reasoning-flow' }, configDefaults: {} })
+const reasoningAgent = ai.createAgent({
+  name: 'Stream Reasoning',
+  connection: 'stream-reasoning-flow',
+})
+ai.updateAgent(reasoningAgent.id, { stream: true })
+const reasoningRun = ai.message.send(reasoningAgent.id, { content: 'reason' }, 'user')
+await reasoningRun.promise
+const reasoningMessage = byId(ai.agents(), reasoningAgent.id).messages.find(function (message) {
+  return message.role === 'assistant'
+})
+assert.equal(reasoningMessage.content, 'visible')
+assert.equal(reasoningMessage.reasoning_content, 'hidden thought')
+assert.equal(ai.peekActiveRunState(reasoningAgent.id).modelTail, 'hidden thoughtvisible')
 
 console.log('ai stream tests ok')

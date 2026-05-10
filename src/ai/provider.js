@@ -61,7 +61,7 @@
         if (!res.ok) throw new Error((data && (data.error && (data.error.message || data.error))) || res.statusText || 'Provider request failed')
         if (contentType.indexOf('text/event-stream') >= 0 || text.indexOf('data:') === 0) {
           const parsed = parseSse(text, extractDelta)
-          return { streamed: true, content: parsed.content, usage: parsed.usage }
+          return Object.assign({ streamed: true }, parsed)
         }
         return { streamed: false, data: data }
       })
@@ -72,6 +72,7 @@
     const reader = body.getReader()
     const decoder = new TextDecoder()
     let buffer = ''
+    const snapshotState = { text: '' }
     while (true) {
       const next = await reader.read()
       if (next.done) break
@@ -84,8 +85,8 @@
         const raw = line.slice(5).trim()
         if (!raw || raw === '[DONE]') continue
         const data = JSON.parse(raw)
-        const chunk = extractDelta(data)
-        if (chunk || data.usage) yield { text: chunk || '', usage: data.usage || null }
+        const chunk = normalizeSnapshotDelta(normalizeStreamDelta(extractDelta(data), data.usage || null), snapshotState)
+        if (hasStreamDelta(chunk)) yield chunk
       }
     }
     buffer += decoder.decode()
@@ -93,8 +94,8 @@
       const raw = buffer.slice(5).trim()
       if (raw && raw !== '[DONE]') {
         const data = JSON.parse(raw)
-        const chunk = extractDelta(data)
-        if (chunk || data.usage) yield { text: chunk || '', usage: data.usage || null }
+        const chunk = normalizeSnapshotDelta(normalizeStreamDelta(extractDelta(data), data.usage || null), snapshotState)
+        if (hasStreamDelta(chunk)) yield chunk
       }
     }
   }
@@ -102,6 +103,9 @@
   function parseSse(text, extractDelta) {
     const lines = String(text || '').split(/\r?\n/)
     const parts = []
+    const reasoning = []
+    const toolCalls = []
+    const snapshotState = { text: '' }
     let usage = null
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i]
@@ -110,10 +114,59 @@
       if (!raw || raw === '[DONE]') continue
       const data = JSON.parse(raw)
       if (data.usage) usage = data.usage
-      const chunk = extractDelta(data)
-      if (chunk) parts.push(chunk)
+      const chunk = normalizeSnapshotDelta(normalizeStreamDelta(extractDelta(data), data.usage || null), snapshotState)
+      if (chunk.text) parts.push(chunk.text)
+      if (chunk.reasoning_content) reasoning.push(chunk.reasoning_content)
+      for (let j = 0; chunk.toolCalls && j < chunk.toolCalls.length; j++) toolCalls.push(chunk.toolCalls[j])
     }
-    return { content: parts.join(''), usage: usage }
+    const out = { content: parts.join(''), usage: usage }
+    if (reasoning.length) out.reasoning_content = reasoning.join('')
+    if (toolCalls.length) out.toolCalls = toolCalls
+    return out
+  }
+
+  function normalizeSnapshotDelta(delta, state) {
+    if (!delta) return delta
+    if (delta.snapshot != null) {
+      const full = String(delta.snapshot)
+      delta.text = textDeltaFromSnapshot(full, state, 'text')
+      delete delta.snapshot
+      return delta
+    }
+    if (delta.text) delta.text = textDeltaFromMaybeSnapshot(String(delta.text), state, 'text')
+    if (delta.reasoning_content) delta.reasoning_content = textDeltaFromMaybeSnapshot(String(delta.reasoning_content), state, 'reasoning')
+    return delta
+  }
+
+  function textDeltaFromSnapshot(full, state, key) {
+    const previous = state && state[key] || ''
+    const text = previous && full.indexOf(previous) === 0 ? full.slice(previous.length) : full
+    if (state) state[key] = full
+    return text
+  }
+
+  function textDeltaFromMaybeSnapshot(text, state, key) {
+    const previous = state && state[key] || ''
+    const delta = previous && text.indexOf(previous) === 0 ? text.slice(previous.length) : text
+    if (state) state[key] = previous && text.indexOf(previous) === 0 ? text : previous + text
+    return delta
+  }
+
+  function normalizeStreamDelta(chunk, usage) {
+    let out = null
+    if (chunk && typeof chunk === 'object') {
+      out = Object.assign({}, chunk)
+      if (out.content != null && out.text == null) out.text = String(out.content)
+      if (out.reasoningContent != null && out.reasoning_content == null) out.reasoning_content = String(out.reasoningContent)
+    } else {
+      out = { text: chunk ? String(chunk) : '' }
+    }
+    if (usage && !out.usage) out.usage = usage
+    return out
+  }
+
+  function hasStreamDelta(delta) {
+    return !!(delta && (delta.text || delta.reasoning_content || delta.usage || (delta.toolCalls && delta.toolCalls.length) || (delta.tool_calls && delta.tool_calls.length)))
   }
 
   function estimateUsageCost(provider, model, usage) {

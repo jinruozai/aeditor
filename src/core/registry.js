@@ -35,8 +35,9 @@
   'use strict'
 
   const components = new Map()
+  const componentMeta = new Map()
 
-  function registerComponent(name, spec) {
+  function registerComponent(name, spec, meta) {
     if (typeof name !== 'string' || name.length === 0)
       throw new Error('registerComponent: name must be a non-empty string')
     if (components.has(name))
@@ -44,6 +45,8 @@
     if (!spec || typeof spec.factory !== 'function')
       throw new Error('registerComponent: spec.factory must be a function')
     components.set(name, spec)
+    componentMeta.set(name, normalizeMeta(meta))
+    return spec
   }
 
   function resolveComponent(name) {
@@ -57,9 +60,52 @@
     return (spec.defaults && spec.defaults()) || {}
   }
 
-  function listComponents() {
+  function listComponents(filter) {
     const out = []
-    components.forEach(function (spec, name) { out.push(Object.assign({ name: name }, spec)) })
+    components.forEach(function (spec, name) {
+      const meta = componentMeta.get(name) || {}
+      if (filter && filter.owner != null && meta.owner !== filter.owner) return
+      if (filter && filter.layer != null && meta.layer !== filter.layer) return
+      out.push(Object.assign({ name: name, owner: meta.owner, layer: meta.layer }, spec))
+    })
+    return out
+  }
+
+  function unregisterComponent(name, meta) {
+    if (!components.has(name)) return false
+    const existing = componentMeta.get(name) || {}
+    if (meta && meta.owner != null && existing.owner !== meta.owner)
+      throw new Error('unregisterComponent: owner mismatch for "' + name + '"')
+    if (!existing.owner && meta && meta.owner)
+      throw new Error('unregisterComponent: cannot remove ownerless component "' + name + '" by owner')
+    components.delete(name)
+    componentMeta.delete(name)
+    return true
+  }
+
+  function unregisterComponentOwner(owner) {
+    if (!owner) return []
+    const removed = []
+    componentMeta.forEach(function (meta, name) {
+      if (meta.owner === owner) {
+        components.delete(name)
+        componentMeta.delete(name)
+        removed.push(name)
+      }
+    })
+    return removed
+  }
+
+  function componentRegistration(name) {
+    if (!components.has(name)) return null
+    return Object.assign({ name: name, spec: components.get(name) }, componentMeta.get(name) || {})
+  }
+
+  function normalizeMeta(meta) {
+    meta = meta || {}
+    const out = {}
+    if (meta.owner != null) out.owner = String(meta.owner)
+    if (meta.layer != null) out.layer = String(meta.layer)
     return out
   }
 
@@ -67,4 +113,7 @@
   EF.resolveComponent   = resolveComponent
   EF.componentDefaults  = componentDefaults
   EF.listComponents     = listComponents
+  EF.unregisterComponent = unregisterComponent
+  EF.unregisterComponentOwner = unregisterComponentOwner
+  EF.componentRegistration = componentRegistration
 })(window.EF = window.EF || {})

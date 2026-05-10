@@ -91,6 +91,7 @@ function assertAgentsAreIdBasedTree() {
   assert.equal(ai.activeAgentId(), agent.id)
   assert.equal(child.name, agent.name)
   assert.notEqual(child.id, agent.id)
+  assert.equal(child.workingDirectory, undefined)
   assert.equal(byId(ai.agents(), child.id).parentAgentId, agent.id)
   assert.equal('path' in byId(ai.agents(), agent.id), false)
   assert.equal('groupId' in byId(ai.agents(), agent.id), false)
@@ -428,6 +429,8 @@ function assertGdePatchPreviewRendering() {
   }
   window.EF.registerComponent = function (name, spec) { components[name] = spec }
   vm.runInThisContext(readFileSync('src/ui/data/changeReview.js', 'utf8'), { filename: 'ui/data/changeReview.js' })
+  vm.runInThisContext(readFileSync('src/ai/panels/message-live-strip.js', 'utf8'), { filename: 'ai/panels/message-live-strip.js' })
+  vm.runInThisContext(readFileSync('src/ai/panels/message-virtualizer.js', 'utf8'), { filename: 'ai/panels/message-virtualizer.js' })
   vm.runInThisContext(readFileSync('src/ai/panels/transcript.js', 'utf8'), { filename: 'ai/panels/transcript.js' })
 
   const preview = EF.changeSet.normalize({

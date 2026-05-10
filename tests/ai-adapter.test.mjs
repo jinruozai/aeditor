@@ -73,10 +73,30 @@ assert.equal(openAiMessages[0].tool_calls[0].function.name, 'agent__create')
 assert.equal(openAiMessages[1].role, 'tool')
 assert.equal(openAiMessages[1].tool_call_id, 'call_1')
 
+const repairedToolOrder = ai.openAiMessages([
+  { role: 'assistant', content: '', toolCalls: [{ id: 'call_repair', toolId: 'agent.create', args: { name: 'helper' } }] },
+  { role: 'user', content: 'continue' },
+  { role: 'tool', id: 'tool_repair', meta: { toolCallId: 'call_repair' }, content: { ok: true } },
+], request)
+assert.equal(repairedToolOrder[0].role, 'assistant')
+assert.equal(repairedToolOrder[1].role, 'tool')
+assert.equal(repairedToolOrder[1].tool_call_id, 'call_repair')
+assert.equal(repairedToolOrder[2].role, 'user')
+
+const strippedIncompleteToolCalls = ai.openAiMessages([
+  { role: 'assistant', content: 'Need a tool.', toolCalls: [{ id: 'call_missing', toolId: 'agent.create', args: {} }] },
+  { role: 'user', content: 'continue' },
+], request)
+assert.equal('tool_calls' in strippedIncompleteToolCalls[0], false)
+
 const deepSeekMessages = ai.openAiMessages([
   { role: 'assistant', content: '', reasoning_content: 'Need project summary.', toolCalls: [{ id: 'call_ds', toolId: 'gde.getProjectSummary', args: {} }] },
 ], { connectionName: 'deepseek' })
 assert.equal(deepSeekMessages[0].reasoning_content, 'Need project summary.')
+const deepSeekReasoningWithoutTools = ai.openAiMessages([
+  { role: 'assistant', content: 'I checked it.', reasoning_content: 'Reasoning must round trip.' },
+], { connectionName: 'deepseek' })
+assert.equal(deepSeekReasoningWithoutTools[0].reasoning_content, 'Reasoning must round trip.')
 const openAiNoReasoning = ai.openAiMessages([
   { role: 'assistant', content: '', reasoning_content: 'Provider-specific thinking.', toolCalls: [{ id: 'call_openai', toolId: 'gde.getProjectSummary', args: {} }] },
 ], { connectionName: 'openai-api' })

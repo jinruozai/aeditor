@@ -64,6 +64,21 @@ const singleMoved = EF.movePanelToSplit(singleTree, singlePanelId, singleTarget.
 assert.equal(EF.findDock(singleMoved.tree, singleSource.id), null)
 assert.equal(EF.findPanel(singleMoved.tree, singlePanelId).dockId, singleMoved.newDockId)
 
+const closeSource = EF.dock({ name: 'close-source', panels: [EF.panel({ component: 'editor', title: 'Only' })] })
+const closeTarget = EF.dock({ name: 'close-target', panels: [EF.panel({ component: 'editor', title: 'Other' })] })
+const closeTree = EF.split('horizontal', [closeSource, closeTarget], [0.5, 0.5])
+const closePanelId = closeSource.panels[0].id
+const closedTree = EF.removePanel(closeTree, closePanelId)
+assert.equal(EF.findDock(closedTree, closeSource.id), null)
+assert.equal(EF.findDock(closedTree, closeTarget.id).node.panels.length, 1)
+
+const closeRoot = EF.dock({ name: 'close-root', panels: [EF.panel({ component: 'editor', title: 'Root Only' })] })
+const closeRootPanelId = closeRoot.panels[0].id
+const closedRoot = EF.removePanel(closeRoot, closeRootPanelId)
+assert.equal(closedRoot.id, closeRoot.id)
+assert.equal(closedRoot.panels.length, 0)
+assert.equal(closedRoot.activeId, null)
+
 const merge = EF.mergeDocks(movedTree, sideId, dockId)
 assert.ok(Array.isArray(merge.discardedPanels))
 assert.equal(EF.findDock(merge.tree, dockId), null)

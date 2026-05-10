@@ -116,6 +116,22 @@ const semanticApplied = ai.applyToolCall(agent.id, semanticFail.id, 'user')
 assert.equal(semanticApplied.status, 'failed')
 assert.match(semanticApplied.error, /invalid patch/)
 
+ai.registerTool('invalid-preview', {
+  preview: function () {
+    return { ok: false, errors: [{ path: 'prop', message: 'unknown property' }] }
+  },
+  apply: function () {
+    return { applied: true }
+  },
+})
+const invalidPreviewCall = ai.createToolCall(agent.id, { toolId: 'invalid-preview' }, 'user')
+const invalidPreview = ai.previewToolCall(agent.id, invalidPreviewCall.id, 'user')
+assert.equal(invalidPreview.status, 'failed')
+assert.match(invalidPreview.error, /unknown property/)
+const invalidPreviewState = ai.getToolCallActionState(agent.id, invalidPreviewCall.id, 'user')
+assert.equal(invalidPreviewState.canApply, false)
+assert.equal(invalidPreviewState.canPreview, false)
+
 ai.registerTool('async-apply', {
   run: function () { return { id: 'async' } },
   apply: function (result) {
@@ -193,6 +209,11 @@ const failedRun = ai.runToolCall(agent.id, failing.id, 'user')
 const failed = await failedRun.promise
 assert.equal(failed.status, 'failed')
 assert.equal(failed.error, 'boom')
+const failedState = ai.getToolCallActionState(agent.id, failing.id, 'user')
+assert.equal(failedState.canPreview, false)
+assert.equal(failedState.canApply, false)
+assert.equal(failedState.canApprove, false)
+assert.equal(failedState.canRun, false)
 
 const calls = []
 ai.setPermissionResolver(function (ctx, next) {

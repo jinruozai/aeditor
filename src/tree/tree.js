@@ -72,6 +72,8 @@
     if (partial.badge != null)        p.badge        = partial.badge
     if (partial.props)                p.props        = partial.props
     if (partial.transient)            p.transient    = true
+    if (partial.owner != null)        p.owner        = partial.owner
+    if (partial.extensionId != null)  p.extensionId  = partial.extensionId
     if (partial.toolbarItems)         p.toolbarItems = partial.toolbarItems.map(normalizeToolbarItem)
     return p
   }
@@ -300,14 +302,15 @@
     return { tree: replaceAt(tree, found.path, newDock), panelId: p.id }
   }
 
-  // removePanel — pure layer always picks "last remaining" as fallback for
-  // new active when removing the active panel. The runtime layer can override
-  // by calling activatePanel(otherId) afterwards using its activation history.
+  // removePanel — close semantics. Removing the last panel from a non-root
+  // dock removes that dock from the split tree, matching panel drag/pop-out.
+  // The root dock cannot disappear; it becomes an empty dock.
   function removePanel(tree, panelId) {
     const found = findPanel(tree, panelId)
     if (!found) return tree
     const dockNode = getAt(tree, found.path)
     const newPanels = dockNode.panels.filter(function (p) { return p.id !== panelId })
+    if (!newPanels.length && found.path.length > 0) return removeAt(tree, found.path)
     let newActive = dockNode.activeId
     if (newActive === panelId) {
       newActive = newPanels.length > 0 ? newPanels[newPanels.length - 1].id : null

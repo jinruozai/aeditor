@@ -31,7 +31,12 @@ ai.updateAgent(agent.id, {
   statusText: 'doing work',
   activeMessageId: agent.messages[0].id,
   queue: [{ messageId: agent.messages[0].id }],
-  messages: agent.messages.concat([{ role: 'user', content: 'in flight', status: 'running' }]),
+  messages: agent.messages.concat([{
+    role: 'assistant',
+    content: 'in flight',
+    status: 'running',
+    toolCalls: [{ id: 'big_tool', toolId: 'editor.createPanel', args: { source: 'x'.repeat(50000) }, applyResult: { source: 'x'.repeat(50000) } }],
+  }]),
   quests: [{ id: 'q1', requestMessageId: 'q1', status: 'running' }],
 })
 ai.save()
@@ -44,6 +49,7 @@ assert.equal('groups' in stored, false)
 assert.equal('path' in stored.agents[1], false)
 assert.equal('groupId' in stored.agents[1], false)
 assert.deepEqual(stored.agents[1].contextRefs, [])
+assert.equal(stored.agents[1].messages[1].toolCalls[0].args.source.length < 13000, true)
 
 global.window.EF = {}
 vm.runInThisContext(readFileSync('src/core/signal.js', 'utf8'), { filename: 'signal.js#2' })
@@ -68,5 +74,9 @@ assert.equal(ai.activeAgentId(), agent.id)
 
 ai.clearStoredState()
 assert.equal(window.localStorage.getItem('test.ai'), null)
+
+window.localStorage.setItem('too.big.ai', 'x'.repeat(5000001))
+ai.configurePersistence({ key: 'too.big.ai' })
+assert.equal(window.localStorage.getItem('too.big.ai'), null)
 
 console.log('ai persistence tests ok')

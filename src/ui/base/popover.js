@@ -16,18 +16,27 @@
       ui.collect(el, function () { ui.dispose(o.content) })
     }
 
+    const placeOpts = { side: o.side || 'bottom', align: o.align || 'start' }
+    const ownerScope = ui.scopeOf(o.anchor)
+    if (ownerScope) el.__efUiScope = ownerScope
     const unmount = ui.portal(el)
-    ui.place(o.anchor, el, { side: o.side || 'bottom', align: o.align || 'start' })
+    ui.place(o.anchor, el, placeOpts)
 
-    const overlay = ui._overlay.open(el, {
+    let overlay = null
+    let unregister = null
+    function cleanup() {
+      if (unregister) { unregister(); unregister = null }
+      ui.dispose(el)
+      unmount()
+      o.onDismiss && o.onDismiss()
+    }
+
+    overlay = ui._overlay.open(el, {
       anchor:   o.anchor,
       role:     o.role || 'dialog',
-      onDismiss: function () {
-        ui.dispose(el)
-        unmount()
-        o.onDismiss && o.onDismiss()
-      },
+      onDismiss: cleanup,
     })
+    unregister = ui.registerScopedOverlay(o.anchor, function () { overlay.close() }, { scope: ownerScope })
 
     return { el: el, close: overlay.close }
   }

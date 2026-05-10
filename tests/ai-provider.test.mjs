@@ -19,10 +19,43 @@ const calls = []
 global.fetch = function (url, opts) {
   calls.push({ url, opts: opts || {} })
   if (String(url).startsWith('https://stream.test')) {
+    const body = JSON.parse((opts && opts.body) || '{}')
+    const last = body.messages && body.messages[body.messages.length - 1]
+    if (last && last.content === 'stream tool') {
+      return Promise.resolve(streamResponse([
+        'data: {"choices":[{"delta":{"content":"checking "}}]}\n\n',
+        'data: {"choices":[{"delta":{"tool_calls":[{"index":0,"id":"call_stream","type":"function","function":{"name":"editor__searchReferences","arguments":"{\\\"query\\\":"}}]}}]}\n\n',
+        'data: {"choices":[{"delta":{"tool_calls":[{"index":0,"function":{"arguments":"\\\"dock\\\",\\\"limit\\\":2}"}}]}}]}\n\n',
+        'data: [DONE]\n\n',
+      ]))
+    }
+    if (last && last.content === 'stream reasoning') {
+      return Promise.resolve(streamResponse([
+        'data: {"choices":[{"delta":{"reasoning_content":"think "}}]}\n\n',
+        'data: {"choices":[{"delta":{"reasoning_content":"more","content":"answer"}}]}\n\n',
+        'data: [DONE]\n\n',
+      ]))
+    }
+    if (last && last.content === 'cumulative stream') {
+      return Promise.resolve(streamResponse([
+        'data: {"choices":[{"delta":{"content":"A"}}]}\n\n',
+        'data: {"choices":[{"delta":{"content":"AB"}}]}\n\n',
+        'data: {"choices":[{"delta":{"content":"ABC"}}]}\n\n',
+        'data: [DONE]\n\n',
+      ]))
+    }
     return Promise.resolve(streamResponse([
       'data: {"choices":[{"delta":{"content":"hel"}}]}\n\n',
       'data: {"choices":[{"delta":{"content":"lo"}}]}\n\n',
       'data: {"usage":{"prompt_tokens":2,"completion_tokens":3,"total_tokens":5}}\n\n',
+      'data: [DONE]\n\n',
+    ]))
+  }
+  if (String(url).startsWith('https://codex-stream.test')) {
+    return Promise.resolve(streamResponse([
+      'data: {"content":"A"}\n\n',
+      'data: {"content":"AB"}\n\n',
+      'data: {"content":"ABC"}\n\n',
       'data: [DONE]\n\n',
     ]))
   }
@@ -177,7 +210,7 @@ const openAiToolReply = await ai.sendViaConnection('openai-api', {
   toolSpecs: [{ id: 'gde.queryRows', title: 'Query Rows', description: 'Read rows', schema: { table: 'string', limit: 'number' } }],
 }, { signal: null })
 const openAiToolBody = JSON.parse(calls.at(-1).opts.body)
-assert.equal(openAiToolBody.stream, false)
+assert.equal(openAiToolBody.stream, true)
 assert.equal(openAiToolBody.tools[0].function.name, 'gde__queryRows')
 assert.deepEqual(openAiToolBody.tools[0].function.parameters.properties.table, { type: 'string' })
 assert.deepEqual(openAiToolReply.toolCalls, [])
@@ -214,6 +247,58 @@ for await (const delta of streamedReply.deltas) {
 }
 assert.equal(streamParts.join(''), 'hello')
 assert.deepEqual(streamUsage, { prompt_tokens: 2, completion_tokens: 3, total_tokens: 5 })
+
+const streamedToolReply = await ai.sendViaConnection('deepseek', {
+  model: '',
+  stream: true,
+  messages: [{ role: 'user', content: 'stream tool' }],
+  toolSpecs: [{ id: 'editor.searchReferences', title: 'Search', schema: { query: 'string', limit: 'number' } }],
+}, { signal: null })
+assert.equal(typeof streamedToolReply.deltas[Symbol.asyncIterator], 'function')
+const streamedToolDeltas = []
+for await (const delta of streamedToolReply.deltas) streamedToolDeltas.push(delta)
+assert.equal(streamedToolDeltas[0].text, 'checking ')
+assert.equal(streamedToolDeltas[1].toolCalls[0].id, 'call_stream')
+assert.equal(streamedToolDeltas[2].toolCalls[0].function.arguments, '"dock","limit":2}')
+
+const streamedReasoningReply = await ai.sendViaConnection('deepseek', {
+  model: '',
+  stream: true,
+  messages: [{ role: 'user', content: 'stream reasoning' }],
+}, { signal: null })
+let streamedReasoning = ''
+let streamedReasoningText = ''
+for await (const delta of streamedReasoningReply.deltas) {
+  if (delta.reasoning_content) streamedReasoning += delta.reasoning_content
+  if (delta.text) streamedReasoningText += delta.text
+}
+assert.equal(streamedReasoning, 'think more')
+assert.equal(streamedReasoningText, 'answer')
+
+const cumulativeOpenAiReply = await ai.sendViaConnection('deepseek', {
+  model: '',
+  stream: true,
+  messages: [{ role: 'user', content: 'cumulative stream' }],
+}, { signal: null })
+let cumulativeOpenAiText = ''
+for await (const delta of cumulativeOpenAiReply.deltas) {
+  if (delta.text) cumulativeOpenAiText += delta.text
+}
+assert.equal(cumulativeOpenAiText, 'ABC')
+
+EF.settings.set(ai.connectionConfigKey('openai-codex', 'baseUrl'), 'https://codex-stream.test')
+EF.settings.set(ai.connectionConfigKey('openai-codex', 'stream'), true)
+const codexSnapshotReply = await ai.sendViaConnection('openai-codex', {
+  model: 'gpt-test',
+  stream: true,
+  messages: [{ role: 'user', content: 'snapshot stream' }],
+  toolSpecs: [],
+}, { signal: null })
+let codexSnapshotText = ''
+for await (const delta of codexSnapshotReply.deltas) {
+  if (delta.text) codexSnapshotText += delta.text
+}
+assert.equal(codexSnapshotText, 'ABC')
 
 EF.settings.set(ai.connectionConfigKey('anthropic-api', 'baseUrl'), 'https://anthropic.test')
 EF.settings.set(ai.connectionConfigKey('anthropic-api', 'apiKey'), 'anthropic-key')

@@ -72,6 +72,15 @@
       return r.panelId
     }
 
+    layout.addPanelToSplit = function (dockId, direction, side, ratio, partial) {
+      if (layout.disposed) return { newDockId: null, newPanelId: null }
+      const r = EF.splitDock(treeSig.peek(), dockId, direction, side, ratio, { seedPanels: [partial] })
+      layout.setTree(r.tree)
+      layout.markActivation(r.newPanelId)
+      maybeEvictLRU(layout)
+      return { newDockId: r.newDockId, newPanelId: r.newPanelId }
+    }
+
     // Cross-dock move — runtime-level. Same invariant as addPanel: all
     // callers (handle, interactions.js panel drag, etc.) route here so
     // markActivation is never forgotten. No LRU eviction: move doesn't
@@ -245,14 +254,15 @@
     for (let i = 0; i < items.length; i++) {
       const item = items[i]
       const sr = {
-        kind:     'toolbar-static',
-        component:   item.component,
-        align:    item.align || 'start',
-        contentEl:null,
-        cleanups: [],
-        active:   signal(true),
-        dockRef:  signal(dockRuntime.id), // fixed: static items don't migrate
-        props:    item.props || {},
+        kind:      'toolbar-static',
+        component: item.component,
+        align:     item.align || 'start',
+        contentEl: null,
+        cleanups:  [],
+        active:    signal(true),
+        dockRef:   signal(dockRuntime.id), // fixed: static items don't migrate
+        props:     item.props || {},
+        error:     null,
       }
       sr.ctx = EF._dock.makeContext(sr, layout)
       materializeComponentEl(sr, { dockId: dockRuntime.id })
@@ -347,6 +357,7 @@
       dockRef:                signal(dockRuntime.id),
       dynamicToolbarRuntimes: [],
       lastActivatedAt:        0,
+      error:                  null,
       _layout:                layout,
     }
     pr.ctx = EF._dock.makeContext(pr, layout)
@@ -357,16 +368,17 @@
       for (let i = 0; i < panelData.toolbarItems.length; i++) {
         const item = panelData.toolbarItems[i]
         const tr = {
-          kind:     'toolbar-dynamic',
-          component:   item.component,
-          align:    item.align || 'start',
-          panelId:  pr.panelId,
-          contentEl:null,
-          cleanups: [],
-          active:   signal(false),
-          data:     pr.data,    // shared with parent panel
-          dockRef:  pr.dockRef, // shared with parent panel
-          props:    item.props || {},
+          kind:      'toolbar-dynamic',
+          component: item.component,
+          align:     item.align || 'start',
+          panelId:   pr.panelId,
+          contentEl: null,
+          cleanups:  [],
+          active:    signal(false),
+          data:      pr.data,    // shared with parent panel
+          dockRef:   pr.dockRef, // shared with parent panel
+          props:     item.props || {},
+          error:     null,
         }
         tr.ctx = EF._dock.makeContext(tr, layout)
         pr.dynamicToolbarRuntimes.push(tr)
@@ -482,12 +494,31 @@
       ? runtime.ctx.panel.props
       : EF.signal(runtime.props || {})
     runtime.propsSig = propsSig
-    const el = EF.safeCall(src, function () {
-      return EF.untracked(function () {
+    let el = null
+    try {
+      el = EF.untracked(function () {
         return spec.factory(propsSig, runtime.ctx)
       })
-    })
-    runtime.contentEl = el || makeErrorEl(runtime.component)
+      runtime.error = null
+    } catch (err) {
+      runtime.error = {
+        message: String(err && err.message ? err.message : err),
+        stack: err && err.stack || null,
+      }
+      if (EF.reportError) EF.reportError(src, err)
+    }
+    if (!el) {
+      if (!runtime.error) {
+        runtime.error = { message: 'Component factory returned no element', stack: null }
+        if (EF.reportError) EF.reportError(src, new Error(runtime.error.message))
+      }
+      runtime.contentEl = makeErrorEl(runtime.component, runtime.error.message)
+      return
+    }
+    runtime.contentEl = el
+    if (runtime.kind === 'panel' && EF.ui && EF.ui.scope) {
+      EF.ui.scope(el, { active: runtime.active })
+    }
   }
 
   function disposeComponentRuntime(runtime) {
@@ -496,6 +527,9 @@
       try { fn() } catch (e) { console.error(e) }
     }
     if (runtime.contentEl) {
+      if (runtime.kind === 'panel' && EF.ui && EF.ui.closeScope) {
+        EF.ui.closeScope(runtime.contentEl)
+      }
       const spec = EF.resolveComponent(runtime.component)
       if (spec.dispose) {
         EF.safeCall({ scope: 'component', component: runtime.component },
@@ -565,10 +599,54 @@
     }
   }
 
-  function makeErrorEl(componentName) {
+  function inspectPanels(layout) {
+    const out = []
+    function walk(node) {
+      if (!node) return
+      if (node.type === 'dock') {
+        const dr = layout.dockRuntimes.get(node.id)
+        const panels = node.panels || []
+        for (let i = 0; i < panels.length; i++) {
+          const panel = panels[i]
+          const pr = dr && dr.panelRuntimes.get(panel.id)
+          out.push(panelStatus(node, panel, pr))
+        }
+        return
+      }
+      for (let j = 0; node.children && j < node.children.length; j++) walk(node.children[j])
+    }
+    walk(layout.treeSig.peek())
+    return out
+  }
+
+  function inspectPanel(layout, panelId) {
+    const list = inspectPanels(layout)
+    for (let i = 0; i < list.length; i++) if (list[i].panelId === panelId) return list[i]
+    return null
+  }
+
+  function panelStatus(dock, panel, runtime) {
+    const materialized = !!(runtime && runtime.contentEl)
+    const error = runtime && runtime.error
+    const text = materialized && runtime.contentEl.textContent ? runtime.contentEl.textContent : ''
+    return {
+      panelId: panel.id,
+      dockId: dock.id,
+      dockName: dock.name || dock.id,
+      title: panel.title || panel.component,
+      component: panel.component,
+      active: dock.activeId === panel.id,
+      materialized: materialized,
+      status: error ? 'error' : (materialized ? 'ready' : 'pending'),
+      error: error ? { message: error.message, stack: error.stack || null } : null,
+      textSample: text ? text.slice(0, 2000) : '',
+    }
+  }
+
+  function makeErrorEl(componentName, message) {
     const el = document.createElement('div')
     el.className = 'ef-panel-error'
-    el.textContent = 'Failed to create component: ' + componentName
+    el.textContent = 'Failed to create component: ' + componentName + (message ? '\n' + message : '')
     return el
   }
 
@@ -584,4 +662,6 @@
   EF._dock.disposeStalePanelRuntimes   = disposeStalePanelRuntimes
   EF._dock.disposePanelRuntime         = disposePanelRuntime
   EF._dock.findPanelRuntime            = findPanelRuntime
+  EF._dock.inspectPanels               = inspectPanels
+  EF._dock.inspectPanel                = inspectPanel
 })(window.EF = window.EF || {})

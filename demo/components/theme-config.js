@@ -196,9 +196,8 @@
         }
       }
 
-      // Single header row — tab bar on the left, mode/reset/export on the
-      // right. Per user feedback: palette/spacing/sizing tabs and the
-      // dark/light/reset/export controls must share the same row.
+      // Header stays compact in the left dock: theme mode + reset/export only.
+      // Category tabs are placed in a footer at the bottom of the panel.
       const head = ui.h('div', 'demo-theme-head')
       const tabSig = EF.signal('palette')
       const tabBar = ui.segmented({
@@ -258,7 +257,6 @@
         },
       })
 
-      head.appendChild(tabBar)
       head.appendChild(modeSel)
       head.appendChild(resetBtn)
       head.appendChild(exportBtn)
@@ -361,6 +359,10 @@
       const paneHost = ui.h('div', 'demo-theme-host')
       const scroll = ui.scrollArea({ children: paneHost })
       root.appendChild(scroll)
+
+      const foot = ui.h('div', 'demo-theme-foot')
+      foot.appendChild(tabBar)
+      root.appendChild(foot)
 
       ui.bind(root, tabSig, function (key) {
         while (paneHost.firstChild) paneHost.removeChild(paneHost.firstChild)

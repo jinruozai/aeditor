@@ -32,6 +32,8 @@ const JS_ORDER = [
   'core/history.js',
   'core/i18n.js',
   'core/settings.js',
+  'core/commands.js',
+  'core/workspace.js',
 
   // Layer 1 �?tree (pure data)
   'tree/tree.js',
@@ -50,7 +52,10 @@ const JS_ORDER = [
   'ai/provider-transports.js',
   'ai/provider-connections.js',
   'ai/context.js',
+  'ai/workdir.js',
   'ai/reference.js',
+  'core/extensions.js',
+  'core/project.js',
   'ai/change-set.js',
   'ai/target.js',
   'ai/rich-prompt.js',
@@ -73,6 +78,7 @@ const JS_ORDER = [
   'ui/_internal/_floating.js',
   'ui/_internal/_drag.js',
   'ui/_internal/_signal.js',
+  'ui/_internal/_scope.js',
   'ui/_internal/_box-style.js',
   'ui/_internal/_text-style.js',
   'ui/_internal/_render-tree.js',
@@ -166,7 +172,10 @@ const JS_ORDER = [
   // Layer 12 �?built-in panel components (compose EF.ui.* + register via EF.registerComponent)
   'ai/panels/agents.js',
   'ai/panels/chat.js',
+  'ai/panels/message-live-strip.js',
+  'ai/panels/message-virtualizer.js',
   'ai/panels/transcript.js',
+  'ai/panels/chat-combined.js',
   'ui/panel/settings.js',
   'ui/panel/settings-builtins.js',
   'ui/panel/dock-tabs.js',

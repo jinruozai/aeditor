@@ -254,7 +254,7 @@ async function codexChat(request) {
   })
   const thread = started.thread || started
   const threadId = thread.id || started.threadId
-  const chunks = []
+  let content = ''
   let usage = null
   let doneResolve
   let doneReject
@@ -265,7 +265,9 @@ async function codexChat(request) {
   const offDelta = codex.on('item/agentMessage/delta', params => {
     if (!params || params.threadId && params.threadId !== threadId) return
     const delta = params.delta || params.text || ''
-    if (delta) chunks.push(delta)
+    if (!delta) return
+    const text = String(delta)
+    content = text.indexOf(content) === 0 ? text : content + text
   })
   const offCompleted = codex.on('turn/completed', params => {
     if (!params || params.threadId && params.threadId !== threadId) return
@@ -294,7 +296,6 @@ async function codexChat(request) {
   })
   try {
     const turn = await done
-    let content = chunks.join('')
     if (!content && turn && turn.items) {
       content = turn.items.map(item => item.text || item.content || '').join('')
     }

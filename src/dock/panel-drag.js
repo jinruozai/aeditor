@@ -205,6 +205,114 @@
     window.addEventListener('blur', onCancel)
   }
 
+  function beginExternalPanelDrag(e, partial, layout, opts) {
+    if (e.button !== 0) return
+    e.preventDefault()
+    const panel = partial || {}
+    const component = panel.component
+    const label = (opts && opts.label) || panel.title || component
+    const threshold = EF.ui.readNum('--ef-drag-threshold', 6)
+
+    const startX = e.clientX, startY = e.clientY
+    let dragging = false
+    let ghost = null
+    let lastDockEl = null
+    let lastOverlay = null
+    let drop = null
+    let done = false
+
+    function clearHighlights() {
+      if (lastDockEl) {
+        lastDockEl.classList.remove('ef-drop-target', 'ef-drop-reject')
+        lastDockEl = null
+      }
+      if (lastOverlay) {
+        lastOverlay.remove()
+        lastOverlay = null
+      }
+    }
+
+    function onMove(ev) {
+      const dx = ev.clientX - startX, dy = ev.clientY - startY
+      if (!dragging) {
+        if (Math.abs(dx) < threshold && Math.abs(dy) < threshold) return
+        dragging = true
+        ghost = makeGhost(label)
+        document.body.appendChild(ghost)
+        document.body.classList.add('ef-dragging')
+      }
+      ghost.style.transform = 'translate(' + (ev.clientX + 8) + 'px,' + (ev.clientY + 8) + 'px)'
+
+      clearHighlights()
+      drop = null
+
+      const el = document.elementFromPoint(ev.clientX, ev.clientY)
+      const dockEl = el && el.closest && el.closest('.ef-dock')
+      if (!dockEl) return
+      const dstId = dockEl.dataset.dockId
+      const dst = dstId && EF.findDock(layout.tree(), dstId)
+      if (!dst) return
+
+      const a = dst.node.accept
+      const accepts = !a || a === '*' || (Array.isArray(a) && a.indexOf(component) >= 0)
+      if (!accepts) {
+        dockEl.classList.add('ef-drop-reject')
+        lastDockEl = dockEl
+        return
+      }
+
+      const zone = classifyDockZone(dockEl, ev.clientX, ev.clientY)
+      dockEl.classList.add('ef-drop-target')
+      lastDockEl = dockEl
+      lastOverlay = makeDockDropOverlay(dockEl, zone)
+      drop = Object.assign({ dockId: dstId }, zone)
+    }
+
+    function cleanup() {
+      if (done) return false
+      done = true
+      window.removeEventListener('pointermove', onMove)
+      window.removeEventListener('pointerup', onUp)
+      window.removeEventListener('pointercancel', onCancel)
+      window.removeEventListener('keydown', onKey)
+      window.removeEventListener('blur', onCancel)
+      document.body.classList.remove('ef-dragging')
+      if (ghost) ghost.remove()
+      clearHighlights()
+      return true
+    }
+
+    function onUp() {
+      const resolvedDrop = drop
+      const wasDragging = dragging
+      if (!cleanup() || !wasDragging || !resolvedDrop) return
+      try {
+        if (resolvedDrop.kind === 'center') {
+          layout.addPanel(resolvedDrop.dockId, clonePanelInput(panel))
+          return
+        }
+        layout.addPanelToSplit(
+          resolvedDrop.dockId,
+          resolvedDrop.direction,
+          resolvedDrop.side,
+          resolvedDrop.ratio,
+          clonePanelInput(panel)
+        )
+      } catch (err) {
+        EF.reportError({ scope: 'global' }, err)
+      }
+    }
+
+    function onKey(ev) { if (ev.key === 'Escape') { dragging = false; cleanup() } }
+    function onCancel() { dragging = false; cleanup() }
+
+    window.addEventListener('pointermove', onMove)
+    window.addEventListener('pointerup', onUp)
+    window.addEventListener('pointercancel', onCancel)
+    window.addEventListener('keydown', onKey)
+    window.addEventListener('blur', onCancel)
+  }
+
   // Find which gap between existing tabs the pointer falls into. Works for
   // both horizontal and vertical tab strips. The returned index is the slot
   // in the POST-REMOVAL list (with draggingPanelId filtered out) — that's
@@ -325,6 +433,14 @@
     return g
   }
 
+  function clonePanelInput(panel) {
+    const out = Object.assign({}, panel)
+    if (panel.props) out.props = structuredClone(panel.props)
+    if (panel.toolbarItems) out.toolbarItems = structuredClone(panel.toolbarItems)
+    return out
+  }
+
   EF._dock = EF._dock || {}
   EF._dock.beginPanelDrag = beginPanelDrag
+  EF._dock.beginExternalPanelDrag = beginExternalPanelDrag
 })(window.EF = window.EF || {})

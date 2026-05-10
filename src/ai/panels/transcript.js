@@ -435,13 +435,15 @@
 
   function afterToolAction(agentId, action) {
     if (!action) return action
+    function done() {
+      if (EF.ai.flushToolResults) EF.ai.flushToolResults(agentId)
+      if (EF.ai.resumeAgent) EF.ai.resumeAgent(agentId, 'user')
+    }
     if (action.promise) {
-      action.promise.then(function () {
-        if (EF.ai.resumeAgent) EF.ai.resumeAgent(agentId, 'user')
-      })
+      action.promise.then(done)
       return action
     }
-    if (EF.ai.resumeAgent) EF.ai.resumeAgent(agentId, 'user')
+    done()
     return action
   }
 
@@ -450,7 +452,8 @@
       ? EF.ai.getToolCallActionState(agentId, call.id, 'user')
       : null
     const actions = ui.h('div', 'ef-ai-tool-call-actions')
-    if (state && (state.canPreview || state.canApply || state.canApprove || state.canRun || state.canReject)) {
+    const hasForwardAction = state && (state.canPreview || state.canApply || state.canApprove || state.canRun)
+    if (hasForwardAction) {
       actions.appendChild(ui['switch']({
         value: !!(EF.ai.isToolAlwaysAllowed && EF.ai.isToolAlwaysAllowed(agentId, call.toolId)),
         label: 'Always',
@@ -477,9 +480,20 @@
     }
   }
 
-  function renderToolCall(agentId, call) {
+  function runStateKey(agentId, messageId, callId) {
+    return String(agentId || '') + '/' + String(messageId || '') + '/' + String(callId || '')
+  }
+
+  function renderToolCall(agentId, messageId, call, viewState) {
     const status = toolStatus(call)
     const card = ui.h('details', 'ef-ai-tool-call ef-ai-tool-call-' + status)
+    const key = runStateKey(agentId, messageId, call.id)
+    if (viewState && viewState.expandedToolCalls[key]) card.open = true
+    card.addEventListener('toggle', function () {
+      if (!viewState) return
+      if (card.open) viewState.expandedToolCalls[key] = true
+      else delete viewState.expandedToolCalls[key]
+    })
     const head = ui.h('summary', 'ef-ai-tool-call-head')
     const right = ui.h('div', 'ef-ai-tool-call-head-right')
     right.addEventListener('click', function (ev) { ev.stopPropagation() })
@@ -524,10 +538,10 @@
     return shown.join(' · ')
   }
 
-  function renderToolCalls(parent, agentId, calls) {
+  function renderToolCalls(parent, agentId, messageId, calls, viewState) {
     if (!calls || !calls.length) return
     const wrap = ui.h('div', 'ef-ai-tool-calls')
-    for (let i = 0; i < calls.length; i++) wrap.appendChild(renderToolCall(agentId, calls[i]))
+    for (let i = 0; i < calls.length; i++) wrap.appendChild(renderToolCall(agentId, messageId, calls[i], viewState))
     parent.appendChild(wrap)
   }
 
@@ -550,7 +564,7 @@
     return row
   }
 
-  function renderMessage(agent, msg, runFooters) {
+  function renderMessage(agent, msg, runFooters, viewState) {
     if (msg.empty) return renderEmpty(msg)
     if (runtimeEventsOf(msg).length) return renderRuntimeEvent(agent, msg)
 
@@ -565,7 +579,7 @@
     if (status === 'error' && msg.meta && msg.meta.error) {
       body.appendChild(ui.h('div', 'ef-ai-message-error', { text: msg.meta.error }))
     }
-    renderToolCalls(body, agent.id, toolCallsOf(msg))
+    renderToolCalls(body, agent.id, msg.id, toolCallsOf(msg), viewState)
     card.appendChild(body)
     appendChips(card, 'ef-ai-message-contexts', msg.contextRefs)
     appendChips(card, 'ef-ai-message-attachments', msg.attachments || (msg.meta && msg.meta.attachments))
@@ -597,41 +611,226 @@
     return row
   }
 
+  function clearChildren(el) {
+    while (el.firstChild) {
+      const child = el.firstChild
+      if (child.remove) child.remove()
+      else el.removeChild(child)
+    }
+  }
+
+  function setSpacerHeight(el, height) {
+    el.style.height = Math.max(0, Math.round(height)) + 'px'
+  }
+
   function factory(propsSig, ctx) {
     const root = ui.h('div', 'ef-ai-panel ef-ai-transcript')
 
     const scroll = ui.scrollArea({ children: [] })
     scroll.classList.add('ef-ai-message-scroll')
     root.appendChild(scroll)
+    const topSpacer = ui.h('div', 'ef-ai-message-virtual-spacer')
+    const windowEl = ui.h('div', 'ef-ai-message-window')
+    const bottomSpacer = ui.h('div', 'ef-ai-message-virtual-spacer')
+    const liveStrip = EF.ai.createMessageLiveStrip()
+    scroll.appendChild(topSpacer)
+    scroll.appendChild(windowEl)
+    scroll.appendChild(bottomSpacer)
+    scroll.appendChild(liveStrip.el)
+
+    const viewState = { expandedToolCalls: {} }
+    const rows = {}
+    const virtualizer = EF.ai.createMessageVirtualizer({ estimateHeight: 96, overscanPx: 640 })
+    const visibleRevision = EF.signal(0)
+    let cacheAgentId = null
+    let cacheListVersion = -1
+    let cacheMessages = []
+    let cacheRunFooters = {}
+    let emptyEl = null
     let stickToBottom = true
     scroll.addEventListener('scroll', function () {
       stickToBottom = scroll.scrollTop + scroll.clientHeight >= scroll.scrollHeight - 32
+      visibleRevision.set(visibleRevision.peek() + 1)
     }, { passive: true })
 
-    function clearScroll() {
-      while (scroll.firstChild) disposeTree(scroll.firstChild)
+    function disposeRows() {
+      Object.keys(rows).forEach(function (id) {
+        disposeTree(rows[id].el)
+        delete rows[id]
+      })
+      clearChildren(windowEl)
+    }
+
+    function removeEmpty() {
+      if (!emptyEl) return
+      if (emptyEl.remove) emptyEl.remove()
+      else if (emptyEl.parentNode) emptyEl.parentNode.removeChild(emptyEl)
+      emptyEl = null
+    }
+
+    function showEmpty(item) {
+      disposeRows()
+      setSpacerHeight(topSpacer, 0)
+      setSpacerHeight(bottomSpacer, 0)
+      const next = renderEmpty(item)
+      if (emptyEl && windowEl.replaceChild) windowEl.replaceChild(next, emptyEl)
+      else {
+        removeEmpty()
+        windowEl.appendChild(next)
+      }
+      emptyEl = next
+    }
+
+    function messagesForAgent(agentId) {
+      const ids = EF.ai.agentMessageIds ? EF.ai.agentMessageIds(agentId) : []
+      const out = []
+      if (ids.length) {
+        for (let i = 0; i < ids.length; i++) {
+          const msg = EF.ai.readMessage(agentId, ids[i])
+          if (msg && (msg.role || msg.type) !== 'tool' && !isHiddenRuntimeMessage(msg)) out.push(msg)
+        }
+        return projectedMessages(out)
+      }
+      const agent = activeAgent()
+      return projectedMessages(messagesOf(agent))
+    }
+
+    function ensureCache(agentId) {
+      const version = EF.ai.messageListVersion ? EF.ai.messageListVersion(agentId) : 0
+      if (cacheAgentId === agentId && cacheListVersion === version) return
+      cacheAgentId = agentId
+      cacheListVersion = version
+      cacheMessages = messagesForAgent(agentId)
+      cacheRunFooters = runFooterInfo(cacheMessages)
+      virtualizer.setMessages(cacheMessages)
+    }
+
+    function rangeForViewport() {
+      return virtualizer.range(scroll.scrollTop || 0, scroll.clientHeight || 480)
+    }
+
+    function visibleMessage(agentId, msg) {
+      if (EF.ai.messageVersion) EF.ai.messageVersion(agentId, msg.id)
+      return EF.ai.readMessage(agentId, msg.id) || msg
+    }
+
+    function updateRow(agent, msg) {
+      const id = msg.id
+      const version = EF.ai.messageVersion ? EF.ai.messageVersion(agent.id, id) : 0
+      const entry = rows[id]
+      if (entry && entry.version === version && entry.listVersion === cacheListVersion) return entry.el
+      const next = renderMessage(agent, msg, cacheRunFooters, viewState)
+      if (entry) {
+        if (entry.el.parentNode && entry.el.parentNode.replaceChild) entry.el.parentNode.replaceChild(next, entry.el)
+        else {
+          if (entry.el.remove) entry.el.remove()
+          windowEl.appendChild(next)
+        }
+        disposeTree(entry.el)
+      }
+      rows[id] = { el: next, version: version, listVersion: cacheListVersion }
+      return next
+    }
+
+    function measureRows() {
+      let changed = false
+      Object.keys(rows).forEach(function (id) {
+        const el = rows[id].el
+        const height = el && (el.offsetHeight || (el.getBoundingClientRect && el.getBoundingClientRect().height)) || 0
+        if (virtualizer.setRowHeight(id, height)) changed = true
+      })
+      return changed
+    }
+
+    function placeRows(agentId, range) {
+      const agent = { id: agentId }
+      const wanted = {}
+      const nodes = []
+      for (let i = range.start; i < range.end; i++) {
+        const msg = visibleMessage(agentId, cacheMessages[i])
+        wanted[msg.id] = true
+        nodes.push(updateRow(agent, msg))
+      }
+      Object.keys(rows).forEach(function (id) {
+        if (wanted[id]) return
+        disposeTree(rows[id].el)
+        delete rows[id]
+      })
+      for (let j = 0; j < nodes.length; j++) {
+        const at = windowEl.children && windowEl.children[j] || null
+        if (at === nodes[j]) continue
+        if (windowEl.insertBefore) windowEl.insertBefore(nodes[j], at)
+        else if (nodes[j].parentNode !== windowEl) windowEl.appendChild(nodes[j])
+      }
+    }
+
+    let renderTimer = null
+    let renderQueued = false
+
+    function scheduleRender() {
+      renderQueued = true
+      if (renderTimer) return
+      renderTimer = setTimeout(function () {
+        renderTimer = null
+        if (!renderQueued) return
+        renderQueued = false
+        render()
+      }, 100)
     }
 
     function render() {
       const shouldStick = stickToBottom || scroll.scrollTop + scroll.clientHeight >= scroll.scrollHeight - 32
-      const a = activeAgent()
-      clearScroll()
-      if (!a) {
-        scroll.appendChild(renderEmpty({ title: 'No active agent', content: 'Select an agent to inspect its transcript.' }))
+      const agentId = read(EF.ai.activeAgentId)
+      if (!agentId) {
+        showEmpty({ title: 'No active agent', content: 'Select an agent to inspect its transcript.' })
         return
       }
-
-      const messages = projectedMessages(messagesOf(a))
-      const runFooters = runFooterInfo(messages)
-      if (!messages.length) {
-        scroll.appendChild(renderEmpty({ title: 'No messages yet', content: 'Send a message from AI Chat to start this transcript.' }))
+      ensureCache(agentId)
+      if (!cacheMessages.length) {
+        showEmpty({ title: 'No messages yet', content: 'Send a message from AI Chat to start this transcript.' })
         return
       }
-      for (let i = 0; i < messages.length; i++) scroll.appendChild(renderMessage(a, messages[i], runFooters))
-      if (shouldStick) requestAnimationFrame(function () { scroll.scrollTop = scroll.scrollHeight })
+      removeEmpty()
+      const range = rangeForViewport()
+      setSpacerHeight(topSpacer, range.before)
+      setSpacerHeight(bottomSpacer, range.after)
+      placeRows(agentId, range)
+      requestAnimationFrame(function () {
+        if (measureRows()) visibleRevision.set(visibleRevision.peek() + 1)
+        if (shouldStick) scroll.scrollTop = scroll.scrollHeight
+      })
     }
 
-    ui.collect(root, EF.effect(render))
+    ui.collect(root, function () {
+      if (renderTimer) clearTimeout(renderTimer)
+      renderTimer = null
+      disposeRows()
+    })
+    const liveTimer = setInterval(function () { liveStrip.tick() }, 1000)
+    if (liveTimer && liveTimer.unref) liveTimer.unref()
+    ui.collect(root, function () { clearInterval(liveTimer) })
+    if (window.ResizeObserver) {
+      const ro = new ResizeObserver(function () { visibleRevision.set(visibleRevision.peek() + 1) })
+      ro.observe(scroll)
+      ui.collect(root, function () { ro.disconnect() })
+    }
+    render()
+    ui.collect(root, EF.effect(function () {
+      const agentId = read(EF.ai.activeAgentId)
+      visibleRevision()
+      if (agentId) {
+        ensureCache(agentId)
+        const range = rangeForViewport()
+        for (let i = range.start; i < range.end; i++) {
+          if (cacheMessages[i] && EF.ai.messageVersion) EF.ai.messageVersion(agentId, cacheMessages[i].id)
+        }
+      }
+      scheduleRender()
+    }))
+    ui.collect(root, EF.effect(function () {
+      const agentId = read(EF.ai.activeAgentId)
+      liveStrip.update(agentId && EF.ai.activeRunState ? EF.ai.activeRunState(agentId) : null)
+    }))
     return root
   }
 

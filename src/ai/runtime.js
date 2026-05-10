@@ -8,7 +8,13 @@
   const runtimeConfig = {
     maxConcurrentAgents: 8,
     maxConcurrentMessagesPerAgent: 1,
+    maxToolTurns: 8,
   }
+  const STREAM_UI_UPDATE_MS = 200
+  const RUN_PREVIEW_UPDATE_MS = 80
+  const RUN_PREVIEW_CHARS = 140
+  const MAX_STREAM_CONTENT_CHARS = 1000000
+  const MAX_REASONING_CHARS = 65536
   let nextRunId = 1
   let nextProviderToolCallId = 1
 
@@ -52,8 +58,22 @@
     return (delta && (delta.toolCalls || delta.tool_calls)) || []
   }
 
+  function deltaReasoningContent(delta) {
+    if (!delta) return ''
+    if (delta.reasoning_content != null) return String(delta.reasoning_content)
+    if (delta.reasoningContent != null) return String(delta.reasoningContent)
+    if (delta.delta != null) return deltaReasoningContent(delta.delta)
+    if (delta.choices && delta.choices[0] && delta.choices[0].delta) return deltaReasoningContent(delta.choices[0].delta)
+    return ''
+  }
+
   function normalizeToolCalls(calls, actor) {
+    const request = actor && actor.toolSpecs ? actor : null
+    const who = request ? request.actor : actor
     return (calls || []).map(function (call) {
+      if (!call.toolId && !call.tool && (call.function || call.arguments != null) && ai.normalizeOpenAiToolCalls) {
+        call = ai.normalizeOpenAiToolCalls([call], request || {})[0]
+      }
       const id = call.id || call.providerCallId || ('tc_provider_' + Date.now().toString(36) + '_' + nextProviderToolCallId++)
       return Object.assign({}, call, {
         id: id,
@@ -61,46 +81,255 @@
         name: call.name || call.toolId || call.tool || '',
         args: call.args || {},
         status: call.status || 'proposed',
-        actor: call.actor || actor || 'user',
+        actor: call.actor || who || 'user',
         createdAt: call.createdAt || Date.now(),
         updatedAt: call.updatedAt || Date.now(),
       })
     })
   }
 
-  function applyDelta(agentId, messageId, state, delta, request) {
-    const text = deltaContent(delta)
-    const calls = deltaToolCalls(delta)
-    if (text) {
-      if (!state.firstTokenAt) state.firstTokenAt = Date.now()
-      state.content += text
+  function mergeToolCallDeltas(existing, deltas) {
+    const out = existing.slice()
+    for (let i = 0; i < (deltas || []).length; i++) {
+      const delta = deltas[i]
+      const index = delta.index != null ? delta.index : findToolCallIndex(out, delta)
+      const at = index >= 0 ? index : out.length
+      const cur = out[at] || {}
+      const next = Object.assign({}, cur)
+      if (delta.id) next.id = delta.id
+      if (delta.type) next.type = delta.type
+      if (delta.toolId) next.toolId = delta.toolId
+      if (delta.name) next.name = delta.name
+      if (delta.args) next.args = Object.assign({}, next.args || {}, delta.args)
+      if (delta.arguments != null) next.arguments = String(next.arguments || '') + String(delta.arguments)
+      if (delta.function) {
+        const fn = Object.assign({}, next.function || {})
+        if (delta.function.name) fn.name = delta.function.name
+        if (delta.function.arguments != null) fn.arguments = String(fn.arguments || '') + String(delta.function.arguments)
+        next.function = fn
+      }
+      out[at] = next
     }
-    if (calls.length) state.toolCalls = state.toolCalls.concat(calls)
-    if (delta && delta.connection) state.connection = delta.connection
-    if (delta && delta.model) state.model = delta.model
-    if (delta && delta.usage) state.usage = delta.usage
+    return out
+  }
+
+  function findToolCallIndex(calls, delta) {
+    if (delta.id) {
+      for (let i = 0; i < calls.length; i++) if (calls[i].id === delta.id) return i
+    }
+    return -1
+  }
+
+  function appendCapped(target, key, text, max, label) {
+    if (!text) return
+    const current = target[key] || ''
+    if (current.length + text.length > max) {
+      const keep = Math.max(0, max - current.length)
+      target[key] = current + String(text).slice(0, keep)
+      throw new Error('AI ' + label + ' exceeded ' + max + ' characters; stopped to protect the editor.')
+    }
+    target[key] = current + text
+  }
+
+  function normalizePreviewText(text) {
+    return String(text || '').replace(/\s+/g, ' ')
+  }
+
+  function pushPreviewTail(state, text) {
+    const clean = normalizePreviewText(text)
+    if (!clean) return
+    state.previewTail = String((state.previewTail || '') + clean).slice(-RUN_PREVIEW_CHARS)
+    state.previewUpdatedAt = Date.now()
+  }
+
+  function pushModelTail(state, text) {
+    if (!text) return
+    state.modelTail = String((state.modelTail || '') + String(text)).slice(-RUN_PREVIEW_CHARS)
+    state.previewUpdatedAt = Date.now()
+  }
+
+  function toolCallName(call) {
+    return call && (call.toolId || call.name || call.tool || (call.function && call.function.name)) || 'tool'
+  }
+
+  function toolCallDeltaText(calls) {
+    let out = ''
+    for (let i = 0; i < (calls || []).length; i++) {
+      const call = calls[i]
+      if (!call) continue
+      if (call.toolId) out += String(call.toolId)
+      if (call.name) out += String(call.name)
+      if (call.tool) out += String(call.tool)
+      if (call.function && call.function.name) out += String(call.function.name)
+      if (call.arguments != null) out += String(call.arguments)
+      if (call.function && call.function.arguments != null) out += String(call.function.arguments)
+      if (call.args && Object.keys(call.args).length) out += JSON.stringify(call.args)
+    }
+    return out
+  }
+
+  function toolCallFullText(calls) {
+    let out = ''
+    for (let i = 0; i < (calls || []).length; i++) {
+      const input = toolCallInput(calls[i])
+      out += toolCallName(calls[i])
+      if (input) out += input
+    }
+    return out
+  }
+
+  function toolCallInput(call) {
+    if (!call) return ''
+    if (call.function && call.function.arguments != null) return String(call.function.arguments)
+    if (call.arguments != null) return String(call.arguments)
+    if (call.args && Object.keys(call.args).length) return JSON.stringify(call.args)
+    return ''
+  }
+
+  function toolInputTail(input) {
+    return normalizePreviewText(input).slice(-RUN_PREVIEW_CHARS)
+  }
+
+  function toolActivityText(calls) {
+    const seen = {}
+    const names = []
+    let input = ''
+    for (let i = 0; i < (calls || []).length; i++) {
+      const name = toolCallName(calls[i])
+      if (seen[name]) continue
+      seen[name] = true
+      names.push(name)
+      input = toolCallInput(calls[i]) || input
+    }
+    return names.length ? 'tool: ' + names.join(', ') + (input ? ' · ' + toolInputTail(input) : '') : 'tool call'
+  }
+
+  function publishToolActivity(agentId, call, label) {
+    const input = toolCallInput(call)
+    ai.setActiveRunState(agentId, {
+      state: 'tool',
+      activityText: label + ' ' + toolCallName(call) + (input ? ' · ' + toolInputTail(input) : ''),
+      previewUpdatedAt: Date.now(),
+    })
+  }
+
+  function usageNumber(usage, keys) {
+    if (!usage) return 0
+    for (let i = 0; i < keys.length; i++) {
+      const v = Number(usage[keys[i]])
+      if (v > 0) return v
+    }
+    return 0
+  }
+
+  function streamOutputTokens(state) {
+    const usage = state.usage
+    const out = usageNumber(usage, ['output_tokens', 'completion_tokens', 'outputTokens', 'completionTokens'])
+    if (out) return out
+    return Math.ceil(String(state.content || '').length / 4)
+  }
+
+  function streamTotalTokens(state) {
+    return usageNumber(state.usage, ['total_tokens', 'totalTokens'])
+  }
+
+  function publishRunState(agentId, state, request, runState, force) {
+    const now = Date.now()
+    if (!force && state.lastRunPreviewAt && now - state.lastRunPreviewAt < RUN_PREVIEW_UPDATE_MS) return
+    state.lastRunPreviewAt = now
+    const patch = {
+      runId: request.runId,
+      messageId: state.messageId || null,
+      state: runState || state.runState || 'connecting',
+      startedAt: state.startTime || null,
+      firstTokenAt: state.firstTokenAt || null,
+      completedAt: state.completedAt || null,
+      usage: state.usage || null,
+      outputTokens: streamOutputTokens(state),
+      totalTokens: streamTotalTokens(state),
+      cost: state.cost || null,
+      error: state.error || null,
+    }
+    if (Object.prototype.hasOwnProperty.call(state, 'previewTail')) patch.previewTail = state.previewTail || ''
+    if (Object.prototype.hasOwnProperty.call(state, 'modelTail')) patch.modelTail = state.modelTail || ''
+    if (Object.prototype.hasOwnProperty.call(state, 'activityText')) patch.activityText = state.activityText || ''
+    if (Object.prototype.hasOwnProperty.call(state, 'previewUpdatedAt')) patch.previewUpdatedAt = state.previewUpdatedAt || null
+    ai.setActiveRunState(agentId, patch)
+  }
+
+  function shouldPublishStreamState(state, force) {
+    const now = Date.now()
+    if (force || !state.lastUiUpdateAt || now - state.lastUiUpdateAt >= STREAM_UI_UPDATE_MS) {
+      state.lastUiUpdateAt = now
+      return true
+    }
+    return false
+  }
+
+  function publishStreamState(agentId, messageId, state, request) {
     return ai.updateMessage(agentId, messageId, {
       content: state.content,
-      toolCalls: state.toolCalls,
       connection: state.connection || request.connectionName,
       model: state.model || request.agent.model || null,
       status: 'running',
     })
   }
 
+  function applyDelta(agentId, messageId, state, delta, request) {
+    const text = deltaContent(delta)
+    const reasoning = deltaReasoningContent(delta)
+    const calls = deltaToolCalls(delta)
+    if (reasoning) {
+      appendCapped(state, 'reasoning_content', reasoning, MAX_REASONING_CHARS, 'reasoning')
+      pushModelTail(state, reasoning)
+      if (!text) state.runState = 'thinking'
+    }
+    if (text) {
+      if (!state.firstTokenAt) state.firstTokenAt = Date.now()
+      appendCapped(state, 'content', text, MAX_STREAM_CONTENT_CHARS, 'response')
+      pushPreviewTail(state, text)
+      pushModelTail(state, text)
+      state.runState = 'receiving'
+    }
+    if (calls.length) {
+      pushModelTail(state, toolCallDeltaText(calls))
+      state.toolCalls = mergeToolCallDeltas(state.toolCalls, calls)
+      state.activityText = toolActivityText(state.toolCalls)
+      state.previewUpdatedAt = Date.now()
+      state.runState = 'tool'
+    }
+    if (delta && delta.connection) state.connection = delta.connection
+    if (delta && delta.model) state.model = delta.model
+    if (delta && delta.usage) state.usage = delta.usage
+    publishRunState(agentId, state, request, state.runState || 'connecting', (!!text && !state.publishedFirstPreview) || (!!calls.length && !state.publishedFirstTool))
+    if (text) state.publishedFirstPreview = true
+    if (calls.length) state.publishedFirstTool = true
+    return shouldPublishStreamState(state, !!(delta && delta.usage)) ? publishStreamState(agentId, messageId, state, request) : ai.readMessage(agentId, messageId)
+  }
+
   function finishStreamingMessage(agentId, messageId, state, result, request) {
     const message = normalizeProviderMessage(result || {}, request)
     let content = message.content != null && (message.content !== '' || !state.content) ? message.content : state.content
-    const toolCalls = normalizeToolCalls(message.toolCalls || state.toolCalls, request.actor)
+    const reasoning = message.reasoning_content != null ? message.reasoning_content : (message.reasoningContent != null ? message.reasoningContent : state.reasoning_content)
+    const toolCalls = normalizeToolCalls(message.toolCalls || state.toolCalls, request)
     const actionNote = content && hasActionBoundary(toolCalls) ? content : null
     if (actionNote) content = ''
+    if (!state.previewTail && content) pushPreviewTail(state, content)
+    if (!state.modelTail) pushModelTail(state, (content || '') + toolCallFullText(toolCalls))
     const completedAt = Date.now()
     const usage = message.usage || (result && result.usage) || state.usage || null
     const cost = ai.estimateUsageCost ? ai.estimateUsageCost(request.connectionName, message.model || state.model || request.agent.model, usage) : null
+    state.usage = usage
+    state.cost = cost
+    state.completedAt = completedAt
     const firstTokenAt = state.firstTokenAt || null
+    const toolCallsWithSource = toolCalls.map(function (call) {
+      return Object.assign({}, call, { messageId: messageId })
+    })
     const patch = Object.assign({}, message, {
       content: content,
-      toolCalls: toolCalls,
+      reasoning_content: reasoning || null,
+      toolCalls: toolCallsWithSource,
       connection: message.connection || state.connection || request.connectionName,
       model: message.model || state.model || request.agent.model || null,
       status: message.status || 'done',
@@ -117,7 +346,9 @@
       },
     })
     if (actionNote) patch.meta = Object.assign({}, message.meta || {}, { runId: request.runId, actionNote: actionNote })
-    return ai.updateMessage(agentId, messageId, patch)
+    const updated = ai.updateMessage(agentId, messageId, patch)
+    publishRunState(agentId, state, request, toolCalls.length ? 'tool' : 'idle', true)
+    return updated
   }
 
   function consumeDeltas(agentId, messageId, state, source, request, controller) {
@@ -126,6 +357,7 @@
         if (controller.signal.aborted) return null
         applyDelta(agentId, messageId, state, delta, request)
       }
+      publishStreamState(agentId, messageId, state, request)
       return null
     })()
   }
@@ -137,7 +369,9 @@
   }
 
   function appendToolResult(agentId, call, result, status) {
-    return ai.appendMessage(agentId, {
+    const found = ai.findToolCall ? ai.findToolCall(agentId, call.id) : null
+    const sourceMessageId = call.messageId || (found && found.message && found.message.id) || null
+    const message = {
       from: 'tool:' + call.toolId,
       role: 'tool',
       content: toolResultContent(result),
@@ -145,8 +379,29 @@
       meta: {
         toolCallId: call.id,
         toolId: call.toolId,
+        sourceMessageId: sourceMessageId,
       },
-    })
+    }
+    const after = sourceMessageId ? toolResultInsertAfter(agentId, sourceMessageId) : null
+    return after && ai.insertMessageAfter ? ai.insertMessageAfter(agentId, after, message) : ai.appendMessage(agentId, message)
+  }
+
+  function toolResultInsertAfter(agentId, sourceMessageId) {
+    const agent = ai.findAgent(agentId)
+    const messages = agent && agent.messages || []
+    let after = null
+    for (let i = 0; i < messages.length; i++) {
+      if (messages[i].id === sourceMessageId) {
+        after = messages[i].id
+        continue
+      }
+      if (after && messages[i].role === 'tool' && messages[i].meta && messages[i].meta.sourceMessageId === sourceMessageId) {
+        after = messages[i].id
+        continue
+      }
+      if (after) break
+    }
+    return after
   }
 
   function hasToolResult(agent, callId) {
@@ -183,6 +438,45 @@
       }
     }
     return state
+  }
+
+  function flushToolResults(agentId, messageId) {
+    const agent = ai.findAgent(agentId)
+    const state = { appended: 0, pending: 0 }
+    const messages = agent && agent.messages || []
+    for (let i = 0; i < messages.length; i++) {
+      if (messageId && messages[i].id !== messageId) continue
+      const next = appendResolvedToolResults(agentId, messages[i])
+      state.appended += next.appended
+      state.pending += next.pending
+    }
+    return state
+  }
+
+  function closeStaleToolCalls(agentId, reason) {
+    const agent = ai.findAgent(agentId)
+    if (!agent) return { closed: 0 }
+    let closed = 0
+    ai.updateAgent(agentId, {
+      messages: agent.messages.map(function (message) {
+        const calls = message.toolCalls || []
+        if (!calls.length) return message
+        let changed = false
+        const nextCalls = calls.map(function (call) {
+          if (call.status === 'applied' || call.status === 'completed' || call.status === 'rejected' || call.status === 'failed') return call
+          changed = true
+          closed++
+          return Object.assign({}, call, {
+            status: 'failed',
+            error: reason || 'Tool call was not completed before the next request.',
+            updatedAt: Date.now(),
+          })
+        })
+        return changed ? Object.assign({}, message, { toolCalls: nextCalls }) : message
+      }),
+    })
+    if (closed) flushToolResults(agentId)
+    return { closed: closed }
   }
 
   function executeToolCalls(agentId, message, actor) {
@@ -258,23 +552,38 @@
     return Promise.resolve({ waiting: false })
   }
 
+  function isWaitingForUser(state) {
+    return !!(state && (state.canPreview || state.canApply || state.canApprove || state.canRun || state.canReject))
+  }
+
   function executeOneToolCall(agentId, call, actor) {
     const tool = ai.getTool(call.toolId)
     if (!tool) {
       appendToolResult(agentId, call, { error: 'Tool not found: ' + call.toolId }, 'error')
       return Promise.resolve({ waiting: false })
     }
+    publishToolActivity(agentId, call, 'preparing')
     if (tool.apply) {
+      publishToolActivity(agentId, call, tool.preview ? 'previewing' : 'preparing')
       return prepareApprovalTool(agentId, call, actor, tool).then(function () {
         const current = ai.findToolCall ? ai.findToolCall(agentId, call.id) : null
         const prepared = current && current.toolCall || call
         const state = ai.getToolCallActionState ? ai.getToolCallActionState(agentId, call.id, actor) : null
-        return shouldAutoApplyTool(ai.findAgent(agentId), prepared, state)
-          ? applyPreparedApprovalTool(agentId, call, actor)
-          : { waiting: true }
+        if (prepared.status === 'failed' || prepared.status === 'rejected') {
+          appendToolResult(agentId, call, prepared.error || prepared.preview || prepared.result || prepared, prepared.status === 'failed' ? 'error' : 'done')
+          return { waiting: false }
+        }
+        if (shouldAutoApplyTool(ai.findAgent(agentId), prepared, state)) {
+          publishToolActivity(agentId, call, 'applying')
+          return applyPreparedApprovalTool(agentId, call, actor)
+        }
+        if (isWaitingForUser(state)) return { waiting: true }
+        appendToolResult(agentId, call, { error: 'Tool call was not allowed or did not produce an actionable preview: ' + call.toolId }, 'error')
+        return { waiting: false }
       })
     }
     const approved = ai.approveToolCall(agentId, call.id, actor)
+    publishToolActivity(agentId, call, 'running')
     const run = approved && ai.runToolCall(agentId, call.id, actor)
     if (!run || !run.promise) {
       appendToolResult(agentId, call, { error: 'Tool call was not allowed: ' + call.toolId }, 'error')
@@ -301,12 +610,18 @@
     })
     if (runs[agentId]) runs[agentId].messageId = assistant.id
     const state = {
+      messageId: assistant.id,
       content: '',
       toolCalls: [],
       connection: request.connectionName,
       model: request.agent.model || null,
       startTime: Date.now(),
+      reasoning_content: '',
+      previewTail: '',
+      previewUpdatedAt: null,
+      runState: 'connecting',
     }
+    publishRunState(agentId, state, request, 'connecting', true)
     return Promise.resolve().then(function () {
       request.stream = request.stream || !!provider.stream
       const sendRequest = ai.requestWithRuntimeContext ? ai.requestWithRuntimeContext(request, ctx) : request
@@ -344,6 +659,9 @@
           durationMs: completedAt - state.startTime,
         },
       })
+      state.completedAt = completedAt
+      state.error = String(err && err.message ? err.message : err)
+      publishRunState(agentId, state, request, 'error', true)
       throw err
     })
   }
@@ -351,11 +669,18 @@
   function continueAfterTools(agentId, provider, message, result, request, controller, actor) {
     const calls = (result && result.toolCalls) || message.toolCalls || []
     if (!calls.length) return message
-    if ((request.turn || 0) >= 8) return message
     return executeToolCalls(agentId, message, actor).then(function (state) {
       if (controller.signal.aborted || !state.count) return message
       const current = ai.findAgent(agentId)
       if (!current || state.waiting) {
+        publishRunState(agentId, {
+          messageId: message.id,
+          content: message.content || '',
+          startTime: request.startTime || (message.stats && message.stats.startTime) || Date.now(),
+          firstTokenAt: message.stats && message.stats.firstTokenAt || null,
+          usage: message.usage || (message.stats && message.stats.usage) || null,
+          cost: message.stats && message.stats.cost || null,
+        }, request, 'waiting_approval', true)
         waitingRuns[agentId] = {
           request: request,
           actor: actor,
@@ -369,6 +694,10 @@
           activeMessageId: request.input && request.input.id || null,
           activeQuestId: request.input && request.input.questId || null,
         })
+        return message
+      }
+      if ((request.turn || 0) >= runtimeConfig.maxToolTurns) {
+        flushToolResults(agentId, message.id)
         return message
       }
       if (hasDelegationBoundary(calls)) {
@@ -544,6 +873,8 @@
     const controller = new AbortController()
     const runId = 'run_' + Date.now().toString(36) + '_' + nextRunId++
     const actor = (input && input.actor) || agent.id
+    closeStaleToolCalls(agent.id)
+    agent = ai.findAgent(agent.id)
     const request = makeRequest(agent, input, runId, actor, 0)
     const ctx = ai.createRunContext(request, controller)
     const key = agent.id
@@ -591,8 +922,14 @@
     const run = runs[agent.id]
     const waiting = waitingRuns[agent.id]
     if (!run && !waiting) return false
-    if (run) {
-      run.controller.abort()
+      if (run) {
+        run.controller.abort()
+      ai.setActiveRunState(agent.id, {
+        runId: run.runId,
+        messageId: run.messageId || null,
+        state: 'stopped',
+        completedAt: Date.now(),
+      })
       if (run.messageId) ai.updateMessage(agent.id, run.messageId, { status: 'stopped' })
       const input = run.request && run.request.input
       if (input && input.id) ai.updateMessage(agent.id, input.id, { status: 'stopped', completedAt: Date.now() })
@@ -604,6 +941,12 @@
       delete runs[agent.id]
     }
     if (waiting) {
+      ai.setActiveRunState(agent.id, {
+        runId: waiting.runId,
+        messageId: waiting.messageId || null,
+        state: 'stopped',
+        completedAt: Date.now(),
+      })
       const input = waiting.request && waiting.request.input
       if (input && input.id) ai.updateMessage(agent.id, input.id, { status: 'stopped', completedAt: Date.now() })
       if (input && input.questId) ai.updateQuest(agent.id, input.questId, { status: 'stopped', completedAt: Date.now(), summary: 'Stopped' })
@@ -716,6 +1059,21 @@
       priority: spec.priority || 0,
       guidance: spec.guidance || null,
     })
+    ai.setActiveRunState(agent.id, {
+      runId: null,
+      messageId: message.id,
+      state: 'queued',
+      previewTail: '',
+      previewUpdatedAt: null,
+      startedAt: Date.now(),
+      firstTokenAt: null,
+      completedAt: null,
+      usage: null,
+      outputTokens: 0,
+      totalTokens: 0,
+      cost: null,
+      error: null,
+    })
     if (spec.interrupt) stopRun(agent.id, 'queued')
     const run = spec.schedule === false ? null : scheduleAgent(agent.id)
     return Object.assign({ agentId: agent.id, messageId: message.id, message: message, status: message.status }, run || {})
@@ -761,6 +1119,7 @@
   ai.runAgent = runAgent
   ai.stopAgent = stopAgent
   ai.resumeAgent = resumeAgent
+  ai.flushToolResults = flushToolResults
   ai.scheduleAgent = scheduleAgent
   ai.configureRuntime = function (config) {
     Object.assign(runtimeConfig, config || {})

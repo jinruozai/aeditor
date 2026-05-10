@@ -95,6 +95,43 @@
     return text.length > max ? text.slice(0, max) + '...' : text
   }
 
+  function compactString(value, max) {
+    const text = String(value == null ? '' : value)
+    max = max || 4000
+    return text.length > max ? text.slice(0, max) + '\n...[truncated]' : text
+  }
+
+  function compactValue(value, maxString, depth) {
+    if (value == null) return value
+    if (typeof value === 'string') return compactString(value, maxString)
+    if (typeof value === 'number' || typeof value === 'boolean') return value
+    if (depth <= 0) return compactJson(value, maxString)
+    if (Array.isArray(value)) {
+      const out = []
+      const n = Math.min(value.length, 24)
+      for (let i = 0; i < n; i++) out.push(compactValue(value[i], maxString, depth - 1))
+      if (value.length > n) out.push('...[+' + (value.length - n) + ' items]')
+      return out
+    }
+    const out = {}
+    const keys = Object.keys(value)
+    const n = Math.min(keys.length, 32)
+    for (let i = 0; i < n; i++) out[keys[i]] = compactValue(value[keys[i]], maxString, depth - 1)
+    if (keys.length > n) out.__truncatedKeys = keys.length - n
+    return out
+  }
+
+  function compactToolCall(call) {
+    return {
+      id: call.id || call.providerCallId || null,
+      toolId: call.toolId || call.name || call.tool || '',
+      name: call.name || call.toolId || call.tool || '',
+      args: compactValue(call.args || {}, 4000, 3),
+      status: call.status || '',
+      error: call.error ? compactString(call.error, 1000) : null,
+    }
+  }
+
   function sanitizeResourceMeta(meta) {
     const out = Object.assign({}, meta || {})
     if (out.dataUrl) {
@@ -148,8 +185,17 @@
     const text = (message.role || '') + '\n' + messageText(message.content != null ? message.content : message.text)
     let cost = estimateTokens(text) + 8
     const calls = message.toolCalls || []
-    for (let i = 0; i < calls.length; i++) cost += estimateTokens(JSON.stringify(calls[i])) + 16
+    for (let i = 0; i < calls.length; i++) cost += estimateTokens(compactJson(compactToolCall(calls[i]), 6000)) + 16
     return cost
+  }
+
+  function compactMessageForRequest(message, isInput) {
+    if (isInput) return message
+    const out = Object.assign({}, message)
+    if (typeof out.content === 'string') out.content = compactString(out.content, out.role === 'tool' ? 6000 : 16000)
+    if (typeof out.reasoning_content === 'string') out.reasoning_content = compactString(out.reasoning_content, 2000)
+    if (out.toolCalls && out.toolCalls.length) out.toolCalls = out.toolCalls.map(compactToolCall)
+    return out
   }
 
   function budgetMessages(agent, prefix, messages, input) {
@@ -169,7 +215,7 @@
       const cost = messageCost(message)
       if (out.length && remaining - cost < 0) break
       if (!out.length || remaining - cost >= 0) {
-        out.push(message)
+        out.push(compactMessageForRequest(message, input && message.id === input.id))
         remaining -= cost
       }
     }
@@ -180,14 +226,14 @@
         let inserted = false
         for (let i = 0; i < out.length; i++) {
           if (messages.indexOf(out[i]) > index) {
-            out.splice(i, 0, input)
+            out.splice(i, 0, compactMessageForRequest(input, true))
             inserted = true
             break
           }
         }
-        if (!inserted) out.push(input)
+        if (!inserted) out.push(compactMessageForRequest(input, true))
       } else {
-        out.push(input)
+        out.push(compactMessageForRequest(input, true))
       }
     }
     return out
@@ -305,12 +351,19 @@
       'When processing an inbox continuation, handle the completed event batch available now. Do not wait for sibling quests that are still pending.',
       'A response that contains agent.delegate or agent.send is an action turn. Do not put final user-visible answer content in that same message; continue in the runtime follow-up continuation.',
       'If new user messages are queued while you are running, finish the current request cleanly unless the queued message is explicitly interrupting or marked as guidance.',
+      'After applying an editor operation that creates or changes visible UI, verify the returned result and any available host/panel health reference before claiming the UI is done.',
+      'For EditorFrame UI panels, prefer EF.ui.* components over hand-built controls when the library has a suitable component.',
+      'For scrollable panel content, use EF.ui.scrollArea instead of native overflow scrollbars so styling matches the framework.',
+      'For hover tips or anchored floating UI, prefer EF.ui.tooltip/popover/menu; scoped EF.ui overlays close automatically when the panel is no longer active. If you manually append floating DOM outside the panel root, register it with EF.ui.registerScopedOverlay(anchor, close).',
+      'Generated panels live inside resizable docks: make the root height:100%, minHeight:0, boxSizing:border-box, avoid viewport-sized or fixed-width layouts, and use flex/grid with minmax()/auto-fit where possible.',
+      'When a project directory is set, use workspace.* tools to inspect and edit files. Those tools are bounded to the current project directory shared by all agents.',
       'Only ask the user for clarification or confirmation when the requested outcome is ambiguous, destructive, or blocked by permissions/errors.',
       'If you are already a child agent, do not create another child agent unless the user explicitly requests deeper delegation.',
       'CURRENT_AGENT_ID: ' + (agent.id || ''),
       'CURRENT_AGENT_NAME: ' + (agent.name || ''),
       'CURRENT_PARENT_AGENT_ID: ' + (agent.parentAgentId || ''),
     ]
+    if (EF.ai.projectDirectory && EF.ai.projectDirectory()) lines.push('CURRENT_PROJECT_DIRECTORY: ' + compactJson(EF.ai.projectDirectory(), 400))
     if (agent.systemPrompt) lines.push('AGENT_SYSTEM_PROMPT:\n' + agent.systemPrompt)
     const skills = skillLines(agent)
     if (skills.length) lines.push('ACTIVE_SKILLS:\n' + skills.join('\n'))

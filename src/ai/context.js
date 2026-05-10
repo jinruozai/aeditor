@@ -4,6 +4,7 @@
 
   const ai = EF.ai = EF.ai || {}
   const tools = {}
+  const toolMeta = {}
   const skills = {}
   const contextProviders = {}
   const resourceResolvers = {}
@@ -39,7 +40,7 @@
 
   function canTransition(from, to) {
     const status = normalizeToolStatus(from)
-    if (to === 'previewed') return status === 'proposed' || status === 'failed'
+    if (to === 'previewed') return status === 'proposed'
     if (to === 'approved') return status === 'proposed' || status === 'previewed'
     if (to === 'rejected') return status === 'proposed' || status === 'previewed' || status === 'approved'
     if (to === 'running') return status === 'approved'
@@ -160,6 +161,21 @@
     return 'Tool apply did not report success'
   }
 
+  function previewFailureMessage(result) {
+    if (!result || typeof result !== 'object') return 'Tool preview did not report success'
+    if (result.error) return String(result.error)
+    const validation = result.validation || {}
+    const errors = result.errors || validation.errors || []
+    if (errors.length) {
+      return errors.map(function (item) {
+        return item && typeof item === 'object'
+          ? ((item.path ? item.path + ': ' : '') + (item.message || JSON.stringify(item)))
+          : String(item)
+      }).join('\n')
+    }
+    return 'Tool preview returned ok=false'
+  }
+
   function finishApplyToolCall(agentId, callId, found, result) {
     if (applySucceeded(result)) {
       return updateToolCall(agentId, callId, { status: 'applied', applyResult: result, error: null })
@@ -215,6 +231,9 @@
     const found = findToolCall(agentId, callId)
     try {
       const result = callToolPhase(agentId, callId, actor || state.toolCall.actor || 'user', 'preview')
+      if (result && typeof result === 'object' && result.ok === false) {
+        return updateToolCall(agentId, callId, { status: 'failed', preview: result, error: previewFailureMessage(result) })
+      }
       return updateToolCall(agentId, callId, { status: 'previewed', preview: result, error: null })
     } catch (err) {
       return failToolCall(agentId, callId, found, err)
@@ -269,13 +288,44 @@
     }
   }
 
-  function registerTool(name, tool) {
+  function normalizeMeta(meta) {
+    meta = meta || {}
+    const out = {}
+    if (meta.owner != null) out.owner = String(meta.owner)
+    if (meta.layer != null) out.layer = String(meta.layer)
+    return out
+  }
+
+  function registerTool(name, tool, meta) {
     tools[name] = tool
+    toolMeta[name] = normalizeMeta(meta)
     return tool
   }
 
   function getTool(name) {
     return tools[name]
+  }
+
+  function unregisterTool(name, meta) {
+    if (!tools[name]) return false
+    const existing = toolMeta[name] || {}
+    if (meta && meta.owner != null && existing.owner !== meta.owner)
+      throw new Error('ai.unregisterTool: owner mismatch for "' + name + '"')
+    delete tools[name]
+    delete toolMeta[name]
+    return true
+  }
+
+  function unregisterToolOwner(owner) {
+    const removed = []
+    keys(toolMeta).forEach(function (name) {
+      if (toolMeta[name].owner === owner) {
+        delete tools[name]
+        delete toolMeta[name]
+        removed.push(name)
+      }
+    })
+    return removed
   }
 
   function registerSkill(name, skill) {
@@ -381,6 +431,9 @@
   ai.registerTool = registerTool
   ai.getTool = getTool
   ai.listTools = function () { return keys(tools) }
+  ai.unregisterTool = unregisterTool
+  ai.unregisterToolOwner = unregisterToolOwner
+  ai.toolMeta = function (name) { return Object.assign({}, toolMeta[name] || {}) }
   ai.createToolCall = createToolCall
   ai.attachToolCalls = attachToolCalls
   ai.findToolCall = findToolCall
