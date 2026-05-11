@@ -1,4 +1,4 @@
-// EF.ui.vectorInput — XYZ / XY / XYZW number input (Blender vector).
+// aeditor.ui.vectorInput — XYZ / XY / XYZW number input (Blender vector).
 //
 // Each axis is a numberInput. Channels share one signal holding a
 // number[]. Optional `linked` toggle keeps all axes proportional.
@@ -9,9 +9,9 @@
 //   labels   : string[]             default ['X','Y','Z','W'].slice(0, length)
 //   step?, precision?
 //   linked   : signal<boolean>      optional toggle for proportional editing
-;(function (EF) {
+;(function (aeditor) {
   'use strict'
-  const ui = EF.ui = EF.ui || {}
+  const ui = aeditor.ui = aeditor.ui || {}
 
   ui.vectorInput = function (opts) {
     const o = opts || {}
@@ -22,22 +22,22 @@
     const labels = o.labels || ['X', 'Y', 'Z', 'W'].slice(0, n)
     const linked = o.linked
 
-    const wrap = ui.h('div', 'ef-ui-vec ef-ui-vec-' + n)
+    const wrap = ui.h('div', 'aeditor-ui-vec aeditor-ui-vec-' + n)
 
     // Per-channel signals. Two effects per channel form a sync bridge with
     // a `writing` flag to break feedback loops.
     for (let i = 0; i < n; i++) {
       const idx = i
-      const cs = EF.signal(init[idx])
+      const cs = aeditor.signal(init[idx])
       let writing = false
 
       // parent → channel
-      const stop1 = EF.effect(function () {
+      const stop1 = aeditor.effect(function () {
         const arr = sig()
         if (cs.peek() !== arr[idx]) { writing = true; cs.set(arr[idx]); writing = false }
       })
       // channel → parent
-      const stop2 = EF.effect(function () {
+      const stop2 = aeditor.effect(function () {
         const v = cs()
         if (writing) return
         const cur = sig.peek()
@@ -62,4 +62,4 @@
 
     return wrap
   }
-})(window.EF = window.EF || {})
+})(window.aeditor = window.aeditor || {})

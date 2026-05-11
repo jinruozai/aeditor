@@ -1,7 +1,7 @@
-;(function (EF) {
+;(function (aeditor) {
   'use strict'
 
-  const ui = EF.ui
+  const ui = aeditor.ui
 
   function read(v) {
     return ui.isSignal(v) ? v() : v
@@ -18,8 +18,8 @@
   }
 
   function activeAgent() {
-    const id = read(EF.ai.activeAgentId)
-    const list = readList(EF.ai.agents)
+    const id = read(aeditor.ai.activeAgentId)
+    const list = readList(aeditor.ai.agents)
     for (let i = 0; i < list.length; i++) if (list[i].id === id) return list[i]
     return null
   }
@@ -57,7 +57,7 @@
     if (v == null) return ''
     if (typeof v === 'string') return v
     if (v && typeof v === 'object' && v.type === 'rich-prompt') {
-      return v.renderedText || (EF.ai.richPrompt && EF.ai.richPrompt.toModelText ? EF.ai.richPrompt.toModelText(v) : '')
+      return v.renderedText || (aeditor.ai.richPrompt && aeditor.ai.richPrompt.toModelText ? aeditor.ai.richPrompt.toModelText(v) : '')
     }
     return JSON.stringify(v, null, 2)
   }
@@ -185,7 +185,7 @@
       const chunk = parts[i]
       if (!chunk) continue
       if (i % 2) {
-        const pre = ui.h('pre', 'ef-ai-message-code ef-ui-scrollarea')
+        const pre = ui.h('pre', 'aeditor-ai-message-code aeditor-ui-scrollarea')
         pre.textContent = chunk.replace(/^\w+\n/, '')
         parent.appendChild(pre)
       } else {
@@ -193,13 +193,13 @@
         for (let j = 0; j < lines.length; j++) {
           const line = lines[j].trim()
           if (!line) continue
-          const p = ui.h('p', 'ef-ai-message-text')
+          const p = ui.h('p', 'aeditor-ai-message-text')
           p.textContent = line
           parent.appendChild(p)
         }
       }
     }
-    if (!parent.firstChild) parent.appendChild(ui.h('p', 'ef-ai-message-text', { text: '' }))
+    if (!parent.firstChild) parent.appendChild(ui.h('p', 'aeditor-ai-message-text', { text: '' }))
   }
 
   function appendChips(parent, className, items) {
@@ -211,9 +211,9 @@
         ? item
         : (item.title || item.label || item.name || item.uri || item.id || item.resourceId || 'context')
       const kind = typeof item === 'string' ? 'ref' : (item.kind || item.resolver || 'ref')
-      const chip = ui.h('span', 'ef-ai-message-chip')
-      chip.appendChild(ui.h('span', 'ef-ai-message-chip-kind', { text: kind }))
-      chip.appendChild(ui.h('span', 'ef-ai-message-chip-title', { text: label }))
+      const chip = ui.h('span', 'aeditor-ai-message-chip')
+      chip.appendChild(ui.h('span', 'aeditor-ai-message-chip-kind', { text: kind }))
+      chip.appendChild(ui.h('span', 'aeditor-ai-message-chip-title', { text: label }))
       wrap.appendChild(chip)
     }
     parent.appendChild(wrap)
@@ -243,7 +243,7 @@
   function questActivity(call) {
     const result = call.result || call.applyResult || {}
     if (!result || !result.questId || !result.agentId) return null
-    const quest = EF.ai.quest && EF.ai.quest.read ? EF.ai.quest.read(result.agentId, result.questId, 'user') : null
+    const quest = aeditor.ai.quest && aeditor.ai.quest.read ? aeditor.ai.quest.read(result.agentId, result.questId, 'user') : null
     return {
       agentId: result.agentId,
       questId: result.questId,
@@ -258,17 +258,17 @@
   function renderQuestActivity(call) {
     const quest = questActivity(call)
     if (!quest) return null
-    const row = ui.h('div', 'ef-ai-quest-activity ef-ai-quest-' + quest.status)
-    row.appendChild(ui.h('span', 'ef-ai-quest-agent', { text: quest.agentId }))
-    row.appendChild(ui.h('span', 'ef-ai-quest-status', { text: quest.status }))
-    row.appendChild(ui.h('span', 'ef-ai-quest-id', { text: quest.questId }))
-    if (quest.completedAt && quest.createdAt) row.appendChild(ui.h('span', 'ef-ai-quest-time', { text: formatDuration(quest.completedAt - quest.createdAt) }))
+    const row = ui.h('div', 'aeditor-ai-quest-activity aeditor-ai-quest-' + quest.status)
+    row.appendChild(ui.h('span', 'aeditor-ai-quest-agent', { text: quest.agentId }))
+    row.appendChild(ui.h('span', 'aeditor-ai-quest-status', { text: quest.status }))
+    row.appendChild(ui.h('span', 'aeditor-ai-quest-id', { text: quest.questId }))
+    if (quest.completedAt && quest.createdAt) row.appendChild(ui.h('span', 'aeditor-ai-quest-time', { text: formatDuration(quest.completedAt - quest.createdAt) }))
     if (quest.resultId) {
       row.appendChild(ui.button({
         text: 'View result',
         size: 'sm',
         onClick: function () {
-          const message = EF.ai.message && EF.ai.message.read ? EF.ai.message.read(quest.agentId, quest.resultId, 'user') : null
+          const message = aeditor.ai.message && aeditor.ai.message.read ? aeditor.ai.message.read(quest.agentId, quest.resultId, 'user') : null
           ui.alert({
             title: 'Quest Result',
             message: message ? displayText(message.content) : 'Result message is not readable.',
@@ -309,7 +309,7 @@
   }
 
   function agentLabel(agentId) {
-    const list = readList(EF.ai.agents)
+    const list = readList(aeditor.ai.agents)
     for (let i = 0; i < list.length; i++) {
       if (list[i].id === agentId) return list[i].name || list[i].path || list[i].id
     }
@@ -348,20 +348,20 @@
   }
 
   function renderRuntimeEvent(agent, msg) {
-    const row = ui.h('div', 'ef-ai-message-row ef-ai-message-row-runtime ef-ai-message-row-status-' + statusOf(msg))
-    const stack = ui.h('div', 'ef-ai-message-stack')
+    const row = ui.h('div', 'aeditor-ai-message-row aeditor-ai-message-row-runtime aeditor-ai-message-row-status-' + statusOf(msg))
+    const stack = ui.h('div', 'aeditor-ai-message-stack')
     const events = runtimeEventsOf(msg)
     for (let i = 0; i < events.length; i++) {
       const event = events[i]
-      const card = ui.h('div', 'ef-ai-runtime-event ef-ai-runtime-event-' + eventState(event))
-      card.appendChild(ui.h('span', 'ef-ai-runtime-event-label', { text: 'event:' }))
-      card.appendChild(ui.h('span', 'ef-ai-runtime-event-agent', { text: agentLabel(event.fromAgentId) }))
-      card.appendChild(ui.h('span', 'ef-ai-runtime-event-summary', { text: event.summary || event.type || 'Runtime event' }))
-      const btn = ui.h('button', 'ef-ai-runtime-event-action', { text: 'View' })
+      const card = ui.h('div', 'aeditor-ai-runtime-event aeditor-ai-runtime-event-' + eventState(event))
+      card.appendChild(ui.h('span', 'aeditor-ai-runtime-event-label', { text: 'event:' }))
+      card.appendChild(ui.h('span', 'aeditor-ai-runtime-event-agent', { text: agentLabel(event.fromAgentId) }))
+      card.appendChild(ui.h('span', 'aeditor-ai-runtime-event-summary', { text: event.summary || event.type || 'Runtime event' }))
+      const btn = ui.h('button', 'aeditor-ai-runtime-event-action', { text: 'View' })
       btn.type = 'button'
       btn.addEventListener('click', function () {
-        const message = event.resultMessageId && EF.ai.message && EF.ai.message.read
-          ? EF.ai.message.read(event.fromAgentId, event.resultMessageId, 'user')
+        const message = event.resultMessageId && aeditor.ai.message && aeditor.ai.message.read
+          ? aeditor.ai.message.read(event.fromAgentId, event.resultMessageId, 'user')
           : null
         ui.alert({
           title: 'Agent Event',
@@ -379,30 +379,30 @@
     if (value == null) return
     opts = opts || {}
     if ((title === 'Preview' || title === 'Applied' || title === 'Result') && !isChangeSet(value)) return
-    const block = ui.h('div', 'ef-ai-tool-call-block ' + className)
+    const block = ui.h('div', 'aeditor-ai-tool-call-block ' + className)
     if (isChangeSet(value)) {
       block.appendChild(ui.changeReview({
         changeSet: value,
         allowApply: !!(opts.state && opts.state.canApply),
         allowReject: !!(opts.state && opts.state.canReject),
-        onApply: function () { return afterToolAction(opts.agentId, EF.ai.applyToolCall(opts.agentId, opts.call.id, 'user')) },
+        onApply: function () { return afterToolAction(opts.agentId, aeditor.ai.applyToolCall(opts.agentId, opts.call.id, 'user')) },
         onReject: function () {
-          const rejected = EF.ai.rejectToolCall(opts.agentId, opts.call.id, 'Rejected by user', 'user')
-          if (EF.ai.resumeAgent) EF.ai.resumeAgent(opts.agentId, 'user')
+          const rejected = aeditor.ai.rejectToolCall(opts.agentId, opts.call.id, 'Rejected by user', 'user')
+          if (aeditor.ai.resumeAgent) aeditor.ai.resumeAgent(opts.agentId, 'user')
           return rejected
         },
       }))
       parent.appendChild(block)
       return
     }
-    const pre = ui.h('pre', 'ef-ai-tool-call-code ef-ui-scrollarea')
+    const pre = ui.h('pre', 'aeditor-ai-tool-call-code aeditor-ui-scrollarea')
     pre.textContent = displayText(value)
     block.appendChild(pre)
     parent.appendChild(block)
   }
 
   function isChangeSet(value) {
-    return !!(EF.changeSet && EF.changeSet.isChangeSet && EF.changeSet.isChangeSet(value))
+    return !!(aeditor.changeSet && aeditor.changeSet.isChangeSet && aeditor.changeSet.isChangeSet(value))
   }
 
   function appendToolButton(parent, text, enabled, fn, kind) {
@@ -417,27 +417,27 @@
   }
 
   function applyToolCallSmart(agentId, call) {
-    let state = EF.ai.getToolCallActionState ? EF.ai.getToolCallActionState(agentId, call.id, 'user') : null
+    let state = aeditor.ai.getToolCallActionState ? aeditor.ai.getToolCallActionState(agentId, call.id, 'user') : null
     if (!state) return null
-    if (state.canApply) return afterToolAction(agentId, EF.ai.applyToolCall(agentId, call.id, 'user'))
+    if (state.canApply) return afterToolAction(agentId, aeditor.ai.applyToolCall(agentId, call.id, 'user'))
     if (state.canPreview) {
-      EF.ai.previewToolCall(agentId, call.id, 'user')
-      state = EF.ai.getToolCallActionState(agentId, call.id, 'user')
-      if (state && state.canApply) return afterToolAction(agentId, EF.ai.applyToolCall(agentId, call.id, 'user'))
+      aeditor.ai.previewToolCall(agentId, call.id, 'user')
+      state = aeditor.ai.getToolCallActionState(agentId, call.id, 'user')
+      if (state && state.canApply) return afterToolAction(agentId, aeditor.ai.applyToolCall(agentId, call.id, 'user'))
       return null
     }
     if (state.canApprove) {
-      EF.ai.approveToolCall(agentId, call.id, 'user')
-      state = EF.ai.getToolCallActionState(agentId, call.id, 'user')
+      aeditor.ai.approveToolCall(agentId, call.id, 'user')
+      state = aeditor.ai.getToolCallActionState(agentId, call.id, 'user')
     }
-    return state && state.canRun ? afterToolAction(agentId, EF.ai.runToolCall(agentId, call.id, 'user')) : null
+    return state && state.canRun ? afterToolAction(agentId, aeditor.ai.runToolCall(agentId, call.id, 'user')) : null
   }
 
   function afterToolAction(agentId, action) {
     if (!action) return action
     function done() {
-      if (EF.ai.flushToolResults) EF.ai.flushToolResults(agentId)
-      if (EF.ai.resumeAgent) EF.ai.resumeAgent(agentId, 'user')
+      if (aeditor.ai.flushToolResults) aeditor.ai.flushToolResults(agentId)
+      if (aeditor.ai.resumeAgent) aeditor.ai.resumeAgent(agentId, 'user')
     }
     if (action.promise) {
       action.promise.then(done)
@@ -448,23 +448,23 @@
   }
 
   function renderToolActions(card, agentId, call) {
-    const state = EF.ai.getToolCallActionState
-      ? EF.ai.getToolCallActionState(agentId, call.id, 'user')
+    const state = aeditor.ai.getToolCallActionState
+      ? aeditor.ai.getToolCallActionState(agentId, call.id, 'user')
       : null
-    const actions = ui.h('div', 'ef-ai-tool-call-actions')
+    const actions = ui.h('div', 'aeditor-ai-tool-call-actions')
     const hasForwardAction = state && (state.canPreview || state.canApply || state.canApprove || state.canRun)
     if (hasForwardAction) {
       actions.appendChild(ui['switch']({
-        value: !!(EF.ai.isToolAlwaysAllowed && EF.ai.isToolAlwaysAllowed(agentId, call.toolId)),
+        value: !!(aeditor.ai.isToolAlwaysAllowed && aeditor.ai.isToolAlwaysAllowed(agentId, call.toolId)),
         label: 'Always',
         onChange: function (value) {
-          if (EF.ai.setToolAlwaysAllowed) EF.ai.setToolAlwaysAllowed(agentId, call.toolId, value)
+          if (aeditor.ai.setToolAlwaysAllowed) aeditor.ai.setToolAlwaysAllowed(agentId, call.toolId, value)
         },
       }))
     }
     appendToolButton(actions, 'Reject', state && state.canReject, function () {
-      EF.ai.rejectToolCall(agentId, call.id, 'Rejected by user', 'user')
-      if (EF.ai.resumeAgent) EF.ai.resumeAgent(agentId, 'user')
+      aeditor.ai.rejectToolCall(agentId, call.id, 'Rejected by user', 'user')
+      if (aeditor.ai.resumeAgent) aeditor.ai.resumeAgent(agentId, 'user')
     }, 'danger')
     appendToolButton(actions, 'Apply', state && (state.canApply || state.canPreview || state.canApprove || state.canRun), function () {
       applyToolCallSmart(agentId, call)
@@ -472,7 +472,7 @@
     if (actions.firstChild) card.appendChild(actions)
 
     if (state && (!state.callAllowed || (state.hasApply && !state.applyAllowed))) {
-      card.appendChild(ui.h('div', 'ef-ai-tool-call-permission', {
+      card.appendChild(ui.h('div', 'aeditor-ai-tool-call-permission', {
         text: !state.callAllowed
           ? 'Tool call permission is not granted for this agent.'
           : 'Tool apply permission is not granted for this agent.',
@@ -486,7 +486,7 @@
 
   function renderToolCall(agentId, messageId, call, viewState) {
     const status = toolStatus(call)
-    const card = ui.h('details', 'ef-ai-tool-call ef-ai-tool-call-' + status)
+    const card = ui.h('details', 'aeditor-ai-tool-call aeditor-ai-tool-call-' + status)
     const key = runStateKey(agentId, messageId, call.id)
     if (viewState && viewState.expandedToolCalls[key]) card.open = true
     card.addEventListener('toggle', function () {
@@ -494,33 +494,33 @@
       if (card.open) viewState.expandedToolCalls[key] = true
       else delete viewState.expandedToolCalls[key]
     })
-    const head = ui.h('summary', 'ef-ai-tool-call-head')
-    const right = ui.h('div', 'ef-ai-tool-call-head-right')
+    const head = ui.h('summary', 'aeditor-ai-tool-call-head')
+    const right = ui.h('div', 'aeditor-ai-tool-call-head-right')
     right.addEventListener('click', function (ev) { ev.stopPropagation() })
-    head.appendChild(ui.h('span', 'ef-ai-tool-call-name', { text: toolName(call) }))
-    if (status !== 'previewed') right.appendChild(ui.h('span', 'ef-ai-tool-call-status', { text: status }))
+    head.appendChild(ui.h('span', 'aeditor-ai-tool-call-name', { text: toolName(call) }))
+    if (status !== 'previewed') right.appendChild(ui.h('span', 'aeditor-ai-tool-call-status', { text: status }))
     const args = call.args && Object.keys(call.args).length ? compactArgs(call.args) : ''
-    if (args) head.appendChild(ui.h('span', 'ef-ai-tool-call-summary', { text: args }))
+    if (args) head.appendChild(ui.h('span', 'aeditor-ai-tool-call-summary', { text: args }))
 
-    const state = EF.ai.getToolCallActionState
-      ? EF.ai.getToolCallActionState(agentId, call.id, 'user')
+    const state = aeditor.ai.getToolCallActionState
+      ? aeditor.ai.getToolCallActionState(agentId, call.id, 'user')
       : null
     renderToolActions(right, agentId, call)
     head.appendChild(right)
     card.appendChild(head)
     if (call.description || call.title) {
-      card.appendChild(ui.h('div', 'ef-ai-tool-call-desc', { text: call.description || call.title }))
+      card.appendChild(ui.h('div', 'aeditor-ai-tool-call-desc', { text: call.description || call.title }))
     }
     const opts = { agentId: agentId, call: call, state: state }
-    appendToolBlock(card, 'Args', call.args, 'ef-ai-tool-call-args', opts)
+    appendToolBlock(card, 'Args', call.args, 'aeditor-ai-tool-call-args', opts)
     if (isQuestProducingCall(call)) {
       const quest = renderQuestActivity(call)
       if (quest) card.appendChild(quest)
     }
-    appendToolBlock(card, 'Preview', call.preview, 'ef-ai-tool-call-preview', opts)
-    appendToolBlock(card, 'Result', call.result, 'ef-ai-tool-call-result', opts)
-    appendToolBlock(card, 'Applied', call.applyResult, 'ef-ai-tool-call-apply-result', opts)
-    appendToolBlock(card, 'Error', call.error, 'ef-ai-tool-call-error', opts)
+    appendToolBlock(card, 'Preview', call.preview, 'aeditor-ai-tool-call-preview', opts)
+    appendToolBlock(card, 'Result', call.result, 'aeditor-ai-tool-call-result', opts)
+    appendToolBlock(card, 'Applied', call.applyResult, 'aeditor-ai-tool-call-apply-result', opts)
+    appendToolBlock(card, 'Error', call.error, 'aeditor-ai-tool-call-error', opts)
     return card
   }
 
@@ -540,7 +540,7 @@
 
   function renderToolCalls(parent, agentId, messageId, calls, viewState) {
     if (!calls || !calls.length) return
-    const wrap = ui.h('div', 'ef-ai-tool-calls')
+    const wrap = ui.h('div', 'aeditor-ai-tool-calls')
     for (let i = 0; i < calls.length; i++) wrap.appendChild(renderToolCall(agentId, messageId, calls[i], viewState))
     parent.appendChild(wrap)
   }
@@ -548,19 +548,19 @@
   function renderPayload(msg) {
     const content = msg.content != null ? msg.content : msg.text
     if (content && typeof content === 'object' && content.type !== 'rich-prompt') {
-      const pre = ui.h('pre', 'ef-ai-message-code ef-ui-scrollarea')
+      const pre = ui.h('pre', 'aeditor-ai-message-code aeditor-ui-scrollarea')
       pre.textContent = JSON.stringify(content, null, 2)
       return pre
     }
-    const wrap = ui.h('div', 'ef-ai-message-content')
+    const wrap = ui.h('div', 'aeditor-ai-message-content')
     appendTextParts(wrap, displayText(content))
     return wrap
   }
 
   function renderEmpty(item) {
-    const row = ui.h('div', 'ef-ai-empty-state')
-    row.appendChild(ui.h('div', 'ef-ai-empty-title', { text: item.title }))
-    row.appendChild(ui.h('div', 'ef-ai-empty-body', { text: item.content }))
+    const row = ui.h('div', 'aeditor-ai-empty-state')
+    row.appendChild(ui.h('div', 'aeditor-ai-empty-title', { text: item.title }))
+    row.appendChild(ui.h('div', 'aeditor-ai-empty-body', { text: item.content }))
     return row
   }
 
@@ -570,19 +570,19 @@
 
     const role = msg.role || msg.type || 'message'
     const status = statusOf(msg)
-    const row = ui.h('div', 'ef-ai-message-row ef-ai-message-row-' + role + ' ef-ai-message-row-status-' + status)
-    const stack = ui.h('div', 'ef-ai-message-stack')
-    const card = ui.h('div', 'ef-ai-message')
+    const row = ui.h('div', 'aeditor-ai-message-row aeditor-ai-message-row-' + role + ' aeditor-ai-message-row-status-' + status)
+    const stack = ui.h('div', 'aeditor-ai-message-stack')
+    const card = ui.h('div', 'aeditor-ai-message')
 
-    const body = ui.h('div', 'ef-ai-message-body')
+    const body = ui.h('div', 'aeditor-ai-message-body')
     body.appendChild(renderPayload(msg))
     if (status === 'error' && msg.meta && msg.meta.error) {
-      body.appendChild(ui.h('div', 'ef-ai-message-error', { text: msg.meta.error }))
+      body.appendChild(ui.h('div', 'aeditor-ai-message-error', { text: msg.meta.error }))
     }
     renderToolCalls(body, agent.id, msg.id, toolCallsOf(msg), viewState)
     card.appendChild(body)
-    appendChips(card, 'ef-ai-message-contexts', msg.contextRefs)
-    appendChips(card, 'ef-ai-message-attachments', msg.attachments || (msg.meta && msg.meta.attachments))
+    appendChips(card, 'aeditor-ai-message-contexts', msg.contextRefs)
+    appendChips(card, 'aeditor-ai-message-attachments', msg.attachments || (msg.meta && msg.meta.attachments))
     stack.appendChild(card)
 
     const runId = runIdOf(msg)
@@ -597,14 +597,14 @@
     }
 
     const copyText = runFooter && runFooter.content.length ? runFooter.content.join('\n\n') : messageText(msg)
-    const footer = ui.h('div', 'ef-ai-message-footer')
+    const footer = ui.h('div', 'aeditor-ai-message-footer')
     footer.appendChild(ui.copyButton({ text: copyText, title: runFooter ? 'Copy run' : 'Copy message', size: 'sm' }))
     const calls = toolCallsOf(msg)
     const callCount = runFooter ? runFooter.toolCalls : calls.length
-    if (callCount) footer.appendChild(ui.h('span', 'ef-ai-message-metrics', { text: callCount + ' tool call' + (callCount === 1 ? '' : 's') }))
+    if (callCount) footer.appendChild(ui.h('span', 'aeditor-ai-message-metrics', { text: callCount + ' tool call' + (callCount === 1 ? '' : 's') }))
     if (role !== 'user') {
       const metrics = runFooter ? runMetricText(runFooter, metricText(msg)) : metricText(msg)
-      if (metrics) footer.appendChild(ui.h('span', 'ef-ai-message-metrics', { text: metrics }))
+      if (metrics) footer.appendChild(ui.h('span', 'aeditor-ai-message-metrics', { text: metrics }))
     }
     stack.appendChild(footer)
     row.appendChild(stack)
@@ -624,15 +624,15 @@
   }
 
   function factory(propsSig, ctx) {
-    const root = ui.h('div', 'ef-ai-panel ef-ai-transcript')
+    const root = ui.h('div', 'aeditor-ai-panel aeditor-ai-transcript')
 
     const scroll = ui.scrollArea({ children: [] })
-    scroll.classList.add('ef-ai-message-scroll')
+    scroll.classList.add('aeditor-ai-message-scroll')
     root.appendChild(scroll)
-    const topSpacer = ui.h('div', 'ef-ai-message-virtual-spacer')
-    const windowEl = ui.h('div', 'ef-ai-message-window')
-    const bottomSpacer = ui.h('div', 'ef-ai-message-virtual-spacer')
-    const liveStrip = EF.ai.createMessageLiveStrip()
+    const topSpacer = ui.h('div', 'aeditor-ai-message-virtual-spacer')
+    const windowEl = ui.h('div', 'aeditor-ai-message-window')
+    const bottomSpacer = ui.h('div', 'aeditor-ai-message-virtual-spacer')
+    const liveStrip = aeditor.ai.createMessageLiveStrip()
     scroll.appendChild(topSpacer)
     scroll.appendChild(windowEl)
     scroll.appendChild(bottomSpacer)
@@ -640,8 +640,8 @@
 
     const viewState = { expandedToolCalls: {} }
     const rows = {}
-    const virtualizer = EF.ai.createMessageVirtualizer({ estimateHeight: 96, overscanPx: 640 })
-    const visibleRevision = EF.signal(0)
+    const virtualizer = aeditor.ai.createMessageVirtualizer({ estimateHeight: 96, overscanPx: 640 })
+    const visibleRevision = aeditor.signal(0)
     let cacheAgentId = null
     let cacheListVersion = -1
     let cacheMessages = []
@@ -682,11 +682,11 @@
     }
 
     function messagesForAgent(agentId) {
-      const ids = EF.ai.agentMessageIds ? EF.ai.agentMessageIds(agentId) : []
+      const ids = aeditor.ai.agentMessageIds ? aeditor.ai.agentMessageIds(agentId) : []
       const out = []
       if (ids.length) {
         for (let i = 0; i < ids.length; i++) {
-          const msg = EF.ai.readMessage(agentId, ids[i])
+          const msg = aeditor.ai.readMessage(agentId, ids[i])
           if (msg && (msg.role || msg.type) !== 'tool' && !isHiddenRuntimeMessage(msg)) out.push(msg)
         }
         return projectedMessages(out)
@@ -696,7 +696,7 @@
     }
 
     function ensureCache(agentId) {
-      const version = EF.ai.messageListVersion ? EF.ai.messageListVersion(agentId) : 0
+      const version = aeditor.ai.messageListVersion ? aeditor.ai.messageListVersion(agentId) : 0
       if (cacheAgentId === agentId && cacheListVersion === version) return
       cacheAgentId = agentId
       cacheListVersion = version
@@ -710,13 +710,13 @@
     }
 
     function visibleMessage(agentId, msg) {
-      if (EF.ai.messageVersion) EF.ai.messageVersion(agentId, msg.id)
-      return EF.ai.readMessage(agentId, msg.id) || msg
+      if (aeditor.ai.messageVersion) aeditor.ai.messageVersion(agentId, msg.id)
+      return aeditor.ai.readMessage(agentId, msg.id) || msg
     }
 
     function updateRow(agent, msg) {
       const id = msg.id
-      const version = EF.ai.messageVersion ? EF.ai.messageVersion(agent.id, id) : 0
+      const version = aeditor.ai.messageVersion ? aeditor.ai.messageVersion(agent.id, id) : 0
       const entry = rows[id]
       if (entry && entry.version === version && entry.listVersion === cacheListVersion) return entry.el
       const next = renderMessage(agent, msg, cacheRunFooters, viewState)
@@ -780,7 +780,7 @@
 
     function render() {
       const shouldStick = stickToBottom || scroll.scrollTop + scroll.clientHeight >= scroll.scrollHeight - 32
-      const agentId = read(EF.ai.activeAgentId)
+      const agentId = read(aeditor.ai.activeAgentId)
       if (!agentId) {
         showEmpty({ title: 'No active agent', content: 'Select an agent to inspect its transcript.' })
         return
@@ -815,26 +815,26 @@
       ui.collect(root, function () { ro.disconnect() })
     }
     render()
-    ui.collect(root, EF.effect(function () {
-      const agentId = read(EF.ai.activeAgentId)
+    ui.collect(root, aeditor.effect(function () {
+      const agentId = read(aeditor.ai.activeAgentId)
       visibleRevision()
       if (agentId) {
         ensureCache(agentId)
         const range = rangeForViewport()
         for (let i = range.start; i < range.end; i++) {
-          if (cacheMessages[i] && EF.ai.messageVersion) EF.ai.messageVersion(agentId, cacheMessages[i].id)
+          if (cacheMessages[i] && aeditor.ai.messageVersion) aeditor.ai.messageVersion(agentId, cacheMessages[i].id)
         }
       }
       scheduleRender()
     }))
-    ui.collect(root, EF.effect(function () {
-      const agentId = read(EF.ai.activeAgentId)
-      liveStrip.update(agentId && EF.ai.activeRunState ? EF.ai.activeRunState(agentId) : null)
+    ui.collect(root, aeditor.effect(function () {
+      const agentId = read(aeditor.ai.activeAgentId)
+      liveStrip.update(agentId && aeditor.ai.activeRunState ? aeditor.ai.activeRunState(agentId) : null)
     }))
     return root
   }
 
-  EF.registerComponent('ai-messages', {
+  aeditor.registerComponent('ai-messages', {
     category: 'panel',
     label: 'AI Messages',
     icon: 'message-circle',
@@ -842,4 +842,4 @@
     factory: factory,
     dispose: disposeTree,
   })
-})(window.EF = window.EF || {})
+})(window.aeditor = window.aeditor || {})

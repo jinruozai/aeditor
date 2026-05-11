@@ -2,7 +2,7 @@
 import { readFileSync } from 'node:fs'
 import vm from 'node:vm'
 
-global.window = { EF: {} }
+global.window = { aeditor: {} }
 
 for (const file of [
   'src/core/signal.js',
@@ -22,7 +22,7 @@ for (const file of [
   vm.runInThisContext(readFileSync(file, 'utf8'), { filename: file })
 }
 
-const ai = window.EF.ai
+const ai = window.aeditor.ai
 
 function latestCall(agentId) {
   const agent = ai.findAgent(agentId)
@@ -188,7 +188,7 @@ const generatedMessage = ai.findAgent(generatedCallAgent.id).messages.find(funct
 })
 assert.notEqual(generatedMessage.toolCalls[0].id, generatedMessage.toolCalls[1].id)
 
-const decodedTextTool = ai.decodeTextToolResponse('Before\n```json\n{"ef_tool_calls":[{"toolId":"read-number","args":{"id":"answer"}}]}\n```\nAfter')
+const decodedTextTool = ai.decodeTextToolResponse('Before\n```json\n{"aeditor_tool_calls":[{"toolId":"read-number","args":{"id":"answer"}}]}\n```\nAfter')
 assert.equal(decodedTextTool.content, 'Before\n\nAfter')
 assert.equal(decodedTextTool.toolCalls.length, 1)
 assert.equal(decodedTextTool.toolCalls[0].toolId, 'read-number')

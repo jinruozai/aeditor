@@ -1,14 +1,14 @@
-// EF.i18n - small reactive localization core.
+// aeditor.i18n - small reactive localization core.
 //
 // It provides only generic mechanics: locale signal, dictionaries, fallback,
 // interpolation, and DOM binding helpers. Applications own their language
 // packs and decide how users switch language.
-;(function (EF) {
+;(function (aeditor) {
   'use strict'
 
   const DEFAULT_LOCALE = 'en'
   const dictionaries = {}
-  const localeSig = EF.signal(DEFAULT_LOCALE)
+  const localeSig = aeditor.signal(DEFAULT_LOCALE)
   let fallbackLocale = DEFAULT_LOCALE
 
   function register(locale, dict) {
@@ -53,18 +53,18 @@
   }
 
   function text(key, vars) {
-    return EF.derived(function () { return t(key, typeof vars === 'function' ? vars() : vars) })
+    return aeditor.derived(function () { return t(key, typeof vars === 'function' ? vars() : vars) })
   }
 
   function bindText(el, key, vars) {
     const sig = text(key, vars)
-    const stop = EF.effect(function () { el.textContent = sig() })
+    const stop = aeditor.effect(function () { el.textContent = sig() })
     return function () { stop(); sig.dispose() }
   }
 
   function onChange(fn) {
     let first = true
-    return EF.effect(function () {
+    return aeditor.effect(function () {
       const loc = localeSig()
       if (first) { first = false; return }
       fn(loc)
@@ -84,5 +84,5 @@
     onChange: onChange,
   }
 
-  EF.i18n = api
-})(window.EF = window.EF || {})
+  aeditor.i18n = api
+})(window.aeditor = window.aeditor || {})

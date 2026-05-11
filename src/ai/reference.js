@@ -1,8 +1,8 @@
-// EF.ai Reference / Operation protocol.
-;(function (EF) {
+// aeditor.ai Reference / Operation protocol.
+;(function (aeditor) {
   'use strict'
 
-  const ai = EF.ai = EF.ai || {}
+  const ai = aeditor.ai = aeditor.ai || {}
   const referenceProviders = {}
   const referenceProviderMeta = {}
   const operations = {}
@@ -295,7 +295,7 @@
     const apply = function () { return spec.apply(preview, opCtx) }
     const result = spec.transaction === false
       ? apply()
-      : runTransaction(preview.title || op, apply, { source: 'ef.ai', op: op, previewId: preview.id, risk: preview.risk })
+      : runTransaction(preview.title || op, apply, { source: 'aeditor.ai', op: op, previewId: preview.id, risk: preview.risk })
     if (result && typeof result === 'object') return Object.assign({ applied: true, previewId: preview.id }, result)
     return { applied: true, previewId: preview.id, result: result }
   }
@@ -313,7 +313,7 @@
 
   function registerEditorTools() {
     if (!ai.registerTool) return
-    ai.registerTool('editor.readReference', {
+    ai.registerTool('aeditor.readReference', {
       title: 'Read Editor Reference',
       description: 'Read a referenced editor object. Use this before editing so schemas, values, and summaries are grounded in the host editor.',
       schema: {
@@ -330,7 +330,7 @@
         return readReference(args, args, ctx)
       },
     })
-    ai.registerTool('editor.searchReferences', {
+    ai.registerTool('aeditor.searchReferences', {
       title: 'Search Editor References',
       description: 'Search host-provided editor references by query and optional kind.',
       schema: {
@@ -345,7 +345,7 @@
         return searchReferences(args || {}, ctx)
       },
     })
-    ai.registerTool('editor.getSelection', {
+    ai.registerTool('aeditor.getSelection', {
       title: 'Get Editor Selection',
       description: 'Return current host editor selection as references.',
       schema: { type: 'object', properties: {} },
@@ -353,7 +353,7 @@
         return selectedReferences(ctx)
       },
     })
-    ai.registerTool('editor.getCapabilities', {
+    ai.registerTool('aeditor.getCapabilities', {
       title: 'Get Reference Capabilities',
       description: 'Return schemas and operations available for a reference.',
       schema: {
@@ -373,7 +373,7 @@
         }
       },
     })
-    ai.registerTool('editor.previewOperation', {
+    ai.registerTool('aeditor.previewOperation', {
       title: 'Preview Editor Operation',
       description: 'Preview a registered editor operation. Never apply invalid previews; repair input from returned validation errors.',
       schema: {
@@ -392,7 +392,7 @@
         return previewOperation(args, null, ctx)
       },
     })
-    ai.registerTool('editor.applyOperation', {
+    ai.registerTool('aeditor.applyOperation', {
       title: 'Apply Editor Operation',
       description: 'Preview and apply a registered editor operation through the host transaction bridge.',
       schema: {
@@ -492,4 +492,4 @@
   ai.configureTransactions = configureTransactions
 
   registerEditorTools()
-})(window.EF = window.EF || {})
+})(window.aeditor = window.aeditor || {})

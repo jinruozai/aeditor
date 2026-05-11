@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import vm from 'node:vm'
 
-global.window = { EF: {} }
+global.window = { aeditor: {} }
 
 for (const file of [
   'src/core/signal.js',
@@ -19,7 +19,7 @@ for (const file of [
   vm.runInThisContext(readFileSync(file, 'utf8'), { filename: file })
 }
 
-const EF = window.EF
+const aeditor = window.aeditor
 let cleaned = false
 window.CaseProject = {
   setup: function (ctx) {
@@ -49,9 +49,9 @@ window.CaseProject = {
   },
 }
 
-const ws = EF.workspace.memory({
-  'editorframe.project.json': JSON.stringify({
-    type: 'editorframe-project',
+const ws = aeditor.workspace.memory({
+  'aeditor.project.json': JSON.stringify({
+    type: 'aeditor-project',
     schemaVersion: 1,
     id: 'case',
     title: 'Case Project',
@@ -72,33 +72,33 @@ const ws = EF.workspace.memory({
   'layout.json': JSON.stringify({ root: { type: 'dock', id: 'dock-1', name: 'main', panels: [], activeId: null } }),
 })
 
-const project = await EF.project.open(ws, { mount: {} })
+const project = await aeditor.project.open(ws, { mount: {} })
 assert.equal(project.id, 'case')
-assert.equal(EF.project.current().id, 'case')
-assert.equal(EF.componentRegistration('case.panel').owner, 'project:case')
-assert.equal(EF.ai.toolMeta('case.ping').owner, 'project:case')
-assert.deepEqual(EF.ai.readReference({ uri: 'case.ref://x', resolver: 'case.ref' }), { ok: true })
+assert.equal(aeditor.project.current().id, 'case')
+assert.equal(aeditor.componentRegistration('case.panel').owner, 'project:case')
+assert.equal(aeditor.ai.toolMeta('case.ping').owner, 'project:case')
+assert.deepEqual(aeditor.ai.readReference({ uri: 'case.ref://x', resolver: 'case.ref' }), { ok: true })
 
-const file = await EF.ai.getTool('project.readFile').run({ path: 'src/panel.js' })
+const file = await aeditor.ai.getTool('project.readFile').run({ path: 'src/panel.js' })
 assert.equal(file.path, 'src/panel.js')
-const ranged = await EF.ai.getTool('project.readFileRange').run({ path: 'src/panel.js', startLine: 2, endLine: 2 })
+const ranged = await aeditor.ai.getTool('project.readFileRange').run({ path: 'src/panel.js', startLine: 2, endLine: 2 })
 assert.equal(ranged.text.trim(), 'return 1')
-const events = await EF.ai.getTool('project.readSource').run({ path: 'src/panel.js', projection: 'summary' })
+const events = await aeditor.ai.getTool('project.readSource').run({ path: 'src/panel.js', projection: 'summary' })
 assert.equal(events.lines, 4)
 assert.equal(events.id, 'case')
-const large = await EF.ai.getTool('project.readFile').run({ path: 'src/large.js', maxChars: 120, maxLines: 5 })
+const large = await aeditor.ai.getTool('project.readFile').run({ path: 'src/large.js', maxChars: 120, maxLines: 5 })
 assert.equal(large.truncated, true)
 assert.equal(Object.hasOwn(large, 'text'), false)
-await EF.ai.getTool('project.patchFile').run({
+await aeditor.ai.getTool('project.patchFile').run({
   path: 'src/panel.js',
   baseHash: file.hash,
   patches: [{ startLine: 2, endLine: 2, replacement: '  return 2' }],
 })
 assert.equal((await ws.read('src/panel.js')).text.includes('return 2'), true)
 
-assert.deepEqual(EF.ai.getTool('project.inspectPanel').run({ panelId: 'p1' }), { panelId: 'p1', status: 'ready' })
+assert.deepEqual(aeditor.ai.getTool('project.inspectPanel').run({ panelId: 'p1' }), { panelId: 'p1', status: 'ready' })
 
-await EF.project.promotePanel({
+await aeditor.project.promotePanel({
   id: 'inventory',
   title: 'Inventory',
   dock: 'main',
@@ -108,19 +108,19 @@ await EF.project.promotePanel({
 assert.equal((await ws.read('src/panels/inventory.panel.js')).text.includes('case.inventory'), true)
 assert.equal((await ws.read('layout.json')).text.includes('case.inventory'), true)
 
-const descriptor = await ws.read('editorframe.project.json')
-await ws.write('editorframe.project.json', '{ broken')
-await assert.rejects(() => EF.project.reload('case'), /JSON/)
-assert.equal(EF.project.current().id, 'case')
-assert.equal(EF.componentRegistration('case.panel').owner, 'project:case')
-await ws.write('editorframe.project.json', descriptor.text)
+const descriptor = await ws.read('aeditor.project.json')
+await ws.write('aeditor.project.json', '{ broken')
+await assert.rejects(() => aeditor.project.reload('case'), /JSON/)
+assert.equal(aeditor.project.current().id, 'case')
+assert.equal(aeditor.componentRegistration('case.panel').owner, 'project:case')
+await ws.write('aeditor.project.json', descriptor.text)
 
-assert.equal(EF.project.close('case'), true)
+assert.equal(aeditor.project.close('case'), true)
 assert.equal(cleaned, true)
-assert.equal(EF.componentRegistration('case.panel'), null)
-assert.equal(EF.ai.getTool('case.ping'), undefined)
-assert.equal(EF.ai.references.get('case.ref'), null)
-assert.equal(EF.ai.operations.get('case.op'), null)
+assert.equal(aeditor.componentRegistration('case.panel'), null)
+assert.equal(aeditor.ai.getTool('case.ping'), undefined)
+assert.equal(aeditor.ai.references.get('case.ref'), null)
+assert.equal(aeditor.ai.operations.get('case.op'), null)
 
 window.NoApplyProject = {
   setup: function (ctx) {
@@ -130,9 +130,9 @@ window.NoApplyProject = {
     })
   },
 }
-const noApplyWs = EF.workspace.memory({
-  'editorframe.project.json': JSON.stringify({
-    type: 'editorframe-project',
+const noApplyWs = aeditor.workspace.memory({
+  'aeditor.project.json': JSON.stringify({
+    type: 'aeditor-project',
     id: 'noapply',
     entry: { type: 'script', symbol: 'NoApplyProject' },
     permissions: {
@@ -141,9 +141,9 @@ const noApplyWs = EF.workspace.memory({
     },
   }),
 })
-await EF.project.open(noApplyWs)
-const preview = EF.ai.operations.preview('noapply.op', {})
-assert.throws(() => EF.ai.operations.apply(preview), /ai\.operations\.apply/)
-EF.project.close('noapply')
+await aeditor.project.open(noApplyWs)
+const preview = aeditor.ai.operations.preview('noapply.op', {})
+assert.throws(() => aeditor.ai.operations.apply(preview), /ai\.operations\.apply/)
+aeditor.project.close('noapply')
 
 console.log('project runtime tests ok')

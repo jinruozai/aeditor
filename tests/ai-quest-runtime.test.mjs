@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import vm from 'node:vm'
 
-global.window = { EF: {} }
+global.window = { aeditor: {} }
 
 for (const file of [
   'src/core/signal.js',
@@ -23,7 +23,7 @@ for (const file of [
   vm.runInThisContext(readFileSync(file, 'utf8'), { filename: file })
 }
 
-const ai = window.EF.ai
+const ai = window.aeditor.ai
 const replies = []
 const requests = []
 
@@ -310,7 +310,7 @@ const hugeSource = 'function (propsSig, ctx) {\n' + 'x'.repeat(120000) + '\n}'
 ai.appendMessage(hugeToolAgent.id, {
   role: 'assistant',
   content: '',
-  toolCalls: [{ id: 'call_huge', toolId: 'editor.createPanel', args: { id: 'huge', source: hugeSource }, status: 'applied', applyResult: { source: hugeSource } }],
+  toolCalls: [{ id: 'call_huge', toolId: 'aeditor.createPanel', args: { id: 'huge', source: hugeSource }, status: 'applied', applyResult: { source: hugeSource } }],
 })
 ai.appendMessage(hugeToolAgent.id, { role: 'tool', content: { applied: true, source: hugeSource }, meta: { toolCallId: 'call_huge' } })
 const hugeInput = ai.appendMessage(hugeToolAgent.id, { role: 'user', content: 'next' })

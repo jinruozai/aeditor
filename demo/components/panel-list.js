@@ -1,8 +1,8 @@
 // demo component: panel-list
-;(function (EF) {
+;(function (aeditor) {
   'use strict'
 
-  const ui = EF.ui
+  const ui = aeditor.ui
 
   function disposeTree(el) {
     if (!el) return
@@ -15,15 +15,15 @@
   }
 
   function iconOf(item) {
-    const defaults = EF.componentDefaults(item.name)
+    const defaults = aeditor.componentDefaults(item.name)
     return item.icon || defaults.icon || 'columns'
   }
 
   function panelItems() {
-    return EF.listComponents()
+    return aeditor.listComponents()
       .filter(function (item) { return item.category === 'panel' })
       .map(function (item) {
-        const defaults = EF.componentDefaults(item.name)
+        const defaults = aeditor.componentDefaults(item.name)
         return {
           name: item.name,
           label: titleOf(item),
@@ -50,8 +50,8 @@
   }
 
   function beginDrag(ev, item) {
-    if (!Demo.layout || !EF._dock || !EF._dock.beginExternalPanelDrag) return
-    EF._dock.beginExternalPanelDrag(ev, panelData(item), Demo.layout, { label: item.label })
+    if (!Demo.layout || !aeditor._dock || !aeditor._dock.beginExternalPanelDrag) return
+    aeditor._dock.beginExternalPanelDrag(ev, panelData(item), Demo.layout, { label: item.label })
   }
 
   function factory() {
@@ -80,7 +80,7 @@
     return root
   }
 
-  EF.registerComponent('panel-list', {
+  aeditor.registerComponent('panel-list', {
     category: 'panel',
     label: 'Panels',
     icon: 'columns',
@@ -88,4 +88,4 @@
     factory: factory,
     dispose: disposeTree,
   })
-})(window.EF = window.EF || {})
+})(window.aeditor = window.aeditor || {})

@@ -1,4 +1,4 @@
-// EF.ui.input — single-line text input bound to a signal.
+// aeditor.ui.input — single-line text input bound to a signal.
 //
 // opts:
 //   value       : string | signal<string>   (auto-wrapped if plain)
@@ -10,9 +10,9 @@
 //   suffix      : string | HTMLElement
 //   type        : input type                  default "text"
 //   onCommit    : (v) => void                 fired on Enter / blur
-;(function (EF) {
+;(function (aeditor) {
   'use strict'
-  const ui = EF.ui = EF.ui || {}
+  const ui = aeditor.ui = aeditor.ui || {}
 
   ui.input = function (opts) {
     const o = opts || {}
@@ -22,9 +22,9 @@
     const readOnly    = ui.asSig(o.readOnly    != null ? o.readOnly    : false)
     const doWrite = ui.writer(sig, o.onChange, 'ui.input')
 
-    const wrap = ui.h('div', 'ef-ui-field')
+    const wrap = ui.h('div', 'aeditor-ui-field')
     if (o.prefix != null) wrap.appendChild(slot(o.prefix, 'prefix'))
-    const el = ui.h('input', 'ef-ui-input', { type: o.type || 'text' })
+    const el = ui.h('input', 'aeditor-ui-input', { type: o.type || 'text' })
     wrap.appendChild(el)
     if (o.suffix != null) wrap.appendChild(slot(o.suffix, 'suffix'))
 
@@ -35,7 +35,7 @@
     })
     ui.bind(wrap, disabled, function (v) {
       el.disabled = !!v
-      wrap.classList.toggle('ef-ui-field-disabled', !!v)
+      wrap.classList.toggle('aeditor-ui-field-disabled', !!v)
     })
 
     el.addEventListener('input', function () { doWrite(el.value) })
@@ -48,9 +48,9 @@
   }
 
   function slot(content, side) {
-    const el = ui.h('span', 'ef-ui-field-' + side)
+    const el = ui.h('span', 'aeditor-ui-field-' + side)
     if (content instanceof HTMLElement) el.appendChild(content)
     else el.textContent = String(content)
     return el
   }
-})(window.EF = window.EF || {})
+})(window.aeditor = window.aeditor || {})

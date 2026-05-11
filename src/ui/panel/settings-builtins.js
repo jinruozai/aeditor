@@ -1,17 +1,17 @@
-// Built-in settings sections for EditorFrame.
-;(function (EF) {
+// Built-in settings sections for AEditor.
+;(function (aeditor) {
   'use strict'
 
-  if (!EF.settings) return
+  if (!aeditor.settings) return
 
-  EF.settings.registerSection('theme', {
+  aeditor.settings.registerSection('theme', {
     title: 'Theme',
     icon: 'palette',
-    description: 'EditorFrame appearance and visual density.',
+    description: 'AEditor appearance and visual density.',
     order: 10,
   })
 
-  EF.settings.registerSchema('theme', [
+  aeditor.settings.registerSchema('theme', [
     {
       key: 'theme.mode',
       label: 'Mode',
@@ -22,7 +22,7 @@
         { value: 'dracula', label: 'Dracula' },
         { value: 'light', label: 'Light' },
       ],
-      description: 'Active EditorFrame theme.',
+      description: 'Active AEditor theme.',
       order: 10,
     },
     {
@@ -40,7 +40,7 @@
     },
   ])
 
-  EF.settings.registerPage('theme-editor', {
+  aeditor.settings.registerPage('theme-editor', {
     section: 'theme',
     title: 'Appearance',
     icon: 'sliders',
@@ -49,33 +49,33 @@
     factory: renderThemeSettings,
   })
 
-  EF.effect(function () {
-    const mode = EF.settings.get('theme.mode')
-    if (EF.theme && EF.theme.set) EF.theme.set(mode || 'dark')
-    const density = EF.settings.get('theme.density')
-    if (EF.theme && EF.theme.setDensity) EF.theme.setDensity(density || 'default')
+  aeditor.effect(function () {
+    const mode = aeditor.settings.get('theme.mode')
+    if (aeditor.theme && aeditor.theme.set) aeditor.theme.set(mode || 'dark')
+    const density = aeditor.settings.get('theme.density')
+    if (aeditor.theme && aeditor.theme.setDensity) aeditor.theme.setDensity(density || 'default')
   })
 
-  EF.settings.registerSection('ai', {
+  aeditor.settings.registerSection('ai', {
     title: 'AI',
     icon: 'user',
     description: 'Connections, auth methods, models, and local bridge settings.',
     order: 20,
   })
 
-  EF.settings.registerSchema('ai', [
+  aeditor.settings.registerSchema('ai', [
     {
       key: 'ai.defaultConnection',
       label: 'Default Connection',
       type: 'select',
       default: 'mock',
       options: function () {
-        if (EF.ai && EF.ai.connectionOptions) {
-          return EF.ai.connectionOptions().map(function (item) {
+        if (aeditor.ai && aeditor.ai.connectionOptions) {
+          return aeditor.ai.connectionOptions().map(function (item) {
             return { value: item.id, label: item.label || item.id }
           })
         }
-        const list = EF.ai && EF.ai.listConnections ? EF.ai.listConnections() : ['mock']
+        const list = aeditor.ai && aeditor.ai.listConnections ? aeditor.ai.listConnections() : ['mock']
         return list.map(function (id) { return { value: id, label: id } })
       },
       description: 'Connection used by newly created agents.',
@@ -83,12 +83,12 @@
     },
   ])
 
-  EF.effect(function () {
-    if (!EF.ai || !EF.ai.setActiveConnection) return
-    EF.ai.setActiveConnection(EF.settings.get('ai.defaultConnection') || 'mock')
+  aeditor.effect(function () {
+    if (!aeditor.ai || !aeditor.ai.setActiveConnection) return
+    aeditor.ai.setActiveConnection(aeditor.settings.get('ai.defaultConnection') || 'mock')
   })
 
-  EF.settings.registerPage('ai', {
+  aeditor.settings.registerPage('ai', {
     section: 'ai',
     title: 'Connections',
     icon: 'link',
@@ -99,20 +99,20 @@
   })
 
   function renderAiSettings() {
-    const root = EF.ui.h('div', 'ef-settings-page ef-settings-ai-page')
+    const root = aeditor.ui.h('div', 'aeditor-settings-page aeditor-settings-ai-page')
     root.appendChild(pageHead(
       'AI',
       'Configure AI connections, auth methods, model defaults, and local bridge behavior.'
     ))
 
-    const overview = EF.ui.h('div', 'ef-settings-ai-overview')
+    const overview = aeditor.ui.h('div', 'aeditor-settings-ai-overview')
     overview.appendChild(settingSelect({
       key: 'ai.defaultConnection',
       label: 'Default connection',
       desc: 'New agents start with this connection. Existing agents keep their own connection.',
       options: function () {
-        if (EF.ai && EF.ai.connectionOptions) {
-          return EF.ai.connectionOptions().map(function (item) {
+        if (aeditor.ai && aeditor.ai.connectionOptions) {
+          return aeditor.ai.connectionOptions().map(function (item) {
             return { value: item.id, label: item.label || item.id }
           })
         }
@@ -124,11 +124,11 @@
     ))
     root.appendChild(overview)
 
-    const block = EF.ui.h('section', 'ef-settings-provider-block')
-    const blockHead = EF.ui.h('div', 'ef-settings-provider-block-head')
-    blockHead.appendChild(EF.ui.h('div', 'ef-settings-provider-block-title', { text: 'Connections' }))
-    blockHead.appendChild(EF.ui.h('div', 'ef-settings-provider-block-desc', { text: 'Use Custom OpenAI Compatible for private endpoints. Framework plugins can register connections without replacing this page.' }))
-    blockHead.appendChild(EF.ui.button({
+    const block = aeditor.ui.h('section', 'aeditor-settings-provider-block')
+    const blockHead = aeditor.ui.h('div', 'aeditor-settings-provider-block-head')
+    blockHead.appendChild(aeditor.ui.h('div', 'aeditor-settings-provider-block-title', { text: 'Connections' }))
+    blockHead.appendChild(aeditor.ui.h('div', 'aeditor-settings-provider-block-desc', { text: 'Use Custom OpenAI Compatible for private endpoints. Framework plugins can register connections without replacing this page.' }))
+    blockHead.appendChild(aeditor.ui.button({
       text: 'Add Connection',
       icon: 'plus',
       size: 'sm',
@@ -136,17 +136,17 @@
       onClick: function () { addCustomConnection(root) },
     }))
     block.appendChild(blockHead)
-    const list = EF.ui.h('div', 'ef-settings-provider-list')
-    const connections = EF.ai && EF.ai.connectionOptions ? EF.ai.connectionOptions() : [{ id: 'mock', label: 'Mock' }]
+    const list = aeditor.ui.h('div', 'aeditor-settings-provider-list')
+    const connections = aeditor.ai && aeditor.ai.connectionOptions ? aeditor.ai.connectionOptions() : [{ id: 'mock', label: 'Mock' }]
     for (let i = 0; i < connections.length; i++) list.appendChild(connectionRow(connections[i]))
     block.appendChild(list)
     root.appendChild(block)
     return root
   }
 
-  const THEME_STORAGE_KEY = 'ef-theme-overrides-v2'
-  const THEME_MODE_KEY = 'ef-theme-mode'
-  const THEME_DENSITY_KEY = 'ef-theme-density'
+  const THEME_STORAGE_KEY = 'aeditor-theme-overrides-v2'
+  const THEME_MODE_KEY = 'aeditor-theme-mode'
+  const THEME_DENSITY_KEY = 'aeditor-theme-density'
   const THEME_TABS = [
     { value: 'palette', label: 'Palette' },
     { value: 'spacing', label: 'Spacing' },
@@ -156,77 +156,77 @@
     { value: 'motion', label: 'Motion' },
   ]
   const PALETTE = [
-    ['--ef-surface-canvas', 'Surface / Canvas'],
-    ['--ef-surface-lower', 'Surface / Lower'],
-    ['--ef-surface-frame', 'Surface / Frame'],
-    ['--ef-surface-panel', 'Surface / Panel'],
-    ['--ef-surface-field', 'Surface / Field'],
-    ['--ef-surface-hover', 'Surface / Hover'],
-    ['--ef-surface-active', 'Surface / Active'],
-    ['--ef-surface-raised', 'Surface / Raised'],
-    ['--ef-text-primary', 'Text / Primary'],
-    ['--ef-text-body', 'Text / Body'],
-    ['--ef-text-label', 'Text / Label'],
-    ['--ef-text-muted', 'Text / Muted'],
-    ['--ef-text-disabled', 'Text / Disabled'],
-    ['--ef-stroke-subtle', 'Stroke / Subtle'],
-    ['--ef-stroke-strong', 'Stroke / Strong'],
-    ['--ef-stroke-field', 'Stroke / Field'],
-    ['--ef-stroke-hover', 'Stroke / Hover'],
-    ['--ef-brand', 'Brand / Accent'],
-    ['--ef-brand-hover', 'Brand / Hover'],
-    ['--ef-brand-contrast', 'Brand / Contrast'],
-    ['--ef-state-success', 'State / Success'],
-    ['--ef-state-warning', 'State / Warning'],
-    ['--ef-state-danger', 'State / Danger'],
-    ['--ef-state-info', 'State / Info'],
+    ['--aeditor-surface-canvas', 'Surface / Canvas'],
+    ['--aeditor-surface-lower', 'Surface / Lower'],
+    ['--aeditor-surface-frame', 'Surface / Frame'],
+    ['--aeditor-surface-panel', 'Surface / Panel'],
+    ['--aeditor-surface-field', 'Surface / Field'],
+    ['--aeditor-surface-hover', 'Surface / Hover'],
+    ['--aeditor-surface-active', 'Surface / Active'],
+    ['--aeditor-surface-raised', 'Surface / Raised'],
+    ['--aeditor-text-primary', 'Text / Primary'],
+    ['--aeditor-text-body', 'Text / Body'],
+    ['--aeditor-text-label', 'Text / Label'],
+    ['--aeditor-text-muted', 'Text / Muted'],
+    ['--aeditor-text-disabled', 'Text / Disabled'],
+    ['--aeditor-stroke-subtle', 'Stroke / Subtle'],
+    ['--aeditor-stroke-strong', 'Stroke / Strong'],
+    ['--aeditor-stroke-field', 'Stroke / Field'],
+    ['--aeditor-stroke-hover', 'Stroke / Hover'],
+    ['--aeditor-brand', 'Brand / Accent'],
+    ['--aeditor-brand-hover', 'Brand / Hover'],
+    ['--aeditor-brand-contrast', 'Brand / Contrast'],
+    ['--aeditor-state-success', 'State / Success'],
+    ['--aeditor-state-warning', 'State / Warning'],
+    ['--aeditor-state-danger', 'State / Danger'],
+    ['--aeditor-state-info', 'State / Info'],
   ]
   const SPACING = [
-    ['--ef-space-1', 'Tight gap', 0, 32],
-    ['--ef-space-2', 'Control gap', 0, 32],
-    ['--ef-space-3', 'Row gap', 0, 64],
-    ['--ef-space-4', 'Panel padding', 0, 64],
-    ['--ef-space-5', 'Section gap', 0, 96],
-    ['--ef-space-6', 'Large gap', 0, 128],
+    ['--aeditor-space-1', 'Tight gap', 0, 32],
+    ['--aeditor-space-2', 'Control gap', 0, 32],
+    ['--aeditor-space-3', 'Row gap', 0, 64],
+    ['--aeditor-space-4', 'Panel padding', 0, 64],
+    ['--aeditor-space-5', 'Section gap', 0, 96],
+    ['--aeditor-space-6', 'Large gap', 0, 128],
   ]
   const SIZING = [
-    ['--ef-size-h-xs', 'Control height xs', 12, 40],
-    ['--ef-size-h-sm', 'Control height sm', 14, 44],
-    ['--ef-size-h-md', 'Control height md', 16, 48],
-    ['--ef-size-h-lg', 'Control height lg', 18, 56],
-    ['--ef-toolbar-h', 'Toolbar height', 16, 60],
-    ['--ef-tab-h', 'Tab height', 16, 60],
+    ['--aeditor-size-h-xs', 'Control height xs', 12, 40],
+    ['--aeditor-size-h-sm', 'Control height sm', 14, 44],
+    ['--aeditor-size-h-md', 'Control height md', 16, 48],
+    ['--aeditor-size-h-lg', 'Control height lg', 18, 56],
+    ['--aeditor-toolbar-h', 'Toolbar height', 16, 60],
+    ['--aeditor-tab-h', 'Tab height', 16, 60],
   ]
   const RADIUS = [
-    ['--ef-r-1', 'Tiny radius', 0, 24],
-    ['--ef-r-2', 'Control radius', 0, 24],
-    ['--ef-r-3', 'Panel radius', 0, 24],
-    ['--ef-r-4', 'Floating radius', 0, 24],
+    ['--aeditor-r-1', 'Tiny radius', 0, 24],
+    ['--aeditor-r-2', 'Control radius', 0, 24],
+    ['--aeditor-r-3', 'Panel radius', 0, 24],
+    ['--aeditor-r-4', 'Floating radius', 0, 24],
   ]
   const TYPO_PX = [
-    ['--ef-fs-xs', 'Font size xs', 8, 24],
-    ['--ef-fs-sm', 'Font size sm', 8, 24],
-    ['--ef-fs-md', 'Font size md', 8, 28],
-    ['--ef-fs-lg', 'Font size lg', 8, 32],
-    ['--ef-fs-xl', 'Font size xl', 8, 36],
+    ['--aeditor-fs-xs', 'Font size xs', 8, 24],
+    ['--aeditor-fs-sm', 'Font size sm', 8, 24],
+    ['--aeditor-fs-md', 'Font size md', 8, 28],
+    ['--aeditor-fs-lg', 'Font size lg', 8, 32],
+    ['--aeditor-fs-xl', 'Font size xl', 8, 36],
   ]
   const MOTION_MS = [
-    ['--ef-dur-fast', 'Fast', 0, 1000],
-    ['--ef-dur-med', 'Med', 0, 1000],
-    ['--ef-dur-slow', 'Slow', 0, 1000],
+    ['--aeditor-dur-fast', 'Fast', 0, 1000],
+    ['--aeditor-dur-med', 'Med', 0, 1000],
+    ['--aeditor-dur-slow', 'Slow', 0, 1000],
   ]
 
   function renderThemeSettings() {
-    const ui = EF.ui
-    const root = ui.h('div', 'ef-settings-page ef-settings-theme-page')
-    root.appendChild(pageHead('Theme', 'EditorFrame appearance and visual density.'))
+    const ui = aeditor.ui
+    const root = ui.h('div', 'aeditor-settings-page aeditor-settings-theme-page')
+    root.appendChild(pageHead('Theme', 'AEditor appearance and visual density.'))
 
-    const bar = ui.h('div', 'ef-settings-theme-bar')
-    const tabSig = EF.signal('palette')
-    const modeSig = EF.signal(EF.settings.get('theme.mode') || localStorage.getItem(THEME_MODE_KEY) || 'dark')
-    const densitySig = EF.signal(EF.settings.get('theme.density') || localStorage.getItem(THEME_DENSITY_KEY) || 'default')
+    const bar = ui.h('div', 'aeditor-settings-theme-bar')
+    const tabSig = aeditor.signal('palette')
+    const modeSig = aeditor.signal(aeditor.settings.get('theme.mode') || localStorage.getItem(THEME_MODE_KEY) || 'dark')
+    const densitySig = aeditor.signal(aeditor.settings.get('theme.density') || localStorage.getItem(THEME_DENSITY_KEY) || 'default')
     const tabs = ui.segmented({ value: tabSig, options: THEME_TABS })
-    tabs.classList.add('ef-settings-theme-tabs')
+    tabs.classList.add('aeditor-settings-theme-tabs')
     const mode = ui.select({
       value: modeSig,
       options: [
@@ -262,7 +262,7 @@
       kind: 'ghost',
       size: 'sm',
       onClick: function () {
-        const text = EF.theme && EF.theme.exportCss ? EF.theme.exportCss() : ''
+        const text = aeditor.theme && aeditor.theme.exportCss ? aeditor.theme.exportCss() : ''
         ui.copyText(text)
         if (ui.toast) ui.toast({ kind: 'info', title: 'CSS copied', message: text })
       },
@@ -275,16 +275,16 @@
     root.appendChild(bar)
 
     const allSigs = []
-    const host = ui.h('div', 'ef-settings-theme-host')
+    const host = ui.h('div', 'aeditor-settings-theme-host')
     const scroll = ui.scrollArea({ children: host })
-    scroll.classList.add('ef-settings-theme-scroll')
+    scroll.classList.add('aeditor-settings-theme-scroll')
     root.appendChild(scroll)
 
     function track(sig, name, parse, format) {
       allSigs.push({ sig: sig, name: name, parse: parse, format: format })
     }
     function bindWriter(sig, name, format) {
-      ui.collect(root, EF.effect(function () {
+      ui.collect(root, aeditor.effect(function () {
         const literal = format ? format(sig()) : sig()
         const effective = readThemeToken(name)
         if (effective === literal) return
@@ -302,11 +302,11 @@
     }
 
     let didMountMode = false
-    ui.collect(root, EF.effect(function () {
+    ui.collect(root, aeditor.effect(function () {
       const value = modeSig()
-      EF.settings.set('theme.mode', value)
+      aeditor.settings.set('theme.mode', value)
       localStorage.setItem(THEME_MODE_KEY, value)
-      if (EF.theme && EF.theme.set) EF.theme.set(value)
+      if (aeditor.theme && aeditor.theme.set) aeditor.theme.set(value)
       if (!didMountMode) {
         didMountMode = true
         return
@@ -315,11 +315,11 @@
       refreshAll()
     }))
 
-    ui.collect(root, EF.effect(function () {
+    ui.collect(root, aeditor.effect(function () {
       const value = densitySig()
-      EF.settings.set('theme.density', value)
+      aeditor.settings.set('theme.density', value)
       localStorage.setItem(THEME_DENSITY_KEY, value)
-      if (EF.theme && EF.theme.setDensity) EF.theme.setDensity(value)
+      if (aeditor.theme && aeditor.theme.setDensity) aeditor.theme.setDensity(value)
     }))
 
     const panes = {}
@@ -334,7 +334,7 @@
       return panes[key]
     }
 
-    ui.collect(root, EF.effect(function () {
+    ui.collect(root, aeditor.effect(function () {
       while (host.firstChild) host.removeChild(host.firstChild)
       host.appendChild(pane(tabSig()))
     }))
@@ -368,66 +368,66 @@
   }
 
   function buildPalette(track, bindWriter) {
-    const wrap = EF.ui.h('div', 'ef-settings-theme-pane ef-settings-theme-palette')
+    const wrap = aeditor.ui.h('div', 'aeditor-settings-theme-pane aeditor-settings-theme-palette')
     for (let i = 0; i < PALETTE.length; i++) {
       const name = PALETTE[i][0]
-      const sig = EF.signal(readThemeToken(name) || '#000000')
+      const sig = aeditor.signal(readThemeToken(name) || '#000000')
       track(sig, name, null, null)
       bindWriter(sig, name, null)
-      wrap.appendChild(EF.ui.propRow({ label: PALETTE[i][1], control: EF.ui.colorInput({ value: sig }) }))
+      wrap.appendChild(aeditor.ui.propRow({ label: PALETTE[i][1], control: aeditor.ui.colorInput({ value: sig }) }))
     }
     return wrap
   }
 
   function buildPxRows(catalog, track, bindWriter, unit) {
-    const wrap = EF.ui.h('div', 'ef-settings-theme-pane')
+    const wrap = aeditor.ui.h('div', 'aeditor-settings-theme-pane')
     const format = function (v) { return v + unit }
     for (let i = 0; i < catalog.length; i++) {
       const row = catalog[i]
-      const sig = EF.signal(pxNum(readThemeToken(row[0])))
+      const sig = aeditor.signal(pxNum(readThemeToken(row[0])))
       track(sig, row[0], pxNum, format)
       bindWriter(sig, row[0], format)
-      wrap.appendChild(EF.ui.propRow({
+      wrap.appendChild(aeditor.ui.propRow({
         label: row[1],
-        control: EF.ui.numberInput({ value: sig, min: row[2], max: row[3], step: unit === 'ms' ? 10 : 1, suffix: unit }),
+        control: aeditor.ui.numberInput({ value: sig, min: row[2], max: row[3], step: unit === 'ms' ? 10 : 1, suffix: unit }),
       }))
     }
     return wrap
   }
 
   function buildTypography(track, bindWriter) {
-    const wrap = EF.ui.h('div', 'ef-settings-theme-pane')
-    const uiFont = EF.signal(readThemeToken('--ef-font-ui'))
-    track(uiFont, '--ef-font-ui', null, null)
-    bindWriter(uiFont, '--ef-font-ui', null)
-    wrap.appendChild(EF.ui.propRow({ label: 'UI font', control: EF.ui.input({ value: uiFont }) }))
-    const monoFont = EF.signal(readThemeToken('--ef-font-mono'))
-    track(monoFont, '--ef-font-mono', null, null)
-    bindWriter(monoFont, '--ef-font-mono', null)
-    wrap.appendChild(EF.ui.propRow({ label: 'Mono font', control: EF.ui.input({ value: monoFont }) }))
+    const wrap = aeditor.ui.h('div', 'aeditor-settings-theme-pane')
+    const uiFont = aeditor.signal(readThemeToken('--aeditor-font-ui'))
+    track(uiFont, '--aeditor-font-ui', null, null)
+    bindWriter(uiFont, '--aeditor-font-ui', null)
+    wrap.appendChild(aeditor.ui.propRow({ label: 'UI font', control: aeditor.ui.input({ value: uiFont }) }))
+    const monoFont = aeditor.signal(readThemeToken('--aeditor-font-mono'))
+    track(monoFont, '--aeditor-font-mono', null, null)
+    bindWriter(monoFont, '--aeditor-font-mono', null)
+    wrap.appendChild(aeditor.ui.propRow({ label: 'Mono font', control: aeditor.ui.input({ value: monoFont }) }))
     const sizes = buildPxRows(TYPO_PX, track, bindWriter, 'px')
     while (sizes.firstChild) wrap.appendChild(sizes.firstChild)
     return wrap
   }
 
   function pageHead(title, desc) {
-    const head = EF.ui.h('div', 'ef-settings-page-head')
-    head.appendChild(EF.ui.h('div', 'ef-settings-page-title', { text: title }))
-    head.appendChild(EF.ui.h('div', 'ef-settings-page-desc', { text: desc }))
+    const head = aeditor.ui.h('div', 'aeditor-settings-page-head')
+    head.appendChild(aeditor.ui.h('div', 'aeditor-settings-page-title', { text: title }))
+    head.appendChild(aeditor.ui.h('div', 'aeditor-settings-page-desc', { text: desc }))
     return head
   }
 
   function connectionRow(meta) {
-    const connection = EF.ai && EF.ai.getConnection ? EF.ai.getConnection(meta.id) : null
+    const connection = aeditor.ai && aeditor.ai.getConnection ? aeditor.ai.getConnection(meta.id) : null
     const settings = connectionSettingsFor(meta.id, meta.label || meta.id, connection)
-    const card = EF.ui.h('section', 'ef-settings-provider-row')
-    const head = EF.ui.h('div', 'ef-settings-provider-head')
-    const title = EF.ui.h('div', 'ef-settings-provider-title')
-    title.appendChild(EF.ui.h('span', null, { text: meta.label || meta.id }))
+    const card = aeditor.ui.h('section', 'aeditor-settings-provider-row')
+    const head = aeditor.ui.h('div', 'aeditor-settings-provider-head')
+    const title = aeditor.ui.h('div', 'aeditor-settings-provider-title')
+    title.appendChild(aeditor.ui.h('span', null, { text: meta.label || meta.id }))
     head.appendChild(title)
-    const status = EF.ui.h('div', 'ef-settings-provider-status')
+    const status = aeditor.ui.h('div', 'aeditor-settings-provider-status')
     card.appendChild(head)
-    const fields = EF.ui.h('div', 'ef-settings-provider-fields')
+    const fields = aeditor.ui.h('div', 'aeditor-settings-provider-fields')
     if (meta.authType === 'subscriptionBridge') {
       fields.appendChild(settingAuth(meta.id, status, meta.authType))
     }
@@ -445,8 +445,8 @@
   }
 
   function modelLoadAction(connectionId, card, status) {
-    const wrap = EF.ui.h('div', 'ef-settings-model-action')
-    wrap.appendChild(EF.ui.iconButton({
+    const wrap = aeditor.ui.h('div', 'aeditor-settings-model-action')
+    wrap.appendChild(aeditor.ui.iconButton({
       icon: 'refresh',
       title: 'Load models',
       size: 'sm',
@@ -464,7 +464,7 @@
       out.push({
         kind: key === 'stream' ? 'switch' : (key === 'defaultModel' ? 'model' : 'input'),
         connectionId: id,
-        key: EF.ai.connectionConfigKey(id, key),
+        key: aeditor.ai.connectionConfigKey(id, key),
         label: compactLabel(id, label, keyLabel(key)),
         type: key === 'apiKey' ? 'password' : 'text',
         placeholder: placeholderFor(key),
@@ -511,16 +511,16 @@
   }
 
   function settingInput(spec) {
-    const current = EF.settings.get(spec.key)
-    const value = EF.signal(current !== undefined ? current : (spec.defaultValue != null ? spec.defaultValue : ''))
+    const current = aeditor.settings.get(spec.key)
+    const value = aeditor.signal(current !== undefined ? current : (spec.defaultValue != null ? spec.defaultValue : ''))
     const row = settingRow(spec.label, spec.desc)
-    row.appendChild(EF.ui.input({
+    row.appendChild(aeditor.ui.input({
       value: value,
       type: spec.type || 'text',
       placeholder: spec.placeholder || '',
       onChange: function (v) {
         value.set(v)
-        EF.settings.set(spec.key, v)
+        aeditor.settings.set(spec.key, v)
         if (spec.key.indexOf('.apiKey') >= 0 && v && spec.connectionId) activateConnection(spec.connectionId)
       },
     }))
@@ -528,25 +528,25 @@
   }
 
   function settingModel(spec) {
-    const current = EF.settings.get(spec.key)
-    const value = EF.signal(current !== undefined ? current : (spec.defaultValue != null ? spec.defaultValue : ''))
-    const options = EF.signal(modelOptionsFor(spec.connectionId, value.peek()))
+    const current = aeditor.settings.get(spec.key)
+    const value = aeditor.signal(current !== undefined ? current : (spec.defaultValue != null ? spec.defaultValue : ''))
+    const options = aeditor.signal(modelOptionsFor(spec.connectionId, value.peek()))
     const row = settingRow(spec.label, spec.desc)
-    const control = EF.ui.h('div', 'ef-settings-field-control ef-settings-model-control')
-    control.appendChild(EF.ui.combobox({
+    const control = aeditor.ui.h('div', 'aeditor-settings-field-control aeditor-settings-model-control')
+    control.appendChild(aeditor.ui.combobox({
       value: value,
       options: options,
       placeholder: spec.placeholder || 'Load models or enter model id',
       onChange: function (v) {
         value.set(v)
-        EF.settings.set(spec.key, v)
+        aeditor.settings.set(spec.key, v)
         if (spec.connectionId) syncActiveAgentModel(spec.connectionId, v)
       },
     }))
     if (spec.action) control.appendChild(spec.action)
     row.appendChild(control)
-    if (EF.ai && EF.ai.models) {
-      EF.ui.collect(row, EF.effect(function () {
+    if (aeditor.ai && aeditor.ai.models) {
+      aeditor.ui.collect(row, aeditor.effect(function () {
         options.set(modelOptionsFor(spec.connectionId, value()))
       }))
     }
@@ -554,9 +554,9 @@
   }
 
   function modelOptionsFor(connectionId, current) {
-    const map = EF.ai && EF.ai.models ? EF.ai.models() : {}
+    const map = aeditor.ai && aeditor.ai.models ? aeditor.ai.models() : {}
     const list = map && map[connectionId] ? map[connectionId] : []
-    const hints = EF.ai && EF.ai.modelHints ? EF.ai.modelHints(connectionId) : []
+    const hints = aeditor.ai && aeditor.ai.modelHints ? aeditor.ai.modelHints(connectionId) : []
     const out = []
     let found = !current
     for (let h = 0; h < hints.length; h++) {
@@ -580,14 +580,14 @@
   }
 
   function settingSelect(spec) {
-    const value = EF.signal(EF.settings.get(spec.key) || '')
+    const value = aeditor.signal(aeditor.settings.get(spec.key) || '')
     const row = settingRow(spec.label, spec.desc)
-    row.appendChild(EF.ui.select({
+    row.appendChild(aeditor.ui.select({
       value: value,
       options: spec.options(),
       onChange: function (v) {
         value.set(v)
-        EF.settings.set(spec.key, v)
+        aeditor.settings.set(spec.key, v)
         if (spec.key === 'ai.defaultConnection') activateConnection(v)
       },
     }))
@@ -595,14 +595,14 @@
   }
 
   function settingSwitch(spec) {
-    const current = EF.settings.get(spec.key)
-    const value = EF.signal(current !== undefined ? !!current : !!spec.defaultValue)
+    const current = aeditor.settings.get(spec.key)
+    const value = aeditor.signal(current !== undefined ? !!current : !!spec.defaultValue)
     const row = settingRow(spec.label, spec.desc)
-    row.appendChild(EF.ui.switch({
+    row.appendChild(aeditor.ui.switch({
       value: value,
       onChange: function (v) {
         value.set(v)
-        EF.settings.set(spec.key, v)
+        aeditor.settings.set(spec.key, v)
       },
     }))
     return row
@@ -615,27 +615,27 @@
         ? 'Uses Local Bridge to open the provider login page and store account auth outside this browser page.'
         : 'Connects to a trusted Local Bridge running on this machine.'
     )
-    const actions = EF.ui.h('div', 'ef-settings-auth-actions')
-    const loginBtn = EF.ui.button({
+    const actions = aeditor.ui.h('div', 'aeditor-settings-auth-actions')
+    const loginBtn = aeditor.ui.button({
       text: 'Login with Browser',
       size: 'sm',
       kind: 'primary',
       onClick: function () { loginConnection(connectionId, status, loginBtn, logoutBtn) },
     })
-    const logoutBtn = EF.ui.button({
+    const logoutBtn = aeditor.ui.button({
       text: 'Logout',
       size: 'sm',
       kind: 'ghost',
       onClick: function () { logoutConnection(connectionId, status, loginBtn, logoutBtn) },
     })
-    const refreshBtn = EF.ui.iconButton({
+    const refreshBtn = aeditor.ui.iconButton({
       icon: 'refresh',
       title: 'Refresh auth status',
       size: 'sm',
       kind: 'ghost',
       onClick: function () { refreshAuthStatus(connectionId, status, loginBtn, logoutBtn, bridgeHint) },
     })
-    const bridgeHint = EF.ui.h('span', 'ef-settings-auth-hint')
+    const bridgeHint = aeditor.ui.h('span', 'aeditor-settings-auth-hint')
     actions.appendChild(loginBtn)
     actions.appendChild(refreshBtn)
     actions.appendChild(logoutBtn)
@@ -648,37 +648,37 @@
   }
 
   function settingRow(label, desc) {
-    const row = EF.ui.h('div', 'ef-settings-field')
-    const copy = EF.ui.h('div', 'ef-settings-field-copy')
-    copy.appendChild(EF.ui.h('span', 'ef-settings-field-label', { text: label }))
-    if (desc) copy.appendChild(EF.ui.h('span', 'ef-settings-field-desc', { text: desc }))
+    const row = aeditor.ui.h('div', 'aeditor-settings-field')
+    const copy = aeditor.ui.h('div', 'aeditor-settings-field-copy')
+    copy.appendChild(aeditor.ui.h('span', 'aeditor-settings-field-label', { text: label }))
+    if (desc) copy.appendChild(aeditor.ui.h('span', 'aeditor-settings-field-desc', { text: desc }))
     row.appendChild(copy)
     return row
   }
 
   function statusNote(text) {
-    return EF.ui.h('div', 'ef-settings-note', { text: text })
+    return aeditor.ui.h('div', 'aeditor-settings-note', { text: text })
   }
 
   function loadModels(connectionId, card, status) {
-    if (!EF.ai || !EF.ai.refreshModels) return
-    card.classList.add('ef-settings-provider-loading')
+    if (!aeditor.ai || !aeditor.ai.refreshModels) return
+    card.classList.add('aeditor-settings-provider-loading')
     if (status) status.textContent = 'Loading...'
-    EF.ai.refreshModels(connectionId).then(function (models) {
-      card.classList.remove('ef-settings-provider-loading')
-      card.classList.add('ef-settings-provider-ok')
+    aeditor.ai.refreshModels(connectionId).then(function (models) {
+      card.classList.remove('aeditor-settings-provider-loading')
+      card.classList.add('aeditor-settings-provider-ok')
       if (status) status.textContent = models && models.length ? String(models.length) + ' models' : 'No models returned'
       activateConnection(connectionId)
-      setTimeout(function () { card.classList.remove('ef-settings-provider-ok') }, 900)
+      setTimeout(function () { card.classList.remove('aeditor-settings-provider-ok') }, 900)
     }, function (err) {
-      card.classList.remove('ef-settings-provider-loading')
+      card.classList.remove('aeditor-settings-provider-loading')
       if (status) status.textContent = 'Load failed'
-      if (EF.reportError) EF.reportError({ scope: 'settings', connection: connectionId }, err)
+      if (aeditor.reportError) aeditor.reportError({ scope: 'settings', connection: connectionId }, err)
     })
   }
 
   function loginConnection(connectionId, status, loginBtn, logoutBtn) {
-    if (!EF.ai || !EF.ai.loginConnection) return
+    if (!aeditor.ai || !aeditor.ai.loginConnection) return
     if (loginBtn && loginBtn.disabled) return
     let popup = null
     try {
@@ -692,7 +692,7 @@
     } catch (_) {}
     if (status) status.textContent = 'Signing in...'
     if (loginBtn) loginBtn.disabled = true
-    EF.ai.loginConnection(connectionId, { popup: popup }).then(function (next) {
+    aeditor.ai.loginConnection(connectionId, { popup: popup }).then(function (next) {
       setAuthState(connectionId, status, loginBtn, logoutBtn, next)
       activateConnection(connectionId)
     }, function (err) {
@@ -710,26 +710,26 @@
         loginBtn.disabled = false
       }
       if (logoutBtn) logoutBtn.style.display = 'none'
-      if (EF.reportError) EF.reportError({ scope: 'settings', connection: connectionId }, err)
+      if (aeditor.reportError) aeditor.reportError({ scope: 'settings', connection: connectionId }, err)
     })
   }
 
   function logoutConnection(connectionId, status, loginBtn, logoutBtn) {
-    if (!EF.ai || !EF.ai.logoutConnection) return
+    if (!aeditor.ai || !aeditor.ai.logoutConnection) return
     if (status) status.textContent = 'Signing out...'
-    EF.ai.logoutConnection(connectionId).then(function (next) {
+    aeditor.ai.logoutConnection(connectionId).then(function (next) {
       setAuthState(connectionId, status, loginBtn, logoutBtn, next || { state: 'signed_out' })
     }, function (err) {
       if (status) status.textContent = 'Logout failed'
-      if (EF.reportError) EF.reportError({ scope: 'settings', connection: connectionId }, err)
+      if (aeditor.reportError) aeditor.reportError({ scope: 'settings', connection: connectionId }, err)
     })
   }
 
   function refreshAuthStatus(connectionId, status, loginBtn, logoutBtn, bridgeHint) {
-    if (!EF.ai || !EF.ai.refreshAuthStatus) return
+    if (!aeditor.ai || !aeditor.ai.refreshAuthStatus) return
     if (loginBtn) loginBtn.disabled = true
     if (status) status.textContent = 'Checking...'
-    EF.ai.refreshAuthStatus(connectionId).then(function (next) {
+    aeditor.ai.refreshAuthStatus(connectionId).then(function (next) {
       setAuthState(connectionId, status, loginBtn, logoutBtn, next, bridgeHint)
     }, function (err) {
       if (status) status.textContent = bridgeUnavailableText(err)
@@ -744,7 +744,7 @@
   }
 
   function authStatusText(connectionId) {
-    const status = EF.ai && EF.ai.authStatus ? EF.ai.authStatus(connectionId) : null
+    const status = aeditor.ai && aeditor.ai.authStatus ? aeditor.ai.authStatus(connectionId) : null
     return status && status.state ? status.state : 'Not signed in'
   }
 
@@ -782,7 +782,7 @@
   }
 
   function setAuthState(connectionId, status, loginBtn, logoutBtn, next, bridgeHint) {
-    const result = next || (EF.ai && EF.ai.authStatus ? EF.ai.authStatus(connectionId) : null)
+    const result = next || (aeditor.ai && aeditor.ai.authStatus ? aeditor.ai.authStatus(connectionId) : null)
     const state = result && result.state
     if (status) status.textContent = authResultText(result, state || 'Not signed in')
     const signedIn = state === 'signed_in'
@@ -796,16 +796,16 @@
   }
 
   function activateConnection(connectionId) {
-    if (!connectionId || !EF.ai) return
-    EF.settings.set('ai.defaultConnection', connectionId)
-    if (EF.ai.setActiveConnection) EF.ai.setActiveConnection(connectionId)
-    const agent = EF.ai.getActiveAgent ? EF.ai.getActiveAgent() : null
-    if (!agent || !EF.ai.updateAgent) return
+    if (!connectionId || !aeditor.ai) return
+    aeditor.settings.set('ai.defaultConnection', connectionId)
+    if (aeditor.ai.setActiveConnection) aeditor.ai.setActiveConnection(connectionId)
+    const agent = aeditor.ai.getActiveAgent ? aeditor.ai.getActiveAgent() : null
+    if (!agent || !aeditor.ai.updateAgent) return
     if (agent.connection && agent.connection !== 'mock' && agent.connection !== connectionId) return
-    const config = EF.ai.getConnectionConfig ? EF.ai.getConnectionConfig(connectionId) : {}
+    const config = aeditor.ai.getConnectionConfig ? aeditor.ai.getConnectionConfig(connectionId) : {}
     const opts = modelOptionsFor(connectionId, config.defaultModel || agent.model)
     const nextModel = config.defaultModel || (opts.length ? opts[0].value : '')
-    EF.ai.updateAgent(agent.id, {
+    aeditor.ai.updateAgent(agent.id, {
       connection: connectionId,
       model: nextModel,
       stream: !!config.stream,
@@ -813,15 +813,15 @@
   }
 
   function syncActiveAgentModel(connectionId, modelId) {
-    if (!connectionId || !modelId || !EF.ai || !EF.ai.getActiveAgent || !EF.ai.updateAgent) return
-    const agent = EF.ai.getActiveAgent()
+    if (!connectionId || !modelId || !aeditor.ai || !aeditor.ai.getActiveAgent || !aeditor.ai.updateAgent) return
+    const agent = aeditor.ai.getActiveAgent()
     if (!agent || agent.connection !== connectionId) return
-    EF.ai.updateAgent(agent.id, { model: modelId })
+    aeditor.ai.updateAgent(agent.id, { model: modelId })
   }
 
   function addCustomConnection(root) {
-    if (!EF.ai || !EF.ai.createCustomConnection) return
-    const ui = EF.ui
+    if (!aeditor.ai || !aeditor.ai.createCustomConnection) return
+    const ui = aeditor.ui
     ui.prompt({
       title: 'Add AI Connection',
       message: 'Connection name',
@@ -836,7 +836,7 @@
         okLabel: 'Add',
       }).then(function (baseUrl) {
         if (baseUrl == null) return
-        const c = EF.ai.createCustomConnection({ label: name || 'Custom OpenAI', baseUrl: baseUrl })
+        const c = aeditor.ai.createCustomConnection({ label: name || 'Custom OpenAI', baseUrl: baseUrl })
         activateConnection(c.id)
         if (ui.toast) ui.toast({ kind: 'success', message: 'Connection added' })
         refreshSettingsPage(root)
@@ -853,15 +853,15 @@
 
   function aiSearchText() {
     const parts = ['AI connection provider api key auth login sign in model base url custom provider local bridge ChatGPT Codex Claude Code OpenAI Anthropic DeepSeek Ollama OpenRouter Groq Mistral xAI']
-    if (EF.ai && EF.ai.connectionOptions) {
-      const options = EF.ai.connectionOptions()
+    if (aeditor.ai && aeditor.ai.connectionOptions) {
+      const options = aeditor.ai.connectionOptions()
       for (let i = 0; i < options.length; i++) {
         const id = options[i].id
-        const conn = EF.ai.getConnection && EF.ai.getConnection(id)
+        const conn = aeditor.ai.getConnection && aeditor.ai.getConnection(id)
         const config = conn && conn.configDefaults || {}
         parts.push([id, options[i].label, options[i].provider, options[i].authType, options[i].transportType, Object.keys(config).join(' '), Object.keys(config).map(function (k) { return config[k] }).join(' ')].join(' '))
       }
     }
     return parts.join(' ')
   }
-})(window.EF = window.EF || {})
+})(window.aeditor = window.aeditor || {})

@@ -1,9 +1,9 @@
-/* editorframe — theme tokens (source of truth for ALL colors / sizes / motion)
+/* aeditor — theme tokens (source of truth for ALL colors / sizes / motion)
  *
  * Theme v2 layers (read top → down):
- *   Authoring  : semantic custom-theme entry (--ef-surface-panel, --ef-brand)
- *   Primitives : compatibility / advanced ramp (--ef-c-04)
- *   Roles      : component-facing tokens (--ef-bg-1, --ef-fg-2)
+ *   Authoring  : semantic custom-theme entry (--aeditor-surface-panel, --aeditor-brand)
+ *   Primitives : compatibility / advanced ramp (--aeditor-c-04)
+ *   Roles      : component-facing tokens (--aeditor-bg-1, --aeditor-fg-2)
  *   Components : rare per-component tweaks that are not roles
  *
  * ALL non-token CSS in dock.css / component.css / ui-*.css must reference Layer 2
@@ -11,27 +11,27 @@
  * compatibility ramp + a few role mappings; component tokens stay put.
  *
  * Naming convention:
- *   --ef-surface-* semantic surface authoring tokens
- *   --ef-text-*    semantic text authoring tokens
- *   --ef-stroke-*  semantic border/stroke authoring tokens
- *   --ef-brand*    brand/accent authoring tokens
- *   --ef-state-*   success / warning / danger / info authoring tokens
- *   --ef-c-NN     12-step grayscale primitive (00 = darkest, 11 = lightest)
- *   --ef-c-NAME   semantic primitive (accent / success / warn / error / info)
- *   --ef-bg-N     background depth ramp role (0 = deepest)
- *   --ef-fg-N     foreground emphasis role (0 = strongest)
- *   --ef-border*  border roles
- *   --ef-r-N      radius scale
- *   --ef-space-N  spacing scale (4 8 12 16 24 32)
- *   --ef-size-N   control size scale (h: row heights / icons)
- *   --ef-dur-N    motion durations
- *   --ef-z-N      z-index scale
- *   --ef-shadow-N elevation shadows
- *   --ef-font-*   font stacks
+ *   --aeditor-surface-* semantic surface authoring tokens
+ *   --aeditor-text-*    semantic text authoring tokens
+ *   --aeditor-stroke-*  semantic border/stroke authoring tokens
+ *   --aeditor-brand*    brand/accent authoring tokens
+ *   --aeditor-state-*   success / warning / danger / info authoring tokens
+ *   --aeditor-c-NN     12-step grayscale primitive (00 = darkest, 11 = lightest)
+ *   --aeditor-c-NAME   semantic primitive (accent / success / warn / error / info)
+ *   --aeditor-bg-N     background depth ramp role (0 = deepest)
+ *   --aeditor-fg-N     foreground emphasis role (0 = strongest)
+ *   --aeditor-border*  border roles
+ *   --aeditor-r-N      radius scale
+ *   --aeditor-space-N  spacing scale (4 8 12 16 24 32)
+ *   --aeditor-size-N   control size scale (h: row heights / icons)
+ *   --aeditor-dur-N    motion durations
+ *   --aeditor-z-N      z-index scale
+ *   --aeditor-shadow-N elevation shadows
+ *   --aeditor-font-*   font stacks
  */
 
 :root,
-.ef-root[data-ef-theme="dark"] {
+.aeditor-root[data-aeditor-theme="dark"] {
   /* ── Layer 1 — Primitives (Dark theme — Godot-minimal default) ───
    *
    * Palette inspired by passivestar/godot-minimal-theme.tres: a neutral
@@ -41,391 +41,391 @@
 
   /* Authoring tokens: recommended custom-theme surface. Theme authors
    * change these semantic names; components keep consuming the role tokens
-   * below. The numeric --ef-c-* ramp stays as compatibility/advanced API. */
-  --ef-surface-canvas: #141414;
-  --ef-surface-lower:  #1a1a1a;
-  --ef-surface-frame:  #202020;
-  --ef-surface-panel:  #272727;
-  --ef-surface-field:  #1a1a1a;
-  --ef-surface-hover:  #2d2d2d;
-  --ef-surface-active: #333333;
-  --ef-surface-raised: #2d2d2d;
+   * below. The numeric --aeditor-c-* ramp stays as compatibility/advanced API. */
+  --aeditor-surface-canvas: #141414;
+  --aeditor-surface-lower:  #1a1a1a;
+  --aeditor-surface-frame:  #202020;
+  --aeditor-surface-panel:  #272727;
+  --aeditor-surface-field:  #1a1a1a;
+  --aeditor-surface-hover:  #2d2d2d;
+  --aeditor-surface-active: #333333;
+  --aeditor-surface-raised: #2d2d2d;
 
-  --ef-text-primary:  #d4d4d4;
-  --ef-text-body:     #bfbfbf;
-  --ef-text-label:    #9a9a9a;
-  --ef-text-muted:    #707070;
-  --ef-text-disabled: #5a5a5a;
+  --aeditor-text-primary:  #d4d4d4;
+  --aeditor-text-body:     #bfbfbf;
+  --aeditor-text-label:    #9a9a9a;
+  --aeditor-text-muted:    #707070;
+  --aeditor-text-disabled: #5a5a5a;
 
-  --ef-stroke-subtle: #2d2d2d;
-  --ef-stroke-strong: #3b3b3b;
-  --ef-stroke-field:  #333333;
-  --ef-stroke-hover:  #474747;
+  --aeditor-stroke-subtle: #2d2d2d;
+  --aeditor-stroke-strong: #3b3b3b;
+  --aeditor-stroke-field:  #333333;
+  --aeditor-stroke-hover:  #474747;
 
-  --ef-brand:          #569eff;
-  --ef-brand-hover:    #7fb5ff;
-  --ef-brand-contrast: #ffffff;
+  --aeditor-brand:          #569eff;
+  --aeditor-brand-hover:    #7fb5ff;
+  --aeditor-brand-contrast: #ffffff;
 
-  --ef-state-success: #4dcf68;
-  --ef-state-warning: #d4ba6b;
-  --ef-state-danger:  #e07a78;
-  --ef-state-info:    #569eff;
+  --aeditor-state-success: #4dcf68;
+  --aeditor-state-warning: #d4ba6b;
+  --aeditor-state-danger:  #e07a78;
+  --aeditor-state-info:    #569eff;
 
   /* 12-step neutral-gray ramp. c-03 is the Godot "surface_base". */
-  --ef-c-00: var(--ef-surface-canvas);   /* deepest viewport + inset wells */
-  --ef-c-01: var(--ef-surface-lower);    /* lower */
-  --ef-c-02: var(--ef-surface-frame);    /* frame */
-  --ef-c-03: var(--ef-surface-panel);    /* surface_base dock body */
-  --ef-c-04: var(--ef-surface-hover);    /* hover */
-  --ef-c-05: var(--ef-surface-active);   /* active / selected tab */
-  --ef-c-06: var(--ef-stroke-strong);    /* border-strong */
-  --ef-c-07: #474747;
-  --ef-c-08: var(--ef-text-disabled);
-  --ef-c-09: var(--ef-text-muted);       /* muted / placeholder */
-  --ef-c-10: var(--ef-text-label);       /* labels */
-  --ef-c-11: var(--ef-text-primary);     /* primary text (not pure white) */
+  --aeditor-c-00: var(--aeditor-surface-canvas);   /* deepest viewport + inset wells */
+  --aeditor-c-01: var(--aeditor-surface-lower);    /* lower */
+  --aeditor-c-02: var(--aeditor-surface-frame);    /* frame */
+  --aeditor-c-03: var(--aeditor-surface-panel);    /* surface_base dock body */
+  --aeditor-c-04: var(--aeditor-surface-hover);    /* hover */
+  --aeditor-c-05: var(--aeditor-surface-active);   /* active / selected tab */
+  --aeditor-c-06: var(--aeditor-stroke-strong);    /* border-strong */
+  --aeditor-c-07: #474747;
+  --aeditor-c-08: var(--aeditor-text-disabled);
+  --aeditor-c-09: var(--aeditor-text-muted);       /* muted / placeholder */
+  --aeditor-c-10: var(--aeditor-text-label);       /* labels */
+  --aeditor-c-11: var(--aeditor-text-primary);     /* primary text (not pure white) */
 
   /* Brand accent — Godot's canonical #569eff, with a soft derivative. */
-  --ef-c-accent:      var(--ef-brand);
-  --ef-c-accent-soft: var(--ef-brand-hover);
+  --aeditor-c-accent:      var(--aeditor-brand);
+  --aeditor-c-accent-soft: var(--aeditor-brand-hover);
 
   /* Semantic colors — calibrated to the low-contrast chassis. warn uses
    * Godot's khaki (warning_color ≈ 0.83,0.78,0.62); success keeps a more
    * "OK-button" green per design preference; error is a softer red so
    * it reads as "warning" rather than "alarm" against the neutral gray. */
-  --ef-c-success: var(--ef-state-success);
-  --ef-c-warn:    var(--ef-state-warning);
-  --ef-c-error:   var(--ef-state-danger);
-  --ef-c-info:    var(--ef-state-info);
+  --aeditor-c-success: var(--aeditor-state-success);
+  --aeditor-c-warn:    var(--aeditor-state-warning);
+  --aeditor-c-error:   var(--aeditor-state-danger);
+  --aeditor-c-info:    var(--aeditor-state-info);
 
   /* ── Layer 2 — Roles (semantic, point at primitives) ───────────── */
 
   /* Background depth ramp. Note bg-2 (inputs) is DEEPER than bg-1 (panel)
    * — the Godot "inset well" convention: fields recede, panels rise. */
-  --ef-bg-0: var(--ef-surface-canvas);   /* viewport */
-  --ef-bg-1: var(--ef-surface-panel);    /* dock body = Godot surface_base */
-  --ef-bg-2: var(--ef-surface-field);    /* input fields, inset wells */
-  --ef-bg-3: var(--ef-surface-hover);    /* hover surfaces, dropdowns */
-  --ef-bg-4: var(--ef-surface-active);   /* active surfaces */
+  --aeditor-bg-0: var(--aeditor-surface-canvas);   /* viewport */
+  --aeditor-bg-1: var(--aeditor-surface-panel);    /* dock body = Godot surface_base */
+  --aeditor-bg-2: var(--aeditor-surface-field);    /* input fields, inset wells */
+  --aeditor-bg-3: var(--aeditor-surface-hover);    /* hover surfaces, dropdowns */
+  --aeditor-bg-4: var(--aeditor-surface-active);   /* active surfaces */
   /* "Raised" surface — one step LIGHTER than dock body (bg-1). Reserved
    * for floating cards that should feel lifted off the panel. Pair with
-   * --ef-shadow-raised. Distinct from bg-3 (hover) semantically. */
-  --ef-bg-raised: var(--ef-surface-raised);
+   * --aeditor-shadow-raised. Distinct from bg-3 (hover) semantically. */
+  --aeditor-bg-raised: var(--aeditor-surface-raised);
 
   /* Foreground emphasis ramp (strongest → most muted). */
-  --ef-fg-0: var(--ef-text-primary);   /* primary text */
-  --ef-fg-1: var(--ef-text-body);      /* body text */
-  --ef-fg-2: var(--ef-text-label);     /* labels */
-  --ef-fg-3: var(--ef-text-muted);     /* placeholder / disabled */
+  --aeditor-fg-0: var(--aeditor-text-primary);   /* primary text */
+  --aeditor-fg-1: var(--aeditor-text-body);      /* body text */
+  --aeditor-fg-2: var(--aeditor-text-label);     /* labels */
+  --aeditor-fg-3: var(--aeditor-text-muted);     /* placeholder / disabled */
 
   /* Borders — low luminance difference, visible but never loud. */
-  --ef-border:        var(--ef-stroke-subtle);
-  --ef-border-strong: var(--ef-stroke-strong);
-  --ef-border-input:  var(--ef-stroke-field);
-  --ef-border-hover:  var(--ef-stroke-hover);
+  --aeditor-border:        var(--aeditor-stroke-subtle);
+  --aeditor-border-strong: var(--aeditor-stroke-strong);
+  --aeditor-border-input:  var(--aeditor-stroke-field);
+  --aeditor-border-hover:  var(--aeditor-stroke-hover);
 
   /* Brand. */
-  --ef-accent:      var(--ef-brand);
-  --ef-accent-soft: var(--ef-brand-hover);
-  --ef-accent-fg:   var(--ef-brand-contrast);
-  --ef-accent-bg:   color-mix(in srgb, var(--ef-c-accent) 14%, transparent);
-  --ef-accent-bg-strong: color-mix(in srgb, var(--ef-c-accent) 22%, transparent);
+  --aeditor-accent:      var(--aeditor-brand);
+  --aeditor-accent-soft: var(--aeditor-brand-hover);
+  --aeditor-accent-fg:   var(--aeditor-brand-contrast);
+  --aeditor-accent-bg:   color-mix(in srgb, var(--aeditor-c-accent) 14%, transparent);
+  --aeditor-accent-bg-strong: color-mix(in srgb, var(--aeditor-c-accent) 22%, transparent);
 
   /* States — derived from accent via color-mix so they shift with the theme. */
-  --ef-hover:       color-mix(in srgb, var(--ef-c-11)    6%, transparent);
-  --ef-active:      color-mix(in srgb, var(--ef-c-accent) 18%, transparent);
-  --ef-selected:    color-mix(in srgb, var(--ef-c-accent) 22%, transparent);
-  --ef-focus-ring:  var(--ef-c-accent);
-  --ef-scrim:       color-mix(in srgb, var(--ef-surface-canvas) 62%, transparent);
+  --aeditor-hover:       color-mix(in srgb, var(--aeditor-c-11)    6%, transparent);
+  --aeditor-active:      color-mix(in srgb, var(--aeditor-c-accent) 18%, transparent);
+  --aeditor-selected:    color-mix(in srgb, var(--aeditor-c-accent) 22%, transparent);
+  --aeditor-focus-ring:  var(--aeditor-c-accent);
+  --aeditor-scrim:       color-mix(in srgb, var(--aeditor-surface-canvas) 62%, transparent);
 
   /* Semantic state colors as text + bg pairs. */
-  --ef-success:    var(--ef-c-success);
-  --ef-success-bg: color-mix(in srgb, var(--ef-c-success) 12%, transparent);
-  --ef-success-fg: var(--ef-accent-fg);
-  --ef-warn:       var(--ef-c-warn);
-  --ef-warn-bg:    color-mix(in srgb, var(--ef-c-warn)    14%, transparent);
-  --ef-warn-fg:    #15120a;
-  --ef-error:      var(--ef-c-error);
-  --ef-error-bg:   color-mix(in srgb, var(--ef-c-error)   14%, transparent);
-  --ef-error-fg:   var(--ef-accent-fg);
-  --ef-info:       var(--ef-c-info);
-  --ef-info-bg:    color-mix(in srgb, var(--ef-c-info)    12%, transparent);
-  --ef-info-fg:    var(--ef-accent-fg);
+  --aeditor-success:    var(--aeditor-c-success);
+  --aeditor-success-bg: color-mix(in srgb, var(--aeditor-c-success) 12%, transparent);
+  --aeditor-success-fg: var(--aeditor-accent-fg);
+  --aeditor-warn:       var(--aeditor-c-warn);
+  --aeditor-warn-bg:    color-mix(in srgb, var(--aeditor-c-warn)    14%, transparent);
+  --aeditor-warn-fg:    #15120a;
+  --aeditor-error:      var(--aeditor-c-error);
+  --aeditor-error-bg:   color-mix(in srgb, var(--aeditor-c-error)   14%, transparent);
+  --aeditor-error-fg:   var(--aeditor-accent-fg);
+  --aeditor-info:       var(--aeditor-c-info);
+  --aeditor-info-bg:    color-mix(in srgb, var(--aeditor-c-info)    12%, transparent);
+  --aeditor-info-fg:    var(--aeditor-accent-fg);
 
   /* Subtle highlight lines used on raised controls. Components should use
    * this instead of hard-coded white/black alpha overlays. */
-  --ef-highlight-subtle: color-mix(in srgb, var(--ef-fg-0) 6%, transparent);
-  --ef-highlight-strong: color-mix(in srgb, var(--ef-fg-0) 12%, transparent);
+  --aeditor-highlight-subtle: color-mix(in srgb, var(--aeditor-fg-0) 6%, transparent);
+  --aeditor-highlight-strong: color-mix(in srgb, var(--aeditor-fg-0) 12%, transparent);
 
   /* ── Layer 1 — Spacing scale (4-pt grid) ───────────────────────── */
-  --ef-space-1: 4px;
-  --ef-space-2: 8px;
-  --ef-space-3: 12px;
-  --ef-space-4: 16px;
-  --ef-space-5: 24px;
-  --ef-space-6: 32px;
+  --aeditor-space-1: 4px;
+  --aeditor-space-2: 8px;
+  --aeditor-space-3: 12px;
+  --aeditor-space-4: 16px;
+  --aeditor-space-5: 24px;
+  --aeditor-space-6: 32px;
 
   /* ── Layer 1 — Sizing scale (control heights, icon sizes) ──────── */
-  --ef-size-h-xs: 18px;
-  --ef-size-h-sm: 22px;
-  --ef-size-h-md: 26px;   /* default control height */
-  --ef-size-h-lg: 32px;
-  --ef-size-icon-sm: 12px;
-  --ef-size-icon-md: 14px;
-  --ef-size-icon-lg: 18px;
+  --aeditor-size-h-xs: 18px;
+  --aeditor-size-h-sm: 22px;
+  --aeditor-size-h-md: 26px;   /* default control height */
+  --aeditor-size-h-lg: 32px;
+  --aeditor-size-icon-sm: 12px;
+  --aeditor-size-icon-md: 14px;
+  --aeditor-size-icon-lg: 18px;
 
   /* ── Layer 1 — Radius scale ────────────────────────────────────── */
-  --ef-r-1: 2px;
-  --ef-r-2: 3px;
-  --ef-r-3: 5px;
-  --ef-r-4: 7px;
-  --ef-r-pill: 999px;
+  --aeditor-r-1: 2px;
+  --aeditor-r-2: 3px;
+  --aeditor-r-3: 5px;
+  --aeditor-r-4: 7px;
+  --aeditor-r-pill: 999px;
 
   /* ── Layer 1 — Typography ──────────────────────────────────────── */
-  --ef-font-ui:   -apple-system, BlinkMacSystemFont, 'Geist', 'Inter', system-ui, sans-serif;
-  --ef-font-mono: 'Geist Mono', 'JetBrains Mono', 'SF Mono', 'Cascadia Code', Consolas, monospace;
-  --ef-fs-xs: 11px;
-  --ef-fs-sm: 12px;
-  --ef-fs-md: 13px;   /* default body */
-  --ef-fs-lg: 14px;
-  --ef-fs-xl: 16px;
-  --ef-lh-tight: 1.2;
-  --ef-lh-base:  1.5;
+  --aeditor-font-ui:   -apple-system, BlinkMacSystemFont, 'Geist', 'Inter', system-ui, sans-serif;
+  --aeditor-font-mono: 'Geist Mono', 'JetBrains Mono', 'SF Mono', 'Cascadia Code', Consolas, monospace;
+  --aeditor-fs-xs: 11px;
+  --aeditor-fs-sm: 12px;
+  --aeditor-fs-md: 13px;   /* default body */
+  --aeditor-fs-lg: 14px;
+  --aeditor-fs-xl: 16px;
+  --aeditor-lh-tight: 1.2;
+  --aeditor-lh-base:  1.5;
 
   /* ── Layer 1 — Motion ──────────────────────────────────────────── */
-  --ef-dur-fast: 80ms;    /* hover / focus / press */
-  --ef-dur-med:  160ms;   /* dropdowns, popovers */
-  --ef-dur-slow: 240ms;   /* drawers, modals */
-  --ef-ease:     cubic-bezier(.2, .8, .2, 1);
+  --aeditor-dur-fast: 80ms;    /* hover / focus / press */
+  --aeditor-dur-med:  160ms;   /* dropdowns, popovers */
+  --aeditor-dur-slow: 240ms;   /* drawers, modals */
+  --aeditor-ease:     cubic-bezier(.2, .8, .2, 1);
 
   /* ── Layer 1 — Z-index scale ───────────────────────────────────── */
-  --ef-z-content:  1;
-  --ef-z-sticky:   10;
-  --ef-z-dock-overlay: 100;     /* focus mode */
-  --ef-z-popover:  1000;
-  --ef-z-modal:    1100;
-  --ef-z-toast:    1200;
-  --ef-z-drag:     1300;        /* drag ghosts always on top */
+  --aeditor-z-content:  1;
+  --aeditor-z-sticky:   10;
+  --aeditor-z-dock-overlay: 100;     /* focus mode */
+  --aeditor-z-popover:  1000;
+  --aeditor-z-modal:    1100;
+  --aeditor-z-toast:    1200;
+  --aeditor-z-drag:     1300;        /* drag ghosts always on top */
 
   /* ── Layer 1 — Shadows ─────────────────────────────────────────
    * Dark default (low-contrast Godot chassis) uses restrained alphas so
    * popovers/modals don't read as ink blots. The Dracula theme below
    * overrides these back to stronger values to suit its deeper ramp. */
-  --ef-shadow-1: 0 1px 2px rgba(0,0,0,.22);
-  --ef-shadow-2: 0 2px 6px rgba(0,0,0,.30);
-  --ef-shadow-3: 0 4px 14px rgba(0,0,0,.40);
-  --ef-shadow-4: 0 8px 24px rgba(0,0,0,.50);
+  --aeditor-shadow-1: 0 1px 2px rgba(0,0,0,.22);
+  --aeditor-shadow-2: 0 2px 6px rgba(0,0,0,.30);
+  --aeditor-shadow-3: 0 4px 14px rgba(0,0,0,.40);
+  --aeditor-shadow-4: 0 8px 24px rgba(0,0,0,.50);
   /* Raised card shadow — subtle lift, not a modal drop. */
-  --ef-shadow-raised: 0 1px 2px rgba(0,0,0,.18), 0 2px 6px rgba(0,0,0,.22);
+  --aeditor-shadow-raised: 0 1px 2px rgba(0,0,0,.18), 0 2px 6px rgba(0,0,0,.22);
 
   /* ── Layer 3 — Component-specific (rare; only if not a role) ───── */
-  --ef-toolbar-h:    28px;
-  --ef-tab-h:        28px;
-  --ef-control-px:   8px;       /* default horizontal padding inside controls */
+  --aeditor-toolbar-h:    28px;
+  --aeditor-tab-h:        28px;
+  --aeditor-control-px:   8px;       /* default horizontal padding inside controls */
 
   /* ── Layer 3 — Interaction thresholds (JS reads via ui.readNum) ── */
-  --ef-drag-threshold: 6;       /* px before a pointerdown becomes a drag */
+  --aeditor-drag-threshold: 6;       /* px before a pointerdown becomes a drag */
 
   /* ── Layer 3 — Status icon glyphs (consumed by CSS `content:`) ─── */
-  --ef-icon-info:    "ⓘ";
-  --ef-icon-success: "✓";
-  --ef-icon-warn:    "⚠";
-  --ef-icon-error:   "⨯";
+  --aeditor-icon-info:    "ⓘ";
+  --aeditor-icon-success: "✓";
+  --aeditor-icon-warn:    "⚠";
+  --aeditor-icon-error:   "⨯";
 
   /* Legacy aliases — kept until Phase 2 grep-replace finishes.
    * dock.css / component.css will be migrated to use the new role names directly,
    * then these can be removed. */
-  --ef-color-bg-0:        var(--ef-bg-0);
-  --ef-color-bg-1:        var(--ef-bg-1);
-  --ef-color-border:      var(--ef-border);
-  --ef-color-fg-0:        var(--ef-fg-0);
-  --ef-color-fg-2:        var(--ef-fg-2);
-  --ef-color-accent:      var(--ef-accent);
-  --ef-color-accent-soft: var(--ef-accent-soft);
+  --aeditor-color-bg-0:        var(--aeditor-bg-0);
+  --aeditor-color-bg-1:        var(--aeditor-bg-1);
+  --aeditor-color-border:      var(--aeditor-border);
+  --aeditor-color-fg-0:        var(--aeditor-fg-0);
+  --aeditor-color-fg-2:        var(--aeditor-fg-2);
+  --aeditor-color-accent:      var(--aeditor-accent);
+  --aeditor-color-accent-soft: var(--aeditor-accent-soft);
 }
 
 /* ── Dracula theme — a richer, violet-accented dark with raised fields.
  * Deeper grayscale ramp, cool-violet accent, stronger shadows, and the
  * "raised input" role mapping (bg-2 LIGHTER than bg-1) that contrasts
  * the default Godot "inset input" convention. Selected via
- * [data-ef-theme="dracula"]. */
-:root[data-ef-density="compact"],
-.ef-root[data-ef-density="compact"] {
-  --ef-fs-xs: 10px;
-  --ef-fs-sm: 11px;
-  --ef-fs-md: 12px;
-  --ef-fs-lg: 13px;
-  --ef-fs-xl: 14px;
+ * [data-aeditor-theme="dracula"]. */
+:root[data-aeditor-density="compact"],
+.aeditor-root[data-aeditor-density="compact"] {
+  --aeditor-fs-xs: 10px;
+  --aeditor-fs-sm: 11px;
+  --aeditor-fs-md: 12px;
+  --aeditor-fs-lg: 13px;
+  --aeditor-fs-xl: 14px;
 }
 
-:root[data-ef-density="comfortable"],
-.ef-root[data-ef-density="comfortable"] {
-  --ef-fs-xs: 12px;
-  --ef-fs-sm: 13px;
-  --ef-fs-md: 14px;
-  --ef-fs-lg: 16px;
-  --ef-fs-xl: 18px;
+:root[data-aeditor-density="comfortable"],
+.aeditor-root[data-aeditor-density="comfortable"] {
+  --aeditor-fs-xs: 12px;
+  --aeditor-fs-sm: 13px;
+  --aeditor-fs-md: 14px;
+  --aeditor-fs-lg: 16px;
+  --aeditor-fs-xl: 18px;
 }
 
-:root[data-ef-theme="dracula"],
-.ef-root[data-ef-theme="dracula"] {
-  --ef-surface-canvas: #0c0c0e;
-  --ef-surface-lower:  #111113;
-  --ef-surface-frame:  #16161a;
-  --ef-surface-panel:  #111113;
-  --ef-surface-field:  #1c1c20;
-  --ef-surface-hover:  #2a2a30;
-  --ef-surface-active: #38383f;
-  --ef-surface-raised: #1c1c20;
+:root[data-aeditor-theme="dracula"],
+.aeditor-root[data-aeditor-theme="dracula"] {
+  --aeditor-surface-canvas: #0c0c0e;
+  --aeditor-surface-lower:  #111113;
+  --aeditor-surface-frame:  #16161a;
+  --aeditor-surface-panel:  #111113;
+  --aeditor-surface-field:  #1c1c20;
+  --aeditor-surface-hover:  #2a2a30;
+  --aeditor-surface-active: #38383f;
+  --aeditor-surface-raised: #1c1c20;
 
-  --ef-text-primary:  #e8e8f0;
-  --ef-text-body:     #c4c4cc;
-  --ef-text-label:    #9494a0;
-  --ef-text-muted:    #72727c;
-  --ef-text-disabled: #5e5e66;
+  --aeditor-text-primary:  #e8e8f0;
+  --aeditor-text-body:     #c4c4cc;
+  --aeditor-text-label:    #9494a0;
+  --aeditor-text-muted:    #72727c;
+  --aeditor-text-disabled: #5e5e66;
 
-  --ef-stroke-subtle: #1c1c20;
-  --ef-stroke-strong: #2a2a30;
-  --ef-stroke-field:  #2a2a30;
-  --ef-stroke-hover:  #4a4a52;
+  --aeditor-stroke-subtle: #1c1c20;
+  --aeditor-stroke-strong: #2a2a30;
+  --aeditor-stroke-field:  #2a2a30;
+  --aeditor-stroke-hover:  #4a4a52;
 
-  --ef-brand:          #7b6ef6;
-  --ef-brand-hover:    #a89ff8;
-  --ef-brand-contrast: #ffffff;
+  --aeditor-brand:          #7b6ef6;
+  --aeditor-brand-hover:    #a89ff8;
+  --aeditor-brand-contrast: #ffffff;
 
-  --ef-state-success: #3ecf8e;
-  --ef-state-warning: #f0a050;
-  --ef-state-danger:  #e05555;
-  --ef-state-info:    #38bdf8;
+  --aeditor-state-success: #3ecf8e;
+  --aeditor-state-warning: #f0a050;
+  --aeditor-state-danger:  #e05555;
+  --aeditor-state-info:    #38bdf8;
 
-  --ef-c-00: #0c0c0e;
-  --ef-c-01: #111113;
-  --ef-c-02: #16161a;
-  --ef-c-03: #1c1c20;
-  --ef-c-04: #24242a;
-  --ef-c-05: #2a2a30;
-  --ef-c-06: #38383f;
-  --ef-c-07: #4a4a52;
-  --ef-c-08: #5e5e66;
-  --ef-c-09: #72727c;
-  --ef-c-10: #9494a0;
-  --ef-c-11: #e8e8f0;
+  --aeditor-c-00: #0c0c0e;
+  --aeditor-c-01: #111113;
+  --aeditor-c-02: #16161a;
+  --aeditor-c-03: #1c1c20;
+  --aeditor-c-04: #24242a;
+  --aeditor-c-05: #2a2a30;
+  --aeditor-c-06: #38383f;
+  --aeditor-c-07: #4a4a52;
+  --aeditor-c-08: #5e5e66;
+  --aeditor-c-09: #72727c;
+  --aeditor-c-10: #9494a0;
+  --aeditor-c-11: #e8e8f0;
 
-  --ef-c-accent:      #7b6ef6;
-  --ef-c-accent-soft: #a89ff8;
+  --aeditor-c-accent:      #7b6ef6;
+  --aeditor-c-accent-soft: #a89ff8;
 
-  --ef-c-success: #3ecf8e;
-  --ef-c-warn:    #f0a050;
-  --ef-c-error:   #e05555;
-  --ef-c-info:    #38bdf8;
+  --aeditor-c-success: #3ecf8e;
+  --aeditor-c-warn:    #f0a050;
+  --aeditor-c-error:   #e05555;
+  --aeditor-c-info:    #38bdf8;
 
   /* Raised-input role mapping: field sits ABOVE panel, opposite of the
    * Godot default. This is the single substantive layout difference
    * between the two dark themes — everything else is palette. */
-  --ef-bg-1: var(--ef-surface-panel);   /* dock body */
-  --ef-bg-2: var(--ef-surface-field);   /* input (lighter than panel) */
-  --ef-bg-3: var(--ef-surface-hover);
-  --ef-bg-4: var(--ef-surface-active);
-  --ef-bg-raised: var(--ef-surface-raised);   /* raised cards sit above bg-1 */
+  --aeditor-bg-1: var(--aeditor-surface-panel);   /* dock body */
+  --aeditor-bg-2: var(--aeditor-surface-field);   /* input (lighter than panel) */
+  --aeditor-bg-3: var(--aeditor-surface-hover);
+  --aeditor-bg-4: var(--aeditor-surface-active);
+  --aeditor-bg-raised: var(--aeditor-surface-raised);   /* raised cards sit above bg-1 */
 
-  --ef-border:        var(--ef-stroke-subtle);
-  --ef-border-strong: var(--ef-stroke-strong);
-  --ef-border-input:  var(--ef-stroke-field);
-  --ef-border-hover:  var(--ef-stroke-hover);
+  --aeditor-border:        var(--aeditor-stroke-subtle);
+  --aeditor-border-strong: var(--aeditor-stroke-strong);
+  --aeditor-border-input:  var(--aeditor-stroke-field);
+  --aeditor-border-hover:  var(--aeditor-stroke-hover);
 
-  --ef-fg-1: var(--ef-text-body);
+  --aeditor-fg-1: var(--aeditor-text-body);
 
-  --ef-shadow-1: 0 1px 2px rgba(0,0,0,.4);
-  --ef-shadow-2: 0 2px 8px rgba(0,0,0,.5);
-  --ef-shadow-3: 0 4px 16px rgba(0,0,0,.6);
-  --ef-shadow-4: 0 8px 32px rgba(0,0,0,.7);
-  --ef-shadow-raised: 0 1px 2px rgba(0,0,0,.30), 0 2px 6px rgba(0,0,0,.35);
+  --aeditor-shadow-1: 0 1px 2px rgba(0,0,0,.4);
+  --aeditor-shadow-2: 0 2px 8px rgba(0,0,0,.5);
+  --aeditor-shadow-3: 0 4px 16px rgba(0,0,0,.6);
+  --aeditor-shadow-4: 0 8px 32px rgba(0,0,0,.7);
+  --aeditor-shadow-raised: 0 1px 2px rgba(0,0,0,.30), 0 2px 6px rgba(0,0,0,.35);
 }
 
 /* ── Light theme — only the primitives flip; roles inherit. ────────── */
-:root[data-ef-theme="light"],
-.ef-root[data-ef-theme="light"] {
-  --ef-surface-canvas: #f4f4f7;
-  --ef-surface-lower:  #ffffff;
-  --ef-surface-frame:  #f8f8fa;
-  --ef-surface-panel:  #ffffff;
-  --ef-surface-field:  #e6e6ec;
-  --ef-surface-hover:  #c8c8d2;
-  --ef-surface-active: #b0b0bc;
-  --ef-surface-raised: #f8f8fa;
+:root[data-aeditor-theme="light"],
+.aeditor-root[data-aeditor-theme="light"] {
+  --aeditor-surface-canvas: #f4f4f7;
+  --aeditor-surface-lower:  #ffffff;
+  --aeditor-surface-frame:  #f8f8fa;
+  --aeditor-surface-panel:  #ffffff;
+  --aeditor-surface-field:  #e6e6ec;
+  --aeditor-surface-hover:  #c8c8d2;
+  --aeditor-surface-active: #b0b0bc;
+  --aeditor-surface-raised: #f8f8fa;
 
-  --ef-text-primary:  #18181c;
-  --ef-text-body:     #2a2a30;
-  --ef-text-label:    #38383f;
-  --ef-text-muted:    #54545e;
-  --ef-text-disabled: #6e6e7a;
+  --aeditor-text-primary:  #18181c;
+  --aeditor-text-body:     #2a2a30;
+  --aeditor-text-label:    #38383f;
+  --aeditor-text-muted:    #54545e;
+  --aeditor-text-disabled: #6e6e7a;
 
-  --ef-stroke-subtle: #e6e6ec;
-  --ef-stroke-strong: #c8c8d2;
-  --ef-stroke-field:  #c8c8d2;
-  --ef-stroke-hover:  #8e8e9c;
+  --aeditor-stroke-subtle: #e6e6ec;
+  --aeditor-stroke-strong: #c8c8d2;
+  --aeditor-stroke-field:  #c8c8d2;
+  --aeditor-stroke-hover:  #8e8e9c;
 
-  --ef-brand:          #5b4ee0;
-  --ef-brand-hover:    #8278f0;
-  --ef-brand-contrast: #ffffff;
+  --aeditor-brand:          #5b4ee0;
+  --aeditor-brand-hover:    #8278f0;
+  --aeditor-brand-contrast: #ffffff;
 
-  --ef-state-success: #16a163;
-  --ef-state-warning: #c97a1a;
-  --ef-state-danger:  #c53030;
-  --ef-state-info:    #1e88c4;
+  --aeditor-state-success: #16a163;
+  --aeditor-state-warning: #c97a1a;
+  --aeditor-state-danger:  #c53030;
+  --aeditor-state-info:    #1e88c4;
 
-  --ef-c-00: #f4f4f7;
-  --ef-c-01: #ffffff;
-  --ef-c-02: #f8f8fa;
-  --ef-c-03: #e6e6ec;
-  --ef-c-04: #d8d8e0;
-  --ef-c-05: #c8c8d2;
-  --ef-c-06: #b0b0bc;
-  --ef-c-07: #8e8e9c;
-  --ef-c-08: #6e6e7a;
-  --ef-c-09: #54545e;
-  --ef-c-10: #38383f;
-  --ef-c-11: #18181c;
+  --aeditor-c-00: #f4f4f7;
+  --aeditor-c-01: #ffffff;
+  --aeditor-c-02: #f8f8fa;
+  --aeditor-c-03: #e6e6ec;
+  --aeditor-c-04: #d8d8e0;
+  --aeditor-c-05: #c8c8d2;
+  --aeditor-c-06: #b0b0bc;
+  --aeditor-c-07: #8e8e9c;
+  --aeditor-c-08: #6e6e7a;
+  --aeditor-c-09: #54545e;
+  --aeditor-c-10: #38383f;
+  --aeditor-c-11: #18181c;
 
-  --ef-c-accent:      #5b4ee0;
-  --ef-c-accent-soft: #8278f0;
+  --aeditor-c-accent:      #5b4ee0;
+  --aeditor-c-accent-soft: #8278f0;
 
-  --ef-c-success: #16a163;
-  --ef-c-warn:    #c97a1a;
-  --ef-c-error:   #c53030;
-  --ef-c-info:    #1e88c4;
+  --aeditor-c-success: #16a163;
+  --aeditor-c-warn:    #c97a1a;
+  --aeditor-c-error:   #c53030;
+  --aeditor-c-info:    #1e88c4;
 
   /* Light theme needs lighter shadows or they look like ink blots. */
-  --ef-shadow-1: 0 1px 2px rgba(20,20,40,.08);
-  --ef-shadow-2: 0 2px 8px rgba(20,20,40,.10);
-  --ef-shadow-3: 0 4px 16px rgba(20,20,40,.12);
-  --ef-shadow-4: 0 8px 32px rgba(20,20,40,.16);
+  --aeditor-shadow-1: 0 1px 2px rgba(20,20,40,.08);
+  --aeditor-shadow-2: 0 2px 8px rgba(20,20,40,.10);
+  --aeditor-shadow-3: 0 4px 16px rgba(20,20,40,.12);
+  --aeditor-shadow-4: 0 8px 32px rgba(20,20,40,.16);
 
   /* Restore historical "white panel + slightly grey inset field" role
    * mapping — :root uses Godot's "inset-in-dark" convention which, when
    * inherited with light primitives, would invert into "raised-in-light".
    * Light mode reads more naturally with white panels and inset fields. */
-  --ef-bg-1: var(--ef-surface-panel);   /* dock body = white */
-  --ef-bg-2: var(--ef-surface-field);   /* input = light gray (inset) */
-  --ef-bg-3: var(--ef-surface-hover);
-  --ef-bg-4: var(--ef-surface-active);
-  --ef-bg-raised: var(--ef-surface-raised);   /* slightly off-white to separate from bg-1 */
+  --aeditor-bg-1: var(--aeditor-surface-panel);   /* dock body = white */
+  --aeditor-bg-2: var(--aeditor-surface-field);   /* input = light gray (inset) */
+  --aeditor-bg-3: var(--aeditor-surface-hover);
+  --aeditor-bg-4: var(--aeditor-surface-active);
+  --aeditor-bg-raised: var(--aeditor-surface-raised);   /* slightly off-white to separate from bg-1 */
 
-  --ef-border:        var(--ef-stroke-subtle);
-  --ef-border-strong: var(--ef-stroke-strong);
-  --ef-border-input:  var(--ef-stroke-field);
-  --ef-border-hover:  var(--ef-stroke-hover);
+  --aeditor-border:        var(--aeditor-stroke-subtle);
+  --aeditor-border-strong: var(--aeditor-stroke-strong);
+  --aeditor-border-input:  var(--aeditor-stroke-field);
+  --aeditor-border-hover:  var(--aeditor-stroke-hover);
 
-  --ef-shadow-raised: 0 1px 2px rgba(20,20,40,.08), 0 2px 6px rgba(20,20,40,.10);
+  --aeditor-shadow-raised: 0 1px 2px rgba(20,20,40,.08), 0 2px 6px rgba(20,20,40,.10);
 
-  --ef-fg-1: var(--ef-text-body);
-  --ef-accent-fg: var(--ef-brand-contrast);
+  --aeditor-fg-1: var(--aeditor-text-body);
+  --aeditor-accent-fg: var(--aeditor-brand-contrast);
 }
 
 @media (prefers-reduced-motion: reduce) {
   :root {
-    --ef-dur-fast: 0ms;
-    --ef-dur-med:  0ms;
-    --ef-dur-slow: 0ms;
+    --aeditor-dur-fast: 0ms;
+    --aeditor-dur-med:  0ms;
+    --aeditor-dur-slow: 0ms;
   }
 }

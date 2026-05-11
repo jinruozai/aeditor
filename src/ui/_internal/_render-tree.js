@@ -1,4 +1,4 @@
-// EF.ui.renderUITree — instantiate a tree of components from a spec.
+// aeditor.ui.renderUITree — instantiate a tree of components from a spec.
 //
 //   ui.renderUITree(node, ctx) → HTMLElement
 //
@@ -25,19 +25,19 @@
 // child layout is a node-level concern. Components that need a custom child
 // layout provide `appendChild(parentEl, childEl, childLayout)`. Everything
 // else gets the default overlay child layer.
-;(function (EF) {
+;(function (aeditor) {
   'use strict'
-  const ui = EF.ui = EF.ui || {}
+  const ui = aeditor.ui = aeditor.ui || {}
 
   ui.renderUITree = function renderUITree(node, ctx) {
-    if (!node) return ui.h('div', 'ef-ui-tree-empty')
-    const spec = EF.resolveComponent(node.component)
+    if (!node) return ui.h('div', 'aeditor-ui-tree-empty')
+    const spec = aeditor.resolveComponent(node.component)
     const propsSig = buildPropsSig(node, ctx)
     const bodyEl = spec.factory(propsSig, ctx || {})
-    const el = ui.h('div', 'ef-ui-node')
+    const el = ui.h('div', 'aeditor-ui-node')
     if (propsSig.dispose) ui.collect(el, propsSig.dispose)
     el.dataset.efNodeId = node.id || ''
-    const body = ui.h('div', 'ef-ui-node-body')
+    const body = ui.h('div', 'aeditor-ui-node-body')
     body.appendChild(bodyEl)
     ui.collect(el, function () { ui.dispose(bodyEl) })
     el.appendChild(body)
@@ -63,8 +63,8 @@
     const bindings = node.bindings || {}
     const bKeys    = Object.keys(bindings)
     const dataSig  = ctx && ctx.data
-    if (bKeys.length === 0) return EF.signal(literal)
-    return EF.derived(function () {
+    if (bKeys.length === 0) return aeditor.signal(literal)
+    return aeditor.derived(function () {
       const out = Object.assign({}, literal)
       const data = dataSig ? dataSig() : null
       for (let i = 0; i < bKeys.length; i++) {
@@ -79,12 +79,12 @@
   }
 
   function appendOverlay(parent, child, layout) {
-    let layer = parent.querySelector(':scope > .ef-ui-node-children')
+    let layer = parent.querySelector(':scope > .aeditor-ui-node-children')
     if (!layer) {
-      layer = ui.h('div', 'ef-ui-node-children')
+      layer = ui.h('div', 'aeditor-ui-node-children')
       parent.appendChild(layer)
     }
-    const slot = ui.h('div', 'ef-ui-abs-slot')
+    const slot = ui.h('div', 'aeditor-ui-abs-slot')
     ui.layoutRect.applyToSlot(slot, layout || ui.layoutRect.identity())
     slot.appendChild(child)
     layer.appendChild(slot)
@@ -96,8 +96,8 @@
     const out = {}
     for (let i = 0; i < keys.length; i++) {
       const k = keys[i]
-      out[k] = EF.derived(function () { const p = propsSig() || {}; return p[k] })
+      out[k] = aeditor.derived(function () { const p = propsSig() || {}; return p[k] })
     }
     return out
   }
-})(window.EF = window.EF || {})
+})(window.aeditor = window.aeditor || {})

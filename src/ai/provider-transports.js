@@ -1,8 +1,8 @@
-// EF.ai built-in transports.
-;(function (EF) {
+// aeditor.ai built-in transports.
+;(function (aeditor) {
   'use strict'
 
-  const ai = EF.ai = EF.ai || {}
+  const ai = aeditor.ai = aeditor.ai || {}
   const http = ai.provider
 
   function mergeToolCallDeltas(calls) {
@@ -224,4 +224,4 @@
       })
     },
   })
-})(window.EF = window.EF || {})
+})(window.aeditor = window.aeditor || {})

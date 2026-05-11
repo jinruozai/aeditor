@@ -1,4 +1,4 @@
-// EF.ui.anchorPicker — Unity-style anchor + offset editor for a LayoutRect.
+// aeditor.ui.anchorPicker — Unity-style anchor + offset editor for a LayoutRect.
 //
 // opts:
 //   value       : signal<LayoutRect>   required (two-way)
@@ -13,9 +13,9 @@
 //   • horizontal stretched (aMin.x ≠ aMax.x) → "Left" / "Right" insets
 //   • horizontal fixed     (aMin.x = aMax.x) → "PosX"  / "Width"
 //   • vertical analogous on the second axis.
-;(function (EF) {
+;(function (aeditor) {
   'use strict'
-  const ui = EF.ui = EF.ui || {}
+  const ui = aeditor.ui = aeditor.ui || {}
   const LR = ui.layoutRect
 
   ui.anchorPicker = function (opts) {
@@ -23,15 +23,15 @@
     const value      = o.value
     const parentSize = ui.isSignal(o.parentSize)
       ? o.parentSize
-      : (o.parentSize ? EF.signal(o.parentSize) : null)
+      : (o.parentSize ? aeditor.signal(o.parentSize) : null)
     const writer = ui.writer(value, o.onChange, 'ui.anchorPicker')
 
-    const root = ui.h('div', 'ef-ui-anchor-picker')
+    const root = ui.h('div', 'aeditor-ui-anchor-picker')
 
     // 4×4 preset grid ────────────────────────────────────────────────
-    const grid = ui.h('div', 'ef-ui-anchor-grid')
+    const grid = ui.h('div', 'aeditor-ui-anchor-grid')
     const cells = LR.PRESETS.map(function (p) {
-      const btn = ui.h('button', 'ef-ui-anchor-cell', {
+      const btn = ui.h('button', 'aeditor-ui-anchor-cell', {
         type: 'button',
         title: p.label + ' — click: re-anchor (preserve box) · alt/option-click: snap rect to anchor',
       })
@@ -73,7 +73,7 @@
     }
 
     // Offset / size fields ───────────────────────────────────────────
-    const fieldsRow = ui.h('div', 'ef-ui-anchor-offsets')
+    const fieldsRow = ui.h('div', 'aeditor-ui-anchor-offsets')
     const fL = makeField(function (n) { applyField(function (cur) { return setOMin(cur, 'x', n) }) })
     const fT = makeField(function (n) { applyField(function (cur) { return setOMin(cur, 'y', n) }) })
     const fR = makeField(function (n) {
@@ -94,7 +94,7 @@
     fieldsRow.appendChild(fR.row); fieldsRow.appendChild(fB.row)
     root.appendChild(fieldsRow)
 
-    EF.effect(function () {
+    aeditor.effect(function () {
       const v = value() || LR.identity()
       const stretchX = v.aMin.x !== v.aMax.x
       const stretchY = v.aMin.y !== v.aMax.y
@@ -137,9 +137,9 @@
   function round(n) { return Math.round(n * 100) / 100 }
 
   function makeField(onChange) {
-    const row   = ui.h('label', 'ef-ui-anchor-offset')
-    const label = ui.h('span',  'ef-ui-anchor-offset-label')
-    const value = EF.signal(0)
+    const row   = ui.h('label', 'aeditor-ui-anchor-offset')
+    const label = ui.h('span',  'aeditor-ui-anchor-offset-label')
+    const value = aeditor.signal(0)
     const input = ui.numberInput({
       value: value,
       step: 1,
@@ -149,7 +149,7 @@
         onChange(n)
       },
     })
-    input.classList.add('ef-ui-anchor-offset-input')
+    input.classList.add('aeditor-ui-anchor-offset-input')
     row.appendChild(label); row.appendChild(input)
     return { row: row, label: label, value: value, input: input }
   }
@@ -162,12 +162,12 @@
   function buildAnchorGlyph(preset) {
     const svg = document.createElementNS(SVG_NS, 'svg')
     svg.setAttribute('viewBox', '0 0 24 24')
-    svg.setAttribute('class', 'ef-ui-anchor-glyph')
+    svg.setAttribute('class', 'aeditor-ui-anchor-glyph')
     // Parent frame
     const frame = document.createElementNS(SVG_NS, 'rect')
     frame.setAttribute('x', '2'); frame.setAttribute('y', '2')
     frame.setAttribute('width', '20'); frame.setAttribute('height', '20')
-    frame.setAttribute('class', 'ef-ui-anchor-glyph-frame')
+    frame.setAttribute('class', 'aeditor-ui-anchor-glyph-frame')
     svg.appendChild(frame)
     const px = function (t) { return 2 + t * 20 }
     if (preset.aMin.x !== preset.aMax.x || preset.aMin.y !== preset.aMax.y) {
@@ -176,7 +176,7 @@
       span.setAttribute('y', String(px(preset.aMin.y)))
       span.setAttribute('width',  String(px(preset.aMax.x) - px(preset.aMin.x) || 1))
       span.setAttribute('height', String(px(preset.aMax.y) - px(preset.aMin.y) || 1))
-      span.setAttribute('class', 'ef-ui-anchor-glyph-span')
+      span.setAttribute('class', 'aeditor-ui-anchor-glyph-span')
       svg.appendChild(span)
     }
     addMarker(svg, px(preset.aMin.x), px(preset.aMin.y), 'min')
@@ -189,7 +189,7 @@
     const m = document.createElementNS(SVG_NS, 'circle')
     m.setAttribute('cx', String(x)); m.setAttribute('cy', String(y))
     m.setAttribute('r', '2')
-    m.setAttribute('class', 'ef-ui-anchor-glyph-mark ef-ui-anchor-glyph-mark-' + kind)
+    m.setAttribute('class', 'aeditor-ui-anchor-glyph-mark aeditor-ui-anchor-glyph-mark-' + kind)
     svg.appendChild(m)
   }
-})(window.EF = window.EF || {})
+})(window.aeditor = window.aeditor || {})

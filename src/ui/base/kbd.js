@@ -1,12 +1,12 @@
-// EF.ui.kbd — keyboard shortcut hint chip (e.g. ⌘K, Ctrl+S).
+// aeditor.ui.kbd — keyboard shortcut hint chip (e.g. ⌘K, Ctrl+S).
 //
 // Signature accepts either a plain string (legacy short form) or an opts
 // object with a signal-aware `text` field. Both map to the same DOM.
-//   EF.ui.kbd('Ctrl+S')
-//   EF.ui.kbd({ text: sig })
-;(function (EF) {
+//   aeditor.ui.kbd('Ctrl+S')
+//   aeditor.ui.kbd({ text: sig })
+;(function (aeditor) {
   'use strict'
-  const ui = EF.ui = EF.ui || {}
+  const ui = aeditor.ui = aeditor.ui || {}
 
   ui.kbd = function (arg) {
     const text = ui.asSig(
@@ -14,8 +14,8 @@
         ? (arg.text != null ? arg.text : '')
         : (arg != null ? arg : '')
     )
-    const el = ui.h('kbd', 'ef-ui-kbd')
+    const el = ui.h('kbd', 'aeditor-ui-kbd')
     ui.bindText(el, text)
     return el
   }
-})(window.EF = window.EF || {})
+})(window.aeditor = window.aeditor || {})

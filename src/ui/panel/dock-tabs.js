@@ -1,10 +1,10 @@
-// Dock-tabs — the framework-side thin shell around EF.ui.tab.
+// Dock-tabs — the framework-side thin shell around aeditor.ui.tab.
 //
 // Zero visual code. Zero DOM construction. Its entire job is:
-//   1. Pick an EF.ui.tab variant from preset defaults
+//   1. Pick an aeditor.ui.tab variant from preset defaults
 //   2. Wire ctx.dock.panels → items, ctx.dock.activeId → active
 //   3. Forward click / close / add / drag callbacks to ctx.dock.*
-//   4. Tag the root with `.ef-dock-tabs` so interactions.js can hit-test it
+//   4. Tag the root with `.aeditor-dock-tabs` so interactions.js can hit-test it
 //
 // Registered presets (§ 4.6 — one implementation, four configurations):
 //   tab-standard    closeable + addable                    (editor)
@@ -16,13 +16,13 @@
 // per-toolbar-item basis — that's how a caller could, e.g., use the
 // sidebar preset but force text mode with `props: { iconOnly: false }`,
 // or force a direction with `props: { direction: 'vertical' }`.
-;(function (EF) {
+;(function (aeditor) {
   'use strict'
 
   function buildDockTabs(p, ctx) {
     const dockDir = ctx.dock.toolbarDirection ? ctx.dock.toolbarDirection.peek() : null
     const autoDir = (dockDir === 'left' || dockDir === 'right') ? 'vertical' : 'horizontal'
-    const el = EF.ui.tab({
+    const el = aeditor.ui.tab({
       items:        ctx.dock.panels,     // derived signal<PanelData[]>
       active:       ctx.dock.activeId,   // derived signal<string|null>
       variant:      p.variant  || 'bar',
@@ -49,15 +49,15 @@
         const curId  = ctx.dock.activeId()
         const active = panels.find(function (pp) { return pp.id === curId })
         if (!active) return
-        const defaults = EF.componentDefaults(active.component)
+        const defaults = aeditor.componentDefaults(active.component)
         ctx.dock.addPanel(Object.assign({}, defaults, { component: active.component }))
       },
       onDragStart: function (ev, panelId) {
-        const fn = EF._dock && EF._dock.beginPanelDrag
+        const fn = aeditor._dock && aeditor._dock.beginPanelDrag
         if (fn) fn(ev, panelId, ctx.dock.id(), ctx._layout)
       },
     })
-    el.classList.add('ef-dock-tabs')
+    el.classList.add('aeditor-dock-tabs')
     return el
   }
 
@@ -69,22 +69,22 @@
     }
   }
 
-  EF.registerComponent('tab-standard', {
+  aeditor.registerComponent('tab-standard', {
     defaults: function () { return { title: 'Tabs' } },
     factory:  preset({ variant: 'bar', closable: true, addable: true }),
   })
 
-  EF.registerComponent('tab-compact', {
+  aeditor.registerComponent('tab-compact', {
     defaults: function () { return { title: 'Tabs' } },
     factory:  preset({ variant: 'compact', closable: false, minShowCount: 2 }),
   })
 
-  EF.registerComponent('tab-collapsible', {
+  aeditor.registerComponent('tab-collapsible', {
     defaults: function () { return { title: 'Tabs' } },
     factory:  preset({ variant: 'bar', closable: true, collapsible: true }),
   })
 
-  EF.registerComponent('tab-sidebar', {
+  aeditor.registerComponent('tab-sidebar', {
     defaults: function () { return { title: 'Tabs' } },
     factory:  preset({
       variant:     'sidebar',
@@ -93,4 +93,4 @@
       collapsible: true,
     }),
   })
-})(window.EF = window.EF || {})
+})(window.aeditor = window.aeditor || {})

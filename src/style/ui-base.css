@@ -1,7 +1,7 @@
-/* editorframe — UI library: base widgets
+/* aeditor — UI library: base widgets
  *
  * Buttons, icons, tooltips, popovers, kbd, badges, tags, spinners, dividers.
- * All values are theme tokens (var(--ef-*)). No literals.
+ * All values are theme tokens (var(--aeditor-*)). No literals.
  */
 
 /* ── dropzone / dragsource (ui._dnd.js) ────────────────────────────
@@ -10,392 +10,392 @@
  * specific container. outline (not border) so we don't perturb layout
  * when the class is added/removed mid-drag.
  */
-.ef-ui-dropzone-active {
-  outline: 2px dashed var(--ef-accent);
+.aeditor-ui-dropzone-active {
+  outline: 2px dashed var(--aeditor-accent);
   outline-offset: -2px;
-  background: color-mix(in srgb, var(--ef-accent) 10%, transparent);
+  background: color-mix(in srgb, var(--aeditor-accent) 10%, transparent);
 }
-.ef-ui-dropzone-reject {
-  outline: 2px dashed var(--ef-error);
+.aeditor-ui-dropzone-reject {
+  outline: 2px dashed var(--aeditor-error);
   outline-offset: -2px;
-  background: color-mix(in srgb, var(--ef-error) 8%, transparent);
+  background: color-mix(in srgb, var(--aeditor-error) 8%, transparent);
   cursor: not-allowed;
 }
-.ef-ui-dragging { opacity: 0.55; }
+.aeditor-ui-dragging { opacity: 0.55; }
 
 /* ── icon ─────────────────────────────────────────── */
-.ef-ui-icon {
+.aeditor-ui-icon {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   line-height: 1;
   user-select: none;
 }
-.ef-ui-icon-sm { font-size: var(--ef-size-icon-sm); min-width: var(--ef-size-icon-sm); }
-.ef-ui-icon-md { font-size: var(--ef-size-icon-md); min-width: var(--ef-size-icon-md); }
-.ef-ui-icon-lg { font-size: var(--ef-size-icon-lg); min-width: var(--ef-size-icon-lg); }
+.aeditor-ui-icon-sm { font-size: var(--aeditor-size-icon-sm); min-width: var(--aeditor-size-icon-sm); }
+.aeditor-ui-icon-md { font-size: var(--aeditor-size-icon-md); min-width: var(--aeditor-size-icon-md); }
+.aeditor-ui-icon-lg { font-size: var(--aeditor-size-icon-lg); min-width: var(--aeditor-size-icon-lg); }
 
-/* SVG icons (registered via EF.ui.registerIcon) — size-track the font size
+/* SVG icons (registered via aeditor.ui.registerIcon) — size-track the font size
  * of the host span so the same size scale applies to text glyphs and SVG
  * interchangeably. stroke uses currentColor so the icon colors follow text. */
-.ef-ui-icon svg { width: 1em; height: 1em; display: block; }
-.ef-ui-icon-svg { /* marker class; no style beyond svg sizing above */ }
-.ef-ui-icon-sm svg { width: var(--ef-size-icon-sm); height: var(--ef-size-icon-sm); }
-.ef-ui-icon-md svg { width: var(--ef-size-icon-md); height: var(--ef-size-icon-md); }
-.ef-ui-icon-lg svg { width: var(--ef-size-icon-lg); height: var(--ef-size-icon-lg); }
+.aeditor-ui-icon svg { width: 1em; height: 1em; display: block; }
+.aeditor-ui-icon-svg { /* marker class; no style beyond svg sizing above */ }
+.aeditor-ui-icon-sm svg { width: var(--aeditor-size-icon-sm); height: var(--aeditor-size-icon-sm); }
+.aeditor-ui-icon-md svg { width: var(--aeditor-size-icon-md); height: var(--aeditor-size-icon-md); }
+.aeditor-ui-icon-lg svg { width: var(--aeditor-size-icon-lg); height: var(--aeditor-size-icon-lg); }
 
 /* ── image ────────────────────────────────────────── */
 /* Displayed at 100% of its slot — sizing comes from the absolute slot or
  * BOX_STYLE width/height applied by the registration. object-fit decides
  * how the bitmap fills that box. */
-.ef-ui-image {
+.aeditor-ui-image {
   display: block;
   width: 100%;
   height: 100%;
   object-fit: cover;
   user-select: none;
 }
-.ef-ui-image:not([src]) {
+.aeditor-ui-image:not([src]) {
   visibility: hidden;
 }
 
 /* ── button ───────────────────────────────────────── */
-.ef-ui-btn {
+.aeditor-ui-btn {
   position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: var(--ef-space-1);
-  padding: 0 var(--ef-space-3);
-  background: var(--ef-bg-2);
-  color: var(--ef-fg-1);
-  border: 1px solid var(--ef-border-strong);
-  border-radius: var(--ef-r-2);
-  font: var(--ef-fs-md) var(--ef-font-ui);
+  gap: var(--aeditor-space-1);
+  padding: 0 var(--aeditor-space-3);
+  background: var(--aeditor-bg-2);
+  color: var(--aeditor-fg-1);
+  border: 1px solid var(--aeditor-border-strong);
+  border-radius: var(--aeditor-r-2);
+  font: var(--aeditor-fs-md) var(--aeditor-font-ui);
   cursor: pointer;
   user-select: none;
   white-space: nowrap;
   overflow: hidden;
   isolation: isolate;
-  box-shadow: 0 1px 0 color-mix(in srgb, var(--ef-bg-0) 42%, transparent), inset 0 1px 0 var(--ef-highlight-subtle);
+  box-shadow: 0 1px 0 color-mix(in srgb, var(--aeditor-bg-0) 42%, transparent), inset 0 1px 0 var(--aeditor-highlight-subtle);
   transform: translateZ(0);
   transition:
-    background  var(--ef-dur-fast) var(--ef-ease),
-    color       var(--ef-dur-fast) var(--ef-ease),
-    border      var(--ef-dur-fast) var(--ef-ease),
-    box-shadow  var(--ef-dur-med)  var(--ef-ease),
-    transform   var(--ef-dur-fast) var(--ef-ease);
+    background  var(--aeditor-dur-fast) var(--aeditor-ease),
+    color       var(--aeditor-dur-fast) var(--aeditor-ease),
+    border      var(--aeditor-dur-fast) var(--aeditor-ease),
+    box-shadow  var(--aeditor-dur-med)  var(--aeditor-ease),
+    transform   var(--aeditor-dur-fast) var(--aeditor-ease);
 }
 /* Click-flash overlay (pure CSS, no JS). Expands a soft radial highlight on press. */
-.ef-ui-btn::before {
+.aeditor-ui-btn::before {
   content: '';
   position: absolute;
   inset: 0;
   background: radial-gradient(circle at center, currentColor 0%, transparent 60%);
   opacity: 0;
   transform: scale(0.4);
-  transition: opacity var(--ef-dur-med) var(--ef-ease),
-              transform var(--ef-dur-med) var(--ef-ease);
+  transition: opacity var(--aeditor-dur-med) var(--aeditor-ease),
+              transform var(--aeditor-dur-med) var(--aeditor-ease);
   pointer-events: none;
   z-index: 0;
 }
-.ef-ui-btn > * { position: relative; z-index: 1; }
-.ef-ui-btn-sm { height: var(--ef-size-h-sm); padding: 0 var(--ef-space-2); font-size: var(--ef-fs-sm); }
-.ef-ui-btn-md { height: var(--ef-size-h-md); }
-.ef-ui-btn-lg { height: var(--ef-size-h-lg); padding: 0 var(--ef-space-4); font-size: var(--ef-fs-lg); }
-.ef-ui-btn:hover {
-  background: var(--ef-bg-3);
-  color: var(--ef-fg-0);
-  border-color: var(--ef-border-hover);
+.aeditor-ui-btn > * { position: relative; z-index: 1; }
+.aeditor-ui-btn-sm { height: var(--aeditor-size-h-sm); padding: 0 var(--aeditor-space-2); font-size: var(--aeditor-fs-sm); }
+.aeditor-ui-btn-md { height: var(--aeditor-size-h-md); }
+.aeditor-ui-btn-lg { height: var(--aeditor-size-h-lg); padding: 0 var(--aeditor-space-4); font-size: var(--aeditor-fs-lg); }
+.aeditor-ui-btn:hover {
+  background: var(--aeditor-bg-3);
+  color: var(--aeditor-fg-0);
+  border-color: var(--aeditor-border-hover);
   transform: translateY(-1px);
-  box-shadow: var(--ef-shadow-1), inset 0 1px 0 var(--ef-highlight-subtle);
+  box-shadow: var(--aeditor-shadow-1), inset 0 1px 0 var(--aeditor-highlight-subtle);
 }
-.ef-ui-btn:active {
-  background: var(--ef-bg-4);
+.aeditor-ui-btn:active {
+  background: var(--aeditor-bg-4);
   transform: translateY(0) scale(0.985);
   box-shadow: inset 0 1px 2px rgba(0,0,0,.35);
   transition-duration: 40ms;
 }
-.ef-ui-btn:active::before {
+.aeditor-ui-btn:active::before {
   opacity: .14;
   transform: scale(1);
   transition-duration: 0ms;
 }
-.ef-ui-btn:focus-visible {
+.aeditor-ui-btn:focus-visible {
   outline: none;
-  border-color: var(--ef-accent);
+  border-color: var(--aeditor-accent);
   box-shadow:
-    0 0 0 3px color-mix(in srgb, var(--ef-accent) 28%, transparent),
+    0 0 0 3px color-mix(in srgb, var(--aeditor-accent) 28%, transparent),
     0 1px 0 rgba(0,0,0,.18);
 }
-.ef-ui-btn[disabled] {
+.aeditor-ui-btn[disabled] {
   opacity: .38;
   pointer-events: none;
   box-shadow: none;
   transform: none;
 }
 
-.ef-ui-btn-primary {
-  background: var(--ef-accent);
-  color: var(--ef-accent-fg);
-  border-color: var(--ef-accent);
-  box-shadow: inset 0 1px 0 var(--ef-highlight-strong);
+.aeditor-ui-btn-primary {
+  background: var(--aeditor-accent);
+  color: var(--aeditor-accent-fg);
+  border-color: var(--aeditor-accent);
+  box-shadow: inset 0 1px 0 var(--aeditor-highlight-strong);
 }
-.ef-ui-btn-primary:hover {
-  background: color-mix(in srgb, var(--ef-accent-soft) 72%, var(--ef-accent));
-  border-color: var(--ef-accent-soft);
-  box-shadow: 0 0 0 2px var(--ef-accent-bg), inset 0 1px 0 var(--ef-highlight-strong);
+.aeditor-ui-btn-primary:hover {
+  background: color-mix(in srgb, var(--aeditor-accent-soft) 72%, var(--aeditor-accent));
+  border-color: var(--aeditor-accent-soft);
+  box-shadow: 0 0 0 2px var(--aeditor-accent-bg), inset 0 1px 0 var(--aeditor-highlight-strong);
 }
-.ef-ui-btn-primary:active {
-  background: var(--ef-accent);
+.aeditor-ui-btn-primary:active {
+  background: var(--aeditor-accent);
   box-shadow:
-    inset 0 2px 4px color-mix(in srgb, var(--ef-bg-0) 48%, transparent),
+    inset 0 2px 4px color-mix(in srgb, var(--aeditor-bg-0) 48%, transparent),
     0 0 0 0 transparent;
 }
 
-.ef-ui-btn-ghost {
+.aeditor-ui-btn-ghost {
   background: transparent;
   border-color: transparent;
   box-shadow: none;
 }
-.ef-ui-btn-ghost:hover {
-  background: var(--ef-hover);
+.aeditor-ui-btn-ghost:hover {
+  background: var(--aeditor-hover);
   border-color: transparent;
   box-shadow: none;
 }
-.ef-ui-btn-ghost:active { background: var(--ef-active); box-shadow: none; }
+.aeditor-ui-btn-ghost:active { background: var(--aeditor-active); box-shadow: none; }
 
-.ef-ui-btn-danger {
-  background: var(--ef-error-bg);
-  color: var(--ef-error);
-  border-color: var(--ef-error);
+.aeditor-ui-btn-danger {
+  background: var(--aeditor-error-bg);
+  color: var(--aeditor-error);
+  border-color: var(--aeditor-error);
 }
-.ef-ui-btn-danger:hover {
-  background: var(--ef-error);
-  color: var(--ef-error-fg);
+.aeditor-ui-btn-danger:hover {
+  background: var(--aeditor-error);
+  color: var(--aeditor-error-fg);
   box-shadow:
-    0 4px 12px color-mix(in srgb, var(--ef-error) 40%, transparent),
-    inset 0 1px 0 var(--ef-highlight-strong);
+    0 4px 12px color-mix(in srgb, var(--aeditor-error) 40%, transparent),
+    inset 0 1px 0 var(--aeditor-highlight-strong);
 }
-.ef-ui-btn-danger:focus-visible {
-  border-color: var(--ef-error);
+.aeditor-ui-btn-danger:focus-visible {
+  border-color: var(--aeditor-error);
   box-shadow:
-    0 0 0 3px color-mix(in srgb, var(--ef-error) 32%, transparent),
+    0 0 0 3px color-mix(in srgb, var(--aeditor-error) 32%, transparent),
     0 1px 0 rgba(0,0,0,.18);
 }
 
 /* ── icon button (square, ghost by default) ───────── */
-.ef-ui-icon-btn {
+.aeditor-ui-icon-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   background: transparent;
   border: 1px solid transparent;
-  border-radius: var(--ef-r-2);
-  color: var(--ef-fg-2);
+  border-radius: var(--aeditor-r-2);
+  color: var(--aeditor-fg-2);
   cursor: pointer;
   padding: 0;
   transform: translateZ(0);
-  transition: background var(--ef-dur-fast) var(--ef-ease),
-              color      var(--ef-dur-fast) var(--ef-ease),
-              transform  var(--ef-dur-fast) var(--ef-ease),
-              box-shadow var(--ef-dur-med) var(--ef-ease);
+  transition: background var(--aeditor-dur-fast) var(--aeditor-ease),
+              color      var(--aeditor-dur-fast) var(--aeditor-ease),
+              transform  var(--aeditor-dur-fast) var(--aeditor-ease),
+              box-shadow var(--aeditor-dur-med) var(--aeditor-ease);
 }
-.ef-ui-icon-btn-sm { width: var(--ef-size-h-sm); height: var(--ef-size-h-sm); }
-.ef-ui-icon-btn-md { width: var(--ef-size-h-md); height: var(--ef-size-h-md); }
-.ef-ui-icon-btn-lg { width: var(--ef-size-h-lg); height: var(--ef-size-h-lg); }
-.ef-ui-icon-btn:hover {
-  background: var(--ef-hover);
-  color: var(--ef-fg-0);
+.aeditor-ui-icon-btn-sm { width: var(--aeditor-size-h-sm); height: var(--aeditor-size-h-sm); }
+.aeditor-ui-icon-btn-md { width: var(--aeditor-size-h-md); height: var(--aeditor-size-h-md); }
+.aeditor-ui-icon-btn-lg { width: var(--aeditor-size-h-lg); height: var(--aeditor-size-h-lg); }
+.aeditor-ui-icon-btn:hover {
+  background: var(--aeditor-hover);
+  color: var(--aeditor-fg-0);
 }
-.ef-ui-icon-btn:active {
+.aeditor-ui-icon-btn:active {
   transform: scale(0.9);
-  background: var(--ef-active);
+  background: var(--aeditor-active);
   transition-duration: 40ms;
 }
-.ef-ui-icon-btn:focus-visible {
+.aeditor-ui-icon-btn:focus-visible {
   outline: none;
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--ef-accent) 36%, transparent);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--aeditor-accent) 36%, transparent);
 }
-.ef-ui-icon-btn[disabled] { opacity: .38; pointer-events: none; }
-.ef-ui-copy-btn {
-  transition: color var(--ef-dur-fast) var(--ef-ease),
-              background var(--ef-dur-fast) var(--ef-ease),
-              border-color var(--ef-dur-fast) var(--ef-ease),
-              transform var(--ef-dur-fast) var(--ef-ease);
+.aeditor-ui-icon-btn[disabled] { opacity: .38; pointer-events: none; }
+.aeditor-ui-copy-btn {
+  transition: color var(--aeditor-dur-fast) var(--aeditor-ease),
+              background var(--aeditor-dur-fast) var(--aeditor-ease),
+              border-color var(--aeditor-dur-fast) var(--aeditor-ease),
+              transform var(--aeditor-dur-fast) var(--aeditor-ease);
 }
-.ef-ui-copy-btn-copied {
-  color: var(--ef-success);
-  background: color-mix(in srgb, var(--ef-success) 18%, transparent);
-  border-color: color-mix(in srgb, var(--ef-success) 42%, transparent);
+.aeditor-ui-copy-btn-copied {
+  color: var(--aeditor-success);
+  background: color-mix(in srgb, var(--aeditor-success) 18%, transparent);
+  border-color: color-mix(in srgb, var(--aeditor-success) 42%, transparent);
 }
-.ef-ui-copy-btn-copied:hover {
-  color: var(--ef-success);
-  background: color-mix(in srgb, var(--ef-success) 24%, transparent);
-  border-color: color-mix(in srgb, var(--ef-success) 56%, transparent);
+.aeditor-ui-copy-btn-copied:hover {
+  color: var(--aeditor-success);
+  background: color-mix(in srgb, var(--aeditor-success) 24%, transparent);
+  border-color: color-mix(in srgb, var(--aeditor-success) 56%, transparent);
 }
 
 /* ── tooltip ──────────────────────────────────────── */
-.ef-ui-tooltip {
+.aeditor-ui-tooltip {
   position: fixed;
-  padding: var(--ef-space-1) var(--ef-space-2);
-  background: var(--ef-bg-3);
-  color: var(--ef-fg-0);
-  border: 1px solid var(--ef-border-strong);
-  border-radius: var(--ef-r-2);
-  font: var(--ef-fs-sm) var(--ef-font-ui);
-  box-shadow: var(--ef-shadow-2);
+  padding: var(--aeditor-space-1) var(--aeditor-space-2);
+  background: var(--aeditor-bg-3);
+  color: var(--aeditor-fg-0);
+  border: 1px solid var(--aeditor-border-strong);
+  border-radius: var(--aeditor-r-2);
+  font: var(--aeditor-fs-sm) var(--aeditor-font-ui);
+  box-shadow: var(--aeditor-shadow-2);
   pointer-events: none;
-  z-index: var(--ef-z-popover);
+  z-index: var(--aeditor-z-popover);
   max-width: 240px;
   white-space: pre-wrap;
-  animation: ef-fade-in var(--ef-dur-fast) var(--ef-ease) both;
+  animation: aeditor-fade-in var(--aeditor-dur-fast) var(--aeditor-ease) both;
 }
 
 /* ── popover ──────────────────────────────────────── */
-.ef-ui-popover {
+.aeditor-ui-popover {
   position: fixed;
-  background: var(--ef-bg-2);
-  color: var(--ef-fg-0);
-  border: 1px solid var(--ef-border-strong);
-  border-radius: var(--ef-r-3);
-  box-shadow: var(--ef-shadow-3);
-  z-index: var(--ef-z-popover);
+  background: var(--aeditor-bg-2);
+  color: var(--aeditor-fg-0);
+  border: 1px solid var(--aeditor-border-strong);
+  border-radius: var(--aeditor-r-3);
+  box-shadow: var(--aeditor-shadow-3);
+  z-index: var(--aeditor-z-popover);
   min-width: 120px;
   transform-origin: top center;
-  animation: ef-pop-in var(--ef-dur-med) var(--ef-ease) both;
+  animation: aeditor-pop-in var(--aeditor-dur-med) var(--aeditor-ease) both;
 }
 
-@keyframes ef-fade-in {
+@keyframes aeditor-fade-in {
   from { opacity: 0; transform: translateY(-2px); }
   to   { opacity: 1; transform: translateY(0); }
 }
-@keyframes ef-pop-in {
+@keyframes aeditor-pop-in {
   from { opacity: 0; transform: translateY(-4px) scale(0.97); }
   to   { opacity: 1; transform: translateY(0) scale(1); }
 }
 @media (prefers-reduced-motion: reduce) {
-  .ef-ui-tooltip, .ef-ui-popover { animation: none; }
+  .aeditor-ui-tooltip, .aeditor-ui-popover { animation: none; }
 }
 
 /* ── kbd ──────────────────────────────────────────── */
-.ef-ui-kbd {
+.aeditor-ui-kbd {
   display: inline-block;
-  padding: 1px var(--ef-space-1);
-  background: var(--ef-bg-2);
-  border: 1px solid var(--ef-border-strong);
+  padding: 1px var(--aeditor-space-1);
+  background: var(--aeditor-bg-2);
+  border: 1px solid var(--aeditor-border-strong);
   border-bottom-width: 2px;
-  border-radius: var(--ef-r-1);
-  font: var(--ef-fs-xs) var(--ef-font-mono);
-  color: var(--ef-fg-1);
+  border-radius: var(--aeditor-r-1);
+  font: var(--aeditor-fs-xs) var(--aeditor-font-mono);
+  color: var(--aeditor-fg-1);
   line-height: 1.2;
 }
 
 /* ── badge ────────────────────────────────────────── */
-.ef-ui-badge {
+.aeditor-ui-badge {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   min-width: 16px;
   height: 16px;
   padding: 0 5px;
-  border-radius: var(--ef-r-pill);
-  font: 600 var(--ef-fs-xs) var(--ef-font-ui);
-  background: var(--ef-bg-3);
-  color: var(--ef-fg-0);
+  border-radius: var(--aeditor-r-pill);
+  font: 600 var(--aeditor-fs-xs) var(--aeditor-font-ui);
+  background: var(--aeditor-bg-3);
+  color: var(--aeditor-fg-0);
   letter-spacing: 0;
 }
-.ef-ui-badge-success { background: var(--ef-success-bg); color: var(--ef-success); }
-.ef-ui-badge-warn    { background: var(--ef-warn-bg);    color: var(--ef-warn); }
-.ef-ui-badge-error   { background: var(--ef-error-bg);   color: var(--ef-error); }
-.ef-ui-badge-info    { background: var(--ef-info-bg);    color: var(--ef-info); }
-.ef-ui-badge-dot { min-width: 8px; width: 8px; height: 8px; padding: 0; }
+.aeditor-ui-badge-success { background: var(--aeditor-success-bg); color: var(--aeditor-success); }
+.aeditor-ui-badge-warn    { background: var(--aeditor-warn-bg);    color: var(--aeditor-warn); }
+.aeditor-ui-badge-error   { background: var(--aeditor-error-bg);   color: var(--aeditor-error); }
+.aeditor-ui-badge-info    { background: var(--aeditor-info-bg);    color: var(--aeditor-info); }
+.aeditor-ui-badge-dot { min-width: 8px; width: 8px; height: 8px; padding: 0; }
 
 /* ── tag ──────────────────────────────────────────── */
-.ef-ui-tag {
+.aeditor-ui-tag {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  padding: 1px var(--ef-space-1) 1px var(--ef-space-2);
-  background: var(--ef-bg-3);
-  color: var(--ef-fg-0);
-  border: 1px solid var(--ef-border-strong);
-  border-radius: var(--ef-r-2);
-  font: var(--ef-fs-sm) var(--ef-font-ui);
-  height: var(--ef-size-h-sm);
+  padding: 1px var(--aeditor-space-1) 1px var(--aeditor-space-2);
+  background: var(--aeditor-bg-3);
+  color: var(--aeditor-fg-0);
+  border: 1px solid var(--aeditor-border-strong);
+  border-radius: var(--aeditor-r-2);
+  font: var(--aeditor-fs-sm) var(--aeditor-font-ui);
+  height: var(--aeditor-size-h-sm);
   box-sizing: border-box;
 }
-.ef-ui-tag-text { padding-right: 2px; }
-.ef-ui-tag-close {
+.aeditor-ui-tag-text { padding-right: 2px; }
+.aeditor-ui-tag-close {
   width: 14px; height: 14px;
   border: 0;
   background: transparent;
-  color: var(--ef-fg-2);
-  border-radius: var(--ef-r-1);
+  color: var(--aeditor-fg-2);
+  border-radius: var(--aeditor-r-1);
   cursor: pointer;
-  font: 14px/1 var(--ef-font-ui);
+  font: 14px/1 var(--aeditor-font-ui);
   padding: 0;
 }
-.ef-ui-tag-close:hover { background: var(--ef-bg-4); color: var(--ef-fg-0); }
+.aeditor-ui-tag-close:hover { background: var(--aeditor-bg-4); color: var(--aeditor-fg-0); }
 
 /* ── spinner ──────────────────────────────────────── */
-.ef-ui-spinner {
+.aeditor-ui-spinner {
   display: inline-block;
   border-radius: 50%;
-  border: 2px solid var(--ef-border-strong);
-  border-top-color: var(--ef-accent);
-  animation: ef-spin .8s linear infinite;
+  border: 2px solid var(--aeditor-border-strong);
+  border-top-color: var(--aeditor-accent);
+  animation: aeditor-spin .8s linear infinite;
 }
-.ef-ui-spinner-sm { width: 12px; height: 12px; border-width: 2px; }
-.ef-ui-spinner-md { width: 16px; height: 16px; border-width: 2px; }
-.ef-ui-spinner-lg { width: 24px; height: 24px; border-width: 3px; }
-@keyframes ef-spin { to { transform: rotate(360deg); } }
-@media (prefers-reduced-motion: reduce) { .ef-ui-spinner { animation-duration: 2s; } }
+.aeditor-ui-spinner-sm { width: 12px; height: 12px; border-width: 2px; }
+.aeditor-ui-spinner-md { width: 16px; height: 16px; border-width: 2px; }
+.aeditor-ui-spinner-lg { width: 24px; height: 24px; border-width: 3px; }
+@keyframes aeditor-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .aeditor-ui-spinner { animation-duration: 2s; } }
 
 /* ── divider ──────────────────────────────────────── */
-.ef-ui-divider-h {
+.aeditor-ui-divider-h {
   width: 100%;
   height: 1px;
-  background: var(--ef-border);
-  margin: var(--ef-space-2) 0;
+  background: var(--aeditor-border);
+  margin: var(--aeditor-space-2) 0;
 }
-.ef-ui-divider-v {
+.aeditor-ui-divider-v {
   width: 1px;
   align-self: stretch;
-  background: var(--ef-border);
-  margin: 0 var(--ef-space-2);
+  background: var(--aeditor-border);
+  margin: 0 var(--aeditor-space-2);
 }
-.ef-ui-divider-labeled {
+.aeditor-ui-divider-labeled {
   display: flex;
   align-items: center;
-  gap: var(--ef-space-2);
+  gap: var(--aeditor-space-2);
   background: transparent;
   height: auto;
 }
-.ef-ui-divider-labeled::before,
-.ef-ui-divider-labeled::after {
+.aeditor-ui-divider-labeled::before,
+.aeditor-ui-divider-labeled::after {
   content: '';
   flex: 1;
   height: 1px;
-  background: var(--ef-border);
+  background: var(--aeditor-border);
 }
-.ef-ui-divider-label {
-  font: var(--ef-fs-xs) var(--ef-font-ui);
-  color: var(--ef-fg-2);
+.aeditor-ui-divider-label {
+  font: var(--aeditor-fs-xs) var(--aeditor-font-ui);
+  color: var(--aeditor-fg-2);
   text-transform: uppercase;
   letter-spacing: .06em;
 }
 
 /* ── text (display-only) ────────────────────────────────────────── */
-.ef-ui-text {
-  font: var(--ef-fs-md) var(--ef-font-ui);
-  color: var(--ef-fg-1);
+.aeditor-ui-text {
+  font: var(--aeditor-fs-md) var(--aeditor-font-ui);
+  color: var(--aeditor-fg-1);
   line-height: 1.4;
   min-width: 0;
 }
-.ef-ui-text-size-sm { font-size: var(--ef-fs-sm); }
-.ef-ui-text-size-md { font-size: var(--ef-fs-md); }
-.ef-ui-text-size-lg { font-size: var(--ef-fs-lg); }
-.ef-ui-text-h1      { font-weight: 700; font-size: var(--ef-fs-xl); color: var(--ef-fg-0); }
-.ef-ui-text-h2      { font-weight: 600; font-size: var(--ef-fs-lg); color: var(--ef-fg-0); }
-.ef-ui-text-caption { font-size: var(--ef-fs-xs); color: var(--ef-fg-2); }
+.aeditor-ui-text-size-sm { font-size: var(--aeditor-fs-sm); }
+.aeditor-ui-text-size-md { font-size: var(--aeditor-fs-md); }
+.aeditor-ui-text-size-lg { font-size: var(--aeditor-fs-lg); }
+.aeditor-ui-text-h1      { font-weight: 700; font-size: var(--aeditor-fs-xl); color: var(--aeditor-fg-0); }
+.aeditor-ui-text-h2      { font-weight: 600; font-size: var(--aeditor-fs-lg); color: var(--aeditor-fg-0); }
+.aeditor-ui-text-caption { font-size: var(--aeditor-fs-xs); color: var(--aeditor-fg-2); }

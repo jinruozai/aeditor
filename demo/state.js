@@ -25,7 +25,7 @@
     return null
   }
 
-  Demo.selected = EF.signal(null)
+  Demo.selected = aeditor.signal(null)
 
   const sigCache = {}
   Demo.getSignals = function (id) {

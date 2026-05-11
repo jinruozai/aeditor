@@ -1,9 +1,9 @@
-// EF.ui.checkbox — boolean toggle with label.
+// aeditor.ui.checkbox — boolean toggle with label.
 //
 // opts: { value: bool|signal, onChange?, label?: string|signal, disabled?: bool|signal }
-;(function (EF) {
+;(function (aeditor) {
   'use strict'
-  const ui = EF.ui = EF.ui || {}
+  const ui = aeditor.ui = aeditor.ui || {}
 
   ui.checkbox = function (opts) {
     const o = opts || {}
@@ -12,10 +12,10 @@
     const disabled = ui.asSig(o.disabled != null ? o.disabled : false)
     const doWrite = ui.writer(sig, o.onChange, 'ui.checkbox')
 
-    const el = ui.h('label', 'ef-ui-check')
-    const box = ui.h('input', 'ef-ui-check-box', { type: 'checkbox' })
-    const mark = ui.h('span', 'ef-ui-check-mark')
-    const lab = ui.h('span', 'ef-ui-check-label')
+    const el = ui.h('label', 'aeditor-ui-check')
+    const box = ui.h('input', 'aeditor-ui-check-box', { type: 'checkbox' })
+    const mark = ui.h('span', 'aeditor-ui-check-mark')
+    const lab = ui.h('span', 'aeditor-ui-check-label')
     el.appendChild(box); el.appendChild(mark); el.appendChild(lab)
 
     ui.bindText(lab, label)
@@ -25,4 +25,4 @@
     box.addEventListener('change', function () { doWrite(box.checked) })
     return el
   }
-})(window.EF = window.EF || {})
+})(window.aeditor = window.aeditor || {})

@@ -1,9 +1,9 @@
-// EF.ui.richPromptInput - focused AI prompt input with inline resource atoms.
-;(function (EF) {
+// aeditor.ui.richPromptInput - focused AI prompt input with inline resource atoms.
+;(function (aeditor) {
   'use strict'
 
-  const ui = EF.ui = EF.ui || {}
-  const CLIPBOARD_MIME = 'application/x-ef-rich-prompt'
+  const ui = aeditor.ui = aeditor.ui || {}
+  const CLIPBOARD_MIME = 'application/x-aeditor-rich-prompt'
 
   function read(v) {
     return ui.isSignal && ui.isSignal(v) ? v() : v
@@ -24,7 +24,7 @@
   }
 
   function draftKey(draft) {
-    const d = EF.ai.richPrompt.normalize(draft)
+    const d = aeditor.ai.richPrompt.normalize(draft)
     return d.text + '\n' + JSON.stringify(d.tokens)
   }
 
@@ -37,7 +37,7 @@
       const custom = renderToken(token, tokenChar)
       if (custom) return custom
     }
-    const el = ui.h('span', 'ef-richprompt-token', {
+    const el = ui.h('span', 'aeditor-richprompt-token', {
       contenteditable: 'false',
       role: 'button',
       title: token.uri || token.resourceId || labelOf(token),
@@ -46,10 +46,10 @@
     el.dataset.efResourceId = token.resourceId || ''
     el.setAttribute('aria-label', 'Reference ' + labelOf(token))
     if (token.kind && String(token.kind).indexOf('image') >= 0 && token.meta && token.meta.dataUrl) {
-      el.appendChild(ui.h('img', 'ef-richprompt-token-thumb', { src: token.meta.dataUrl, alt: '' }))
+      el.appendChild(ui.h('img', 'aeditor-richprompt-token-thumb', { src: token.meta.dataUrl, alt: '' }))
     }
-    el.appendChild(ui.h('span', 'ef-richprompt-token-label', { text: labelOf(token) }))
-    el.appendChild(ui.h('span', 'ef-richprompt-token-remove', { text: 'x' }))
+    el.appendChild(ui.h('span', 'aeditor-richprompt-token-label', { text: labelOf(token) }))
+    el.appendChild(ui.h('span', 'aeditor-richprompt-token-remove', { text: 'x' }))
     return el
   }
 
@@ -59,9 +59,9 @@
   }
 
   function appendNewline(parent) {
-    parent.appendChild(ui.h('br', '', { 'data-ef-newline': '1' }))
-    parent.appendChild(ui.h('span', 'ef-richprompt-caret', {
-      'data-ef-caret': '1',
+    parent.appendChild(ui.h('br', '', { 'data-aeditor-newline': '1' }))
+    parent.appendChild(ui.h('span', 'aeditor-richprompt-caret', {
+      'data-aeditor-caret': '1',
       contenteditable: 'false',
       'aria-hidden': 'true',
       text: '\u200b',
@@ -69,7 +69,7 @@
   }
 
   function renderDraft(editor, draft, renderToken) {
-    const d = EF.ai.richPrompt.normalize(draft)
+    const d = aeditor.ai.richPrompt.normalize(draft)
     clear(editor)
     let buf = ''
     for (let i = 0; i < d.text.length; i++) {
@@ -104,19 +104,19 @@
   }
 
   function hasDomNoise(el) {
-    return !!el.querySelector('div,p,br:not([data-ef-newline])')
+    return !!el.querySelector('div,p,br:not([data-aeditor-newline])')
   }
 
   function serialize(editor, oldDraft) {
     const tokens = (oldDraft && oldDraft.tokens) || {}
     let text = ''
     for (let child = editor.firstChild; child; child = child.nextSibling) text += serializeNode(child, tokens)
-    return EF.ai.richPrompt.normalize({ text: text, tokens: tokens })
+    return aeditor.ai.richPrompt.normalize({ text: text, tokens: tokens })
   }
 
   function isBlankDraft(draft) {
-    const d = EF.ai.richPrompt.normalize(draft)
-    return !EF.ai.richPrompt.refs(d).length && !d.text.trim()
+    const d = aeditor.ai.richPrompt.normalize(draft)
+    return !aeditor.ai.richPrompt.refs(d).length && !d.text.trim()
   }
 
   function indexOfNode(editor, targetNode, targetOffset) {
@@ -169,14 +169,14 @@
 
   function selectionIndex(editor, fallbackDraft) {
     const sel = window.getSelection && window.getSelection()
-    if (!sel || !sel.rangeCount) return EF.ai.richPrompt.normalize(fallbackDraft).text.length
+    if (!sel || !sel.rangeCount) return aeditor.ai.richPrompt.normalize(fallbackDraft).text.length
     const range = sel.getRangeAt(0)
-    if (!editor.contains(range.startContainer)) return EF.ai.richPrompt.normalize(fallbackDraft).text.length
+    if (!editor.contains(range.startContainer)) return aeditor.ai.richPrompt.normalize(fallbackDraft).text.length
     return indexOfNode(editor, range.startContainer, range.startOffset)
   }
 
   function selectionRange(editor, fallbackDraft) {
-    const d = EF.ai.richPrompt.normalize(fallbackDraft)
+    const d = aeditor.ai.richPrompt.normalize(fallbackDraft)
     const sel = window.getSelection && window.getSelection()
     if (!sel || !sel.rangeCount) return { start: d.text.length, end: d.text.length, collapsed: true }
     const range = sel.getRangeAt(0)
@@ -195,7 +195,7 @@
   function selectedDraft(editor, fallbackDraft) {
     const r = selectionRange(editor, fallbackDraft)
     if (r.collapsed) return null
-    return EF.ai.richPrompt.slice(fallbackDraft, r.start, r.end)
+    return aeditor.ai.richPrompt.slice(fallbackDraft, r.start, r.end)
   }
 
   function setCaret(editor, index) {
@@ -320,7 +320,7 @@
   }
 
   function moveCaretVertical(editor, dir) {
-    if (!editor.querySelector('.ef-richprompt-token')) return false
+    if (!editor.querySelector('.aeditor-richprompt-token')) return false
     const rect = caretRect()
     if (!rect) return false
     const line = Math.max(18, rect.height || 18)
@@ -338,7 +338,7 @@
     if (!sel.isCollapsed) {
       const r = selectionRange(editor, value.peek ? value.peek() : value())
       if (r.collapsed) return false
-      const next = EF.ai.richPrompt.deleteRange(value.peek(), r.start, r.end)
+      const next = aeditor.ai.richPrompt.deleteRange(value.peek(), r.start, r.end)
       value.set(next)
       renderDraft(editor, next, renderToken)
       setCaret(editor, r.start)
@@ -346,13 +346,13 @@
     }
     const range = sel.getRangeAt(0)
     const at = indexOfNode(editor, range.startContainer, range.startOffset)
-    const draft = EF.ai.richPrompt.normalize(value.peek ? value.peek() : value())
+    const draft = aeditor.ai.richPrompt.normalize(value.peek ? value.peek() : value())
     const idx = dir < 0 ? at - 1 : at
     const ch = draft.text[idx]
-    const isToken = EF.ai.richPrompt.isTokenChar(ch) && draft.tokens[ch]
+    const isToken = aeditor.ai.richPrompt.isTokenChar(ch) && draft.tokens[ch]
     const isNewline = ch === '\n'
     if (!isToken && !isNewline) return false
-    value.set(EF.ai.richPrompt.deleteRange(draft, idx, idx + 1))
+    value.set(aeditor.ai.richPrompt.deleteRange(draft, idx, idx + 1))
     renderDraft(editor, value.peek(), renderToken)
     setCaret(editor, idx)
     return true
@@ -360,9 +360,9 @@
 
   function setClipboardDraft(ev, draft) {
     if (!ev.clipboardData) return false
-    const d = EF.ai.richPrompt.normalize(draft)
+    const d = aeditor.ai.richPrompt.normalize(draft)
     ev.clipboardData.setData(CLIPBOARD_MIME, JSON.stringify(d))
-    ev.clipboardData.setData('text/plain', EF.ai.richPrompt.toPlainText(d))
+    ev.clipboardData.setData('text/plain', aeditor.ai.richPrompt.toPlainText(d))
     return true
   }
 
@@ -371,7 +371,7 @@
     const rich = ev.clipboardData.getData(CLIPBOARD_MIME)
     if (!rich) return null
     try {
-      return EF.ai.richPrompt.normalize(JSON.parse(rich))
+      return aeditor.ai.richPrompt.normalize(JSON.parse(rich))
     } catch (err) {
       return null
     }
@@ -379,10 +379,10 @@
 
   ui.richPromptInput = function (opts) {
     opts = opts || {}
-    const value = ui.asSig(opts.value || EF.ai.richPrompt.empty())
+    const value = ui.asSig(opts.value || aeditor.ai.richPrompt.empty())
     const disabled = ui.asSig(opts.disabled || false)
-    const root = ui.h('div', 'ef-richprompt')
-    const editor = ui.h('div', 'ef-richprompt-editor', {
+    const root = ui.h('div', 'aeditor-richprompt')
+    const editor = ui.h('div', 'aeditor-richprompt-editor', {
       contenteditable: disabled() ? 'false' : 'true',
       role: 'textbox',
       'aria-multiline': 'true',
@@ -399,7 +399,7 @@
       const at = selectionIndex(editor, value.peek())
       const shouldFlatten = hasDomNoise(editor)
       const next = serialize(editor, value.peek())
-      const clean = isBlankDraft(next) ? EF.ai.richPrompt.empty() : next
+      const clean = isBlankDraft(next) ? aeditor.ai.richPrompt.empty() : next
       lastKey = draftKey(clean)
       value.set(clean)
       if (shouldFlatten) {
@@ -409,31 +409,31 @@
     }
 
     function renderExternal() {
-      const d = EF.ai.richPrompt.normalize(read(value))
+      const d = aeditor.ai.richPrompt.normalize(read(value))
       const key = draftKey(d)
       if (key === lastKey) return
       lastKey = key
       renderDraft(editor, d, opts.renderToken)
     }
 
-    ui.collect(root, EF.effect(renderExternal))
-    ui.collect(root, EF.effect(function () {
+    ui.collect(root, aeditor.effect(renderExternal))
+    ui.collect(root, aeditor.effect(function () {
       editor.contentEditable = disabled() ? 'false' : 'true'
-      root.classList.toggle('ef-richprompt-disabled', !!disabled())
+      root.classList.toggle('aeditor-richprompt-disabled', !!disabled())
     }))
 
     editor.addEventListener('compositionstart', function () { composing = true })
     editor.addEventListener('compositionend', function () { composing = false; commitFromDom() })
     editor.addEventListener('input', commitFromDom)
     editor.addEventListener('click', function (ev) {
-      const remove = ev.target && ev.target.closest && ev.target.closest('.ef-richprompt-token-remove')
+      const remove = ev.target && ev.target.closest && ev.target.closest('.aeditor-richprompt-token-remove')
       if (!remove) return
-      const chip = remove.closest('.ef-richprompt-token')
+      const chip = remove.closest('.aeditor-richprompt-token')
       const token = chip && chip.dataset.efToken
       const d = value.peek()
       const idx = d.text.indexOf(token)
       if (idx >= 0) {
-        value.set(EF.ai.richPrompt.deleteRange(d, idx, idx + 1))
+        value.set(aeditor.ai.richPrompt.deleteRange(d, idx, idx + 1))
         renderDraft(editor, value.peek(), opts.renderToken)
         setCaret(editor, idx)
       }
@@ -476,7 +476,7 @@
       if (!fragment) return
       if (!setClipboardDraft(ev, fragment)) return
       ev.preventDefault()
-      replaceSelectionWithDraft(EF.ai.richPrompt.empty())
+      replaceSelectionWithDraft(aeditor.ai.richPrompt.empty())
     })
     editor.addEventListener('paste', function (ev) {
       ev.preventDefault()
@@ -489,18 +489,18 @@
       if (text != null) replaceSelectionWithText(text)
     })
 
-    root.__efRichPromptEditor = editor
-    root.__efRichPromptInsertRefs = function (resources) {
-      const d = isBlankDraft(value.peek()) ? EF.ai.richPrompt.empty() : value.peek()
+    root.__aeditorRichPromptEditor = editor
+    root.__aeditorRichPromptInsertRefs = function (resources) {
+      const d = isBlankDraft(value.peek()) ? aeditor.ai.richPrompt.empty() : value.peek()
       const list = resources || []
       const r = selectionRange(editor, d)
-      const base = r.collapsed ? d : EF.ai.richPrompt.deleteRange(d, r.start, r.end)
-      const next = EF.ai.richPrompt.insertRefs(base, r.start, list)
+      const base = r.collapsed ? d : aeditor.ai.richPrompt.deleteRange(d, r.start, r.end)
+      const next = aeditor.ai.richPrompt.insertRefs(base, r.start, list)
       value.set(next)
       renderDraft(editor, next, opts.renderToken)
       setCaret(editor, r.start + Math.max(0, list.length * 2 - 1))
     }
-    root.__efRichPromptFocus = function () { editor.focus() }
+    root.__aeditorRichPromptFocus = function () { editor.focus() }
     return root
 
     function insertDraftText(text) {
@@ -510,22 +510,22 @@
     function replaceSelectionWithText(text) {
       const d = value.peek()
       const r = selectionRange(editor, d)
-      const base = r.collapsed ? d : EF.ai.richPrompt.deleteRange(d, r.start, r.end)
-      const next = EF.ai.richPrompt.insertText(base, r.start, text)
+      const base = r.collapsed ? d : aeditor.ai.richPrompt.deleteRange(d, r.start, r.end)
+      const next = aeditor.ai.richPrompt.insertText(base, r.start, text)
       value.set(next)
       renderDraft(editor, next, opts.renderToken)
-      setCaret(editor, r.start + EF.ai.richPrompt.normalize({ text: text, tokens: {} }).text.length)
+      setCaret(editor, r.start + aeditor.ai.richPrompt.normalize({ text: text, tokens: {} }).text.length)
     }
 
     function replaceSelectionWithDraft(fragment) {
       const d = value.peek()
       const r = selectionRange(editor, d)
-      const base = r.collapsed ? d : EF.ai.richPrompt.deleteRange(d, r.start, r.end)
-      const f = EF.ai.richPrompt.normalize(fragment)
-      const next = EF.ai.richPrompt.insertDraft(base, r.start, f)
+      const base = r.collapsed ? d : aeditor.ai.richPrompt.deleteRange(d, r.start, r.end)
+      const f = aeditor.ai.richPrompt.normalize(fragment)
+      const next = aeditor.ai.richPrompt.insertDraft(base, r.start, f)
       value.set(next)
       renderDraft(editor, next, opts.renderToken)
       setCaret(editor, r.start + f.text.length)
     }
   }
-})(window.EF = window.EF || {})
+})(window.aeditor = window.aeditor || {})

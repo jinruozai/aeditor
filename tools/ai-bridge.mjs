@@ -4,13 +4,13 @@ import { spawn } from 'node:child_process'
 import { existsSync } from 'node:fs'
 import { join } from 'node:path'
 
-const HOST = process.env.EF_AI_BRIDGE_HOST || '127.0.0.1'
-const PORT = Number(process.env.EF_AI_BRIDGE_PORT || 8787)
+const HOST = process.env.AEDITOR_AI_BRIDGE_HOST || '127.0.0.1'
+const PORT = Number(process.env.AEDITOR_AI_BRIDGE_PORT || 8787)
 const WINDOWS_SHELL = process.platform === 'win32'
-const CODEX_COMMAND = process.env.EF_CODEX_COMMAND || resolveCodexCommand()
-const CODEX_ARGS = (process.env.EF_CODEX_ARGS || 'app-server --listen stdio://').split(/\s+/).filter(Boolean)
-const CODEX_CHAT_COMMAND = process.env.EF_CODEX_CHAT_COMMAND || ''
-const CODEX_CHAT_ARGS = (process.env.EF_CODEX_CHAT_ARGS || '').split(/\s+/).filter(Boolean)
+const CODEX_COMMAND = process.env.AEDITOR_CODEX_COMMAND || resolveCodexCommand()
+const CODEX_ARGS = (process.env.AEDITOR_CODEX_ARGS || 'app-server --listen stdio://').split(/\s+/).filter(Boolean)
+const CODEX_CHAT_COMMAND = process.env.AEDITOR_CODEX_CHAT_COMMAND || ''
+const CODEX_CHAT_ARGS = (process.env.AEDITOR_CODEX_CHAT_ARGS || '').split(/\s+/).filter(Boolean)
 let lastDebugRequest = null
 
 function resolveCodexCommand() {
@@ -97,7 +97,7 @@ class JsonRpcProcess {
     this.child.stdout.on('data', chunk => this.onData(chunk))
     this.child.stderr.setEncoding('utf8')
     this.child.stderr.on('data', chunk => {
-      if (process.env.EF_AI_BRIDGE_DEBUG) process.stderr.write(chunk)
+      if (process.env.AEDITOR_AI_BRIDGE_DEBUG) process.stderr.write(chunk)
     })
     this.child.on('exit', () => {
       this.child = null
@@ -117,8 +117,8 @@ class JsonRpcProcess {
     if (this.initialized) return this.initialized
     this.initialized = this.request('initialize', {
       clientInfo: {
-        name: 'editorframe_ai_bridge',
-        title: 'EditorFrame AI Bridge',
+        name: 'aeditor_ai_bridge',
+        title: 'AEditor AI Bridge',
         version: '0.1.0',
       },
       capabilities: {
@@ -285,7 +285,7 @@ async function codexChat(request) {
       text: item.text ? item.text.slice(0, 4000) : item.text,
     })),
   }
-  if (process.env.EF_AI_BRIDGE_DEBUG_PROMPT) {
+  if (process.env.AEDITOR_AI_BRIDGE_DEBUG_PROMPT) {
     console.log('[prompt]', JSON.stringify(input).slice(0, 4000))
   }
   await codex.request('turn/start', {
@@ -320,7 +320,7 @@ async function readBody(req) {
 async function route(req, res) {
   if (req.method === 'OPTIONS') return json(res, 204, {})
   const url = new URL(req.url, 'http://localhost')
-  if (url.pathname === '/health' || url.pathname === '/healthz') return json(res, 200, { ok: true, id: 'editorframe-ai-bridge' })
+  if (url.pathname === '/health' || url.pathname === '/healthz') return json(res, 200, { ok: true, id: 'aeditor-ai-bridge' })
   if (url.pathname === '/debug/last-request' && req.method === 'GET') return json(res, 200, lastDebugRequest || {})
   if (url.pathname === '/connections') {
     return json(res, 200, {
@@ -346,12 +346,12 @@ async function route(req, res) {
 const server = http.createServer((req, res) => {
   route(req, res).catch(err => json(res, 500, {
     error: err && err.message || String(err),
-    hint: 'Make sure Codex CLI is installed, accessible, and authenticated. Override command with EF_CODEX_COMMAND / EF_CODEX_ARGS if needed.',
+    hint: 'Make sure Codex CLI is installed, accessible, and authenticated. Override command with AEDITOR_CODEX_COMMAND / AEDITOR_CODEX_ARGS if needed.',
   }))
 })
 
 server.listen(PORT, HOST, () => {
-  console.log('EditorFrame AI Bridge listening on http://' + HOST + ':' + PORT)
+  console.log('AEditor AI Bridge listening on http://' + HOST + ':' + PORT)
   console.log('Codex app-server command: ' + [CODEX_COMMAND].concat(CODEX_ARGS).join(' '))
   if (CODEX_CHAT_COMMAND) console.log('Codex chat command override: ' + [CODEX_CHAT_COMMAND].concat(CODEX_CHAT_ARGS).join(' '))
 })

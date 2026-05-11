@@ -1,4 +1,4 @@
-// EF.ui.arrayInput — generic list editor.
+// aeditor.ui.arrayInput — generic list editor.
 //
 // Renders one row per element; each row = [index · editor · remove]. The
 // default element editor is a text input (so `arrayInput({ value: tagsSig })`
@@ -21,9 +21,9 @@
 // the tail rows see their `fieldSig` shift (row[i] now reads what was at
 // i+1). This is the natural array semantics; callers that need stable row
 // identity should store structs with their own id field.
-;(function (EF) {
+;(function (aeditor) {
   'use strict'
-  const ui = EF.ui = EF.ui || {}
+  const ui = aeditor.ui = aeditor.ui || {}
 
   ui.arrayInput = function (opts) {
     const o = opts || {}
@@ -36,8 +36,8 @@
     const onChange     = typeof o.onChange === 'function' ? o.onChange : null
     const ctx          = o.ctx
 
-    const root = ui.h('div', 'ef-ui-array-input')
-    const list = ui.h('div', 'ef-ui-array-input-rows')
+    const root = ui.h('div', 'aeditor-ui-array-input')
+    const list = ui.h('div', 'aeditor-ui-array-input-rows')
     root.appendChild(list)
 
     const addBtn = ui.button({
@@ -49,18 +49,18 @@
         else value.set(next)
       },
     })
-    addBtn.classList.add('ef-ui-array-input-add')
+    addBtn.classList.add('aeditor-ui-array-input-add')
     root.appendChild(addBtn)
 
     // One row runtime per array slot; index is stable for its lifetime.
     const rows = []
 
     function buildRow(idx) {
-      const row   = ui.h('div', 'ef-ui-array-input-row')
-      const label = ui.h('span', 'ef-ui-array-input-index', { text: '[' + idx + ']' })
-      const cell  = ui.h('div', 'ef-ui-array-input-cell')
+      const row   = ui.h('div', 'aeditor-ui-array-input-row')
+      const label = ui.h('span', 'aeditor-ui-array-input-index', { text: '[' + idx + ']' })
+      const cell  = ui.h('div', 'aeditor-ui-array-input-cell')
 
-      const fieldSig = EF.derived(function () {
+      const fieldSig = aeditor.derived(function () {
         const cur = value()
         return Array.isArray(cur) ? cur[idx] : undefined
       })
@@ -110,4 +110,4 @@
 
     return root
   }
-})(window.EF = window.EF || {})
+})(window.aeditor = window.aeditor || {})

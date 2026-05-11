@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import vm from 'node:vm'
 
-global.window = { EF: {} }
+global.window = { aeditor: {} }
 vm.runInThisContext(readFileSync('src/core/signal.js', 'utf8'), { filename: 'signal.js' })
 vm.runInThisContext(readFileSync('src/core/log.js', 'utf8'), { filename: 'log.js' })
 vm.runInThisContext(readFileSync('src/ai/name-generator.js', 'utf8'), { filename: 'ai/name-generator.js' })
@@ -18,8 +18,8 @@ vm.runInThisContext(readFileSync('src/ai/change-set.js', 'utf8'), { filename: 'a
 vm.runInThisContext(readFileSync('src/ai/request.js', 'utf8'), { filename: 'ai/request.js' })
 vm.runInThisContext(readFileSync('src/ai/runtime.js', 'utf8'), { filename: 'ai/runtime.js' })
 
-const EF = window.EF
-const ai = EF.ai
+const aeditor = window.aeditor
+const ai = aeditor.ai
 
 function ids(items) {
   return items.map(function (item) { return item.id })
@@ -409,7 +409,7 @@ function assertGdePatchPreviewRendering() {
     },
   }
   global.requestAnimationFrame = function (fn) { fn() }
-  window.EF.ui = {
+  window.aeditor.ui = {
     isSignal: function (v) { return typeof v === 'function' && typeof v.peek === 'function' },
     h: function (tag, cls, attrs) {
       const el = document.createElement(tag)
@@ -422,18 +422,18 @@ function assertGdePatchPreviewRendering() {
     },
     dispose: function (el) { if (el && el.remove) el.remove() },
     collect: function () {},
-    button: function (opts) { return this.h('button', 'ef-ui-btn', { text: opts.text || '' }) },
-    'switch': function (opts) { return this.h('label', 'ef-ui-switch', { text: opts.label || '' }) },
-    copyButton: function () { return this.h('button', 'ef-ui-copy-btn', { text: 'Copy' }) },
-    scrollArea: function () { return this.h('div', 'ef-ui-scrollarea') },
+    button: function (opts) { return this.h('button', 'aeditor-ui-btn', { text: opts.text || '' }) },
+    'switch': function (opts) { return this.h('label', 'aeditor-ui-switch', { text: opts.label || '' }) },
+    copyButton: function () { return this.h('button', 'aeditor-ui-copy-btn', { text: 'Copy' }) },
+    scrollArea: function () { return this.h('div', 'aeditor-ui-scrollarea') },
   }
-  window.EF.registerComponent = function (name, spec) { components[name] = spec }
+  window.aeditor.registerComponent = function (name, spec) { components[name] = spec }
   vm.runInThisContext(readFileSync('src/ui/data/changeReview.js', 'utf8'), { filename: 'ui/data/changeReview.js' })
   vm.runInThisContext(readFileSync('src/ai/panels/message-live-strip.js', 'utf8'), { filename: 'ai/panels/message-live-strip.js' })
   vm.runInThisContext(readFileSync('src/ai/panels/message-virtualizer.js', 'utf8'), { filename: 'ai/panels/message-virtualizer.js' })
   vm.runInThisContext(readFileSync('src/ai/panels/transcript.js', 'utf8'), { filename: 'ai/panels/transcript.js' })
 
-  const preview = EF.changeSet.normalize({
+  const preview = aeditor.changeSet.normalize({
     title: 'Tune swords',
     validation: { ok: false, errors: [{ path: 'ops[0].field', message: 'Field not in struct_def: missing' }] },
     resources: [{

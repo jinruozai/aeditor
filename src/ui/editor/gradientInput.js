@@ -1,4 +1,4 @@
-// EF.ui.gradientInput — linear gradient color stop editor.
+// aeditor.ui.gradientInput — linear gradient color stop editor.
 //
 // Value shape:  signal<{ stops: [{ pos: number 0..1, color: string }, ...] }>
 //
@@ -10,9 +10,9 @@
 //     At least 2 stops are always preserved.
 //   • Selecting a stop reveals its color in the color editor below.
 //
-;(function (EF) {
+;(function (aeditor) {
   'use strict'
-  const ui = EF.ui = EF.ui || {}
+  const ui = aeditor.ui = aeditor.ui || {}
 
   ui.gradientInput = function (opts) {
     const o = opts || {}
@@ -20,11 +20,11 @@
       : { stops: [{ pos: 0, color: '#000000' }, { pos: 1, color: '#ffffff' }] })
     const doWrite = ui.writer(sig, o.onChange, 'ui.gradientInput')
 
-    const el = ui.h('div', 'ef-ui-gradient')
-    const barWrap = ui.h('div', 'ef-ui-gradient-barwrap')
-    const checker = ui.h('div', 'ef-ui-gradient-checker')
-    const bar     = ui.h('div', 'ef-ui-gradient-bar')
-    const rail    = ui.h('div', 'ef-ui-gradient-rail')
+    const el = ui.h('div', 'aeditor-ui-gradient')
+    const barWrap = ui.h('div', 'aeditor-ui-gradient-barwrap')
+    const checker = ui.h('div', 'aeditor-ui-gradient-checker')
+    const bar     = ui.h('div', 'aeditor-ui-gradient-bar')
+    const rail    = ui.h('div', 'aeditor-ui-gradient-rail')
     barWrap.appendChild(checker)
     barWrap.appendChild(bar)
     barWrap.appendChild(rail)
@@ -46,8 +46,8 @@
     }
 
     function makeHandle() {
-      const h = ui.h('div', 'ef-ui-gradient-stop')
-      const fill = ui.h('div', 'ef-ui-gradient-stop-fill')
+      const h = ui.h('div', 'aeditor-ui-gradient-stop')
+      const fill = ui.h('div', 'aeditor-ui-gradient-stop-fill')
       h.appendChild(fill)
       h.__fill = fill
       h.__idx = 0
@@ -60,7 +60,7 @@
         syncClasses()
         colorSig.set(sig.peek().stops[idx].color)
         try { h.setPointerCapture(e.pointerId) } catch (_) {}
-        h.classList.add('ef-ui-gradient-stop-dragging')
+        h.classList.add('aeditor-ui-gradient-stop-dragging')
         function onMove(ev) {
           const r = bar.getBoundingClientRect()
           const p = Math.max(0, Math.min(1, (ev.clientX - r.left) / r.width))
@@ -74,7 +74,7 @@
           h.removeEventListener('pointerup', onUp)
           h.removeEventListener('pointercancel', onUp)
           try { h.releasePointerCapture(ev.pointerId) } catch (_) {}
-          h.classList.remove('ef-ui-gradient-stop-dragging')
+          h.classList.remove('aeditor-ui-gradient-stop-dragging')
         }
         h.addEventListener('pointermove', onMove)
         h.addEventListener('pointerup', onUp)
@@ -89,7 +89,7 @@
 
     function syncClasses() {
       for (let i = 0; i < handles.length; i++) {
-        handles[i].classList.toggle('ef-ui-gradient-stop-active', i === selectedIdx)
+        handles[i].classList.toggle('aeditor-ui-gradient-stop-active', i === selectedIdx)
       }
     }
 
@@ -152,12 +152,12 @@
     }
 
     // ── Color editor row ─────────────────────────────────────────
-    const colorSig = EF.signal(sig.peek().stops[selectedIdx].color)
+    const colorSig = aeditor.signal(sig.peek().stops[selectedIdx].color)
 
     // Parent → local: when the selected stop's color changes externally or
     // the selection moves, pull the active color into colorSig.
     let lastKey = ''
-    ui.collect(el, EF.effect(function () {
+    ui.collect(el, aeditor.effect(function () {
       const data = sig()
       const i = Math.min(selectedIdx, data.stops.length - 1)
       const s = data.stops[i]
@@ -168,7 +168,7 @@
       }
     }))
     // Local → parent: editing colorSig writes back to the selected stop.
-    ui.collect(el, EF.effect(function () {
+    ui.collect(el, aeditor.effect(function () {
       const c = colorSig()
       const data = sig.peek()
       const s = data.stops[selectedIdx]
@@ -179,11 +179,11 @@
       }
     }))
 
-    const editorRow = ui.h('div', 'ef-ui-gradient-editor')
+    const editorRow = ui.h('div', 'aeditor-ui-gradient-editor')
     const colorEditor = ui.colorInput({ value: colorSig })
     editorRow.appendChild(colorEditor)
     ui.collect(el, function () { ui.dispose(colorEditor) })
-    const delBtn = ui.h('button', 'ef-ui-gradient-delete', {
+    const delBtn = ui.h('button', 'aeditor-ui-gradient-delete', {
       type: 'button', text: '✕', title: 'Delete stop (double-click a stop)',
     })
     delBtn.addEventListener('click', function () { removeStop(selectedIdx) })
@@ -211,4 +211,4 @@
     return [parseInt(h.slice(0,2),16), parseInt(h.slice(2,4),16), parseInt(h.slice(4,6),16)]
   }
   function hex2(n) { return ('0' + Math.max(0, Math.min(255, n)).toString(16)).slice(-2) }
-})(window.EF = window.EF || {})
+})(window.aeditor = window.aeditor || {})

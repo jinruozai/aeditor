@@ -1,4 +1,4 @@
-// EF.ui — TypeConfig: schema-driven property editing.
+// aeditor.ui — TypeConfig: schema-driven property editing.
 //
 // TypeConfig is a two-level registry:
 //   1. Builtin types        (int, float, string, enum, bool, color, ...)
@@ -8,13 +8,13 @@
 // presentation via `type_agv` (args). Resolution layers the three, with
 // the field's own agv winning over project over builtin.
 //
-//   EF.ui.setTypeConfig(builtin, { overrides })
-//   EF.ui.getTypeConfig()                  → { [name]: TypeDef }
-//   EF.ui.resolveType(typeName)            → merged TypeDef or null
-//   EF.ui.resolveFieldDef(fieldDef)        → TypeDef + field overrides merged
-//   EF.ui.registerRenderer(kind, fn)       → extend the render kind table
-//   EF.ui.getRenderer(kind)                → fn or null
-//   EF.ui.listRenderKinds()                → [name, ...] (for picker UIs)
+//   aeditor.ui.setTypeConfig(builtin, { overrides })
+//   aeditor.ui.getTypeConfig()                  → { [name]: TypeDef }
+//   aeditor.ui.resolveType(typeName)            → merged TypeDef or null
+//   aeditor.ui.resolveFieldDef(fieldDef)        → TypeDef + field overrides merged
+//   aeditor.ui.registerRenderer(kind, fn)       → extend the render kind table
+//   aeditor.ui.getRenderer(kind)                → fn or null
+//   aeditor.ui.listRenderKinds()                → [name, ...] (for picker UIs)
 //
 // See propertyEditor.js / propertyPanel.js for consumption.
 //
@@ -35,9 +35,9 @@
 // The merge in resolveFieldDef is shallow on the top level but DEEP on
 // type_agv — so a field that sets `type_agv: { max: 60 }` doesn't erase
 // the type's baseline `type_agv: { min: 1 }`.
-;(function (EF) {
+;(function (aeditor) {
   'use strict'
-  const ui = EF.ui = EF.ui || {}
+  const ui = aeditor.ui = aeditor.ui || {}
 
   // ── Default builtin TypeConfig ───────────────────────────────
   // Fields not overridden by user's setTypeConfig() fall back to these.
@@ -113,8 +113,8 @@
   }
 
   function resolveFieldDef(fieldDef) {
-    if (!fieldDef || !fieldDef.type) return null
-    const t = resolveType(fieldDef.type)
+    if (!fieldDef || !fieldDaeditor.type) return null
+    const t = resolveType(fieldDaeditor.type)
     // Fallback: unknown type → treat as string with an _unknown marker so
     // calling code can surface it in the UI (e.g. ghosted label).
     if (!t) {
@@ -123,7 +123,7 @@
       }, fieldDef, { _unknown: true })
     }
     const merged = Object.assign({}, t, fieldDef)
-    const agv = Object.assign({}, t.type_agv || {}, fieldDef.type_agv || {})
+    const agv = Object.assign({}, t.type_agv || {}, fieldDaeditor.type_agv || {})
     merged.type_agv = agv
     return merged
   }
@@ -154,4 +154,4 @@
   ui.registerRenderer = registerRenderer
   ui.getRenderer      = getRenderer
   ui.listRenderKinds  = listRenderKinds
-})(window.EF = window.EF || {})
+})(window.aeditor = window.aeditor || {})

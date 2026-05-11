@@ -1,10 +1,10 @@
-// EF.ui.searchInput — single-line search field with a built-in clear affordance.
+// aeditor.ui.searchInput — single-line search field with a built-in clear affordance.
 //
 // opts are the same as ui.input, with a search icon prefix and an automatic
 // clear button shown only while the field has text.
-;(function (EF) {
+;(function (aeditor) {
   'use strict'
-  const ui = EF.ui = EF.ui || {}
+  const ui = aeditor.ui = aeditor.ui || {}
 
   ui.searchInput = function (opts) {
     const o = opts || {}
@@ -12,7 +12,7 @@
 
     const clear = ui.iconButton({
       icon: 'x',
-      title: o.clearTitle || (EF.i18n && EF.i18n.has(EF.i18n.getLocale(), 'common.clear_search') ? EF.i18n.t('common.clear_search') : 'Clear search'),
+      title: o.clearTitle || (aeditor.i18n && aeditor.i18n.has(aeditor.i18n.getLocale(), 'common.clear_search') ? aeditor.i18n.t('common.clear_search') : 'Clear search'),
       size: 'sm',
       kind: 'ghost',
       onClick: function () {
@@ -20,7 +20,7 @@
         if (typeof o.onChange === 'function') o.onChange('')
       },
     })
-    clear.classList.add('ef-ui-search-clear')
+    clear.classList.add('aeditor-ui-search-clear')
 
     const field = ui.input(Object.assign({}, o, {
       value: sig,
@@ -31,7 +31,7 @@
       prefix: ui.icon({ name: 'search', size: 'sm' }),
       suffix: clear,
     }))
-    field.classList.add('ef-ui-search-field')
+    field.classList.add('aeditor-ui-search-field')
 
     ui.bind(field, sig, function (v) {
       clear.hidden = !(v != null && String(v).length)
@@ -39,4 +39,4 @@
 
     return field
   }
-})(window.EF = window.EF || {})
+})(window.aeditor = window.aeditor || {})

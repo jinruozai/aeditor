@@ -1,8 +1,8 @@
-// EF.ai provider shared helpers.
-;(function (EF) {
+// aeditor.ai provider shared helpers.
+;(function (aeditor) {
   'use strict'
 
-  const ai = EF.ai = EF.ai || {}
+  const ai = aeditor.ai = aeditor.ai || {}
 
   function normalizeModels(models) {
     const list = Array.isArray(models) ? models : []
@@ -192,4 +192,4 @@
     requestMaybeStream: requestMaybeStream,
   }
   ai.estimateUsageCost = estimateUsageCost
-})(window.EF = window.EF || {})
+})(window.aeditor = window.aeditor || {})

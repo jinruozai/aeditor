@@ -2,10 +2,10 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import vm from 'node:vm'
 
-global.window = { EF: {} }
+global.window = { aeditor: {} }
 vm.runInThisContext(readFileSync('src/ai/rich-prompt.js', 'utf8'), { filename: 'ai/rich-prompt.js' })
 
-const rich = window.EF.ai.richPrompt
+const rich = window.aeditor.ai.richPrompt
 
 let draft = rich.empty()
 draft = rich.insertText(draft, 0, 'Compare ')

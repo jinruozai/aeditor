@@ -14,7 +14,7 @@
 //
 // All ids are framework-generated (§ 4.13). Users may attach an optional
 // `name` for stable lookup via findByName.
-;(function (EF) {
+;(function (aeditor) {
   'use strict'
 
   // ─── id generators (process-global, monotonic) ─────────────
@@ -25,9 +25,9 @@
   function nextPanelId()       { return 'panel-' + (_nextPanelN++) }
   function nextToolbarItemId() { return 'ti-'    + (_nextToolbarN++) }
 
-  EF._nextDockId        = nextDockId
-  EF._nextPanelId       = nextPanelId
-  EF._nextToolbarItemId = nextToolbarItemId
+  aeditor._nextDockId        = nextDockId
+  aeditor._nextPanelId       = nextPanelId
+  aeditor._nextToolbarItemId = nextToolbarItemId
 
   // ─── factories ─────────────────────────────────────────────
   // dock(partial) — never takes an id; it's framework-generated.
@@ -589,29 +589,29 @@
   }
 
   // ─── exports ──────────────────────────────────────────────
-  EF.dock          = dock
-  EF.panel         = panel
-  EF.split         = split
-  EF.findDock      = findDock
-  EF.findPanel     = findPanel
-  EF.findByName    = findByName
-  EF.getAt         = getAt
-  EF.replaceAt     = replaceAt
-  EF.removeAt      = removeAt
-  EF.resizeAt      = resizeAt
-  EF.updateDock    = updateDock
-  EF.setCollapsed  = setCollapsed
-  EF.setFocused    = setFocused
-  EF.addPanel      = addPanel
-  EF.removePanel   = removePanel
-  EF.updatePanel   = updatePanel
-  EF.activatePanel = activatePanel
-  EF.promotePanel  = promotePanel
-  EF.movePanel     = movePanel
-  EF.movePanelToSplit = movePanelToSplit
-  EF.reorderPanel  = reorderPanel
-  EF.splitDock     = splitDock
-  EF.mergeDocks    = mergeDocks
-  EF.swapDocks     = swapDocks
-  EF.canCollapseDock = canCollapseDock
-})(window.EF = window.EF || {})
+  aeditor.dock          = dock
+  aeditor.panel         = panel
+  aeditor.split         = split
+  aeditor.findDock      = findDock
+  aeditor.findPanel     = findPanel
+  aeditor.findByName    = findByName
+  aeditor.getAt         = getAt
+  aeditor.replaceAt     = replaceAt
+  aeditor.removeAt      = removeAt
+  aeditor.resizeAt      = resizeAt
+  aeditor.updateDock    = updateDock
+  aeditor.setCollapsed  = setCollapsed
+  aeditor.setFocused    = setFocused
+  aeditor.addPanel      = addPanel
+  aeditor.removePanel   = removePanel
+  aeditor.updatePanel   = updatePanel
+  aeditor.activatePanel = activatePanel
+  aeditor.promotePanel  = promotePanel
+  aeditor.movePanel     = movePanel
+  aeditor.movePanelToSplit = movePanelToSplit
+  aeditor.reorderPanel  = reorderPanel
+  aeditor.splitDock     = splitDock
+  aeditor.mergeDocks    = mergeDocks
+  aeditor.swapDocks     = swapDocks
+  aeditor.canCollapseDock = canCollapseDock
+})(window.aeditor = window.aeditor || {})

@@ -1,8 +1,8 @@
-// EF.ai agent runtime.
-;(function (EF) {
+// aeditor.ai agent runtime.
+;(function (aeditor) {
   'use strict'
 
-  const ai = EF.ai = EF.ai || {}
+  const ai = aeditor.ai = aeditor.ai || {}
   const runs = {}
   const waitingRuns = {}
   const runtimeConfig = {
@@ -899,7 +899,7 @@
       if (input && input.id) ai.updateMessage(agent.id, input.id, { status: controller.signal.aborted ? 'stopped' : 'failed', completedAt: Date.now() })
       if (input && input.questId) ai.updateQuest(agent.id, input.questId, { status: controller.signal.aborted ? 'stopped' : 'failed', completedAt: Date.now(), summary: String(err && err.message ? err.message : err) })
       ai.setAgentStatus(agent.id, controller.signal.aborted ? 'idle' : 'failed')
-      if (!controller.signal.aborted && EF.reportError) EF.reportError({ scope: 'ai', connection: request.connectionName }, err)
+      if (!controller.signal.aborted && aeditor.reportError) aeditor.reportError({ scope: 'ai', connection: request.connectionName }, err)
       scheduleQueuedAgents()
       return null
     })
@@ -935,7 +935,7 @@
       if (input && input.id) ai.updateMessage(agent.id, input.id, { status: 'stopped', completedAt: Date.now() })
       if (input && input.questId) ai.updateQuest(agent.id, input.questId, { status: 'stopped', completedAt: Date.now(), summary: 'Stopped' })
       if (run.connection && run.connection.abort) {
-        if (EF.safeCall) EF.safeCall({ scope: 'ai', connection: agent.connection || ai.defaultConnection, runId: run.runId }, function () { run.connection.abort(run.runId) })
+        if (aeditor.safeCall) aeditor.safeCall({ scope: 'ai', connection: agent.connection || ai.defaultConnection, runId: run.runId }, function () { run.connection.abort(run.runId) })
         else run.connection.abort(run.runId)
       }
       delete runs[agent.id]
@@ -991,7 +991,7 @@
       if (input && input.id) ai.updateMessage(agent.id, input.id, { status: controller.signal.aborted ? 'stopped' : 'failed', completedAt: Date.now() })
       if (input && input.questId) ai.updateQuest(agent.id, input.questId, { status: controller.signal.aborted ? 'stopped' : 'failed', completedAt: Date.now(), summary: String(err && err.message ? err.message : err) })
       ai.setAgentStatus(agent.id, controller.signal.aborted ? 'idle' : 'failed')
-      if (!controller.signal.aborted && EF.reportError) EF.reportError({ scope: 'ai', connection: request.connectionName }, err)
+      if (!controller.signal.aborted && aeditor.reportError) aeditor.reportError({ scope: 'ai', connection: request.connectionName }, err)
       scheduleQueuedAgents()
       return null
     })
@@ -1130,4 +1130,4 @@
   ai.agent = ai.agent || {}
   ai.message.send = function (agentId, spec) { return queueMessage(agentId, spec || {}, (spec && spec.from) || 'user') }
   ai.agent.send = sendAgentQuest
-})(window.EF = window.EF || {})
+})(window.aeditor = window.aeditor || {})

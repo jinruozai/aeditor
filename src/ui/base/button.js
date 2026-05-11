@@ -1,4 +1,4 @@
-// EF.ui.button — text button with optional icon.
+// aeditor.ui.button — text button with optional icon.
 //
 // opts:
 //   text     : string | signal<string>
@@ -7,9 +7,9 @@
 //   size     : 'sm' | 'md' | 'lg' | signal                          (md)
 //   disabled : boolean | signal<boolean>
 //   onClick  : (e) => void
-;(function (EF) {
+;(function (aeditor) {
   'use strict'
-  const ui = EF.ui = EF.ui || {}
+  const ui = aeditor.ui = aeditor.ui || {}
 
   ui.button = function (opts) {
     const o = opts || {}
@@ -18,9 +18,9 @@
     const size     = ui.asSig(o.size     != null ? o.size     : 'md')
     const disabled = ui.asSig(o.disabled != null ? o.disabled : false)
 
-    const el = ui.h('button', 'ef-ui-btn', { type: 'button' })
-    ui.bindClass(el, kind, 'ef-ui-btn-')
-    ui.bindClass(el, size, 'ef-ui-btn-')
+    const el = ui.h('button', 'aeditor-ui-btn', { type: 'button' })
+    ui.bindClass(el, kind, 'aeditor-ui-btn-')
+    ui.bindClass(el, size, 'aeditor-ui-btn-')
     ui.bindAttr(el, disabled, 'disabled')
 
     // Optional icon slot. Static HTMLElement goes in as-is; a signal or
@@ -35,15 +35,15 @@
     }
 
     // Text span — always present, hidden when empty so the icon can center.
-    const sp = ui.h('span', 'ef-ui-btn-text')
+    const sp = ui.h('span', 'aeditor-ui-btn-text')
     el.appendChild(sp)
     ui.bind(el, text, function (v) {
       const s = v == null ? '' : String(v)
       sp.textContent = s
-      el.classList.toggle('ef-ui-btn-text-empty', s === '')
+      el.classList.toggle('aeditor-ui-btn-text-empty', s === '')
     })
 
     if (o.onClick) el.addEventListener('click', function (e) { if (!el.disabled) o.onClick(e) })
     return el
   }
-})(window.EF = window.EF || {})
+})(window.aeditor = window.aeditor || {})

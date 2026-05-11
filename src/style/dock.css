@@ -1,87 +1,87 @@
-/* editorframe — Dock styles
+/* aeditor — Dock styles
  *
  * All tokens come from theme.css (Layer 2 roles). Literals are forbidden in
  * this file; if you need a new color/size/duration, add it as a token there
- * and reference it here as var(--ef-*).
+ * and reference it here as var(--aeditor-*).
  */
 
 /* ── root container ─────────────────────────────────── */
-.ef-root {
+.aeditor-root {
   display: flex;
   width: 100%; height: 100%;
-  background: var(--ef-bg-0);
-  color: var(--ef-fg-0);
-  font-family: var(--ef-font-ui);
-  font-size: var(--ef-fs-md);
+  background: var(--aeditor-bg-0);
+  color: var(--aeditor-fg-0);
+  font-family: var(--aeditor-font-ui);
+  font-size: var(--aeditor-fs-md);
   overflow: hidden;
 }
 
 /* ── split (flex container) ─────────────────────────── */
-.ef-split {
+.aeditor-split {
   display: flex;
   flex: 1 1 0;
   min-width: 0; min-height: 0;
 }
-.ef-split-horizontal { flex-direction: row; }
-.ef-split-vertical   { flex-direction: column; }
+.aeditor-split-horizontal { flex-direction: row; }
+.aeditor-split-vertical   { flex-direction: column; }
 
-.ef-split-child {
+.aeditor-split-child {
   display: flex;
   min-width: 0; min-height: 0;
   overflow: hidden;
 }
-.ef-split-child > * { flex: 1 1 0; min-width: 0; min-height: 0; }
+.aeditor-split-child > * { flex: 1 1 0; min-width: 0; min-height: 0; }
 
 /* ── splitter ───────────────────────────────────────── */
-.ef-splitter {
+.aeditor-splitter {
   flex: 0 0 1px;
-  background: var(--ef-border);
+  background: var(--aeditor-border);
   position: relative;
-  z-index: var(--ef-z-sticky);
-  transition: background var(--ef-dur-fast) var(--ef-ease);
+  z-index: var(--aeditor-z-sticky);
+  transition: background var(--aeditor-dur-fast) var(--aeditor-ease);
 }
-.ef-splitter::after {
+.aeditor-splitter::after {
   /* widened hit area */
   content: ''; position: absolute;
 }
-.ef-splitter-horizontal { cursor: ew-resize; }
-.ef-splitter-horizontal::after { top: 0; bottom: 0; left: -3px; right: -3px; }
-.ef-splitter-vertical   { cursor: ns-resize; }
-.ef-splitter-vertical::after { left: 0; right: 0; top: -3px; bottom: -3px; }
-.ef-splitter:hover,
-.ef-splitter-active { background: var(--ef-accent); }
+.aeditor-splitter-horizontal { cursor: ew-resize; }
+.aeditor-splitter-horizontal::after { top: 0; bottom: 0; left: -3px; right: -3px; }
+.aeditor-splitter-vertical   { cursor: ns-resize; }
+.aeditor-splitter-vertical::after { left: 0; right: 0; top: -3px; bottom: -3px; }
+.aeditor-splitter:hover,
+.aeditor-splitter-active { background: var(--aeditor-accent); }
 
 /* ── dock (leaf) ────────────────────────────────────── */
-.ef-dock {
+.aeditor-dock {
   position: relative;
   flex: 1 1 0;
   display: flex;
   flex-direction: column;
   min-width: 0; min-height: 0;
-  background: var(--ef-bg-1);
-  border: 1px solid var(--ef-border);
+  background: var(--aeditor-bg-1);
+  border: 1px solid var(--aeditor-border);
   contain: layout style paint;
   overflow: hidden;
 }
-.ef-dock-toolbar-top    { flex-direction: column; }
-.ef-dock-toolbar-bottom { flex-direction: column-reverse; }
-.ef-dock-toolbar-left   { flex-direction: row; }
-.ef-dock-toolbar-right  { flex-direction: row-reverse; }
+.aeditor-dock-toolbar-top    { flex-direction: column; }
+.aeditor-dock-toolbar-bottom { flex-direction: column-reverse; }
+.aeditor-dock-toolbar-left   { flex-direction: row; }
+.aeditor-dock-toolbar-right  { flex-direction: row-reverse; }
 
-.ef-dock-focused {
+.aeditor-dock-focused {
   position: fixed;
   inset: 0;
-  z-index: var(--ef-z-dock-overlay);
+  z-index: var(--aeditor-z-dock-overlay);
   border: 0;
 }
-.ef-dock-collapsed > .ef-dock-content { display: none; }
-.ef-dock-content {
+.aeditor-dock-collapsed > .aeditor-dock-content { display: none; }
+.aeditor-dock-content {
   flex: 1 1 auto;
   min-width: 0; min-height: 0;
   overflow: hidden;
   position: relative;
 }
-.ef-panel {
+.aeditor-panel {
   flex: 1 1 auto;
   width: 100%;
   height: 100%;
@@ -89,87 +89,87 @@
   min-height: 0;
   box-sizing: border-box;
 }
-.ef-panel-error {
-  padding: var(--ef-space-3) var(--ef-space-4);
-  color: var(--ef-error);
-  background: var(--ef-error-bg);
-  border: 1px solid var(--ef-error);
-  border-radius: var(--ef-r-2);
-  margin: var(--ef-space-2);
-  font: var(--ef-fs-md)/var(--ef-lh-tight) var(--ef-font-mono);
+.aeditor-panel-error {
+  padding: var(--aeditor-space-3) var(--aeditor-space-4);
+  color: var(--aeditor-error);
+  background: var(--aeditor-error-bg);
+  border: 1px solid var(--aeditor-error);
+  border-radius: var(--aeditor-r-2);
+  margin: var(--aeditor-space-2);
+  font: var(--aeditor-fs-md)/var(--aeditor-lh-tight) var(--aeditor-font-mono);
 }
-.ef-dock-dragging { outline: 1px solid var(--ef-accent); outline-offset: -1px; }
+.aeditor-dock-dragging { outline: 1px solid var(--aeditor-accent); outline-offset: -1px; }
 
 /* ── corner handles ─────────────────────────────────── */
-.ef-corner {
+.aeditor-corner {
   position: absolute;
   width: 14px; height: 14px;
   z-index: 20;
   opacity: 0;
-  transition: opacity var(--ef-dur-fast) var(--ef-ease);
+  transition: opacity var(--aeditor-dur-fast) var(--aeditor-ease);
 }
-.ef-dock-c-tl > .ef-corner-tl,
-.ef-dock-c-tr > .ef-corner-tr,
-.ef-dock-c-bl > .ef-corner-bl,
-.ef-dock-c-br > .ef-corner-br { opacity: 1; }
-.ef-corner::before {
+.aeditor-dock-c-tl > .aeditor-corner-tl,
+.aeditor-dock-c-tr > .aeditor-corner-tr,
+.aeditor-dock-c-bl > .aeditor-corner-bl,
+.aeditor-dock-c-br > .aeditor-corner-br { opacity: 1; }
+.aeditor-corner::before {
   content: ''; position: absolute; inset: 0;
-  background: var(--ef-fg-2);
-  transition: background var(--ef-dur-fast) var(--ef-ease);
+  background: var(--aeditor-fg-2);
+  transition: background var(--aeditor-dur-fast) var(--aeditor-ease);
 }
-.ef-corner:hover::before { background: var(--ef-accent-soft); }
+.aeditor-corner:hover::before { background: var(--aeditor-accent-soft); }
 
-.ef-corner-tl { top: 0;    left: 0;    cursor: nwse-resize; }
-.ef-corner-tl::before { clip-path: polygon(0 0, 100% 0, 0 100%); }
-.ef-corner-tr { top: 0;    right: 0;   cursor: nesw-resize; }
-.ef-corner-tr::before { clip-path: polygon(0 0, 100% 0, 100% 100%); }
-.ef-corner-bl { bottom: 0; left: 0;    cursor: nesw-resize; }
-.ef-corner-bl::before { clip-path: polygon(0 0, 100% 100%, 0 100%); }
-.ef-corner-br { bottom: 0; right: 0;   cursor: nwse-resize; }
-.ef-corner-br::before { clip-path: polygon(100% 0, 100% 100%, 0 100%); }
+.aeditor-corner-tl { top: 0;    left: 0;    cursor: nwse-resize; }
+.aeditor-corner-tl::before { clip-path: polygon(0 0, 100% 0, 0 100%); }
+.aeditor-corner-tr { top: 0;    right: 0;   cursor: nesw-resize; }
+.aeditor-corner-tr::before { clip-path: polygon(0 0, 100% 0, 100% 100%); }
+.aeditor-corner-bl { bottom: 0; left: 0;    cursor: nesw-resize; }
+.aeditor-corner-bl::before { clip-path: polygon(0 0, 100% 100%, 0 100%); }
+.aeditor-corner-br { bottom: 0; right: 0;   cursor: nwse-resize; }
+.aeditor-corner-br::before { clip-path: polygon(100% 0, 100% 100%, 0 100%); }
 
 /* ── global drag state ──────────────────────────────── */
-body.ef-dragging { user-select: none; }
-body.ef-dragging-horizontal, body.ef-dragging-horizontal * { cursor: ew-resize !important; }
-body.ef-dragging-vertical,   body.ef-dragging-vertical *   { cursor: ns-resize !important; }
+body.aeditor-dragging { user-select: none; }
+body.aeditor-dragging-horizontal, body.aeditor-dragging-horizontal * { cursor: ew-resize !important; }
+body.aeditor-dragging-vertical,   body.aeditor-dragging-vertical *   { cursor: ns-resize !important; }
 
 /* ── preview overlay ────────────────────────────────── */
-.ef-overlay {
+.aeditor-overlay {
   position: fixed;
   pointer-events: none;
-  z-index: var(--ef-z-popover);
+  z-index: var(--aeditor-z-popover);
   display: none;
 }
-.ef-overlay-split {
-  background: color-mix(in srgb, var(--ef-accent) 7%, transparent);
-  border: 1px solid color-mix(in srgb, var(--ef-accent) 45%, transparent);
+.aeditor-overlay-split {
+  background: color-mix(in srgb, var(--aeditor-accent) 7%, transparent);
+  border: 1px solid color-mix(in srgb, var(--aeditor-accent) 45%, transparent);
 }
-.ef-overlay-merge {
-  background: color-mix(in srgb, var(--ef-accent) 18%, transparent);
-  border: 2px solid var(--ef-accent);
+.aeditor-overlay-merge {
+  background: color-mix(in srgb, var(--aeditor-accent) 18%, transparent);
+  border: 2px solid var(--aeditor-accent);
 }
-.ef-preview-line-v {
+.aeditor-preview-line-v {
   position: absolute;
   top: 0; bottom: 0; width: 2px;
   margin-left: -1px;
-  background: var(--ef-accent);
-  box-shadow: 0 0 8px color-mix(in srgb, var(--ef-accent) 70%, transparent);
+  background: var(--aeditor-accent);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--aeditor-accent) 70%, transparent);
 }
-.ef-preview-line-h {
+.aeditor-preview-line-h {
   position: absolute;
   left: 0; right: 0; height: 2px;
   margin-top: -1px;
-  background: var(--ef-accent);
-  box-shadow: 0 0 8px color-mix(in srgb, var(--ef-accent) 70%, transparent);
+  background: var(--aeditor-accent);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--aeditor-accent) 70%, transparent);
 }
-.ef-merge-label {
+.aeditor-merge-label {
   position: absolute;
   inset: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--ef-fg-0);
-  font-size: var(--ef-fs-xl);
+  color: var(--aeditor-fg-0);
+  font-size: var(--aeditor-fs-xl);
   font-weight: 500;
   letter-spacing: .04em;
   text-shadow: 0 1px 2px rgba(0,0,0,.5);
@@ -177,5 +177,5 @@ body.ef-dragging-vertical,   body.ef-dragging-vertical *   { cursor: ns-resize !
 
 /* ── reduced motion ─────────────────────────────────── */
 @media (prefers-reduced-motion: reduce) {
-  .ef-corner, .ef-splitter, .ef-corner::before { transition: none; }
+  .aeditor-corner, .aeditor-splitter, .aeditor-corner::before { transition: none; }
 }

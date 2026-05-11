@@ -1,7 +1,7 @@
-;(function (EF) {
+;(function (aeditor) {
   'use strict'
 
-  const ui = EF.ui
+  const ui = aeditor.ui
 
   const PERMISSION_OPTIONS = [
     { value: 'default', label: 'Default permissions', icon: 'settings' },
@@ -46,18 +46,18 @@
   }
 
   function connectionOptions() {
-    if (EF.ai.connectionOptions) return EF.ai.connectionOptions()
-    return EF.ai.connections ? optionsFrom(EF.ai.connections) : optionsFrom(EF.ai.listConnections())
+    if (aeditor.ai.connectionOptions) return aeditor.ai.connectionOptions()
+    return aeditor.ai.connections ? optionsFrom(aeditor.ai.connections) : optionsFrom(aeditor.ai.listConnections())
   }
 
   function defaultConnection() {
-    if (EF.settings && EF.settings.values) EF.settings.values()
-    if (EF.settings) return EF.settings.get('ai.defaultConnection') || EF.ai.defaultConnection || 'mock'
-    return EF.ai.defaultConnection || 'mock'
+    if (aeditor.settings && aeditor.settings.values) aeditor.settings.values()
+    if (aeditor.settings) return aeditor.settings.get('ai.defaultConnection') || aeditor.ai.defaultConnection || 'mock'
+    return aeditor.ai.defaultConnection || 'mock'
   }
 
   function connectionConfig(connection) {
-    return EF.ai.getConnectionConfig ? EF.ai.getConnectionConfig(connection || defaultConnection()) : {}
+    return aeditor.ai.getConnectionConfig ? aeditor.ai.getConnectionConfig(connection || defaultConnection()) : {}
   }
 
   function defaultModel(connection) {
@@ -67,9 +67,9 @@
   function modelOptions(connection, config) {
     const o = config || {}
     const out = []
-    const hints = (!o.loadedOnly && EF.ai.modelHints) ? EF.ai.modelHints(connection) : []
+    const hints = (!o.loadedOnly && aeditor.ai.modelHints) ? aeditor.ai.modelHints(connection) : []
     for (let h = 0; h < hints.length; h++) pushOption(out, hints[h])
-    const connections = EF.ai.connections ? readList(EF.ai.connections) : []
+    const connections = aeditor.ai.connections ? readList(aeditor.ai.connections) : []
     for (let i = 0; i < connections.length; i++) {
       const p = connections[i]
       if (typeof p !== 'string' && (p.id === connection || p.name === connection || p.value === connection)) {
@@ -77,7 +77,7 @@
         for (let m = 0; m < metaModels.length; m++) pushOption(out, metaModels[m])
       }
     }
-    const models = EF.ai.models ? (read(EF.ai.models) || []) : []
+    const models = aeditor.ai.models ? (read(aeditor.ai.models) || []) : []
     const loaded = (Array.isArray(models) ? models : models[connection]) || []
     for (let j = 0; j < loaded.length; j++) pushOption(out, loaded[j])
     const fallback = defaultModel(connection)
@@ -99,7 +99,7 @@
     if (content == null) return ''
     if (typeof content === 'string') return content
     if (content && typeof content === 'object' && content.type === 'rich-prompt') {
-      return content.renderedText || (EF.ai.richPrompt && EF.ai.richPrompt.toModelText ? EF.ai.richPrompt.toModelText(content) : '')
+      return content.renderedText || (aeditor.ai.richPrompt && aeditor.ai.richPrompt.toModelText ? aeditor.ai.richPrompt.toModelText(content) : '')
     }
     try { return JSON.stringify(content) } catch (_) { return String(content) }
   }
@@ -123,16 +123,16 @@
       if (msg.status === 'running') continue
       parts.push((msg.role || 'message') + ': ' + textOfContent(msg.content != null ? msg.content : msg.text))
     }
-    if (draftValue && !EF.ai.richPrompt.isEmpty(draftValue)) {
-      parts.push('draft: ' + EF.ai.richPrompt.toModelText(draftValue))
+    if (draftValue && !aeditor.ai.richPrompt.isEmpty(draftValue)) {
+      parts.push('draft: ' + aeditor.ai.richPrompt.toModelText(draftValue))
     }
     return estimateTokens(parts.join('\n\n'))
   }
 
   function configuredConnectionOptions() {
     const connections = connectionOptions()
-    const statuses = EF.ai.connectionStatus ? (read(EF.ai.connectionStatus) || {}) : {}
-    const loadedMap = EF.ai.models ? (read(EF.ai.models) || {}) : {}
+    const statuses = aeditor.ai.connectionStatus ? (read(aeditor.ai.connectionStatus) || {}) : {}
+    const loadedMap = aeditor.ai.models ? (read(aeditor.ai.models) || {}) : {}
     const out = []
     for (let i = 0; i < connections.length; i++) {
       const p = connections[i]
@@ -185,15 +185,15 @@
   }
 
   function agents() {
-    return readList(EF.ai.agents)
+    return readList(aeditor.ai.agents)
   }
 
   function resources() {
-    return readList(EF.ai.resources)
+    return readList(aeditor.ai.resources)
   }
 
   function activeAgent() {
-    const id = read(EF.ai.activeAgentId)
+    const id = read(aeditor.ai.activeAgentId)
     const list = agents()
     for (let i = 0; i < list.length; i++) if (list[i].id === id) return list[i]
     return null
@@ -201,7 +201,7 @@
 
   function updateCurrentAgent(patch) {
     const agent = activeAgent()
-    if (agent) EF.ai.updateAgent(agent.id, patch)
+    if (agent) aeditor.ai.updateAgent(agent.id, patch)
   }
 
   function permissionLabel(value) {
@@ -244,24 +244,24 @@
 
   function factory(propsSig, ctx) {
     const props = propsSig.peek() || {}
-    const connection = EF.signal(props.connection || defaultConnection())
-    const model = EF.signal(props.model || defaultModel(connection.peek()))
-    const permissionMode = EF.signal(props.permissionMode || 'full')
-    const draft = EF.signal(EF.ai.richPrompt.empty())
-    const hasTarget = EF.derived(function () { return !!activeAgent() })
-    const busy = EF.derived(function () {
+    const connection = aeditor.signal(props.connection || defaultConnection())
+    const model = aeditor.signal(props.model || defaultModel(connection.peek()))
+    const permissionMode = aeditor.signal(props.permissionMode || 'full')
+    const draft = aeditor.signal(aeditor.ai.richPrompt.empty())
+    const hasTarget = aeditor.derived(function () { return !!activeAgent() })
+    const busy = aeditor.derived(function () {
       const a = activeAgent()
       return !!(a && (a.status === 'running' || a.status === 'queued'))
     })
-    const stoppable = EF.derived(function () {
+    const stoppable = aeditor.derived(function () {
       const a = activeAgent()
       return !!(a && (a.status === 'running' || a.status === 'waiting_approval'))
     })
-    const controlDisabled = EF.derived(function () { return !hasTarget() })
-    const sendDisabled = EF.derived(function () { return !hasTarget() || (EF.ai.richPrompt.isEmpty(draft()) && !stoppable()) })
-    const sendIcon = EF.derived(function () { return stoppable() && EF.ai.richPrompt.isEmpty(draft()) ? 'square' : 'arrow-up' })
+    const controlDisabled = aeditor.derived(function () { return !hasTarget() })
+    const sendDisabled = aeditor.derived(function () { return !hasTarget() || (aeditor.ai.richPrompt.isEmpty(draft()) && !stoppable()) })
+    const sendIcon = aeditor.derived(function () { return stoppable() && aeditor.ai.richPrompt.isEmpty(draft()) ? 'square' : 'arrow-up' })
 
-    const root = ui.h('div', 'ef-ai-panel ef-ai-chat')
+    const root = ui.h('div', 'aeditor-ai-panel aeditor-ai-chat')
     ui.collect(root, hasTarget.dispose)
     ui.collect(root, busy.dispose)
     ui.collect(root, stoppable.dispose)
@@ -269,9 +269,9 @@
     ui.collect(root, sendDisabled.dispose)
     ui.collect(root, sendIcon.dispose)
 
-    const composer = ui.h('div', 'ef-ai-composer')
-    if (EF.ai.installTargetDrop) {
-      EF.ai.installTargetDrop(composer, {
+    const composer = ui.h('div', 'aeditor-ai-composer')
+    if (aeditor.ai.installTargetDrop) {
+      aeditor.ai.installTargetDrop(composer, {
         onDrop: function (targets) { insertTargets(targets) },
       })
     }
@@ -279,23 +279,23 @@
       const targets = ev.detail && ev.detail.targets
       if (targets && targets.length) insertTargets(targets)
     }
-    window.addEventListener('ef-ai-add-to-chat', onAddToChat)
-    ui.collect(root, function () { window.removeEventListener('ef-ai-add-to-chat', onAddToChat) })
+    window.addEventListener('aeditor-ai-add-to-chat', onAddToChat)
+    ui.collect(root, function () { window.removeEventListener('aeditor-ai-add-to-chat', onAddToChat) })
 
-    const editorWrap = ui.h('div', 'ef-ai-chat-input-wrap')
+    const editorWrap = ui.h('div', 'aeditor-ai-chat-input-wrap')
     const editor = ui.richPromptInput({
       value: draft,
       placeholder: 'Message current agent...',
       disabled: controlDisabled,
       onSubmit: sendClick,
     })
-    editor.classList.add('ef-ai-chat-input')
+    editor.classList.add('aeditor-ai-chat-input')
     editorWrap.appendChild(editor)
     composer.appendChild(editorWrap)
 
-    const actions = ui.h('div', 'ef-ai-chat-actions')
-    const leftActions = ui.h('div', 'ef-ai-chat-actions-left')
-    const rightActions = ui.h('div', 'ef-ai-chat-actions-right')
+    const actions = ui.h('div', 'aeditor-ai-chat-actions')
+    const leftActions = ui.h('div', 'aeditor-ai-chat-actions-left')
+    const rightActions = ui.h('div', 'aeditor-ai-chat-actions-right')
     const add = ui.iconButton({
       icon: 'plus',
       title: 'Add context',
@@ -303,7 +303,7 @@
       disabled: controlDisabled,
       onClick: function (ev) { openResourceMenu(ev.currentTarget, insertResources) },
     })
-    const permissionText = EF.derived(function () { return permissionLabel(permissionMode()) })
+    const permissionText = aeditor.derived(function () { return permissionLabel(permissionMode()) })
     ui.collect(root, permissionText.dispose)
     const permission = ui.button({
       text: permissionText,
@@ -313,9 +313,9 @@
       disabled: controlDisabled,
       onClick: function (ev) { openPermissionMenu(ev.currentTarget, permissionMode) },
     })
-    const modelSlot = ui.h('div', 'ef-ai-model-control')
-    const contextMeter = ui.h('div', 'ef-ai-context-meter')
-    const contextInfo = EF.signal({ used: 0, limit: modelContextLimit(model.peek()) })
+    const modelSlot = ui.h('div', 'aeditor-ai-model-control')
+    const contextMeter = ui.h('div', 'aeditor-ai-context-meter')
+    const contextInfo = aeditor.signal({ used: 0, limit: modelContextLimit(model.peek()) })
     let contextTimer = null
     function scheduleContextEstimate(delay) {
       if (contextTimer) clearTimeout(contextTimer)
@@ -328,7 +328,7 @@
         })
       }, delay == null ? 260 : delay)
     }
-    const contextTip = EF.derived(function () {
+    const contextTip = aeditor.derived(function () {
       const info = contextInfo()
       const used = info.used || 0
       const limit = info.limit || modelContextLimit(model.peek())
@@ -341,22 +341,22 @@
       if (contextTimer) clearTimeout(contextTimer)
       contextTimer = null
     })
-    ui.collect(root, EF.effect(function () {
+    ui.collect(root, aeditor.effect(function () {
       const info = contextInfo()
       const used = info.used || 0
       const limit = info.limit || modelContextLimit(model.peek())
       const pct = Math.max(0, Math.min(1, used / limit))
-      contextMeter.style.setProperty('--ef-ai-context-pct', String(pct * 100))
+      contextMeter.style.setProperty('--aeditor-ai-context-pct', String(pct * 100))
       contextMeter.setAttribute('aria-label', contextTip())
     }))
-    ui.collect(root, EF.effect(function () {
+    ui.collect(root, aeditor.effect(function () {
       draft()
       model()
-      const agentId = read(EF.ai.activeAgentId)
-      if (agentId && EF.ai.messageListVersion) EF.ai.messageListVersion(agentId)
+      const agentId = read(aeditor.ai.activeAgentId)
+      if (agentId && aeditor.ai.messageListVersion) aeditor.ai.messageListVersion(agentId)
       scheduleContextEstimate()
     }))
-    const sendTitle = EF.derived(function () { return stoppable() && EF.ai.richPrompt.isEmpty(draft()) ? 'Stop' : (busy() ? 'Queue message' : 'Send') })
+    const sendTitle = aeditor.derived(function () { return stoppable() && aeditor.ai.richPrompt.isEmpty(draft()) ? 'Stop' : (busy() ? 'Queue message' : 'Send') })
     ui.collect(root, sendTitle.dispose)
     const send = ui.iconButton({
       icon: sendIcon,
@@ -375,15 +375,15 @@
     composer.appendChild(actions)
     root.appendChild(composer)
 
-    ui.collect(root, EF.effect(function () {
+    ui.collect(root, aeditor.effect(function () {
       const opts = connectionOptions()
       const preferred = defaultConnection()
       if (opts.length && !connection.peek()) connection.set(preferred || opts[0].value)
     }))
 
-    ui.collect(root, EF.effect(function () {
+    ui.collect(root, aeditor.effect(function () {
       const opts = groupedModelOptions()
-      const selected = EF.signal(modelValue(connection(), model()))
+      const selected = aeditor.signal(modelValue(connection(), model()))
       disposeTree(modelSlot.firstChild)
       modelSlot.appendChild(ui.select({
         value: selected,
@@ -395,7 +395,7 @@
         disabled: controlDisabled,
         onChange: function (v) {
           const parsed = parseModelValue(v)
-          EF.batch(function () {
+          aeditor.batch(function () {
             connection.set(parsed.connection)
             model.set(parsed.model)
             updateCurrentAgent({ connection: parsed.connection, model: parsed.model, stream: !!connectionConfig(parsed.connection).stream })
@@ -409,7 +409,7 @@
         const first = opts.find(function (it) { return it.value })
         if (first) {
           const parsed = parseModelValue(first.value)
-          EF.batch(function () {
+          aeditor.batch(function () {
             connection.set(parsed.connection)
             model.set(parsed.model)
             updateCurrentAgent({ connection: parsed.connection, model: parsed.model, stream: !!connectionConfig(parsed.connection).stream })
@@ -418,7 +418,7 @@
       }
     }))
 
-    ui.collect(root, EF.effect(function () {
+    ui.collect(root, aeditor.effect(function () {
       const a = activeAgent()
       if (!a) {
         connection.set(defaultConnection())
@@ -434,14 +434,14 @@
 
     function insertResources(list) {
       if (!list || !list.length) return
-      if (editor.__efRichPromptInsertRefs) editor.__efRichPromptInsertRefs(list)
-      if (editor.__efRichPromptFocus) editor.__efRichPromptFocus()
+      if (editor.__aeditorRichPromptInsertRefs) editor.__aeditorRichPromptInsertRefs(list)
+      if (editor.__aeditorRichPromptFocus) editor.__aeditorRichPromptFocus()
     }
 
     function insertTargets(targets) {
       const stored = []
       for (let i = 0; i < (targets || []).length; i++) {
-        const res = EF.ai.addTarget ? EF.ai.addTarget(targets[i]) : null
+        const res = aeditor.ai.addTarget ? aeditor.ai.addTarget(targets[i]) : null
         if (res) stored.push(res)
       }
       insertResources(stored)
@@ -450,15 +450,15 @@
     function sendClick() {
       const agent = activeAgent()
       if (!agent) return
-      const currentDraft = EF.ai.richPrompt.normalize(draft.peek())
-      if (EF.ai.richPrompt.isEmpty(currentDraft) && stoppable()) {
-        EF.ai.stopAgent(agent.id)
+      const currentDraft = aeditor.ai.richPrompt.normalize(draft.peek())
+      if (aeditor.ai.richPrompt.isEmpty(currentDraft) && stoppable()) {
+        aeditor.ai.stopAgent(agent.id)
         return
       }
-      if (EF.ai.richPrompt.isEmpty(currentDraft)) return
-      const refs = EF.ai.richPrompt.refs(currentDraft)
-      const content = EF.ai.richPrompt.content(currentDraft)
-      EF.ai.updateAgent(agent.id, {
+      if (aeditor.ai.richPrompt.isEmpty(currentDraft)) return
+      const refs = aeditor.ai.richPrompt.refs(currentDraft)
+      const content = aeditor.ai.richPrompt.content(currentDraft)
+      aeditor.ai.updateAgent(agent.id, {
         connection: connection.peek(),
         model: model.peek() || defaultModel(connection.peek()),
         permissionMode: permissionMode.peek(),
@@ -471,12 +471,12 @@
         resourceRefs: refs,
         renderedText: content.renderedText,
       }
-      EF.ai.message.send(agent.id, { content: content, contextRefs: refs, meta: meta, from: 'user' })
-      draft.set(EF.ai.richPrompt.empty())
+      aeditor.ai.message.send(agent.id, { content: content, contextRefs: refs, meta: meta, from: 'user' })
+      draft.set(aeditor.ai.richPrompt.empty())
     }
   }
 
-  EF.registerComponent('ai-chatinput', {
+  aeditor.registerComponent('ai-chatinput', {
     category: 'panel',
     label: 'AIChatInput',
     icon: 'message-circle',
@@ -484,4 +484,4 @@
     factory: factory,
     dispose: disposeTree,
   })
-})(window.EF = window.EF || {})
+})(window.aeditor = window.aeditor || {})

@@ -1,5 +1,5 @@
-// EF.workspace - bounded file access adapters.
-;(function (EF) {
+// aeditor.workspace - bounded file access adapters.
+;(function (aeditor) {
   'use strict'
 
   const workspace = {}
@@ -11,7 +11,7 @@
       h ^= text.charCodeAt(i)
       h = Math.imul(h, 16777619) >>> 0
     }
-    return 'ef-fnv1a-' + h.toString(16)
+    return 'aeditor-fnv1a-' + h.toString(16)
   }
 
   function normalizePath(path) {
@@ -175,7 +175,7 @@
   }
 
   async function openDirectory(opts) {
-    if (!window.showDirectoryPicker) throw new Error('EF.workspace.openDirectory: File System Access API is not available')
+    if (!window.showDirectoryPicker) throw new Error('aeditor.workspace.openDirectory: File System Access API is not available')
     const handle = await window.showDirectoryPicker(opts || {})
     return fromHandle(handle)
   }
@@ -305,5 +305,5 @@
   workspace.fromHandle = fromHandle
   workspace.fromBridge = fromBridge
 
-  EF.workspace = workspace
-})(window.EF = window.EF || {})
+  aeditor.workspace = workspace
+})(window.aeditor = window.aeditor || {})

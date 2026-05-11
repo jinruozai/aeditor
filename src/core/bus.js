@@ -1,18 +1,18 @@
-// EF.bus — global pub/sub for decoupled panel/dock/component communication.
+// aeditor.bus — global pub/sub for decoupled panel/dock/component communication.
 //
-//   EF.bus.on(topic, handler)  → unsubscribe fn
-//   EF.bus.off(topic, handler)
-//   EF.bus.emit(topic, payload)
+//   aeditor.bus.on(topic, handler)  → unsubscribe fn
+//   aeditor.bus.off(topic, handler)
+//   aeditor.bus.emit(topic, payload)
 //
 // Handlers fire synchronously. Each handler is wrapped individually so a
-// throw in one subscriber routes to EF.log but does NOT abort the rest of
+// throw in one subscriber routes to aeditor.log but does NOT abort the rest of
 // the emit (§ 4.15 — error isolation across mutually distrustful widgets).
 //
 // Auto-unsubscribe is NOT done here; it lives in widgets/context.js where
 // the ComponentContext factory has access to the runtime's `cleanups` array.
-// Calling EF.bus.on directly (without ctx.bus) gives no auto-unsubscribe —
+// Calling aeditor.bus.on directly (without ctx.bus) gives no auto-unsubscribe —
 // the caller manages the returned fn themselves.
-;(function (EF) {
+;(function (aeditor) {
   'use strict'
 
   const topics = new Map() // topic → Set<handler>
@@ -43,14 +43,14 @@
     // signals, causing the effect to re-run on unrelated state changes and
     // cascade into infinite loops). Bus handlers are semantically fire-and-
     // forget — they should never act as reactivity bridges. If a handler
-    // needs reactivity, it establishes its own EF.effect explicitly.
-    const untracked = EF.untracked || function (fn) { return fn() }
+    // needs reactivity, it establishes its own aeditor.effect explicitly.
+    const untracked = aeditor.untracked || function (fn) { return fn() }
     for (let i = 0; i < list.length; i++) {
-      EF.safeCall({ scope: 'bus', topic: topic }, function () {
+      aeditor.safeCall({ scope: 'bus', topic: topic }, function () {
         untracked(function () { list[i](payload) })
       })
     }
   }
 
-  EF.bus = { on: on, off: off, emit: emit }
-})(window.EF = window.EF || {})
+  aeditor.bus = { on: on, off: off, emit: emit }
+})(window.aeditor = window.aeditor || {})

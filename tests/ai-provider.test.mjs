@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import vm from 'node:vm'
 
-global.window = { EF: {} }
+global.window = { aeditor: {} }
 vm.runInThisContext(readFileSync('src/core/signal.js', 'utf8'), { filename: 'signal.js' })
 vm.runInThisContext(readFileSync('src/core/settings.js', 'utf8'), { filename: 'settings.js' })
 vm.runInThisContext(readFileSync('src/ai/connection.js', 'utf8'), { filename: 'ai/connection.js' })
@@ -12,8 +12,8 @@ vm.runInThisContext(readFileSync('src/ai/provider-auth.js', 'utf8'), { filename:
 vm.runInThisContext(readFileSync('src/ai/provider-transports.js', 'utf8'), { filename: 'ai/provider-transports.js' })
 vm.runInThisContext(readFileSync('src/ai/provider-connections.js', 'utf8'), { filename: 'ai/provider-connections.js' })
 
-const EF = window.EF
-const ai = EF.ai
+const aeditor = window.aeditor
+const ai = aeditor.ai
 const calls = []
 
 global.fetch = function (url, opts) {
@@ -153,11 +153,11 @@ assert.equal(ai.getConnectionConfig('openai-codex').defaultModel, 'gpt-5.5')
 assert.deepEqual(ai.modelHints('openai-codex').slice(0, 2), ['gpt-5.5', 'gpt-5.5-pro'])
 
 let reactiveDeepSeekKey = ''
-const disposeConfigWatch = EF.effect(function () {
+const disposeConfigWatch = aeditor.effect(function () {
   reactiveDeepSeekKey = ai.getConnectionConfig('deepseek').apiKey
 })
 assert.equal(reactiveDeepSeekKey, '')
-EF.settings.set(ai.connectionConfigKey('deepseek', 'apiKey'), 'deepseek-key')
+aeditor.settings.set(ai.connectionConfigKey('deepseek', 'apiKey'), 'deepseek-key')
 assert.equal(reactiveDeepSeekKey, 'deepseek-key')
 disposeConfigWatch()
 
@@ -166,10 +166,10 @@ assert.equal(custom.id, 'studio-gateway')
 assert.equal(ai.getConnectionConfig(custom.id).baseUrl, 'https://studio.test/v1')
 assert.equal(ai.getConnection(custom.id).custom, true)
 
-EF.settings.set(ai.connectionConfigKey('openai-api', 'baseUrl'), 'https://openai.test/v1/')
-EF.settings.set(ai.connectionConfigKey('openai-api', 'apiKey'), 'openai-key')
-EF.settings.set(ai.connectionConfigKey('openai-api', 'defaultModel'), 'model-a')
-EF.settings.set(ai.connectionConfigKey('openai-api', 'stream'), true)
+aeditor.settings.set(ai.connectionConfigKey('openai-api', 'baseUrl'), 'https://openai.test/v1/')
+aeditor.settings.set(ai.connectionConfigKey('openai-api', 'apiKey'), 'openai-key')
+aeditor.settings.set(ai.connectionConfigKey('openai-api', 'defaultModel'), 'model-a')
+aeditor.settings.set(ai.connectionConfigKey('openai-api', 'stream'), true)
 
 const openAiModels = await ai.refreshModels('openai-api')
 assert.deepEqual(openAiModels.map(function (m) { return m.id }), ['model-a', 'model-b'])
@@ -230,9 +230,9 @@ const deepSeekReplay = ai.openAiMessages([
 assert.equal(deepSeekReplay[0].reasoning_content, 'I need to inspect the project summary first.')
 assert.equal(deepSeekReplay[0].tool_calls[0].id, 'call_ds_summary')
 
-EF.settings.set(ai.connectionConfigKey('deepseek', 'baseUrl'), 'https://stream.test/v1')
-EF.settings.set(ai.connectionConfigKey('deepseek', 'defaultModel'), 'deepseek-v4-flash')
-EF.settings.set(ai.connectionConfigKey('deepseek', 'stream'), true)
+aeditor.settings.set(ai.connectionConfigKey('deepseek', 'baseUrl'), 'https://stream.test/v1')
+aeditor.settings.set(ai.connectionConfigKey('deepseek', 'defaultModel'), 'deepseek-v4-flash')
+aeditor.settings.set(ai.connectionConfigKey('deepseek', 'stream'), true)
 const streamedReply = await ai.sendViaConnection('deepseek', {
   model: '',
   stream: true,
@@ -252,7 +252,7 @@ const streamedToolReply = await ai.sendViaConnection('deepseek', {
   model: '',
   stream: true,
   messages: [{ role: 'user', content: 'stream tool' }],
-  toolSpecs: [{ id: 'editor.searchReferences', title: 'Search', schema: { query: 'string', limit: 'number' } }],
+  toolSpecs: [{ id: 'aeditor.searchReferences', title: 'Search', schema: { query: 'string', limit: 'number' } }],
 }, { signal: null })
 assert.equal(typeof streamedToolReply.deltas[Symbol.asyncIterator], 'function')
 const streamedToolDeltas = []
@@ -286,8 +286,8 @@ for await (const delta of cumulativeOpenAiReply.deltas) {
 }
 assert.equal(cumulativeOpenAiText, 'ABC')
 
-EF.settings.set(ai.connectionConfigKey('openai-codex', 'baseUrl'), 'https://codex-stream.test')
-EF.settings.set(ai.connectionConfigKey('openai-codex', 'stream'), true)
+aeditor.settings.set(ai.connectionConfigKey('openai-codex', 'baseUrl'), 'https://codex-stream.test')
+aeditor.settings.set(ai.connectionConfigKey('openai-codex', 'stream'), true)
 const codexSnapshotReply = await ai.sendViaConnection('openai-codex', {
   model: 'gpt-test',
   stream: true,
@@ -300,9 +300,9 @@ for await (const delta of codexSnapshotReply.deltas) {
 }
 assert.equal(codexSnapshotText, 'ABC')
 
-EF.settings.set(ai.connectionConfigKey('anthropic-api', 'baseUrl'), 'https://anthropic.test')
-EF.settings.set(ai.connectionConfigKey('anthropic-api', 'apiKey'), 'anthropic-key')
-EF.settings.set(ai.connectionConfigKey('anthropic-api', 'defaultModel'), 'claude-test')
+aeditor.settings.set(ai.connectionConfigKey('anthropic-api', 'baseUrl'), 'https://anthropic.test')
+aeditor.settings.set(ai.connectionConfigKey('anthropic-api', 'apiKey'), 'anthropic-key')
+aeditor.settings.set(ai.connectionConfigKey('anthropic-api', 'defaultModel'), 'claude-test')
 
 const anthropicReply = await ai.sendViaConnection('anthropic-api', {
   model: '',
@@ -334,8 +334,8 @@ assert.deepEqual(anthropicImageBody.messages[0].content, [
   { type: 'image', source: { type: 'base64', media_type: 'image/png', data: 'aGVsbG8=' } },
 ])
 
-EF.settings.set(ai.connectionConfigKey('local-bridge', 'baseUrl'), 'http://bridge.test/')
-EF.settings.set(ai.connectionConfigKey('local-bridge', 'defaultModel'), 'local-test')
+aeditor.settings.set(ai.connectionConfigKey('local-bridge', 'baseUrl'), 'http://bridge.test/')
+aeditor.settings.set(ai.connectionConfigKey('local-bridge', 'defaultModel'), 'local-test')
 const bridgeReply = await ai.sendViaConnection('local-bridge', {
   model: '',
   stream: false,

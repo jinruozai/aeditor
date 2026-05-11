@@ -1,9 +1,9 @@
-// EF.shortcuts — generic keyboard shortcut registry.
+// aeditor.shortcuts — generic keyboard shortcut registry.
 //
 // The framework owns only the input-routing mechanism: matching keys,
 // scoping, priority, cleanup, and editable/overlay guards. It does not bind
 // application actions by default.
-;(function (EF) {
+;(function (aeditor) {
   'use strict'
 
   const entries = []
@@ -13,7 +13,7 @@
 
   function isEditableTarget(el) {
     return !!(el && el.closest && el.closest(
-      'input,textarea,select,[contenteditable="true"],.ef-ui-menu,.ef-ui-modal'
+      'input,textarea,select,[contenteditable="true"],.aeditor-ui-menu,.aeditor-ui-modal'
     ))
   }
 
@@ -65,7 +65,7 @@
       const at = entries.indexOf(item)
       if (at >= 0) entries.splice(at, 1)
     }
-    if (owner && EF.ui && EF.ui.collect) EF.ui.collect(owner, off)
+    if (owner && aeditor.ui && aeditor.ui.collect) aeditor.ui.collect(owner, off)
     return off
   }
 
@@ -74,9 +74,9 @@
     return el
   }
 
-  EF.shortcuts = {
+  aeditor.shortcuts = {
     register: register,
     scope: scope,
     isEditableTarget: isEditableTarget,
   }
-})(window.EF = window.EF || {})
+})(window.aeditor = window.aeditor || {})

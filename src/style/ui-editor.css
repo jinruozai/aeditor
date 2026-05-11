@@ -1,47 +1,47 @@
-/* editorframe — UI library: editor specials */
+/* aeditor — UI library: editor specials */
 
 /* ── gradientInput ──────────────────────────────────────────────── */
-.ef-ui-gradient {
+.aeditor-ui-gradient {
   display: flex;
   flex-direction: column;
-  gap: var(--ef-space-2);
+  gap: var(--aeditor-space-2);
   width: 100%;
 }
-.ef-ui-gradient-barwrap {
+.aeditor-ui-gradient-barwrap {
   position: relative;
   width: 100%;
   padding-bottom: 14px; /* room for the handles' pointer tails */
 }
-.ef-ui-gradient-checker {
+.aeditor-ui-gradient-checker {
   position: absolute;
   left: 0; right: 0; top: 0;
   height: 24px;
-  border-radius: var(--ef-r-2);
+  border-radius: var(--aeditor-r-2);
   background-image:
-    linear-gradient(45deg, var(--ef-bg-3) 25%, transparent 25%),
-    linear-gradient(-45deg, var(--ef-bg-3) 25%, transparent 25%),
-    linear-gradient(45deg, transparent 75%, var(--ef-bg-3) 75%),
-    linear-gradient(-45deg, transparent 75%, var(--ef-bg-3) 75%);
+    linear-gradient(45deg, var(--aeditor-bg-3) 25%, transparent 25%),
+    linear-gradient(-45deg, var(--aeditor-bg-3) 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, var(--aeditor-bg-3) 75%),
+    linear-gradient(-45deg, transparent 75%, var(--aeditor-bg-3) 75%);
   background-size: 10px 10px;
   background-position: 0 0, 0 5px, 5px -5px, -5px 0;
   pointer-events: none;
 }
-.ef-ui-gradient-bar {
+.aeditor-ui-gradient-bar {
   position: relative;
   width: 100%;
   height: 24px;
-  border-radius: var(--ef-r-2);
-  border: 1px solid var(--ef-border-strong);
+  border-radius: var(--aeditor-r-2);
+  border: 1px solid var(--aeditor-border-strong);
   cursor: copy;
-  box-shadow: inset 0 0 0 1px var(--ef-highlight-subtle);
+  box-shadow: inset 0 0 0 1px var(--aeditor-highlight-subtle);
 }
-.ef-ui-gradient-rail {
+.aeditor-ui-gradient-rail {
   position: absolute;
   left: 0; right: 0;
   top: 24px;
   height: 14px;
 }
-.ef-ui-gradient-stop {
+.aeditor-ui-gradient-stop {
   position: absolute;
   top: 0;
   width: 14px;
@@ -49,10 +49,10 @@
   transform: translateX(-50%);
   cursor: grab;
   display: block;
-  transition: transform var(--ef-dur-fast) var(--ef-ease),
-              filter    var(--ef-dur-fast) var(--ef-ease);
+  transition: transform var(--aeditor-dur-fast) var(--aeditor-ease),
+              filter    var(--aeditor-dur-fast) var(--aeditor-ease);
 }
-.ef-ui-gradient-stop::before {
+.aeditor-ui-gradient-stop::before {
   /* pointer triangle aiming at the bar */
   content: '';
   position: absolute;
@@ -63,9 +63,9 @@
   transform: translateX(-50%);
   border-left: 5px solid transparent;
   border-right: 5px solid transparent;
-  border-bottom: 5px solid var(--ef-fg-0);
+  border-bottom: 5px solid var(--aeditor-fg-0);
 }
-.ef-ui-gradient-stop-fill {
+.aeditor-ui-gradient-stop-fill {
   position: absolute;
   left: 50%;
   top: 1px;
@@ -73,60 +73,60 @@
   height: 12px;
   transform: translateX(-50%);
   border-radius: 50%;
-  border: 2px solid var(--ef-fg-0);
+  border: 2px solid var(--aeditor-fg-0);
   box-shadow: 0 1px 2px rgba(0,0,0,.4);
 }
-.ef-ui-gradient-stop:hover { transform: translateX(-50%) translateY(-1px); }
-.ef-ui-gradient-stop-active::before { border-bottom-color: var(--ef-accent); }
-.ef-ui-gradient-stop-active .ef-ui-gradient-stop-fill {
-  border-color: var(--ef-accent);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--ef-accent) 22%, transparent),
+.aeditor-ui-gradient-stop:hover { transform: translateX(-50%) translateY(-1px); }
+.aeditor-ui-gradient-stop-active::before { border-bottom-color: var(--aeditor-accent); }
+.aeditor-ui-gradient-stop-active .aeditor-ui-gradient-stop-fill {
+  border-color: var(--aeditor-accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--aeditor-accent) 22%, transparent),
               0 1px 2px rgba(0,0,0,.5);
 }
-.ef-ui-gradient-stop-dragging {
+.aeditor-ui-gradient-stop-dragging {
   cursor: grabbing;
   filter: brightness(1.1);
 }
-.ef-ui-gradient-editor {
+.aeditor-ui-gradient-editor {
   display: flex;
   align-items: center;
-  gap: var(--ef-space-2);
+  gap: var(--aeditor-space-2);
 }
-.ef-ui-gradient-editor > .ef-ui-color { flex: 1 1 auto; min-width: 0; }
-.ef-ui-gradient-delete {
+.aeditor-ui-gradient-editor > .aeditor-ui-color { flex: 1 1 auto; min-width: 0; }
+.aeditor-ui-gradient-delete {
   flex: 0 0 auto;
-  width: var(--ef-size-h-md);
-  height: var(--ef-size-h-md);
-  background: var(--ef-bg-2);
-  border: 1px solid var(--ef-border-input);
-  border-radius: var(--ef-r-2);
-  color: var(--ef-fg-2);
+  width: var(--aeditor-size-h-md);
+  height: var(--aeditor-size-h-md);
+  background: var(--aeditor-bg-2);
+  border: 1px solid var(--aeditor-border-input);
+  border-radius: var(--aeditor-r-2);
+  color: var(--aeditor-fg-2);
   cursor: pointer;
-  font: var(--ef-fs-md) var(--ef-font-ui);
-  transition: background var(--ef-dur-fast) var(--ef-ease),
-              color var(--ef-dur-fast) var(--ef-ease),
-              border-color var(--ef-dur-fast) var(--ef-ease),
-              transform var(--ef-dur-fast) var(--ef-ease);
+  font: var(--aeditor-fs-md) var(--aeditor-font-ui);
+  transition: background var(--aeditor-dur-fast) var(--aeditor-ease),
+              color var(--aeditor-dur-fast) var(--aeditor-ease),
+              border-color var(--aeditor-dur-fast) var(--aeditor-ease),
+              transform var(--aeditor-dur-fast) var(--aeditor-ease);
 }
-.ef-ui-gradient-delete:hover {
-  background: color-mix(in srgb, var(--ef-error) 18%, var(--ef-bg-2));
-  border-color: var(--ef-error);
-  color: var(--ef-error);
+.aeditor-ui-gradient-delete:hover {
+  background: color-mix(in srgb, var(--aeditor-error) 18%, var(--aeditor-bg-2));
+  border-color: var(--aeditor-error);
+  color: var(--aeditor-error);
 }
-.ef-ui-gradient-delete:active { transform: scale(0.94); }
+.aeditor-ui-gradient-delete:active { transform: scale(0.94); }
 
 /* ── curveInput ─────────────────────────────────────────────────── */
-.ef-ui-curve {
+.aeditor-ui-curve {
   display: flex;
   flex-direction: column;
   width: 100%;
   height: 100%;                    /* fill parent when parent has a definite height */
   min-width: 180px;
-  background: var(--ef-bg-2);
-  border: 1px solid var(--ef-border-input);
-  border-radius: var(--ef-r-2);
-  padding: var(--ef-space-1);
-  gap: var(--ef-space-1);
+  background: var(--aeditor-bg-2);
+  border: 1px solid var(--aeditor-border-input);
+  border-radius: var(--aeditor-r-2);
+  padding: var(--aeditor-space-1);
+  gap: var(--aeditor-space-1);
   box-sizing: border-box;
 }
 /* Canvas area grows/shrinks with the available height after the (optional)
@@ -134,71 +134,71 @@
    100% of width, which overflows short parents (the demo's 220×160 cell was
    getting a 220-tall canvas = ~60px overflow before this). min-height gives
    a sensible floor when the parent is auto-sized. */
-.ef-ui-curve-canvas-wrap {
+.aeditor-ui-curve-canvas-wrap {
   position: relative;
   flex: 1 1 auto;
   width: 100%;
   min-height: 120px;
 }
-.ef-ui-curve-canvas {
+.aeditor-ui-curve-canvas {
   position: absolute;
   inset: 0;
   display: block;
   width: 100%;
   height: 100%;
   cursor: crosshair;
-  border-radius: var(--ef-r-1);
+  border-radius: var(--aeditor-r-1);
 }
 
 /* ── codeInput ──────────────────────────────────────────────────── */
-.ef-ui-code {
+.aeditor-ui-code {
   display: flex;
   width: 100%;
-  background: var(--ef-bg-2);
-  border: 1px solid var(--ef-border-input);
-  border-radius: var(--ef-r-2);
+  background: var(--aeditor-bg-2);
+  border: 1px solid var(--aeditor-border-input);
+  border-radius: var(--aeditor-r-2);
   position: relative;
   overflow: hidden;
 }
-.ef-ui-code-lang {
+.aeditor-ui-code-lang {
   position: absolute;
   top: 4px; right: 8px;
-  font: var(--ef-fs-xs) var(--ef-font-mono);
-  color: var(--ef-fg-3);
+  font: var(--aeditor-fs-xs) var(--aeditor-font-mono);
+  color: var(--aeditor-fg-3);
   text-transform: uppercase;
   letter-spacing: .06em;
   z-index: 2;
   pointer-events: none;
 }
-.ef-ui-code-gutter {
+.aeditor-ui-code-gutter {
   flex-shrink: 0;
-  padding: var(--ef-space-2) var(--ef-space-1);
-  background: var(--ef-bg-1);
-  color: var(--ef-fg-3);
-  font: var(--ef-fs-sm)/var(--ef-lh-base) var(--ef-font-mono);
+  padding: var(--aeditor-space-2) var(--aeditor-space-1);
+  background: var(--aeditor-bg-1);
+  color: var(--aeditor-fg-3);
+  font: var(--aeditor-fs-sm)/var(--aeditor-lh-base) var(--aeditor-font-mono);
   text-align: right;
   min-width: 28px;
   white-space: pre;
   overflow: hidden;
   user-select: none;
-  border-right: 1px solid var(--ef-border);
+  border-right: 1px solid var(--aeditor-border);
 }
-.ef-ui-code-editor {
+.aeditor-ui-code-editor {
   flex: 1 1 auto;
   min-width: 0;
   position: relative;
   display: flex;
 }
-.ef-ui-code-text {
+.aeditor-ui-code-text {
   flex: 1 1 auto;
   min-width: 0;
   background: transparent;
-  color: var(--ef-fg-0);
+  color: var(--aeditor-fg-0);
   border: 0;
   outline: 0;
   resize: vertical;
-  padding: var(--ef-space-2);
-  font: var(--ef-fs-sm)/var(--ef-lh-base) var(--ef-font-mono);
+  padding: var(--aeditor-space-2);
+  font: var(--aeditor-fs-sm)/var(--aeditor-lh-base) var(--aeditor-font-mono);
   white-space: pre;
   overflow: auto;
   tab-size: 2;
@@ -207,24 +207,24 @@
 /* Highlight overlay — rendered only when opts.highlight is provided. The
  * textarea's text becomes transparent so the colored <pre> layer shows
  * through; the caret and selection remain on the textarea. */
-.ef-ui-code-hlmode .ef-ui-code-text {
+.aeditor-ui-code-hlmode .aeditor-ui-code-text {
   position: relative;
   z-index: 1;
   color: transparent;
-  caret-color: var(--ef-fg-0);
+  caret-color: var(--aeditor-fg-0);
   background: transparent;
 }
-.ef-ui-code-hlmode .ef-ui-code-text::selection {
-  background: color-mix(in srgb, var(--ef-accent) 35%, transparent);
+.aeditor-ui-code-hlmode .aeditor-ui-code-text::selection {
+  background: color-mix(in srgb, var(--aeditor-accent) 35%, transparent);
   color: transparent;
 }
-.ef-ui-code-hl {
+.aeditor-ui-code-hl {
   position: absolute;
   inset: 0;
   margin: 0;
-  padding: var(--ef-space-2);
-  font: var(--ef-fs-sm)/var(--ef-lh-base) var(--ef-font-mono);
-  color: var(--ef-fg-0);
+  padding: var(--aeditor-space-2);
+  font: var(--aeditor-fs-sm)/var(--aeditor-lh-base) var(--aeditor-font-mono);
+  color: var(--aeditor-fg-0);
   background: transparent;
   white-space: pre;
   overflow: hidden;
@@ -232,7 +232,7 @@
   tab-size: 2;
   z-index: 0;
 }
-.ef-ui-code-hl-inner {
+.aeditor-ui-code-hl-inner {
   display: block;
   font: inherit;
   color: inherit;
@@ -241,201 +241,201 @@
 /* Token color palette — keyed off existing theme tokens so it follows
  * light/dark mode automatically. Callers wrap tokens with these class names
  * via the tokenize() helper (or any custom highlighter they write). */
-.ef-hl-k { color: var(--ef-accent); font-weight: 500; }     /* keyword */
-.ef-hl-i { color: var(--ef-fg-0); }                          /* ident */
-.ef-hl-s { color: var(--ef-success); }                       /* string */
-.ef-hl-n { color: var(--ef-info); }                          /* number */
-.ef-hl-c { color: var(--ef-fg-3); font-style: italic; }      /* comment */
-.ef-hl-p { color: var(--ef-fg-2); }                          /* punctuation */
+.aeditor-hl-k { color: var(--aeditor-accent); font-weight: 500; }     /* keyword */
+.aeditor-hl-i { color: var(--aeditor-fg-0); }                          /* ident */
+.aeditor-hl-s { color: var(--aeditor-success); }                       /* string */
+.aeditor-hl-n { color: var(--aeditor-info); }                          /* number */
+.aeditor-hl-c { color: var(--aeditor-fg-3); font-style: italic; }      /* comment */
+.aeditor-hl-p { color: var(--aeditor-fg-2); }                          /* punctuation */
 
 /* ── pathInput ──────────────────────────────────────────────────── */
-.ef-ui-path-browse {
+.aeditor-ui-path-browse {
   width: 22px;
   height: 22px;
-  background: var(--ef-bg-3);
-  border: 1px solid var(--ef-border-strong);
-  border-radius: var(--ef-r-1);
-  color: var(--ef-fg-1);
+  background: var(--aeditor-bg-3);
+  border: 1px solid var(--aeditor-border-strong);
+  border-radius: var(--aeditor-r-1);
+  color: var(--aeditor-fg-1);
   cursor: pointer;
-  font: var(--ef-fs-md) var(--ef-font-ui);
+  font: var(--aeditor-fs-md) var(--aeditor-font-ui);
   padding: 0;
 }
-.ef-ui-path-browse:hover { background: var(--ef-bg-4); color: var(--ef-fg-0); }
+.aeditor-ui-path-browse:hover { background: var(--aeditor-bg-4); color: var(--aeditor-fg-0); }
 
 /* ── fileInput ──────────────────────────────────────────────────── */
-.ef-ui-fileinput {
+.aeditor-ui-fileinput {
   display: flex;
   align-items: center;
   justify-content: center;
   width: 100%;
   min-height: 80px;
-  background: var(--ef-bg-2);
-  border: 1px dashed var(--ef-border-strong);
-  border-radius: var(--ef-r-3);
+  background: var(--aeditor-bg-2);
+  border: 1px dashed var(--aeditor-border-strong);
+  border-radius: var(--aeditor-r-3);
   cursor: pointer;
-  transition: background var(--ef-dur-fast) var(--ef-ease),
-              border var(--ef-dur-fast) var(--ef-ease);
+  transition: background var(--aeditor-dur-fast) var(--aeditor-ease),
+              border var(--aeditor-dur-fast) var(--aeditor-ease);
 }
-.ef-ui-fileinput:hover { border-color: var(--ef-accent-soft); background: var(--ef-bg-3); }
-.ef-ui-fileinput-label {
+.aeditor-ui-fileinput:hover { border-color: var(--aeditor-accent-soft); background: var(--aeditor-bg-3); }
+.aeditor-ui-fileinput-label {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: var(--ef-space-1);
-  padding: var(--ef-space-3);
+  gap: var(--aeditor-space-1);
+  padding: var(--aeditor-space-3);
   pointer-events: none;
 }
-.ef-ui-fileinput-icon { font-size: var(--ef-size-icon-lg); color: var(--ef-fg-2); }
-.ef-ui-fileinput-text {
-  font: var(--ef-fs-sm) var(--ef-font-ui);
-  color: var(--ef-fg-1);
+.aeditor-ui-fileinput-icon { font-size: var(--aeditor-size-icon-lg); color: var(--aeditor-fg-2); }
+.aeditor-ui-fileinput-text {
+  font: var(--aeditor-fs-sm) var(--aeditor-font-ui);
+  color: var(--aeditor-fg-1);
   text-align: center;
   word-break: break-all;
 }
 
 /* ── ui.assetPicker — path text + preview thumbnail + browse button ───── */
-.ef-ui-asset-picker {
+.aeditor-ui-asset-picker {
   display: inline-flex;
   align-items: center;
-  gap: var(--ef-space-1);
+  gap: var(--aeditor-space-1);
   padding: 2px;
   min-width: 0;
 }
-.ef-ui-asset-picker.is-missing {
-  border-color: var(--ef-error) !important;
-  box-shadow: 0 0 0 1px color-mix(in srgb, var(--ef-error) 55%, transparent) inset;
+.aeditor-ui-asset-picker.is-missing {
+  border-color: var(--aeditor-error) !important;
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--aeditor-error) 55%, transparent) inset;
 }
-.ef-ui-asset-preview {
+.aeditor-ui-asset-preview {
   display: flex;
   align-items: center;
   justify-content: center;
   width: 20px; height: 20px; flex-shrink: 0;
-  border-radius: var(--ef-r-1, 2px);
+  border-radius: var(--aeditor-r-1, 2px);
   background: repeating-linear-gradient(45deg,
-    var(--ef-bg-0) 0, var(--ef-bg-0) 2px,
-    var(--ef-bg-2) 2px, var(--ef-bg-2) 4px);
-  color: var(--ef-fg-3);
+    var(--aeditor-bg-0) 0, var(--aeditor-bg-0) 2px,
+    var(--aeditor-bg-2) 2px, var(--aeditor-bg-2) 4px);
+  color: var(--aeditor-fg-3);
   cursor: grab;
   overflow: hidden;
 }
-.ef-ui-asset-preview:hover { color: var(--ef-accent); }
-.ef-ui-asset-preview:active { cursor: grabbing; }
-.ef-ui-asset-preview img { width: 100%; height: 100%; object-fit: cover; }
-.ef-ui-asset-path {
+.aeditor-ui-asset-preview:hover { color: var(--aeditor-accent); }
+.aeditor-ui-asset-preview:active { cursor: grabbing; }
+.aeditor-ui-asset-preview img { width: 100%; height: 100%; object-fit: cover; }
+.aeditor-ui-asset-path {
   border: 0 !important;
   background: transparent !important;
   padding: 0 !important;
 }
 
 /* ── ui.dateInput — native date field, framed like ui.input ──────────── */
-.ef-ui-date-input::-webkit-calendar-picker-indicator {
+.aeditor-ui-date-input::-webkit-calendar-picker-indicator {
   cursor: pointer;
   filter: invert(.5);
   opacity: .75;
 }
-.ef-ui-date-input::-webkit-calendar-picker-indicator:hover { opacity: 1; }
+.aeditor-ui-date-input::-webkit-calendar-picker-indicator:hover { opacity: 1; }
 
 /* ── ui.anchorPicker — anchor preset grid + offset fields ─────────── */
-.ef-ui-anchor-picker {
+.aeditor-ui-anchor-picker {
   display: flex; flex-direction: column;
-  gap: var(--ef-space-2);
+  gap: var(--aeditor-space-2);
 }
-.ef-ui-anchor-grid {
+.aeditor-ui-anchor-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 2px;
   padding: 2px;
-  background: var(--ef-bg-2);
-  border: 1px solid var(--ef-border);
-  border-radius: var(--ef-r-2);
+  background: var(--aeditor-bg-2);
+  border: 1px solid var(--aeditor-border);
+  border-radius: var(--aeditor-r-2);
 }
-.ef-ui-anchor-cell {
+.aeditor-ui-anchor-cell {
   appearance: none;
-  background: var(--ef-bg-1);
+  background: var(--aeditor-bg-1);
   border: 1px solid transparent;
-  border-radius: var(--ef-r-1);
+  border-radius: var(--aeditor-r-1);
   padding: 0;
   aspect-ratio: 1;
   cursor: pointer;
-  transition: background var(--ef-dur-fast), border-color var(--ef-dur-fast);
+  transition: background var(--aeditor-dur-fast), border-color var(--aeditor-dur-fast);
 }
-.ef-ui-anchor-cell:hover { background: var(--ef-bg-3); }
-.ef-ui-anchor-cell.is-active {
-  background: color-mix(in srgb, var(--ef-accent) 18%, transparent);
-  border-color: var(--ef-accent);
+.aeditor-ui-anchor-cell:hover { background: var(--aeditor-bg-3); }
+.aeditor-ui-anchor-cell.is-active {
+  background: color-mix(in srgb, var(--aeditor-accent) 18%, transparent);
+  border-color: var(--aeditor-accent);
 }
-.ef-ui-anchor-glyph { width: 100%; height: 100%; display: block; }
-.ef-ui-anchor-glyph-frame {
-  fill: none; stroke: var(--ef-fg-3);
+.aeditor-ui-anchor-glyph { width: 100%; height: 100%; display: block; }
+.aeditor-ui-anchor-glyph-frame {
+  fill: none; stroke: var(--aeditor-fg-3);
   stroke-width: 0.5; stroke-dasharray: 1.5 1.5;
 }
-.ef-ui-anchor-glyph-span {
-  fill: color-mix(in srgb, var(--ef-accent) 22%, transparent);
+.aeditor-ui-anchor-glyph-span {
+  fill: color-mix(in srgb, var(--aeditor-accent) 22%, transparent);
 }
-.ef-ui-anchor-glyph-mark { fill: var(--ef-accent); }
-.ef-ui-anchor-cell.is-active .ef-ui-anchor-glyph-frame { stroke: var(--ef-accent); }
+.aeditor-ui-anchor-glyph-mark { fill: var(--aeditor-accent); }
+.aeditor-ui-anchor-cell.is-active .aeditor-ui-anchor-glyph-frame { stroke: var(--aeditor-accent); }
 
-.ef-ui-anchor-offsets {
+.aeditor-ui-anchor-offsets {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--ef-space-1) var(--ef-space-2);
+  gap: var(--aeditor-space-1) var(--aeditor-space-2);
 }
-.ef-ui-anchor-offset {
+.aeditor-ui-anchor-offset {
   display: grid;
   grid-template-columns: 48px minmax(0, 1fr);
   align-items: center;
-  gap: var(--ef-space-1);
+  gap: var(--aeditor-space-1);
 }
-.ef-ui-anchor-offset-label {
-  font: var(--ef-fs-sm) var(--ef-font-ui);
-  color: var(--ef-fg-2);
+.aeditor-ui-anchor-offset-label {
+  font: var(--aeditor-fs-sm) var(--aeditor-font-ui);
+  color: var(--aeditor-fg-2);
 }
-.ef-ui-anchor-offset-input {
+.aeditor-ui-anchor-offset-input {
   width: 100%; min-width: 0;
-  height: var(--ef-size-h-md);
-  padding: 0 var(--ef-space-1);
-  background: var(--ef-bg-2);
-  border: 1px solid var(--ef-border);
-  border-radius: var(--ef-r-1);
-  color: var(--ef-fg-0);
-  font: var(--ef-fs-sm) var(--ef-font-mono);
+  height: var(--aeditor-size-h-md);
+  padding: 0 var(--aeditor-space-1);
+  background: var(--aeditor-bg-2);
+  border: 1px solid var(--aeditor-border);
+  border-radius: var(--aeditor-r-1);
+  color: var(--aeditor-fg-0);
+  font: var(--aeditor-fs-sm) var(--aeditor-font-mono);
   box-sizing: border-box;
 }
-.ef-ui-anchor-offset-input:focus {
+.aeditor-ui-anchor-offset-input:focus {
   outline: none;
-  border-color: var(--ef-accent);
+  border-color: var(--aeditor-accent);
 }
 
 /* ─── ui.richPromptInput — inline atom prompt editor ───────────────────── */
-.ef-richprompt {
+.aeditor-richprompt {
   flex: 1 1 auto;
   min-width: 0;
   min-height: 0;
   display: flex;
 }
 
-.ef-richprompt-editor {
+.aeditor-richprompt-editor {
   flex: 1 1 auto;
   min-width: 0;
   min-height: 62px;
   padding: 15px;
-  color: var(--ef-fg-0);
-  font: var(--ef-fs-md)/var(--ef-lh-base) var(--ef-font-ui);
+  color: var(--aeditor-fg-0);
+  font: var(--aeditor-fs-md)/var(--aeditor-lh-base) var(--aeditor-font-ui);
   white-space: pre-wrap;
   overflow-wrap: anywhere;
   overflow: auto;
   outline: none;
-  caret-color: var(--ef-accent);
+  caret-color: var(--aeditor-accent);
   box-sizing: border-box;
 }
 
-.ef-richprompt-editor:empty::before {
+.aeditor-richprompt-editor:empty::before {
   content: attr(data-placeholder);
-  color: var(--ef-fg-3);
+  color: var(--aeditor-fg-3);
   pointer-events: none;
 }
 
-.ef-richprompt-token {
+.aeditor-richprompt-token {
   display: inline-flex;
   align-items: center;
   max-width: 220px;
@@ -445,43 +445,43 @@
   padding: 0 6px;
   gap: 4px;
   vertical-align: middle;
-  border: 1px solid color-mix(in srgb, var(--ef-accent) 34%, var(--ef-border));
+  border: 1px solid color-mix(in srgb, var(--aeditor-accent) 34%, var(--aeditor-border));
   border-radius: 999px;
-  background: color-mix(in srgb, var(--ef-accent) 12%, var(--ef-bg-2));
-  color: var(--ef-fg-0);
-  font: var(--ef-fs-xs) var(--ef-font-ui);
+  background: color-mix(in srgb, var(--aeditor-accent) 12%, var(--aeditor-bg-2));
+  color: var(--aeditor-fg-0);
+  font: var(--aeditor-fs-xs) var(--aeditor-font-ui);
   cursor: default;
 }
 
-.ef-richprompt-token:hover {
-  border-color: color-mix(in srgb, var(--ef-accent) 58%, var(--ef-border));
-  background: color-mix(in srgb, var(--ef-accent) 18%, var(--ef-bg-2));
+.aeditor-richprompt-token:hover {
+  border-color: color-mix(in srgb, var(--aeditor-accent) 58%, var(--aeditor-border));
+  background: color-mix(in srgb, var(--aeditor-accent) 18%, var(--aeditor-bg-2));
 }
 
-.ef-richprompt-token-thumb {
+.aeditor-richprompt-token-thumb {
   flex: 0 0 auto;
   width: 16px;
   height: 16px;
   border-radius: 4px;
   object-fit: cover;
-  background: var(--ef-bg-0);
-  box-shadow: inset 0 0 0 1px var(--ef-border);
+  background: var(--aeditor-bg-0);
+  box-shadow: inset 0 0 0 1px var(--aeditor-border);
 }
 
-.ef-richprompt-token-label {
+.aeditor-richprompt-token-label {
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.ef-richprompt-token-remove {
+.aeditor-richprompt-token-remove {
   flex: 0 0 auto;
-  color: var(--ef-fg-3);
+  color: var(--aeditor-fg-3);
   font-weight: 700;
 }
 
-.ef-richprompt-caret {
+.aeditor-richprompt-caret {
   display: inline-block;
   width: 0;
   min-width: 0;

@@ -1,8 +1,8 @@
-// EF.ui.structInput — generic fixed-shape object editor.
+// aeditor.ui.structInput — generic fixed-shape object editor.
 //
 // Renders one row per field; each row = [label · editor]. The editor for each
 // slot is produced by a caller-provided factory — this component does not
-// know about type_config or FieldDef. Use it anywhere you need a schema-less
+// know about type_config or FieldDaeditor. Use it anywhere you need a schema-less
 // "edit a record" UI.
 //
 // opts:
@@ -19,9 +19,9 @@
 // their editor (derived's Object.is dirty-check filters the rest). The row
 // DOM is created once and never rebuilt for value changes — in-flight edits,
 // focus, pointer capture all survive external writes.
-;(function (EF) {
+;(function (aeditor) {
   'use strict'
-  const ui = EF.ui = EF.ui || {}
+  const ui = aeditor.ui = aeditor.ui || {}
 
   ui.structInput = function (opts) {
     const o = opts || {}
@@ -31,12 +31,12 @@
     const ctx      = o.ctx
     const onChange = typeof o.onChange === 'function' ? o.onChange : null
 
-    const root = ui.h('div', 'ef-ui-struct-input')
+    const root = ui.h('div', 'aeditor-ui-struct-input')
 
     fields.forEach(function (f) {
-      const row   = ui.h('div', 'ef-ui-struct-input-row')
+      const row   = ui.h('div', 'aeditor-ui-struct-input-row')
       row.dataset.efFieldKey = String(f.key)
-      const label = ui.h('div', 'ef-ui-struct-input-label', { text: f.label || f.key })
+      const label = ui.h('div', 'aeditor-ui-struct-input-label', { text: f.label || f.key })
       // Tooltip surfaces the field's purpose on hover. The `data-has-tip`
       // marker is a CSS hook for the help cursor; we don't paint that
       // cursor on every label because most labels have no extra info.
@@ -44,9 +44,9 @@
         label.setAttribute('data-has-tip', '')
         ui.tooltip(label, { text: f.tooltip })
       }
-      const cell  = ui.h('div', 'ef-ui-struct-input-cell')
+      const cell  = ui.h('div', 'aeditor-ui-struct-input-cell')
 
-      const fieldSig = EF.derived(function () {
+      const fieldSig = aeditor.derived(function () {
         const cur = value()
         return cur == null ? undefined : cur[f.key]
       })
@@ -70,4 +70,4 @@
 
     return root
   }
-})(window.EF = window.EF || {})
+})(window.aeditor = window.aeditor || {})

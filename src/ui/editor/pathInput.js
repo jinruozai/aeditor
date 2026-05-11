@@ -1,4 +1,4 @@
-// EF.ui.pathInput — file/folder path with browse button.
+// aeditor.ui.pathInput — file/folder path with browse button.
 //
 // In a pure-frontend world we can't actually open OS file dialogs. This
 // component emits an `onBrowse` callback you wire up to your own picker (or
@@ -12,9 +12,9 @@
 //   useFileInput?, onBrowse?,
 //   mode?: 'file'|'folder'|signal,
 // }
-;(function (EF) {
+;(function (aeditor) {
   'use strict'
-  const ui = EF.ui = EF.ui || {}
+  const ui = aeditor.ui = aeditor.ui || {}
 
   ui.pathInput = function (opts) {
     const o = opts || {}
@@ -23,10 +23,10 @@
     const disabled    = ui.asSig(o.disabled    != null ? o.disabled    : false)
     const mode        = ui.asSig(o.mode        != null ? o.mode        : 'file')
     const doWrite = ui.writer(sig, o.onChange, 'ui.pathInput')
-    const el = ui.h('div', 'ef-ui-field ef-ui-path')
-    const ic = ui.h('span', 'ef-ui-field-prefix')
-    const inp = ui.h('input', 'ef-ui-input', { type: 'text' })
-    const btn = ui.h('button', 'ef-ui-path-browse', { type: 'button', text: '…' })
+    const el = ui.h('div', 'aeditor-ui-field aeditor-ui-path')
+    const ic = ui.h('span', 'aeditor-ui-field-prefix')
+    const inp = ui.h('input', 'aeditor-ui-input', { type: 'text' })
+    const btn = ui.h('button', 'aeditor-ui-path-browse', { type: 'button', text: '…' })
     el.appendChild(ic); el.appendChild(inp); el.appendChild(btn)
 
     ui.bind(el, mode, function (v) { ic.textContent = v === 'folder' ? '📁' : '📄' })
@@ -71,4 +71,4 @@
     })
     return el
   }
-})(window.EF = window.EF || {})
+})(window.aeditor = window.aeditor || {})

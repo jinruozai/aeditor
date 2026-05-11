@@ -1,8 +1,8 @@
-// EF.ai rich prompt draft helpers.
-;(function (EF) {
+// aeditor.ai rich prompt draft helpers.
+;(function (aeditor) {
   'use strict'
 
-  const ai = EF.ai = EF.ai || {}
+  const ai = aeditor.ai = aeditor.ai || {}
   const START = 0xE000
   const END = 0xF8FF
 
@@ -239,4 +239,4 @@
     fromContent: fromContent,
     isTokenChar: isTokenChar,
   }
-})(window.EF = window.EF || {})
+})(window.aeditor = window.aeditor || {})

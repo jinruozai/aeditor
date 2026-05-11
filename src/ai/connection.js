@@ -1,14 +1,14 @@
-// EF.ai connection/auth/transport registry.
-;(function (EF) {
+// aeditor.ai connection/auth/transport registry.
+;(function (aeditor) {
   'use strict'
 
-  const ai = EF.ai = EF.ai || {}
+  const ai = aeditor.ai = aeditor.ai || {}
   const connections = {}
   const authDrivers = {}
   const transportDrivers = {}
-  const connectionsSig = EF.signal([])
-  const modelsSig = EF.signal({})
-  const statusSig = EF.signal({})
+  const connectionsSig = aeditor.signal([])
+  const modelsSig = aeditor.signal({})
+  const statusSig = aeditor.signal({})
   const CUSTOM_KEY = 'ai.customConnections'
   let activeConnection = 'mock'
 
@@ -40,12 +40,12 @@
   }
 
   function customConnections() {
-    if (EF.settings && EF.settings.values) EF.settings.values()
-    return EF.settings && EF.settings.get ? (EF.settings.get(CUSTOM_KEY) || []) : []
+    if (aeditor.settings && aeditor.settings.values) aeditor.settings.values()
+    return aeditor.settings && aeditor.settings.get ? (aeditor.settings.get(CUSTOM_KEY) || []) : []
   }
 
   function persistCustomConnections(list) {
-    if (EF.settings && EF.settings.set) EF.settings.set(CUSTOM_KEY, list || [])
+    if (aeditor.settings && aeditor.settings.set) aeditor.settings.set(CUSTOM_KEY, list || [])
   }
 
   function createCustomConnection(spec) {
@@ -133,10 +133,10 @@
   function connectionConfig(id, overrides) {
     const c = getConnection(id)
     const defaults = Object.assign({}, (c && c.configDefaults) || {})
-    if (EF.settings && c) {
-      if (EF.settings.values) EF.settings.values()
+    if (aeditor.settings && c) {
+      if (aeditor.settings.values) aeditor.settings.values()
       Object.keys(defaults).forEach(function (key) {
-        const value = EF.settings.get(configKey(c.id, key))
+        const value = aeditor.settings.get(configKey(c.id, key))
         if (value !== undefined) defaults[key] = value
       })
     }
@@ -254,4 +254,4 @@
   ai.refreshModels = refreshModels
   ai.sendViaConnection = send
   ai.models = modelsSig
-})(window.EF = window.EF || {})
+})(window.aeditor = window.aeditor || {})

@@ -1,8 +1,8 @@
-// EF.ai agent name generator.
-;(function (EF) {
+// aeditor.ai agent name generator.
+;(function (aeditor) {
   'use strict'
 
-  const ai = EF.ai = EF.ai || {}
+  const ai = aeditor.ai = aeditor.ai || {}
 
   const AGENT_NAMES = [
     'Aria', 'Atlas', 'Aster', 'Astra', 'Aurora', 'Blake', 'Briar', 'Calder', 'Calla', 'Cedar',
@@ -61,4 +61,4 @@
   }
 
   ai.generateAgentName = generateAgentName
-})(window.EF = window.EF || {})
+})(window.aeditor = window.aeditor || {})

@@ -7,8 +7,8 @@
 // fragments small (and identical in construction) lets `ui.icon` swap
 // between named icons without touching attributes.
 //
-// Users can extend or override via `EF.ui.registerIcon(name, innerMarkup)`.
-;(function (EF) {
+// Users can extend or override via `aeditor.ui.registerIcon(name, innerMarkup)`.
+;(function (aeditor) {
   'use strict'
 
   const ICONS = {
@@ -104,8 +104,8 @@
     return Object.prototype.hasOwnProperty.call(ICONS, name)
   }
 
-  EF.ui = EF.ui || {}
-  EF.ui.registerIcon = registerIcon
-  EF.ui._getIcon     = getIcon
-  EF.ui._hasIcon     = hasIcon
-})(window.EF = window.EF || {})
+  aeditor.ui = aeditor.ui || {}
+  aeditor.ui.registerIcon = registerIcon
+  aeditor.ui._getIcon     = getIcon
+  aeditor.ui._hasIcon     = hasIcon
+})(window.aeditor = window.aeditor || {})

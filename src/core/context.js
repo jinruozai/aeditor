@@ -10,11 +10,11 @@
 // The runtime layer (dock/runtime.js) is responsible for setting up
 // runtime.data / runtime.dockRef / runtime.active before calling makeContext.
 // This file is pure glue — it never touches DOM and never decides lifetimes.
-;(function (EF) {
+;(function (aeditor) {
   'use strict'
 
-  const signal  = EF.signal
-  const derived = EF.derived
+  const signal  = aeditor.signal
+  const derived = aeditor.derived
 
   function scopedDerived(runtime, fn) {
     const sig = derived(fn)
@@ -35,17 +35,17 @@
 
     ctx.onCleanup = function (fn) { runtime.cleanups.push(fn) }
 
-    ctx.safeCall = function (fn) { return EF.safeCall(runtimeSource(runtime), fn) }
+    ctx.safeCall = function (fn) { return aeditor.safeCall(runtimeSource(runtime), fn) }
 
     // Auto-unsubscribing bus. The disposer returned by `on()` is the single
     // canonical way to unsubscribe — it's idempotent and self-splices from
     // `runtime.cleanups`, so manual early-unsubscribe leaves no stale entry.
     // Panel dispose flushes anything still in cleanups. Components that need the
-    // raw `off(topic, handler)` surface can use EF.bus.off directly.
+    // raw `off(topic, handler)` surface can use aeditor.bus.off directly.
     ctx.bus = {
       on: function (topic, handler) {
-        const rawOff = EF.bus.on(topic, function (payload) {
-          EF.safeCall(busSource(runtime, topic), function () { handler(payload) })
+        const rawOff = aeditor.bus.on(topic, function (payload) {
+          aeditor.safeCall(busSource(runtime, topic), function () { handler(payload) })
         })
         let done = false
         const dispose = function () {
@@ -58,7 +58,7 @@
         runtime.cleanups.push(dispose)
         return dispose
       },
-      emit: EF.bus.emit,
+      emit: aeditor.bus.emit,
     }
 
     ctx.dock = makeDockCtx(runtime, layout)
@@ -79,7 +79,7 @@
 
     function lookupDock() {
       const id = dockIdSig()
-      const found = EF.findDock(treeSig(), id)
+      const found = aeditor.findDock(treeSig(), id)
       return found ? found.node : null
     }
 
@@ -97,7 +97,7 @@
       // or its parent split direction doesn't match the collapse axis. The
       // collapsed bit in tree is a user-intent flag; this signal tells you
       // whether render.js will actually honor it at the current position.
-      canCollapse: scopedDerived(runtime, function () { return EF.canCollapseDock(treeSig(), dockIdSig()) }),
+      canCollapse: scopedDerived(runtime, function () { return aeditor.canCollapseDock(treeSig(), dockIdSig()) }),
 
       activatePanel: function (id) { layout.activatePanel(id) },
       removePanel:   function (id) { layout.removePanel(id) },
@@ -106,10 +106,10 @@
       addPanel:      function (partial) { return { panelId: layout.addPanel(dockIdSig(), partial) } },
       toggleFocus:   function () {
         const d = lookupDock()
-        layout.setTree(EF.setFocused(treeSig.peek(), dockIdSig(), !(d && d.focused)))
+        layout.setTree(aeditor.setFocused(treeSig.peek(), dockIdSig(), !(d && d.focused)))
       },
-      setFocus:     function (b) { layout.setTree(EF.setFocused(treeSig.peek(), dockIdSig(), !!b)) },
-      setCollapsed: function (b) { layout.setTree(EF.setCollapsed(treeSig.peek(), dockIdSig(), !!b)) },
+      setFocus:     function (b) { layout.setTree(aeditor.setFocused(treeSig.peek(), dockIdSig(), !!b)) },
+      setCollapsed: function (b) { layout.setTree(aeditor.setCollapsed(treeSig.peek(), dockIdSig(), !!b)) },
     }
   }
 
@@ -118,7 +118,7 @@
     const panelId = runtime.panelId  // immutable for the lifetime of the runtime
 
     function patch(fields) {
-      layout.setTree(EF.updatePanel(layout.treeSig.peek(), panelId, fields))
+      layout.setTree(aeditor.updatePanel(layout.treeSig.peek(), panelId, fields))
     }
 
     return {
@@ -141,7 +141,7 @@
       promote: function () { layout.promotePanel(panelId) },
       close:   function () { layout.removePanel(panelId) },
       popOut:  function () {
-        if (EF._dock.popOutPanel) EF._dock.popOutPanel(panelId, layout)
+        if (aeditor._dock.popOutPanel) aeditor._dock.popOutPanel(panelId, layout)
       },
     }
   }
@@ -162,6 +162,6 @@
     return src
   }
 
-  EF._dock = EF._dock || {}
-  EF._dock.makeContext = makeContext
-})(window.EF = window.EF || {})
+  aeditor._dock = aeditor._dock || {}
+  aeditor._dock.makeContext = makeContext
+})(window.aeditor = window.aeditor || {})

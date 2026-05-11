@@ -2,7 +2,7 @@
 import { readFileSync } from 'node:fs'
 import vm from 'node:vm'
 
-global.window = { EF: {} }
+global.window = { aeditor: {} }
 
 for (const file of [
   'src/core/signal.js',
@@ -22,7 +22,7 @@ for (const file of [
   vm.runInThisContext(readFileSync(file, 'utf8'), { filename: file })
 }
 
-const ai = window.EF.ai
+const ai = window.aeditor.ai
 
 function byId(items, id) {
   return items.find(function (item) { return item.id === id })

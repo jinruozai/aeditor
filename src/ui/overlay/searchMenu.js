@@ -1,4 +1,4 @@
-// EF.ui.searchMenu — popover menu with a search field.
+// aeditor.ui.searchMenu — popover menu with a search field.
 //
 // opts:
 //   anchor: HTMLElement
@@ -6,22 +6,22 @@
 //   items:  [{ label, value?, icon?, group?, onSelect? }]
 //   placeholder?: string
 //   side?, align?, width?, maxHeight?
-;(function (EF) {
+;(function (aeditor) {
   'use strict'
-  const ui = EF.ui = EF.ui || {}
+  const ui = aeditor.ui = aeditor.ui || {}
 
   ui.searchMenu = function (opts) {
     const o = opts || {}
     let pop = null
-    const root = ui.h('div', 'ef-ui-search-menu')
-    const query = EF.signal('')
+    const root = ui.h('div', 'aeditor-ui-search-menu')
+    const query = aeditor.signal('')
     const input = ui.searchInput({
       value: query,
       placeholder: o.placeholder || 'Search...',
       onChange: function () { active = 0; paint() },
     })
-    input.classList.add('ef-ui-search-menu-input')
-    const list = ui.h('div', 'ef-ui-menu ef-ui-search-menu-list')
+    input.classList.add('aeditor-ui-search-menu-input')
+    const list = ui.h('div', 'aeditor-ui-menu aeditor-ui-search-menu-list')
     root.appendChild(input)
     root.appendChild(list)
 
@@ -43,26 +43,26 @@
       if (active >= rows.length) active = rows.length - 1
       if (active < 0) active = 0
       if (!rows.length) {
-        list.appendChild(ui.h('div', 'ef-ui-menu-empty', { text: 'No matches' }))
+        list.appendChild(ui.h('div', 'aeditor-ui-menu-empty', { text: 'No matches' }))
         return
       }
       let lastGroup = null
       rows.forEach(function (it, idx) {
         if (it.group && it.group !== lastGroup) {
           lastGroup = it.group
-          list.appendChild(ui.h('div', 'ef-ui-menu-header', { text: it.group }))
+          list.appendChild(ui.h('div', 'aeditor-ui-menu-header', { text: it.group }))
         }
-        const row = ui.h('button', 'ef-ui-menu-item' + (idx === active ? ' ef-ui-menu-item-active' : ''), { type: 'button' })
+        const row = ui.h('button', 'aeditor-ui-menu-item' + (idx === active ? ' aeditor-ui-menu-item-active' : ''), { type: 'button' })
         if (it.icon) row.appendChild(ui.icon({ name: it.icon, size: 'sm' }))
-        row.appendChild(ui.h('span', 'ef-ui-menu-item-label', { text: it.label != null ? it.label : String(it.value) }))
+        row.appendChild(ui.h('span', 'aeditor-ui-menu-item-label', { text: it.label != null ? it.label : String(it.value) }))
         row.addEventListener('mouseenter', function () { active = idx; paintActive() })
         row.addEventListener('click', function () { choose(it) })
         list.appendChild(row)
       })
     }
     function paintActive() {
-      const rows = Array.from(list.querySelectorAll('.ef-ui-menu-item'))
-      rows.forEach(function (row, idx) { row.classList.toggle('ef-ui-menu-item-active', idx === active) })
+      const rows = Array.from(list.querySelectorAll('.aeditor-ui-menu-item'))
+      rows.forEach(function (row, idx) { row.classList.toggle('aeditor-ui-menu-item-active', idx === active) })
       if (rows[active]) rows[active].scrollIntoView({ block: 'nearest' })
     }
     function choose(it) {
@@ -109,4 +109,4 @@
     }, 0)
     return pop
   }
-})(window.EF = window.EF || {})
+})(window.aeditor = window.aeditor || {})

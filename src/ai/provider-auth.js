@@ -1,8 +1,8 @@
-// EF.ai built-in auth drivers.
-;(function (EF) {
+// aeditor.ai built-in auth drivers.
+;(function (aeditor) {
   'use strict'
 
-  const ai = EF.ai = EF.ai || {}
+  const ai = aeditor.ai = aeditor.ai || {}
   const http = ai.provider
 
   function openLoginUrl(result, opts) {
@@ -58,4 +58,4 @@
       return http.requestJson(http.joinUrl(config.baseUrl, '/connections/' + connection.id + '/logout'), { method: 'POST' })
     },
   })
-})(window.EF = window.EF || {})
+})(window.aeditor = window.aeditor || {})

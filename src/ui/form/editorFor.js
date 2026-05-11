@@ -1,12 +1,12 @@
-// EF.ui.editorFor — FieldDef → editor-element dispatcher.
+// aeditor.ui.editorFor — FieldDef → editor-element dispatcher.
 //
-//   EF.ui.editorFor(fieldDef, value, onChange, [ctx]) → HTMLElement
-//     fieldDef: FieldDef (raw or already-resolved TypeDef)
+//   aeditor.ui.editorFor(fieldDef, value, onChange, [ctx]) → HTMLElement
+//     fieldDaeditor: FieldDef (raw or already-resolved TypeDef)
 //     value   : current value (plain) OR a signal — plain values are wrapped
 //     onChange: (nv) => void   callback invoked when the picked renderer commits
 //     ctx?    : free-form context forwarded to the renderer (opaque to us)
 //
-// The renderer is resolved by FieldDef.type_render against the registry
+// The renderer is resolved by FieldDaeditor.type_render against the registry
 // (ui.registerRenderer / ui.getRenderer). Built-in renderers registered here
 // are thin adapters between a ResolvedFieldDef + sig and a ui.* primitive;
 // they do NOT touch ctx. Domain-specific behavior (cross-table navigation on
@@ -16,17 +16,17 @@
 // HTMLElement. Built-ins: input_string | textarea | input_int | input_float
 // | range | enum | toggle | color | date | img | snd | id | ref_id | struct
 // | array.
-;(function (EF) {
+;(function (aeditor) {
   'use strict'
-  const ui = EF.ui = EF.ui || {}
+  const ui = aeditor.ui = aeditor.ui || {}
 
   function editorFor(fieldDef, value, onChange, ctx) {
-    const resolved = fieldDef && fieldDef._resolved
+    const resolved = fieldDef && fieldDaeditor._resolved
       ? fieldDef
       : ui.resolveFieldDef(fieldDef || {})
     if (resolved) resolved._resolved = true
 
-    const sig = ui.isSignal(value) ? value : EF.signal(value)
+    const sig = ui.isSignal(value) ? value : aeditor.signal(value)
     const write = function (nv) {
       if (typeof onChange === 'function') onChange(nv)
       else if (typeof sig.set === 'function') sig.set(nv)
@@ -34,7 +34,7 @@
 
     const kind = (resolved && resolved.type_render) || 'input_string'
     const fn = ui.getRenderer(kind) || ui.getRenderer('input_string')
-    return fn({ fieldDef: resolved, sig: sig, write: write, ctx: ctx || {} })
+    return fn({ fieldDaeditor: resolved, sig: sig, write: write, ctx: ctx || {} })
   }
 
   ui.editorFor = editorFor
@@ -43,16 +43,16 @@
   function asPlain(v) { return ui.isSignal(v) ? v.peek() : v }
 
   ui.registerRenderer('input_string', function (a) {
-    const agv = a.fieldDef.type_agv || {}
-    if (a.fieldDef.commit === 'blur') {
-      const local = EF.signal(asPlain(a.sig))
+    const agv = a.fieldDaeditor.type_agv || {}
+    if (a.fieldDaeditor.commit === 'blur') {
+      const local = aeditor.signal(asPlain(a.sig))
       const el = ui.input({
         value: local,
         onChange: function (v) { local.set(v) },
         onCommit: a.write,
         type: agv.password ? 'password' : 'text',
       })
-      ui.collect(el, EF.effect(function () { local.set(asPlain(a.sig)) }))
+      ui.collect(el, aeditor.effect(function () { local.set(asPlain(a.sig)) }))
       return el
     }
     return ui.input({ value: a.sig, onChange: a.write, type: agv.password ? 'password' : 'text' })
@@ -67,8 +67,8 @@
   function toNumOr(v, fb) { const n = Number(v); return Number.isFinite(n) ? n : fb }
   function asNumericSig(sig, fallback) {
     const fb  = fallback != null ? fallback : 0
-    const tap = EF.signal(toNumOr(asPlain(sig), fb))
-    tap.dispose = EF.effect(function () { tap.set(toNumOr(sig(), fb)) })
+    const tap = aeditor.signal(toNumOr(asPlain(sig), fb))
+    tap.dispose = aeditor.effect(function () { tap.set(toNumOr(sig(), fb)) })
     return tap
   }
 
@@ -78,7 +78,7 @@
   }
 
   ui.registerRenderer('input_int', function (a) {
-    const agv = a.fieldDef.type_agv || {}
+    const agv = a.fieldDaeditor.type_agv || {}
     const sig = asNumericSig(a.sig)
     return collectSignal(ui.numberInput({
       value: sig, onChange: a.write,
@@ -87,7 +87,7 @@
     }), sig)
   })
   ui.registerRenderer('input_float', function (a) {
-    const agv = a.fieldDef.type_agv || {}
+    const agv = a.fieldDaeditor.type_agv || {}
     const sig = asNumericSig(a.sig)
     return collectSignal(ui.numberInput({
       value: sig, onChange: a.write,
@@ -97,8 +97,8 @@
     }), sig)
   })
   ui.registerRenderer('range', function (a) {
-    const agv   = a.fieldDef.type_agv || {}
-    const isInt = a.fieldDef.base_type === 'int'
+    const agv   = a.fieldDaeditor.type_agv || {}
+    const isInt = a.fieldDaeditor.base_type === 'int'
     const min   = agv.min != null ? agv.min : 0
     const sig = asNumericSig(a.sig, min)
     return collectSignal(ui.slider({
@@ -111,8 +111,8 @@
     }), sig)
   })
   ui.registerRenderer('enum', function (a) {
-    const agv   = a.fieldDef.type_agv || {}
-    const isInt = a.fieldDef.base_type === 'int'
+    const agv   = a.fieldDaeditor.type_agv || {}
+    const isInt = a.fieldDaeditor.base_type === 'int'
     return ui.select({
       value: a.sig,
       onChange: function (v) { a.write(isInt ? Number(v) : v) },
@@ -120,27 +120,27 @@
     })
   })
   ui.registerRenderer('toggle', function (a) {
-    const isInt  = a.fieldDef.base_type === 'int'
-    const shimSig = EF.signal(!!asPlain(a.sig))
-    shimSig.dispose = EF.effect(function () { shimSig.set(!!a.sig()) })
+    const isInt  = a.fieldDaeditor.base_type === 'int'
+    const shimSig = aeditor.signal(!!asPlain(a.sig))
+    shimSig.dispose = aeditor.effect(function () { shimSig.set(!!a.sig()) })
     return collectSignal(ui.switch({
       value: shimSig,
       onChange: function (v) { a.write(isInt ? (v ? 1 : 0) : !!v) },
     }), shimSig)
   })
   ui.registerRenderer('color', function (a) {
-    const agv = a.fieldDef.type_agv || {}
+    const agv = a.fieldDaeditor.type_agv || {}
     return ui.colorInput({
       value:     a.sig,
       onChange:  a.write,
-      valueKind: agv.valueKind || (a.fieldDef.base_type === 'int' ? 'int' : 'hex'),
+      valueKind: agv.valueKind || (a.fieldDaeditor.base_type === 'int' ? 'int' : 'hex'),
     })
   })
   ui.registerRenderer('date', function (a) {
     return ui.dateInput({ value: a.sig, onChange: a.write })
   })
   ui.registerRenderer('img', function (a) {
-    const agv = a.fieldDef.type_agv || {}
+    const agv = a.fieldDaeditor.type_agv || {}
     return ui.assetPicker({
       value:       a.sig,
       onChange:    a.write,
@@ -150,7 +150,7 @@
     })
   })
   ui.registerRenderer('snd', function (a) {
-    const agv = a.fieldDef.type_agv || {}
+    const agv = a.fieldDaeditor.type_agv || {}
     return ui.assetPicker({
       value:       a.sig,
       onChange:    a.write,
@@ -170,9 +170,9 @@
 
   // ── struct / array: delegate to the general-purpose ui.* components.
   ui.registerRenderer('struct', function (a) {
-    const def = normalizeStructDef(a.fieldDef.struct_def)
+    const def = normalizeStructDef(a.fieldDaeditor.struct_def)
     if (!def) {
-      const err = ui.h('div', 'ef-ui-struct-input', { text: '(invalid struct_def)' })
+      const err = ui.h('div', 'aeditor-ui-struct-input', { text: '(invalid struct_def)' })
       return err
     }
     const fields = Object.keys(def).map(function (fname) {
@@ -189,8 +189,8 @@
   })
 
   ui.registerRenderer('array', function (a) {
-    const agv      = a.fieldDef.type_agv || {}
-    const elemType = agv.elem_type || parseArrayElemType(a.fieldDef.type) || 'string'
+    const agv      = a.fieldDaeditor.type_agv || {}
+    const elemType = agv.elem_type || parseArrayElemType(a.fieldDaeditor.type) || 'string'
     const elemFd   = ui.resolveFieldDef({ type: elemType })
     return ui.arrayInput({
       value:        a.sig,
@@ -246,4 +246,4 @@
     }
     return def
   }
-})(window.EF = window.EF || {})
+})(window.aeditor = window.aeditor || {})

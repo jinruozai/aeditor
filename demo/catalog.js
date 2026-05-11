@@ -22,7 +22,7 @@
 // property panel flow automatically into every mounted component.
 ;(function () {
   'use strict'
-  const ui = EF.ui
+  const ui = aeditor.ui
 
   // ── shared option lists ─────────────────────────────────────────────
   const BUTTON_KINDS = [
@@ -65,17 +65,17 @@
       description: 'Text button. Supports kinds, sizes, disabled, click.',
       signals: function () {
         return {
-          text:     EF.signal('Click me'),
-          kind:     EF.signal('default'),
-          size:     EF.signal('md'),
-          disabled: EF.signal(false),
+          text:     aeditor.signal('Click me'),
+          kind:     aeditor.signal('default'),
+          size:     aeditor.signal('md'),
+          disabled: aeditor.signal(false),
         }
       },
       mount: function (s) {
         let clicks = 0
         return ui.button({ text: s.text, kind: s.kind, size: s.size, disabled: s.disabled, onClick: function () {
           clicks++
-          EF.log.push('info', { scope: 'component', component: 'button' }, 'clicked (' + clicks + ')')
+          aeditor.log.push('info', { scope: 'component', component: 'button' }, 'clicked (' + clicks + ')')
         }})
       },
       editFor: function (s) { return {
@@ -90,10 +90,10 @@
       id: 'iconButton', name: 'Icon Button', category: 'base',
       description: 'Compact icon-only button. Title is required for a11y.',
       signals: function () { return {
-        icon:     EF.signal('★'),
-        size:     EF.signal('md'),
-        kind:     EF.signal('default'),
-        disabled: EF.signal(false),
+        icon:     aeditor.signal('★'),
+        size:     aeditor.signal('md'),
+        kind:     aeditor.signal('default'),
+        disabled: aeditor.signal(false),
       }},
       mount: function (s) {
         return ui.iconButton({ icon: s.icon, size: s.size, kind: s.kind, disabled: s.disabled, title: 'Favorite' })
@@ -110,8 +110,8 @@
       id: 'icon', name: 'Icon', category: 'base',
       description: 'Glyph or monospace icon token. Size-aware.',
       signals: function () { return {
-        glyph: EF.signal('◆'),
-        size:  EF.signal('md'),
+        glyph: aeditor.signal('◆'),
+        size:  aeditor.signal('md'),
       }},
       mount: function (s) { return ui.icon({ glyph: s.glyph, size: s.size }) },
       editFor: function (s) { return { glyph: s.glyph, size: { signal: s.size, options: SIZES } } },
@@ -120,7 +120,7 @@
     {
       id: 'tooltip', name: 'Tooltip', category: 'base',
       description: 'Hover tooltip. Wraps any target element.',
-      signals: function () { return { text: EF.signal('This is a tooltip') } },
+      signals: function () { return { text: aeditor.signal('This is a tooltip') } },
       mount: function (s) {
         const wrap = ui.h('div', null, { style: 'display:inline-block' })
         const target = ui.button({ text: 'Hover me', kind: 'ghost' })
@@ -134,7 +134,7 @@
     {
       id: 'kbd', name: 'Keyboard Hint', category: 'base',
       description: 'Styled keycap — decorative only.',
-      signals: function () { return { text: EF.signal('Ctrl+K') } },
+      signals: function () { return { text: aeditor.signal('Ctrl+K') } },
       mount: function (s) { return ui.kbd({ text: s.text }) },
       editFor: function (s) { return { text: s.text } },
     },
@@ -143,9 +143,9 @@
       id: 'badge', name: 'Badge', category: 'base',
       description: 'Small tag label. Supports dot mode and variants.',
       signals: function () { return {
-        text: EF.signal('NEW'),
-        kind: EF.signal('accent'),
-        dot:  EF.signal(false),
+        text: aeditor.signal('NEW'),
+        kind: aeditor.signal('accent'),
+        dot:  aeditor.signal(false),
       }},
       mount: function (s) { return ui.badge({ text: s.text, kind: s.kind, dot: s.dot }) },
       editFor: function (s) { return {
@@ -159,12 +159,12 @@
       id: 'tag', name: 'Tag', category: 'base',
       description: 'Chip with color + optional close button.',
       signals: function () { return {
-        text:  EF.signal('javascript'),
-        color: EF.signal('accent'),
+        text:  aeditor.signal('javascript'),
+        color: aeditor.signal('accent'),
       }},
       mount: function (s) {
         return ui.tag({ text: s.text, color: s.color, onClose: function () {
-          EF.log.push('info', { scope: 'component', component: 'tag' }, 'tag close clicked')
+          aeditor.log.push('info', { scope: 'component', component: 'tag' }, 'tag close clicked')
         }})
       },
       editFor: function (s) { return {
@@ -176,7 +176,7 @@
     {
       id: 'spinner', name: 'Spinner', category: 'base',
       description: 'Indeterminate loading spinner.',
-      signals: function () { return { size: EF.signal('md') } },
+      signals: function () { return { size: aeditor.signal('md') } },
       mount: function (s) { return ui.spinner({ size: s.size }) },
       editFor: function (s) { return { size: { signal: s.size, options: SIZES } } },
     },
@@ -185,8 +185,8 @@
       id: 'divider', name: 'Divider', category: 'base',
       description: 'Horizontal or vertical rule with optional label.',
       signals: function () { return {
-        label:    EF.signal('Section'),
-        vertical: EF.signal(false),
+        label:    aeditor.signal('Section'),
+        vertical: aeditor.signal(false),
       }},
       mount: function (s) {
         const wrap = ui.h('div', null, { style: 'width:200px' })
@@ -221,9 +221,9 @@
       id: 'input', name: 'Input', category: 'form',
       description: 'Single-line text input. Binds to a signal.',
       signals: function () { return {
-        value:       EF.signal('hello world'),
-        placeholder: EF.signal('Type here…'),
-        disabled:    EF.signal(false),
+        value:       aeditor.signal('hello world'),
+        placeholder: aeditor.signal('Type here…'),
+        disabled:    aeditor.signal(false),
       }},
       mount: function (s) { return ui.input({ value: s.value, placeholder: s.placeholder, disabled: s.disabled }) },
       editFor: function (s) { return { value: s.value, placeholder: s.placeholder, disabled: s.disabled } },
@@ -233,10 +233,10 @@
       id: 'textarea', name: 'Textarea', category: 'form',
       description: 'Multi-line text input. Tab indents, signal-bound.',
       signals: function () { return {
-        value:       EF.signal('line one\nline two\nline three'),
-        placeholder: EF.signal('Type…'),
-        disabled:    EF.signal(false),
-        mono:        EF.signal(true),
+        value:       aeditor.signal('line one\nline two\nline three'),
+        placeholder: aeditor.signal('Type…'),
+        disabled:    aeditor.signal(false),
+        mono:        aeditor.signal(true),
       }},
       mount: function (s) { return ui.textarea({ value: s.value, placeholder: s.placeholder, disabled: s.disabled, mono: s.mono, rows: 4 }) },
       editFor: function (s) { return { value: s.value, placeholder: s.placeholder, mono: s.mono, disabled: s.disabled } },
@@ -246,12 +246,12 @@
       id: 'numberInput', name: 'Number Input', category: 'form',
       description: 'Blender-style scrub + edit number. Min/max/step live.',
       signals: function () { return {
-        value:  EF.signal(42),
-        min:    EF.signal(0),
-        max:    EF.signal(100),
-        step:   EF.signal(1),
-        label:  EF.signal('Value'),
-        suffix: EF.signal('px'),
+        value:  aeditor.signal(42),
+        min:    aeditor.signal(0),
+        max:    aeditor.signal(100),
+        step:   aeditor.signal(1),
+        label:  aeditor.signal('Value'),
+        suffix: aeditor.signal('px'),
       }},
       mount: function (s) { return ui.numberInput({ value: s.value, min: s.min, max: s.max, step: s.step, label: s.label, suffix: s.suffix }) },
       editFor: function (s) { return { value: s.value, min: s.min, max: s.max, step: s.step, label: s.label, suffix: s.suffix } },
@@ -260,7 +260,7 @@
     {
       id: 'vectorInput', name: 'Vector Input', category: 'form',
       description: 'XYZ vector of linked number inputs.',
-      signals: function () { return { value: EF.signal([0, 0, 0]) } },
+      signals: function () { return { value: aeditor.signal([0, 0, 0]) } },
       mount: function (s) { return ui.vectorInput({ value: s.value, step: 0.1, precision: 2 }) },
       editFor: function () { return {} },
     },
@@ -269,12 +269,12 @@
       id: 'slider', name: 'Slider', category: 'form',
       description: 'Horizontal numeric slider with optional value bubble.',
       signals: function () { return {
-        value:     EF.signal(0.5),
-        min:       EF.signal(0),
-        max:       EF.signal(1),
-        step:      EF.signal(0.01),
-        showValue: EF.signal(true),
-        suffix:    EF.signal(''),
+        value:     aeditor.signal(0.5),
+        min:       aeditor.signal(0),
+        max:       aeditor.signal(1),
+        step:      aeditor.signal(0.01),
+        showValue: aeditor.signal(true),
+        suffix:    aeditor.signal(''),
       }},
       mount: function (s) { return ui.slider({ value: s.value, min: s.min, max: s.max, step: s.step, showValue: s.showValue, suffix: s.suffix }) },
       editFor: function (s) { return { value: s.value, min: s.min, max: s.max, step: s.step, showValue: s.showValue, suffix: s.suffix } },
@@ -284,10 +284,10 @@
       id: 'rangeSlider', name: 'Range Slider', category: 'form',
       description: 'Two-thumb slider for [min, max] ranges.',
       signals: function () { return {
-        value: EF.signal([0.2, 0.8]),
-        min:   EF.signal(0),
-        max:   EF.signal(1),
-        step:  EF.signal(0.01),
+        value: aeditor.signal([0.2, 0.8]),
+        min:   aeditor.signal(0),
+        max:   aeditor.signal(1),
+        step:  aeditor.signal(0.01),
       }},
       mount: function (s) { return ui.rangeSlider({ value: s.value, min: s.min, max: s.max, step: s.step }) },
       editFor: function (s) { return { min: s.min, max: s.max, step: s.step } },
@@ -297,9 +297,9 @@
       id: 'checkbox', name: 'Checkbox', category: 'form',
       description: 'Boolean toggle with label.',
       signals: function () { return {
-        value:    EF.signal(true),
-        label:    EF.signal('Enable feature'),
-        disabled: EF.signal(false),
+        value:    aeditor.signal(true),
+        label:    aeditor.signal('Enable feature'),
+        disabled: aeditor.signal(false),
       }},
       mount: function (s) { return ui.checkbox({ value: s.value, label: s.label, disabled: s.disabled }) },
       editFor: function (s) { return { value: s.value, label: s.label, disabled: s.disabled } },
@@ -309,9 +309,9 @@
       id: 'switch', name: 'Switch', category: 'form',
       description: 'Toggle switch — same semantics as checkbox, different look.',
       signals: function () { return {
-        value:    EF.signal(false),
-        label:    EF.signal('Dark mode'),
-        disabled: EF.signal(false),
+        value:    aeditor.signal(false),
+        label:    aeditor.signal('Dark mode'),
+        disabled: aeditor.signal(false),
       }},
       mount: function (s) { return ui['switch']({ value: s.value, label: s.label, disabled: s.disabled }) },
       editFor: function (s) { return { value: s.value, label: s.label, disabled: s.disabled } },
@@ -321,8 +321,8 @@
       id: 'radio', name: 'Radio Group', category: 'form',
       description: 'Single-choice radio group.',
       signals: function () { return {
-        value:    EF.signal('b'),
-        disabled: EF.signal(false),
+        value:    aeditor.signal('b'),
+        disabled: aeditor.signal(false),
       }},
       mount: function (s) {
         return ui.radio({
@@ -346,8 +346,8 @@
       id: 'segmented', name: 'Segmented', category: 'form',
       description: 'Segmented button group — single selection.',
       signals: function () { return {
-        value:    EF.signal('center'),
-        disabled: EF.signal(false),
+        value:    aeditor.signal('center'),
+        disabled: aeditor.signal(false),
       }},
       mount: function (s) {
         return ui.segmented({
@@ -371,9 +371,9 @@
       id: 'select', name: 'Select', category: 'form',
       description: 'Dropdown with custom menu (no native <select>).',
       signals: function () { return {
-        value:       EF.signal('ts'),
-        placeholder: EF.signal('Pick a language…'),
-        disabled:    EF.signal(false),
+        value:       aeditor.signal('ts'),
+        placeholder: aeditor.signal('Pick a language…'),
+        disabled:    aeditor.signal(false),
       }},
       mount: function (s) {
         return ui.select({
@@ -394,9 +394,9 @@
       id: 'combobox', name: 'Combobox', category: 'form',
       description: 'Text input with filtered suggestions.',
       signals: function () { return {
-        value:       EF.signal(''),
-        placeholder: EF.signal('Search fruit…'),
-        disabled:    EF.signal(false),
+        value:       aeditor.signal(''),
+        placeholder: aeditor.signal('Search fruit…'),
+        disabled:    aeditor.signal(false),
       }},
       mount: function (s) {
         return ui.combobox({
@@ -410,7 +410,7 @@
     {
       id: 'colorInput', name: 'Color Input', category: 'form',
       description: 'Swatch + HSV picker popover.',
-      signals: function () { return { value: EF.signal('#7b6ef6') } },
+      signals: function () { return { value: aeditor.signal('#7b6ef6') } },
       mount: function (s) { return ui.colorInput({ value: s.value }) },
       editFor: function (s) { return { value: s.value } },
     },
@@ -418,7 +418,7 @@
     {
       id: 'enumInput', name: 'Enum (bitmask)', category: 'form',
       description: 'Multi-flag bitmask toggle.',
-      signals: function () { return { value: EF.signal(5) } },
+      signals: function () { return { value: aeditor.signal(5) } },
       mount: function (s) {
         return ui.enumInput({
           value: s.value,
@@ -437,9 +437,9 @@
       id: 'tagInput', name: 'Tag Input', category: 'form',
       description: 'Editable chip list — Enter adds, Backspace removes.',
       signals: function () { return {
-        value:       EF.signal(['alpha', 'beta', 'gamma']),
-        placeholder: EF.signal('add tag…'),
-        disabled:    EF.signal(false),
+        value:       aeditor.signal(['alpha', 'beta', 'gamma']),
+        placeholder: aeditor.signal('add tag…'),
+        disabled:    aeditor.signal(false),
       }},
       mount: function (s) { return ui.tagInput({ value: s.value, placeholder: s.placeholder, disabled: s.disabled }) },
       editFor: function (s) { return { placeholder: s.placeholder, disabled: s.disabled } },
@@ -448,7 +448,7 @@
     {
       id: 'dateInput', name: 'Date Input', category: 'form',
       description: 'Native date picker, framed like ui.input.',
-      signals: function () { return { value: EF.signal('2026-04-24'), disabled: EF.signal(false) } },
+      signals: function () { return { value: aeditor.signal('2026-04-24'), disabled: aeditor.signal(false) } },
       mount: function (s) { return ui.dateInput({ value: s.value, disabled: s.disabled }) },
       editFor: function (s) { return { value: s.value, disabled: s.disabled } },
     },
@@ -457,12 +457,12 @@
       id: 'tab', name: 'Tab Strip', category: 'form',
       description: 'General-purpose tab bar (three visual variants).',
       signals: function () { return {
-        active:  EF.signal('overview'),
-        variant: EF.signal('bar'),
+        active:  aeditor.signal('overview'),
+        variant: aeditor.signal('bar'),
       }},
       mount: function (s) {
         return ui.tab({
-          items: EF.signal([
+          items: aeditor.signal([
             { id: 'overview', title: 'Overview', icon: 'eye' },
             { id: 'files',    title: 'Files',    icon: 'folder' },
             { id: 'settings', title: 'Settings', icon: 'settings', badge: '2' },
@@ -486,7 +486,7 @@
       stageSize: 'lg',
       description: 'Linear gradient color stop editor.',
       signals: function () { return {
-        value: EF.signal({ stops: [
+        value: aeditor.signal({ stops: [
           { pos: 0,    color: '#7b6ef6' },
           { pos: 0.5,  color: '#34d399' },
           { pos: 1,    color: '#fbbf24' },
@@ -500,7 +500,7 @@
       id: 'curveInput', name: 'Curve Input', category: 'editor',
       stageSize: 'lg',
       description: 'Cubic bezier easing curve editor.',
-      signals: function () { return { value: EF.signal([0.42, 0, 0.58, 1]) } },
+      signals: function () { return { value: aeditor.signal([0.42, 0, 0.58, 1]) } },
       mount: function (s) {
         const wrap = ui.h('div', null, { style: 'height:200px' })
         wrap.appendChild(ui.curveInput({ value: s.value }))
@@ -513,7 +513,7 @@
       id: 'codeInput', name: 'Code Input', category: 'editor',
       stageSize: 'lg',
       description: 'Monospace text editor with line numbers.',
-      signals: function () { return { value: EF.signal('function greet(name) {\n  return "Hello, " + name\n}') } },
+      signals: function () { return { value: aeditor.signal('function greet(name) {\n  return "Hello, " + name\n}') } },
       mount: function (s) { return ui.codeInput({ value: s.value, language: 'js', rows: 5 }) },
       editFor: function () { return {} },
     },
@@ -522,10 +522,10 @@
       id: 'pathInput', name: 'Path Input', category: 'editor',
       description: 'File/folder path with browse button.',
       signals: function () { return {
-        value:       EF.signal('/usr/local/bin/node'),
-        placeholder: EF.signal('Select a file…'),
-        mode:        EF.signal('file'),
-        disabled:    EF.signal(false),
+        value:       aeditor.signal('/usr/local/bin/node'),
+        placeholder: aeditor.signal('Select a file…'),
+        mode:        aeditor.signal('file'),
+        disabled:    aeditor.signal(false),
       }},
       mount: function (s) { return ui.pathInput({ value: s.value, placeholder: s.placeholder, mode: s.mode, disabled: s.disabled, useFileInput: true }) },
       editFor: function (s) { return {
@@ -540,7 +540,7 @@
       id: 'fileInput', name: 'File Input', category: 'editor',
       stageSize: 'lg',
       description: 'Drop zone + click-to-pick file input.',
-      signals: function () { return { value: EF.signal(null) } },
+      signals: function () { return { value: aeditor.signal(null) } },
       mount: function (s) { return ui.fileInput({ value: s.value }) },
       editFor: function () { return {} },
     },
@@ -549,8 +549,8 @@
       id: 'assetPicker', name: 'Asset Picker', category: 'editor',
       description: 'Path + preview thumbnail. Drag in files / URLs; drag out to export.',
       signals: function () { return {
-        value: EF.signal('https://picsum.photos/seed/ef/120'),
-        kind:  EF.signal('image'),
+        value: aeditor.signal('https://picsum.photos/seed/aeditor/120'),
+        kind:  aeditor.signal('image'),
       }},
       mount: function (s) { return ui.assetPicker({ value: s.value, kind: s.kind.peek() }) },
       editFor: function (s) { return {
@@ -567,7 +567,7 @@
       id: 'arrayInput', name: 'Array Input', category: 'editor',
       stageSize: 'lg',
       description: 'Generic list editor — add / remove / edit per-row.',
-      signals: function () { return { value: EF.signal(['red', 'green', 'blue']) } },
+      signals: function () { return { value: aeditor.signal(['red', 'green', 'blue']) } },
       mount: function (s) { return ui.arrayInput({ value: s.value }) },
       editFor: function () { return {} },
     },
@@ -577,7 +577,7 @@
       stageSize: 'lg',
       description: 'Fixed-shape object editor; caller supplies per-field renderer.',
       signals: function () { return {
-        value: EF.signal({ title: 'Iron Sword', level: 3, equipped: true }),
+        value: aeditor.signal({ title: 'Iron Sword', level: 3, equipped: true }),
       }},
       mount: function (s) {
         return ui.structInput({
@@ -597,8 +597,8 @@
       stageSize: 'lg',
       description: 'Schema-driven form — resolves FieldDef / TypeDef via type_config.',
       signals: function () { return {
-        value:  EF.signal({ name: 'Aria', hp: 120, active: true, tint: '#7b6ef6' }),
-        schema: EF.signal({
+        value:  aeditor.signal({ name: 'Aria', hp: 120, active: true, tint: '#7b6ef6' }),
+        schema: aeditor.signal({
           name:   { type: 'string' },
           hp:     { type: 'int',   type_agv: { min: 0, max: 999 } },
           active: { type: 'bool' },
@@ -614,8 +614,8 @@
       id: 'section', name: 'Section', category: 'container',
       description: 'Collapsible labeled section.',
       signals: function () { return {
-        title:     EF.signal('Collapsible Section'),
-        collapsed: EF.signal(false),
+        title:     aeditor.signal('Collapsible Section'),
+        collapsed: aeditor.signal(false),
       }},
       mount: function (s) {
         const content = ui.h('div', null, { style: 'padding:8px 0' })
@@ -630,9 +630,9 @@
       id: 'propRow', name: 'Prop Row', category: 'container',
       description: 'Blender-style label + control row.',
       signals: function () { return {
-        label:    EF.signal('Opacity'),
-        hint:     EF.signal('0 means fully transparent'),
-        valueSig: EF.signal(0.75),
+        label:    aeditor.signal('Opacity'),
+        hint:     aeditor.signal('0 means fully transparent'),
+        valueSig: aeditor.signal(0.75),
       }},
       mount: function (s) {
         return ui.propRow({ label: s.label, hint: s.hint, control: ui.slider({ value: s.valueSig, showValue: true }) })
@@ -643,7 +643,7 @@
     {
       id: 'card', name: 'Card', category: 'container',
       description: 'Bordered container with optional title bar.',
-      signals: function () { return { title: EF.signal('Card title') } },
+      signals: function () { return { title: aeditor.signal('Card title') } },
       mount: function (s) {
         const body = ui.h('div', null, { style: 'display:flex;flex-direction:column;gap:8px' })
         body.appendChild(ui.h('div', null, { text: 'Card body content.' }))
@@ -660,7 +660,7 @@
       mount: function () {
         const content = ui.h('div', null, { style: 'padding:8px' })
         for (let i = 0; i < 30; i++) {
-          content.appendChild(ui.h('div', null, { text: 'Line ' + (i + 1), style: 'padding:4px 0;border-bottom:1px solid var(--ef-border)' }))
+          content.appendChild(ui.h('div', null, { text: 'Line ' + (i + 1), style: 'padding:4px 0;border-bottom:1px solid var(--aeditor-border)' }))
         }
         return ui.scrollArea({ children: content, maxHeight: 140 })
       },
@@ -671,12 +671,12 @@
       id: 'tabPanel', name: 'Tab Panel', category: 'container',
       description: 'In-panel paged view with tab strip + body.',
       signals: function () { return {
-        items:  EF.signal([
+        items:  aeditor.signal([
           { id: 'one',   title: 'One' },
           { id: 'two',   title: 'Two' },
           { id: 'three', title: 'Three' },
         ]),
-        active: EF.signal('one'),
+        active: aeditor.signal('one'),
       }},
       mount: function (s) {
         const panes = {
@@ -684,7 +684,7 @@
           two:   ui.h('div', null, { text: 'Second pane', style: 'padding:12px' }),
           three: ui.h('div', null, { text: 'Third pane',  style: 'padding:12px' }),
         }
-        const wrap = ui.h('div', null, { style: 'height:140px;width:280px;border:1px solid var(--ef-border);border-radius:4px' })
+        const wrap = ui.h('div', null, { style: 'height:140px;width:280px;border:1px solid var(--aeditor-border);border-radius:4px' })
         wrap.appendChild(ui.tabPanel({ items: s.items, active: s.active, panes: panes, variant: 'compact' }))
         return wrap
       },
@@ -696,8 +696,8 @@
       id: 'list', name: 'List', category: 'data',
       description: 'Virtualized fixed-row list. Multi-select with ctrl/shift.',
       signals: function () { return {
-        items:    EF.signal(Array.from({ length: 200 }, function (_, i) { return 'Item #' + (i + 1) })),
-        selected: EF.signal([]),
+        items:    aeditor.signal(Array.from({ length: 200 }, function (_, i) { return 'Item #' + (i + 1) })),
+        selected: aeditor.signal([]),
       }},
       mount: function (s) {
         const wrap = ui.h('div', 'demo-data-preview-box', { style: 'height:180px;width:240px' })
@@ -714,7 +714,7 @@
       id: 'tree', name: 'Tree', category: 'data',
       description: 'Virtualized tree with expand / collapse.',
       signals: function () { return {
-        items: EF.signal([
+        items: aeditor.signal([
           { id: 'src', label: 'src', icon: '📁', children: [
             { id: 'core', label: 'core', icon: '📁', children: [
               { id: 'signal', label: 'signal.js', icon: '📄' },
@@ -729,7 +729,7 @@
             { id: 'catalog', label: 'catalog.js', icon: '📄' },
           ]},
         ]),
-        selected: EF.signal([]),
+        selected: aeditor.signal([]),
       }},
       mount: function (s) {
         const wrap = ui.h('div', 'demo-data-preview-box', { style: 'height:200px;width:240px' })
@@ -743,12 +743,12 @@
       id: 'table', name: 'Table', category: 'data',
       description: 'Virtualized fixed-row table with column headers.',
       signals: function () { return {
-        rows: EF.signal(Array.from({ length: 100 }, function (_, i) {
+        rows: aeditor.signal(Array.from({ length: 100 }, function (_, i) {
           return { id: i + 1, name: 'Item ' + (i + 1), qty: Math.round(Math.random() * 100), active: i % 2 === 0 }
         })),
       }},
       mount: function (s) {
-        const wrap = ui.h('div', null, { style: 'height:200px;width:320px;border:1px solid var(--ef-border);border-radius:4px;display:flex;flex-direction:column' })
+        const wrap = ui.h('div', null, { style: 'height:200px;width:320px;border:1px solid var(--aeditor-border);border-radius:4px;display:flex;flex-direction:column' })
         wrap.appendChild(ui.table({
           rows: s.rows,
           columns: [
@@ -767,7 +767,7 @@
       id: 'breadcrumbs', name: 'Breadcrumbs', category: 'data',
       description: 'Path crumbs with click handlers.',
       signals: function () { return {
-        items: EF.signal([
+        items: aeditor.signal([
           { label: 'Home', onClick: function () {} },
           { label: 'Docs', onClick: function () {} },
           { label: 'Getting Started' },
@@ -781,17 +781,17 @@
       id: 'progressBar', name: 'Progress Bar', category: 'data',
       description: 'Linear / circle, three sizes, four kinds, determinate or indeterminate.',
       signals: function () { return {
-        value:         EF.signal(0.42),
-        indeterminate: EF.signal(false),
-        label:         EF.signal('42%'),
-        shape:         EF.signal('linear'),
-        size:          EF.signal('md'),
-        kind:          EF.signal('default'),
+        value:         aeditor.signal(0.42),
+        indeterminate: aeditor.signal(false),
+        label:         aeditor.signal('42%'),
+        shape:         aeditor.signal('linear'),
+        size:          aeditor.signal('md'),
+        kind:          aeditor.signal('default'),
       }},
       mount: function (s) {
         const wrap = ui.h('div', null, { style: 'width:220px;display:flex;align-items:center;justify-content:center;min-height:64px' })
         // Shape is picked once per instance (see component note); remount on swap.
-        EF.effect(function () {
+        aeditor.effect(function () {
           const sh = s.shape()
           wrap.innerHTML = ''
           wrap.appendChild(ui.progressBar({
@@ -822,16 +822,16 @@
             anchor: btn,
             items: [
               { type: 'header', label: 'File' },
-              { label: 'New',   icon: '＋', kbd: 'Ctrl+N', onSelect: function () { EF.log.push('info', { scope: 'demo' }, 'menu: New') } },
-              { label: 'Open…', icon: '📂', kbd: 'Ctrl+O', onSelect: function () { EF.log.push('info', { scope: 'demo' }, 'menu: Open') } },
-              { label: 'Save',  icon: '💾', kbd: 'Ctrl+S', onSelect: function () { EF.log.push('info', { scope: 'demo' }, 'menu: Save') } },
+              { label: 'New',   icon: '＋', kbd: 'Ctrl+N', onSelect: function () { aeditor.log.push('info', { scope: 'demo' }, 'menu: New') } },
+              { label: 'Open…', icon: '📂', kbd: 'Ctrl+O', onSelect: function () { aeditor.log.push('info', { scope: 'demo' }, 'menu: Open') } },
+              { label: 'Save',  icon: '💾', kbd: 'Ctrl+S', onSelect: function () { aeditor.log.push('info', { scope: 'demo' }, 'menu: Save') } },
               { type: 'divider' },
               { label: 'Recent', items: [
                 { label: 'alpha.txt', onSelect: function () {} },
                 { label: 'beta.txt',  onSelect: function () {} },
               ]},
               { type: 'divider' },
-              { label: 'Delete', icon: '🗑', danger: true, onSelect: function () { EF.log.push('warn', { scope: 'demo' }, 'menu: Delete') } },
+              { label: 'Delete', icon: '🗑', danger: true, onSelect: function () { aeditor.log.push('warn', { scope: 'demo' }, 'menu: Delete') } },
             ],
           })
         })
@@ -851,7 +851,7 @@
         btn.addEventListener('click', function () {
           const body = ui.h('div', null, { style: 'display:flex;flex-direction:column;gap:8px;min-width:280px' })
           body.appendChild(ui.h('p', null, { text: 'This is a modal dialog. Click backdrop or press ESC to close.' }))
-          body.appendChild(ui.input({ value: EF.signal(''), placeholder: 'Type something…' }))
+          body.appendChild(ui.input({ value: aeditor.signal(''), placeholder: 'Type something…' }))
           const footer = ui.h('div', null, { style: 'display:flex;gap:8px;justify-content:flex-end' })
           const okBtn = ui.button({ text: 'OK', kind: 'primary' })
           const cxBtn = ui.button({ text: 'Cancel', kind: 'ghost' })
@@ -876,7 +876,7 @@
         btn.addEventListener('click', function () {
           const body = ui.h('div', null, { style: 'display:flex;flex-direction:column;gap:12px;padding:12px' })
           body.appendChild(ui.h('p', null, { text: 'Drawer content slides in from the right.' }))
-          body.appendChild(ui.textarea({ value: EF.signal('Editable scratch area'), rows: 6 }))
+          body.appendChild(ui.textarea({ value: aeditor.signal('Editable scratch area'), rows: 6 }))
           ui.drawer({ side: 'right', title: 'Settings', content: body })
         })
         wrap.appendChild(btn)
@@ -889,9 +889,9 @@
       id: 'banner', name: 'Banner', category: 'overlay',
       description: 'Inline banner — info / success / warn / error.',
       signals: function () { return {
-        kind:    EF.signal('info'),
-        title:   EF.signal('Heads up!'),
-        message: EF.signal('This is an inline status banner.'),
+        kind:    aeditor.signal('info'),
+        title:   aeditor.signal('Heads up!'),
+        message: aeditor.signal('This is an inline status banner.'),
       }},
       mount: function (s) {
         const wrap = ui.h('div', null, { style: 'width:300px' })

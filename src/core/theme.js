@@ -1,41 +1,41 @@
 // Theme runtime helpers.
 //
 // CSS owns the visual system; this file only provides a tiny public API for
-// choosing a theme on :root or one editorframe root and applying token
+// choosing a theme on :root or one aeditor root and applying token
 // overrides without forcing users to manipulate attributes manually.
-;(function (EF) {
+;(function (aeditor) {
   'use strict'
 
-  const ATTR = 'data-ef-theme'
-  const DENSITY_ATTR = 'data-ef-density'
+  const ATTR = 'data-aeditor-theme'
+  const DENSITY_ATTR = 'data-aeditor-density'
   const DEFAULT = 'dark'
   const DEFAULT_DENSITY = 'default'
 
   const authoringTokens = [
-    '--ef-surface-canvas',
-    '--ef-surface-lower',
-    '--ef-surface-frame',
-    '--ef-surface-panel',
-    '--ef-surface-field',
-    '--ef-surface-hover',
-    '--ef-surface-active',
-    '--ef-surface-raised',
-    '--ef-text-primary',
-    '--ef-text-body',
-    '--ef-text-label',
-    '--ef-text-muted',
-    '--ef-text-disabled',
-    '--ef-stroke-subtle',
-    '--ef-stroke-strong',
-    '--ef-stroke-field',
-    '--ef-stroke-hover',
-    '--ef-brand',
-    '--ef-brand-hover',
-    '--ef-brand-contrast',
-    '--ef-state-success',
-    '--ef-state-warning',
-    '--ef-state-danger',
-    '--ef-state-info',
+    '--aeditor-surface-canvas',
+    '--aeditor-surface-lower',
+    '--aeditor-surface-frame',
+    '--aeditor-surface-panel',
+    '--aeditor-surface-field',
+    '--aeditor-surface-hover',
+    '--aeditor-surface-active',
+    '--aeditor-surface-raised',
+    '--aeditor-text-primary',
+    '--aeditor-text-body',
+    '--aeditor-text-label',
+    '--aeditor-text-muted',
+    '--aeditor-text-disabled',
+    '--aeditor-stroke-subtle',
+    '--aeditor-stroke-strong',
+    '--aeditor-stroke-field',
+    '--aeditor-stroke-hover',
+    '--aeditor-brand',
+    '--aeditor-brand-hover',
+    '--aeditor-brand-contrast',
+    '--aeditor-state-success',
+    '--aeditor-state-warning',
+    '--aeditor-state-danger',
+    '--aeditor-state-info',
   ]
 
   function docEl() {
@@ -98,7 +98,7 @@
     return lines.join('\n')
   }
 
-  EF.theme = {
+  aeditor.theme = {
     attr: ATTR,
     densityAttr: DENSITY_ATTR,
     default: DEFAULT,
@@ -113,4 +113,4 @@
     read: read,
     exportCss: exportCss,
   }
-})(window.EF = window.EF || {})
+})(window.aeditor = window.aeditor || {})

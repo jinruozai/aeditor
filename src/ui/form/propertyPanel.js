@@ -1,4 +1,4 @@
-// EF.ui.propertyPanel — schema-driven form for editing one or more objects.
+// aeditor.ui.propertyPanel — schema-driven form for editing one or more objects.
 // One panel can edit a single object (length-1 targets) or batch-edit many;
 // multi-target reads display the first target's value, and a user edit fans
 // out to every target.
@@ -13,9 +13,9 @@
 //                                                     supplied, each row gets a small reset
 //                                                     iconButton (faded when already at default)
 //   ctx?:     any                                     forwarded to editorFor
-;(function (EF) {
+;(function (aeditor) {
   'use strict'
-  const ui = EF.ui = EF.ui || {}
+  const ui = aeditor.ui = aeditor.ui || {}
 
   // Schema fields can carry a `group` tag; propertyPanel collects fields
   // by tag and renders a labeled section per group. The order below is
@@ -34,17 +34,17 @@
 
   ui.propertyPanel = function (opts) {
     const o = opts || {}
-    const targets   = ui.isSignal(o.targets) ? o.targets : EF.signal(o.targets || [])
-    const schemaSig = ui.isSignal(o.schema)  ? o.schema  : EF.signal(o.schema  || {})
+    const targets   = ui.isSignal(o.targets) ? o.targets : aeditor.signal(o.targets || [])
+    const schemaSig = ui.isSignal(o.schema)  ? o.schema  : aeditor.signal(o.schema  || {})
     const disabled  = ui.asSig(o.disabled != null ? o.disabled : false)
     const defaults  = (o.defaults && typeof o.defaults === 'object') ? o.defaults : null
     const onChange  = typeof o.onChange === 'function' ? o.onChange : null
     const ctx       = o.ctx
 
-    const root = ui.h('div', 'ef-ui-property-panel')
+    const root = ui.h('div', 'aeditor-ui-property-panel')
     ui.bind(root, disabled, function (v) { root.toggleAttribute('inert', !!v) })
 
-    const composite = EF.derived(function () {
+    const composite = aeditor.derived(function () {
       const arr    = targets() || []
       if (arr.length === 0) return {}
       return arr[0] || {}
@@ -67,12 +67,12 @@
     // without any cross-instance bookkeeping.
     let mounted = []
     let mountedSchemaKey = null
-    const stopSchema = EF.effect(function () {
+    const stopSchema = aeditor.effect(function () {
       const schema = schemaSig() || {}
       const schemaKey = JSON.stringify(schema)
       if (schemaKey === mountedSchemaKey) return
       mountedSchemaKey = schemaKey
-      EF.untracked(function () {
+      aeditor.untracked(function () {
         mounted.forEach(function (n) { ui.dispose(n); if (n.parentNode) n.parentNode.removeChild(n) })
         mounted = []
 
@@ -106,7 +106,7 @@
               title:    ui.PROP_GROUP_LABELS[g.name] || g.name,
               children: [body],
             })
-            mountedEl.classList.add('ef-ui-property-section')
+            mountedEl.classList.add('aeditor-ui-property-section')
           } else {
             mountedEl = body
           }
@@ -149,7 +149,7 @@
   // when the current slot value already equals that default.
   function slotEditor(slotSig, write, innerCtx, fieldDef, fname, defaults) {
     const editorEl = ui.editorFor(fieldDef, slotSig, write, innerCtx)
-    const slot = ui.h('div', 'ef-ui-slot')
+    const slot = ui.h('div', 'aeditor-ui-slot')
     slot.appendChild(editorEl)
     if (defaults && Object.prototype.hasOwnProperty.call(defaults, fname)) {
       slot.appendChild(buildReset(slotSig, write, defaults[fname]))
@@ -163,13 +163,13 @@
       icon: 'refresh', kind: 'ghost', size: 'sm', title: 'Reset to default',
       onClick: function () { write(defaultValue) },
     })
-    btn.classList.add('ef-ui-slot-reset')
+    btn.classList.add('aeditor-ui-slot-reset')
     // Fade when already at default — visual cue that the button is a
     // no-op right now without removing it (so layout doesn't shift).
     // undefined / null / '' are treated as the same "empty" state so a
     // freshly-created node (where the field was never set) reads as
     // "at default" even when the default literal is ''.
-    ui.collect(btn, EF.effect(function () {
+    ui.collect(btn, aeditor.effect(function () {
       const v = slotSig()
       const atDefault = isAtDefault(v, defaultValue)
       btn.style.opacity = atDefault ? '0.3' : '1'
@@ -189,4 +189,4 @@
     if (typeof a !== 'object' || typeof b !== 'object') return false
     return JSON.stringify(a) === JSON.stringify(b)
   }
-})(window.EF = window.EF || {})
+})(window.aeditor = window.aeditor || {})

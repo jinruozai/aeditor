@@ -1,4 +1,4 @@
-// EF.ui.progressBar — determinate (0..1) or indeterminate progress bar.
+// aeditor.ui.progressBar — determinate (0..1) or indeterminate progress bar.
 // One component, three shape axes — call-site switches between them via
 // opts without widening the surface.
 //
@@ -14,11 +14,11 @@
 //
 // The DOM shell is mode-specific so we don't waste nodes: linear uses a
 // fill <div>, circle uses an inline <svg> ring. All variants share the
-// same `size` / `kind` class scheme (ef-ui-progress-{sm|md|lg|success|…})
+// same `size` / `kind` class scheme (aeditor-ui-progress-{sm|md|lg|success|…})
 // so a single block of theme-token CSS covers both.
-;(function (EF) {
+;(function (aeditor) {
   'use strict'
-  const ui = EF.ui = EF.ui || {}
+  const ui = aeditor.ui = aeditor.ui || {}
 
   const SVG_NS = 'http://www.w3.org/2000/svg'
   const R = 16                      // ring radius — viewBox 0 0 36 36
@@ -33,11 +33,11 @@
     const value         = o.value != null ? ui.asSig(o.value) : null
     const label         = o.label != null ? ui.asSig(o.label) : null
 
-    const root = ui.h('div', 'ef-ui-progress')
-    ui.bindClass(root, size, 'ef-ui-progress-')
-    ui.bindClass(root, kind, 'ef-ui-progress-kind-')
+    const root = ui.h('div', 'aeditor-ui-progress')
+    ui.bindClass(root, size, 'aeditor-ui-progress-')
+    ui.bindClass(root, kind, 'aeditor-ui-progress-kind-')
     ui.bind(root, indeterminate, function (v) {
-      root.classList.toggle('ef-ui-progress-ind', !!v)
+      root.classList.toggle('aeditor-ui-progress-ind', !!v)
     })
 
     // Shape is picked once per instance. In practice callers choose at
@@ -47,10 +47,10 @@
 
     if (isCircle) {
       const svg = document.createElementNS(SVG_NS, 'svg')
-      svg.setAttribute('class', 'ef-ui-progress-svg')
+      svg.setAttribute('class', 'aeditor-ui-progress-svg')
       svg.setAttribute('viewBox', '0 0 36 36')
-      const trackArc = ringPath('ef-ui-progress-track-arc')
-      const fillArc  = ringPath('ef-ui-progress-fill-arc')
+      const trackArc = ringPath('aeditor-ui-progress-track-arc')
+      const fillArc  = ringPath('aeditor-ui-progress-fill-arc')
       fillArc.setAttribute('stroke-dasharray', C)
       fillArc.setAttribute('stroke-dashoffset', C)  // 0%
       svg.appendChild(trackArc); svg.appendChild(fillArc)
@@ -62,13 +62,13 @@
         })
       }
       if (label) {
-        const lab = ui.h('span', 'ef-ui-progress-label')
+        const lab = ui.h('span', 'aeditor-ui-progress-label')
         ui.bindText(lab, label)
         root.appendChild(lab)
       }
     } else {
-      root.classList.add('ef-ui-progress-linear')
-      const fill = ui.h('div', 'ef-ui-progress-fill')
+      root.classList.add('aeditor-ui-progress-linear')
+      const fill = ui.h('div', 'aeditor-ui-progress-fill')
       root.appendChild(fill)
       if (value) {
         ui.bind(root, value, function (v) {
@@ -77,7 +77,7 @@
         })
       }
       if (label) {
-        const lab = ui.h('span', 'ef-ui-progress-label')
+        const lab = ui.h('span', 'aeditor-ui-progress-label')
         ui.bindText(lab, label)
         root.appendChild(lab)
       }
@@ -96,4 +96,4 @@
     c.setAttribute('fill', 'none')
     return c
   }
-})(window.EF = window.EF || {})
+})(window.aeditor = window.aeditor || {})

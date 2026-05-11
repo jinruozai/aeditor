@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import vm from 'node:vm'
 
-global.window = { EF: {} }
+global.window = { aeditor: {} }
 vm.runInThisContext(readFileSync('src/core/signal.js', 'utf8'), { filename: 'signal.js' })
 vm.runInThisContext(readFileSync('src/core/log.js', 'utf8'), { filename: 'log.js' })
 vm.runInThisContext(readFileSync('src/ai/name-generator.js', 'utf8'), { filename: 'ai/name-generator.js' })
@@ -10,7 +10,7 @@ vm.runInThisContext(readFileSync('src/ai/store.js', 'utf8'), { filename: 'ai/sto
 vm.runInThisContext(readFileSync('src/ai/context.js', 'utf8'), { filename: 'ai/context.js' })
 vm.runInThisContext(readFileSync('src/ai/reference.js', 'utf8'), { filename: 'ai/reference.js' })
 
-const ai = window.EF.ai
+const ai = window.aeditor.ai
 let value = 1
 const tx = []
 
@@ -81,13 +81,13 @@ assert.equal(tx[0].label, 'Set value')
 assert.equal(tx[0].meta.op, 'case.setValue')
 
 const agent = ai.createAgent({ name: 'Reference Agent' })
-const runTool = ai.createToolCall(agent.id, { toolId: 'editor.readReference', args: { uri: 'case://item/one' } }, 'user')
+const runTool = ai.createToolCall(agent.id, { toolId: 'aeditor.readReference', args: { uri: 'case://item/one' } }, 'user')
 ai.approveToolCall(agent.id, runTool.id, 'user')
 const run = ai.runToolCall(agent.id, runTool.id, 'user')
 await run.promise
 assert.equal(ai.findToolCall(agent.id, runTool.id).toolCall.result.value, 7)
 
-const applyTool = ai.createToolCall(agent.id, { toolId: 'editor.applyOperation', args: { op: 'case.setValue', input: { value: 9 } } }, 'user')
+const applyTool = ai.createToolCall(agent.id, { toolId: 'aeditor.applyOperation', args: { op: 'case.setValue', input: { value: 9 } } }, 'user')
 ai.previewToolCall(agent.id, applyTool.id, 'user')
 assert.equal(ai.findToolCall(agent.id, applyTool.id).toolCall.preview.changes[0].after, 9)
 ai.approveToolCall(agent.id, applyTool.id, 'user')

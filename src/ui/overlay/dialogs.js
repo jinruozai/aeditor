@@ -1,20 +1,20 @@
-// EF.ui.alert / ui.confirm / ui.prompt / ui.contextMenu — Promise-based
+// aeditor.ui.alert / ui.confirm / ui.prompt / ui.contextMenu — Promise-based
 // dialog helpers built on ui.modal + ui.menu. These are the everyday entry
 // points for "ask the user a yes/no question", "ask for a single string",
 // "show an OK message", and "open a menu at a screen point".
-;(function (EF) {
+;(function (aeditor) {
   'use strict'
-  const ui = EF.ui = EF.ui || {}
+  const ui = aeditor.ui = aeditor.ui || {}
 
   function footer(buttons) {
-    const f = ui.h('div', 'ef-ui-dialog-foot')
+    const f = ui.h('div', 'aeditor-ui-dialog-foot')
     buttons.forEach(function (b) { f.appendChild(b) })
     return f
   }
 
   function tr(key, fallback) {
-    if (!EF.i18n) return fallback
-    const value = EF.i18n.t(key)
+    if (!aeditor.i18n) return fallback
+    const value = aeditor.i18n.t(key)
     return value === key ? fallback : value
   }
 
@@ -23,7 +23,7 @@
   ui.alert = function (opts) {
     const o = opts || {}
     return new Promise(function (resolve) {
-      const body = ui.h('div', 'ef-ui-dialog-body', { text: o.message || '' })
+      const body = ui.h('div', 'aeditor-ui-dialog-body', { text: o.message || '' })
       let modal
       const ok = ui.button({
         text: o.okLabel || tr('common.ok', 'OK'), kind: 'primary',
@@ -46,7 +46,7 @@
     return new Promise(function (resolve) {
       let done = false
       const finish = function (v) { if (done) return; done = true; modal.close(); resolve(v) }
-      const body = ui.h('div', 'ef-ui-dialog-body', { text: o.message || '' })
+      const body = ui.h('div', 'aeditor-ui-dialog-body', { text: o.message || '' })
       const cancel = ui.button({ text: o.cancelLabel || tr('common.cancel', 'Cancel'), onClick: function () { finish(false) } })
       const ok = ui.button({
         text: o.okLabel || tr('common.ok', 'OK'),
@@ -71,9 +71,9 @@
     return new Promise(function (resolve) {
       let done = false
       const finish = function (v) { if (done) return; done = true; resolve(v); modal.close() }
-      const value  = EF.signal(o.default != null ? String(o.default) : '')
-      const body   = ui.h('div', 'ef-ui-dialog-body ef-ui-dialog-body-prompt')
-      if (o.message) body.appendChild(ui.h('div', 'ef-ui-dialog-msg', { text: o.message }))
+      const value  = aeditor.signal(o.default != null ? String(o.default) : '')
+      const body   = ui.h('div', 'aeditor-ui-dialog-body aeditor-ui-dialog-body-prompt')
+      if (o.message) body.appendChild(ui.h('div', 'aeditor-ui-dialog-msg', { text: o.message }))
       const inputEl = ui.input({ value: value, placeholder: o.placeholder || '' })
       body.appendChild(inputEl)
 
@@ -129,4 +129,4 @@
       try { el.focus(); if (selectAll && typeof el.select === 'function') el.select() } catch (_) {}
     })
   }
-})(window.EF = window.EF || {})
+})(window.aeditor = window.aeditor || {})

@@ -11,12 +11,12 @@ function storage() {
   }
 }
 
-global.window = { EF: {}, localStorage: storage() }
+global.window = { aeditor: {}, localStorage: storage() }
 vm.runInThisContext(readFileSync('src/core/signal.js', 'utf8'), { filename: 'signal.js' })
 vm.runInThisContext(readFileSync('src/ai/name-generator.js', 'utf8'), { filename: 'ai/name-generator.js' })
 vm.runInThisContext(readFileSync('src/ai/store.js', 'utf8'), { filename: 'ai/store.js' })
 
-let ai = window.EF.ai
+let ai = window.aeditor.ai
 ai.configurePersistence({ key: 'test.ai', load: false })
 const parent = ai.createAgent({ name: 'Saved Parent' })
 const agent = ai.createAgent({
@@ -35,7 +35,7 @@ ai.updateAgent(agent.id, {
     role: 'assistant',
     content: 'in flight',
     status: 'running',
-    toolCalls: [{ id: 'big_tool', toolId: 'editor.createPanel', args: { source: 'x'.repeat(50000) }, applyResult: { source: 'x'.repeat(50000) } }],
+    toolCalls: [{ id: 'big_tool', toolId: 'aeditor.createPanel', args: { source: 'x'.repeat(50000) }, applyResult: { source: 'x'.repeat(50000) } }],
   }]),
   quests: [{ id: 'q1', requestMessageId: 'q1', status: 'running' }],
 })
@@ -51,11 +51,11 @@ assert.equal('groupId' in stored.agents[1], false)
 assert.deepEqual(stored.agents[1].contextRefs, [])
 assert.equal(stored.agents[1].messages[1].toolCalls[0].args.source.length < 13000, true)
 
-global.window.EF = {}
+global.window.aeditor = {}
 vm.runInThisContext(readFileSync('src/core/signal.js', 'utf8'), { filename: 'signal.js#2' })
 vm.runInThisContext(readFileSync('src/ai/name-generator.js', 'utf8'), { filename: 'ai/name-generator.js#2' })
 vm.runInThisContext(readFileSync('src/ai/store.js', 'utf8'), { filename: 'ai/store.js#2' })
-ai = window.EF.ai
+ai = window.aeditor.ai
 ai.configurePersistence({ key: 'test.ai' })
 
 const restored = ai.agents().find(function (item) { return item.id === agent.id })

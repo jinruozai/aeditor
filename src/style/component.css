@@ -1,151 +1,151 @@
-/* editorframe — built-in component styles
+/* aeditor — built-in component styles
  *
  * Only contains toolbar + panel-drag visuals now. Tabs moved to
- * ui-form.css (.ef-ui-tab*) and are visually owned by EF.ui.tab; the
- * dock-tabs thin shell adds the `.ef-dock-tabs` marker class for
+ * ui-form.css (.aeditor-ui-tab*) and are visually owned by aeditor.ui.tab; the
+ * dock-tabs thin shell adds the `.aeditor-dock-tabs` marker class for
  * interactions.js hit-testing. Error-log moved to ui-data.css
- * (.ef-ui-errlog*) and is built from ui.card + ui.scrollArea.
+ * (.aeditor-ui-errlog*) and is built from ui.card + ui.scrollArea.
  */
 
 /* ── toolbar container ─────────────────────────── */
-.ef-toolbar {
+.aeditor-toolbar {
   display: flex;
   flex-shrink: 0;
-  background: var(--ef-bg-raised);
+  background: var(--aeditor-bg-raised);
   align-items: stretch;
   user-select: none;
-  min-height: var(--ef-toolbar-h);
+  min-height: var(--aeditor-toolbar-h);
 }
-.ef-toolbar[hidden] { display: none; }
-.ef-toolbar-top    { border-bottom: 1px solid var(--ef-border); }
-.ef-toolbar-bottom { border-top:    1px solid var(--ef-border); }
-.ef-toolbar-left {
+.aeditor-toolbar[hidden] { display: none; }
+.aeditor-toolbar-top    { border-bottom: 1px solid var(--aeditor-border); }
+.aeditor-toolbar-bottom { border-top:    1px solid var(--aeditor-border); }
+.aeditor-toolbar-left {
   flex-direction: column;
-  border-right: 1px solid var(--ef-border);
-  min-width: var(--ef-toolbar-h);
+  border-right: 1px solid var(--aeditor-border);
+  min-width: var(--aeditor-toolbar-h);
   min-height: 0;
 }
-.ef-toolbar-right {
+.aeditor-toolbar-right {
   flex-direction: column;
-  border-left: 1px solid var(--ef-border);
-  min-width: var(--ef-toolbar-h);
+  border-left: 1px solid var(--aeditor-border);
+  min-width: var(--aeditor-toolbar-h);
   min-height: 0;
 }
-.ef-toolbar-start {
+.aeditor-toolbar-start {
   display: flex;
   flex: 1 1 auto;
   min-width: 0;
   align-items: stretch;
   overflow: hidden;
 }
-.ef-toolbar-end {
+.aeditor-toolbar-end {
   display: flex;
   flex: 0 0 auto;
   align-items: stretch;
 }
-.ef-toolbar-left  > .ef-toolbar-start,
-.ef-toolbar-left  > .ef-toolbar-end,
-.ef-toolbar-right > .ef-toolbar-start,
-.ef-toolbar-right > .ef-toolbar-end { flex-direction: column; }
-.ef-toolbar-item { display: inline-flex; align-items: center; }
+.aeditor-toolbar-left  > .aeditor-toolbar-start,
+.aeditor-toolbar-left  > .aeditor-toolbar-end,
+.aeditor-toolbar-right > .aeditor-toolbar-start,
+.aeditor-toolbar-right > .aeditor-toolbar-end { flex-direction: column; }
+.aeditor-toolbar-item { display: inline-flex; align-items: center; }
 
 /* ── panel drag visuals (Phase 5) ─────────────── */
-.ef-drag-ghost {
+.aeditor-drag-ghost {
   position: fixed;
   pointer-events: none;
-  z-index: var(--ef-z-drag);
+  z-index: var(--aeditor-z-drag);
   top: 0; left: 0;
-  padding: var(--ef-space-1) var(--ef-space-3);
-  background: var(--ef-bg-1);
-  border: 1px solid var(--ef-accent);
-  border-radius: var(--ef-r-2);
-  color: var(--ef-fg-0);
-  font: var(--ef-fs-md) var(--ef-font-ui);
-  box-shadow: var(--ef-shadow-3);
+  padding: var(--aeditor-space-1) var(--aeditor-space-3);
+  background: var(--aeditor-bg-1);
+  border: 1px solid var(--aeditor-accent);
+  border-radius: var(--aeditor-r-2);
+  color: var(--aeditor-fg-0);
+  font: var(--aeditor-fs-md) var(--aeditor-font-ui);
+  box-shadow: var(--aeditor-shadow-3);
   will-change: transform;
 }
-.ef-drop-target {
-  outline: 2px solid var(--ef-accent);
+.aeditor-drop-target {
+  outline: 2px solid var(--aeditor-accent);
   outline-offset: -2px;
-  background: var(--ef-accent-bg);
+  background: var(--aeditor-accent-bg);
 }
-.ef-drop-reject {
-  outline: 2px solid var(--ef-error);
+.aeditor-drop-reject {
+  outline: 2px solid var(--aeditor-error);
   outline-offset: -2px;
   cursor: not-allowed;
 }
-.ef-panel-drop-overlay {
+.aeditor-panel-drop-overlay {
   position: fixed;
   pointer-events: none;
-  z-index: calc(var(--ef-z-drag) - 1);
-  background: color-mix(in srgb, var(--ef-bg-0) 18%, transparent);
-  outline: 1px solid color-mix(in srgb, var(--ef-accent) 38%, transparent);
+  z-index: calc(var(--aeditor-z-drag) - 1);
+  background: color-mix(in srgb, var(--aeditor-bg-0) 18%, transparent);
+  outline: 1px solid color-mix(in srgb, var(--aeditor-accent) 38%, transparent);
   outline-offset: -1px;
   box-shadow:
-    inset 0 0 0 1px color-mix(in srgb, var(--ef-bg-4) 34%, transparent),
-    inset 0 0 40px color-mix(in srgb, var(--ef-bg-0) 46%, transparent);
+    inset 0 0 0 1px color-mix(in srgb, var(--aeditor-bg-4) 34%, transparent),
+    inset 0 0 40px color-mix(in srgb, var(--aeditor-bg-0) 46%, transparent);
 }
-.ef-panel-drop-map {
+.aeditor-panel-drop-map {
   position: absolute;
-  left: var(--ef-space-3);
-  top: var(--ef-space-3);
-  width: calc(100% - var(--ef-space-3) * 2);
-  height: calc(100% - var(--ef-space-3) * 2);
+  left: var(--aeditor-space-3);
+  top: var(--aeditor-space-3);
+  width: calc(100% - var(--aeditor-space-3) * 2);
+  height: calc(100% - var(--aeditor-space-3) * 2);
   display: block;
   overflow: visible;
 }
-.ef-panel-drop-shape {
-  fill: color-mix(in srgb, var(--ef-bg-1) 4%, transparent);
-  stroke: color-mix(in srgb, var(--ef-accent) 52%, transparent);
+.aeditor-panel-drop-shape {
+  fill: color-mix(in srgb, var(--aeditor-bg-1) 4%, transparent);
+  stroke: color-mix(in srgb, var(--aeditor-accent) 52%, transparent);
   stroke-width: 0.65;
   stroke-linejoin: round;
   vector-effect: non-scaling-stroke;
   shape-rendering: geometricPrecision;
   transition:
-    fill var(--ef-dur-fast) var(--ef-ease),
-    stroke var(--ef-dur-fast) var(--ef-ease);
+    fill var(--aeditor-dur-fast) var(--aeditor-ease),
+    stroke var(--aeditor-dur-fast) var(--aeditor-ease);
 }
-.ef-panel-drop-shape-center {
+.aeditor-panel-drop-shape-center {
   rx: 1;
   ry: 1;
 }
-.ef-panel-drop-shape.ef-panel-drop-active {
-  fill: color-mix(in srgb, var(--ef-accent) 20%, transparent);
-  stroke: color-mix(in srgb, var(--ef-accent) 92%, white 8%);
+.aeditor-panel-drop-shape.aeditor-panel-drop-active {
+  fill: color-mix(in srgb, var(--aeditor-accent) 20%, transparent);
+  stroke: color-mix(in srgb, var(--aeditor-accent) 92%, white 8%);
   stroke-width: 1.05;
   filter:
-    drop-shadow(0 0 7px color-mix(in srgb, var(--ef-accent) 28%, transparent))
-    drop-shadow(0 10px 24px color-mix(in srgb, var(--ef-bg-0) 55%, transparent));
+    drop-shadow(0 0 7px color-mix(in srgb, var(--aeditor-accent) 28%, transparent))
+    drop-shadow(0 10px 24px color-mix(in srgb, var(--aeditor-bg-0) 55%, transparent));
 }
 
-.ef-extension-disabled {
+.aeditor-extension-disabled {
   min-height: 100%;
   display: grid;
   align-content: center;
   justify-items: center;
-  gap: var(--ef-space-2);
-  padding: var(--ef-space-6);
-  color: var(--ef-fg-1);
+  gap: var(--aeditor-space-2);
+  padding: var(--aeditor-space-6);
+  color: var(--aeditor-fg-1);
   text-align: center;
 }
-.ef-extension-disabled-title {
-  color: var(--ef-warning);
+.aeditor-extension-disabled-title {
+  color: var(--aeditor-warning);
   font-weight: 600;
 }
-.ef-extension-disabled-body {
+.aeditor-extension-disabled-body {
   max-width: 42rem;
-  color: var(--ef-fg-2);
+  color: var(--aeditor-fg-2);
   line-height: 1.45;
 }
-.ef-extension-iframe {
+.aeditor-extension-iframe {
   display: block;
   width: 100%;
   height: 100%;
   min-height: 12rem;
   border: 0;
-  background: var(--ef-bg-0);
+  background: var(--aeditor-bg-0);
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .ef-tab, .ef-tab-close, .ef-tab-add { transition: none; }
+  .aeditor-tab, .aeditor-tab-close, .aeditor-tab-add { transition: none; }
 }

@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import vm from 'node:vm'
 
-global.window = { EF: {} }
+global.window = { aeditor: {} }
 
 for (const file of [
   'src/core/signal.js',
@@ -12,12 +12,12 @@ for (const file of [
   vm.runInThisContext(readFileSync(file, 'utf8'), { filename: file })
 }
 
-const EF = window.EF
-const ui = EF.ui
+const aeditor = window.aeditor
+const ui = aeditor.ui
 
 const root = { parentNode: null }
 const child = { parentNode: root }
-const active = EF.signal(true)
+const active = aeditor.signal(true)
 const scope = ui.scope(root, { active: active })
 
 assert.equal(ui.scopeOf(child), scope)
@@ -30,7 +30,7 @@ unregister()
 assert.deepEqual(closed, ['tip'])
 
 active.set(true)
-const popover = { parentNode: null, __efUiScope: ui.scopeOf(child) }
+const popover = { parentNode: null, __aeditorUiScope: ui.scopeOf(child) }
 const subAnchor = { parentNode: popover }
 ui.registerScopedOverlay(subAnchor, function () { closed.push('sub') })
 ui.closeScope(root)

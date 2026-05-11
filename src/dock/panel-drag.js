@@ -1,6 +1,6 @@
 // Panel drag — tab tear-out, tab reorder, five-zone dock drop, and pop-out.
 //
-// Tab widgets call `EF._dock.beginPanelDrag` on pointerdown. This module
+// Tab widgets call `aeditor._dock.beginPanelDrag` on pointerdown. This module
 // tracks the threshold, paints a ghost, hit-tests target docks AND target
 // tab bars, gates by the target's `accept` whitelist (§ 4.12), and on
 // pointerup commits one of:
@@ -11,22 +11,22 @@
 //                               (append, no index)
 //   • drop on dock edge       → layout.movePanelToSplit(panelId, dstDockId, ...)
 //                               (new dock on that side)
-//   • drop outside any dock   → EF._dock.popOutPanel (§ 4.14, if loaded)
+//   • drop outside any dock   → aeditor._dock.popOutPanel (§ 4.14, if loaded)
 //
 // Split from dock/interactions.js — that file now owns only the splitter
 // and corner drags (§ 4.1 / § 4.2). Both subsystems read their threshold
-// from --ef-drag-threshold via ui.readNum(); keeping the code split makes
+// from --aeditor-drag-threshold via ui.readNum(); keeping the code split makes
 // each file readable top-to-bottom without scrolling past the other.
-;(function (EF) {
+;(function (aeditor) {
   'use strict'
 
   function beginPanelDrag(e, panelId, srcDockId, layout) {
     if (e.button !== 0) return
     e.preventDefault()
     const treeSig = layout.treeSig
-    const threshold = EF.ui.readNum('--ef-drag-threshold', 6)
+    const threshold = aeditor.ui.readNum('--aeditor-drag-threshold', 6)
 
-    const srcFound = EF.findPanel(treeSig.peek(), panelId)
+    const srcFound = aeditor.findPanel(treeSig.peek(), panelId)
     if (!srcFound) return
     const label  = srcFound.panel.title || srcFound.panel.component
     const component = srcFound.panel.component
@@ -42,7 +42,7 @@
 
     function clearHighlights() {
       if (lastDockEl) {
-        lastDockEl.classList.remove('ef-drop-target', 'ef-drop-reject')
+        lastDockEl.classList.remove('aeditor-drop-target', 'aeditor-drop-reject')
         lastDockEl = null
       }
       if (lastIndicator) {
@@ -62,7 +62,7 @@
         dragging = true
         ghost = makeGhost(label)
         document.body.appendChild(ghost)
-        document.body.classList.add('ef-dragging')
+        document.body.classList.add('aeditor-dragging')
       }
       ghost.style.transform = 'translate(' + (ev.clientX + 8) + 'px,' + (ev.clientY + 8) + 'px)'
 
@@ -72,12 +72,12 @@
       const el = document.elementFromPoint(ev.clientX, ev.clientY)
       if (!el || !el.closest) return
 
-      const dockEl = el.closest('.ef-dock')
+      const dockEl = el.closest('.aeditor-dock')
       if (!dockEl) return
       const dstId = dockEl.dataset.dockId
       if (!dstId) return
 
-      const dst = EF.findDock(treeSig.peek(), dstId)
+      const dst = aeditor.findDock(treeSig.peek(), dstId)
       if (!dst) return
       const a = dst.node.accept
       const accepts = !a || a === '*' || (Array.isArray(a) && a.indexOf(component) >= 0)
@@ -86,23 +86,23 @@
       // we don't paint anything and dropIndex stays null so pointerup does
       // nothing. Reorder only happens when the pointer is on a tab bar.
       if (!accepts) {
-        dockEl.classList.add('ef-drop-reject')
+        dockEl.classList.add('aeditor-drop-reject')
         lastDockEl = dockEl
         return
       }
 
       // Is the pointer inside a tab bar? If yes, compute an insertion index
       // and paint a drop indicator between the two nearest tab buttons.
-      // `.ef-dock-tabs` is the marker class added by the dock-tabs thin
-      // shell; it sits next to `.ef-ui-tab` (the visual styling), so any
+      // `.aeditor-dock-tabs` is the marker class added by the dock-tabs thin
+      // shell; it sits next to `.aeditor-ui-tab` (the visual styling), so any
       // tab strip the dock rendered matches both.
-      const tabsEl = el.closest('.ef-dock-tabs')
+      const tabsEl = el.closest('.aeditor-dock-tabs')
       if (tabsEl && dockEl.contains(tabsEl)) {
         const idx = computeTabInsertionIndex(tabsEl, ev.clientX, ev.clientY, panelId)
         drop = { kind: 'move', dockId: dstId, index: idx }
         lastIndicator = makeDropIndicator(tabsEl, idx)
         if (dstId !== srcDockId) {
-          dockEl.classList.add('ef-drop-target')
+          dockEl.classList.add('aeditor-drop-target')
           lastDockEl = dockEl
         }
         return
@@ -111,14 +111,14 @@
       const zone = classifyDockZone(dockEl, ev.clientX, ev.clientY)
       if (zone.kind === 'center') {
         if (dstId === srcDockId) return
-        dockEl.classList.add('ef-drop-target')
+        dockEl.classList.add('aeditor-drop-target')
         lastDockEl = dockEl
         drop = { kind: 'move', dockId: dstId, index: null }
         lastOverlay = makeDockDropOverlay(dockEl, zone)
         return
       }
 
-      dockEl.classList.add('ef-drop-target')
+      dockEl.classList.add('aeditor-drop-target')
       lastDockEl = dockEl
       drop = {
         kind: 'split',
@@ -139,7 +139,7 @@
       window.removeEventListener('pointercancel', onCancel)
       window.removeEventListener('keydown', onKey)
       window.removeEventListener('blur', onCancel)
-      document.body.classList.remove('ef-dragging')
+      document.body.classList.remove('aeditor-dragging')
       if (ghost) ghost.remove()
       clearHighlights()
       return true
@@ -159,14 +159,14 @@
         // which equals its original `oldIdx` (everything at/after oldIdx
         // shifts down by 1 → insert at oldIdx puts it right back).
         if (resolvedDrop.dockId === srcDockId && resolvedDrop.index != null) {
-          const srcDock = EF.findDock(treeSig.peek(), srcDockId).node
+          const srcDock = aeditor.findDock(treeSig.peek(), srcDockId).node
           const oldIdx = srcDock.panels.findIndex(function (p) { return p.id === panelId })
           if (resolvedDrop.index === oldIdx) return
         }
         try {
           layout.movePanel(panelId, resolvedDrop.dockId, resolvedDrop.index)
         } catch (err) {
-          EF.reportError({ scope: 'global' }, err)
+          aeditor.reportError({ scope: 'global' }, err)
         }
         return
       }
@@ -181,7 +181,7 @@
             resolvedDrop.ratio
           )
         } catch (err) {
-          EF.reportError({ scope: 'global' }, err)
+          aeditor.reportError({ scope: 'global' }, err)
         }
         return
       }
@@ -189,9 +189,9 @@
       // Dropped outside any accepting dock — pop out into a new window if
       // the pointer also left the original dock entirely.
       const el = document.elementFromPoint(ev.clientX, ev.clientY)
-      const anyDock = el && el.closest && el.closest('.ef-dock')
-      if (!anyDock && EF._dock.popOutPanel) {
-        EF._dock.popOutPanel(panelId, layout, ev.screenX, ev.screenY)
+      const anyDock = el && el.closest && el.closest('.aeditor-dock')
+      if (!anyDock && aeditor._dock.popOutPanel) {
+        aeditor._dock.popOutPanel(panelId, layout, ev.screenX, ev.screenY)
       }
     }
 
@@ -211,7 +211,7 @@
     const panel = partial || {}
     const component = panel.component
     const label = (opts && opts.label) || panel.title || component
-    const threshold = EF.ui.readNum('--ef-drag-threshold', 6)
+    const threshold = aeditor.ui.readNum('--aeditor-drag-threshold', 6)
 
     const startX = e.clientX, startY = e.clientY
     let dragging = false
@@ -223,7 +223,7 @@
 
     function clearHighlights() {
       if (lastDockEl) {
-        lastDockEl.classList.remove('ef-drop-target', 'ef-drop-reject')
+        lastDockEl.classList.remove('aeditor-drop-target', 'aeditor-drop-reject')
         lastDockEl = null
       }
       if (lastOverlay) {
@@ -239,7 +239,7 @@
         dragging = true
         ghost = makeGhost(label)
         document.body.appendChild(ghost)
-        document.body.classList.add('ef-dragging')
+        document.body.classList.add('aeditor-dragging')
       }
       ghost.style.transform = 'translate(' + (ev.clientX + 8) + 'px,' + (ev.clientY + 8) + 'px)'
 
@@ -247,22 +247,22 @@
       drop = null
 
       const el = document.elementFromPoint(ev.clientX, ev.clientY)
-      const dockEl = el && el.closest && el.closest('.ef-dock')
+      const dockEl = el && el.closest && el.closest('.aeditor-dock')
       if (!dockEl) return
       const dstId = dockEl.dataset.dockId
-      const dst = dstId && EF.findDock(layout.tree(), dstId)
+      const dst = dstId && aeditor.findDock(layout.tree(), dstId)
       if (!dst) return
 
       const a = dst.node.accept
       const accepts = !a || a === '*' || (Array.isArray(a) && a.indexOf(component) >= 0)
       if (!accepts) {
-        dockEl.classList.add('ef-drop-reject')
+        dockEl.classList.add('aeditor-drop-reject')
         lastDockEl = dockEl
         return
       }
 
       const zone = classifyDockZone(dockEl, ev.clientX, ev.clientY)
-      dockEl.classList.add('ef-drop-target')
+      dockEl.classList.add('aeditor-drop-target')
       lastDockEl = dockEl
       lastOverlay = makeDockDropOverlay(dockEl, zone)
       drop = Object.assign({ dockId: dstId }, zone)
@@ -276,7 +276,7 @@
       window.removeEventListener('pointercancel', onCancel)
       window.removeEventListener('keydown', onKey)
       window.removeEventListener('blur', onCancel)
-      document.body.classList.remove('ef-dragging')
+      document.body.classList.remove('aeditor-dragging')
       if (ghost) ghost.remove()
       clearHighlights()
       return true
@@ -299,7 +299,7 @@
           clonePanelInput(panel)
         )
       } catch (err) {
-        EF.reportError({ scope: 'global' }, err)
+        aeditor.reportError({ scope: 'global' }, err)
       }
     }
 
@@ -316,11 +316,11 @@
   // Find which gap between existing tabs the pointer falls into. Works for
   // both horizontal and vertical tab strips. The returned index is the slot
   // in the POST-REMOVAL list (with draggingPanelId filtered out) — that's
-  // exactly what EF.movePanel's dstIndex means, so no further adjustment
+  // exactly what aeditor.movePanel's dstIndex means, so no further adjustment
   // is needed at the call site.
   function computeTabInsertionIndex(tabsEl, clientX, clientY, draggingPanelId) {
-    const vertical = tabsEl.classList.contains('ef-ui-tab-vertical')
-    const tabs = tabsEl.querySelectorAll(':scope > .ef-ui-tab-btn')
+    const vertical = tabsEl.classList.contains('aeditor-ui-tab-vertical')
+    const tabs = tabsEl.querySelectorAll(':scope > .aeditor-ui-tab-btn')
     let idx = 0
     for (let i = 0; i < tabs.length; i++) {
       if (tabs[i].dataset.tabId === draggingPanelId) continue
@@ -358,13 +358,13 @@
   function makeDockDropOverlay(dockEl, zone) {
     const r = dockEl.getBoundingClientRect()
     const overlay = document.createElement('div')
-    overlay.className = 'ef-panel-drop-overlay ef-panel-drop-' + zone.name
+    overlay.className = 'aeditor-panel-drop-overlay aeditor-panel-drop-' + zone.name
     overlay.style.left = r.left + 'px'
     overlay.style.top = r.top + 'px'
     overlay.style.width = r.width + 'px'
     overlay.style.height = r.height + 'px'
     const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
-    svg.setAttribute('class', 'ef-panel-drop-map')
+    svg.setAttribute('class', 'aeditor-panel-drop-map')
     svg.setAttribute('viewBox', '0 0 100 100')
     svg.setAttribute('preserveAspectRatio', 'none')
     appendDropShape(svg, 'top',    '0,0 100,0 76,24 24,24', zone.name)
@@ -372,7 +372,7 @@
     appendDropShape(svg, 'right',  '100,0 100,100 76,76 76,24', zone.name)
     appendDropShape(svg, 'bottom', '0,100 100,100 76,76 24,76', zone.name)
     const center = document.createElementNS('http://www.w3.org/2000/svg', 'rect')
-    center.setAttribute('class', 'ef-panel-drop-shape ef-panel-drop-shape-center' + (zone.name === 'center' ? ' ef-panel-drop-active' : ''))
+    center.setAttribute('class', 'aeditor-panel-drop-shape aeditor-panel-drop-shape-center' + (zone.name === 'center' ? ' aeditor-panel-drop-active' : ''))
     center.setAttribute('x', '24')
     center.setAttribute('y', '24')
     center.setAttribute('width', '52')
@@ -385,7 +385,7 @@
 
   function appendDropShape(svg, name, points, activeName) {
     const shape = document.createElementNS('http://www.w3.org/2000/svg', 'polygon')
-    shape.setAttribute('class', 'ef-panel-drop-shape ef-panel-drop-shape-' + name + (activeName === name ? ' ef-panel-drop-active' : ''))
+    shape.setAttribute('class', 'aeditor-panel-drop-shape aeditor-panel-drop-shape-' + name + (activeName === name ? ' aeditor-panel-drop-active' : ''))
     shape.setAttribute('points', points)
     svg.appendChild(shape)
   }
@@ -394,10 +394,10 @@
   // strip) to visualise the insertion slot. Positioned absolutely inside
   // the tabs element (which is position:relative per component.css).
   function makeDropIndicator(tabsEl, index) {
-    const vertical = tabsEl.classList.contains('ef-ui-tab-vertical')
+    const vertical = tabsEl.classList.contains('aeditor-ui-tab-vertical')
     const ind = document.createElement('div')
-    ind.className = 'ef-ui-tab-drop-indicator'
-    const tabs = tabsEl.querySelectorAll(':scope > .ef-ui-tab-btn')
+    ind.className = 'aeditor-ui-tab-drop-indicator'
+    const tabs = tabsEl.querySelectorAll(':scope > .aeditor-ui-tab-btn')
     const barRect = tabsEl.getBoundingClientRect()
 
     let edge
@@ -428,7 +428,7 @@
 
   function makeGhost(label) {
     const g = document.createElement('div')
-    g.className = 'ef-drag-ghost'
+    g.className = 'aeditor-drag-ghost'
     g.textContent = label
     return g
   }
@@ -440,7 +440,7 @@
     return out
   }
 
-  EF._dock = EF._dock || {}
-  EF._dock.beginPanelDrag = beginPanelDrag
-  EF._dock.beginExternalPanelDrag = beginExternalPanelDrag
-})(window.EF = window.EF || {})
+  aeditor._dock = aeditor._dock || {}
+  aeditor._dock.beginPanelDrag = beginPanelDrag
+  aeditor._dock.beginExternalPanelDrag = beginExternalPanelDrag
+})(window.aeditor = window.aeditor || {})

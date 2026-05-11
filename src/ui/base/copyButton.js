@@ -1,19 +1,19 @@
-// EF.ui.copyButton — icon button that copies text and gives success feedback.
+// aeditor.ui.copyButton — icon button that copies text and gives success feedback.
 //
 // opts:
 //   text    : string | () => string | signal<string>
 //   title?  : string | signal<string>   default: 'Copy'
 //   copiedTitle?                     default: 'Copied'
 //   size?   : 'sm' | 'md' | 'lg' | signal
-;(function (EF) {
+;(function (aeditor) {
   'use strict'
-  const ui = EF.ui = EF.ui || {}
+  const ui = aeditor.ui = aeditor.ui || {}
 
   ui.copyButton = function (opts) {
     const o = opts || {}
-    const copied = EF.signal(false)
-    const iconSig = EF.derived(function () { return copied() ? 'check' : 'copy' })
-    const titleSig = EF.derived(function () {
+    const copied = aeditor.signal(false)
+    const iconSig = aeditor.derived(function () { return copied() ? 'check' : 'copy' })
+    const titleSig = aeditor.derived(function () {
       return copied() ? (o.copiedTitle || 'Copied') : (readValue(o.title) || 'Copy')
     })
     let timer = 0
@@ -26,17 +26,17 @@
       onClick: function () {
         ui.copyText(readText(o.text)).then(function () {
           copied.set(true)
-          btn.classList.add('ef-ui-copy-btn-copied')
+          btn.classList.add('aeditor-ui-copy-btn-copied')
           if (timer) clearTimeout(timer)
           timer = setTimeout(function () {
             copied.set(false)
-            btn.classList.remove('ef-ui-copy-btn-copied')
+            btn.classList.remove('aeditor-ui-copy-btn-copied')
             timer = 0
           }, 950)
         })
       },
     })
-    btn.classList.add('ef-ui-copy-btn')
+    btn.classList.add('aeditor-ui-copy-btn')
     ui.collect(btn, iconSig.dispose)
     ui.collect(btn, titleSig.dispose)
     ui.collect(btn, function () { if (timer) clearTimeout(timer) })
@@ -72,4 +72,4 @@
     document.execCommand('copy')
     ta.remove()
   }
-})(window.EF = window.EF || {})
+})(window.aeditor = window.aeditor || {})

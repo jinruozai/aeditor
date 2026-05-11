@@ -2,14 +2,14 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import vm from 'node:vm'
 
-global.window = { EF: {} }
+global.window = { aeditor: {} }
 vm.runInThisContext(readFileSync('src/core/signal.js', 'utf8'), { filename: 'signal.js' })
 vm.runInThisContext(readFileSync('src/core/history.js', 'utf8'), { filename: 'history.js' })
 
-const EF = window.EF
+const aeditor = window.aeditor
 let state = { value: 1 }
 const applied = []
-const history = EF.history.create({
+const history = aeditor.history.create({
   capture: () => ({ value: state.value }),
   apply: (snapshot, ctx) => {
     applied.push(ctx.reason + ':' + snapshot.value)

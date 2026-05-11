@@ -1,9 +1,9 @@
 {
-  "name": "@gooooo/editorframe",
+  "name": "@gooooo/aeditor",
   "version": "1.1.1",
-  "description": "Blender-style dock layout UI framework — zero build, zero dependencies, pure IIFE. Drop-in <script> tag, everything hangs on window.EF.",
-  "main": "dist/ef.js",
-  "style": "dist/ef.css",
+  "description": "Blender-style dock layout UI framework — zero build, zero dependencies, pure IIFE. Drop-in <script> tag, everything hangs on window.aeditor.",
+  "main": "dist/aeditor.js",
+  "style": "dist/aeditor.css",
   "files": [
     "dist",
     "screenshots",
@@ -31,11 +31,11 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://gitee.com/lazygoo/editor-frame.git"
+    "url": "git+https://gitee.com/lazygoo/aeditor.git"
   },
-  "homepage": "https://gitee.com/lazygoo/editor-frame",
+  "homepage": "https://gitee.com/lazygoo/aeditor",
   "bugs": {
-    "url": "https://gitee.com/lazygoo/editor-frame/issues"
+    "url": "https://gitee.com/lazygoo/aeditor/issues"
   },
   "author": "gooooo",
   "license": "MIT",
@@ -48,7 +48,7 @@
     "check:dist": "node tools/check-bundle.mjs"
   },
   "sideEffects": [
-    "dist/ef.css",
-    "dist/ef.js"
+    "dist/aeditor.css",
+    "dist/aeditor.js"
   ]
 }

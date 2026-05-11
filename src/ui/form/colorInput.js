@@ -1,4 +1,4 @@
-// EF.ui.colorInput — color swatch + popover with HSV picker + hex input.
+// aeditor.ui.colorInput — color swatch + popover with HSV picker + hex input.
 //
 // opts:
 //   value:     string|int|signal   hex ("#rrggbb") or 24-bit int (0xRRGGBB)
@@ -8,9 +8,9 @@
 // With valueKind='int', the signal stores an integer 0..0xFFFFFF. The swatch
 // and picker internally work in hex strings; round-trip conversion happens at
 // the signal boundary.
-;(function (EF) {
+;(function (aeditor) {
   'use strict'
-  const ui = EF.ui = EF.ui || {}
+  const ui = aeditor.ui = aeditor.ui || {}
 
   function toHexStr(v) {
     if (typeof v === 'number') {
@@ -32,9 +32,9 @@
       else rawWrite(hex)
     }
 
-    const el = ui.h('div', 'ef-ui-color')
-    const swatch = ui.h('div', 'ef-ui-color-swatch')
-    const text = ui.h('input', 'ef-ui-color-text', { type: 'text' })
+    const el = ui.h('div', 'aeditor-ui-color')
+    const swatch = ui.h('div', 'aeditor-ui-color-swatch')
+    const text = ui.h('input', 'aeditor-ui-color-text', { type: 'text' })
     el.appendChild(swatch); el.appendChild(text)
 
     ui.bind(el, sig, function (v) {
@@ -65,25 +65,25 @@
 
   // ── HSV picker popover ─────────────────────────────────────────
   function openPicker(anchor, sig, doWrite, onClose) {
-    const wrap = ui.h('div', 'ef-ui-color-picker')
+    const wrap = ui.h('div', 'aeditor-ui-color-picker')
 
     // The picker always works in hex internally; int-valued signals get
     // translated at the boundary by doWrite().
     const hsv = hexToHsv(toHexStr(sig.peek())) || { h: 0, s: 1, v: 1 }
-    const sigH = EF.signal(hsv.h)
-    const sigS = EF.signal(hsv.s)
-    const sigV = EF.signal(hsv.v)
+    const sigH = aeditor.signal(hsv.h)
+    const sigS = aeditor.signal(hsv.s)
+    const sigV = aeditor.signal(hsv.v)
 
     // SV square
-    const sv = ui.h('div', 'ef-ui-color-sv')
-    const svDot = ui.h('div', 'ef-ui-color-sv-dot')
+    const sv = ui.h('div', 'aeditor-ui-color-sv')
+    const svDot = ui.h('div', 'aeditor-ui-color-sv-dot')
     sv.appendChild(svDot)
     // Hue strip
-    const hue = ui.h('div', 'ef-ui-color-hue')
-    const hueDot = ui.h('div', 'ef-ui-color-hue-dot')
+    const hue = ui.h('div', 'aeditor-ui-color-hue')
+    const hueDot = ui.h('div', 'aeditor-ui-color-hue-dot')
     hue.appendChild(hueDot)
     // Hex input
-    const hex = ui.h('input', 'ef-ui-color-hex', { type: 'text' })
+    const hex = ui.h('input', 'aeditor-ui-color-hex', { type: 'text' })
 
     wrap.appendChild(sv); wrap.appendChild(hue); wrap.appendChild(hex)
 
@@ -97,7 +97,7 @@
       doWrite(out)
       if (document.activeElement !== hex) hex.value = out
     }
-    const stopEffect = EF.effect(function () { sigH(); sigS(); sigV(); update() })
+    const stopEffect = aeditor.effect(function () { sigH(); sigS(); sigV(); update() })
 
     ui.attachDrag(sv, {
       onStart: scrubSv, onMove: scrubSv,
@@ -165,4 +165,4 @@
     function h2(x) { return ('0' + Math.round(x * 255).toString(16)).slice(-2) }
     return '#' + h2(r) + h2(g) + h2(b)
   }
-})(window.EF = window.EF || {})
+})(window.aeditor = window.aeditor || {})

@@ -1,13 +1,13 @@
-// EF.ui.iconButton — square icon-only button (toolbars, table row actions).
+// aeditor.ui.iconButton — square icon-only button (toolbars, table row actions).
 //
 // opts: { icon, title, ariaLabel?, size?, kind?, disabled?, onClick }
 //
 // All display props accept either a plain value or a signal. `title` or
 // `ariaLabel` is required for accessibility; when either is a signal the DOM
 // title / aria-label tracks it.
-;(function (EF) {
+;(function (aeditor) {
   'use strict'
-  const ui = EF.ui = EF.ui || {}
+  const ui = aeditor.ui = aeditor.ui || {}
 
   ui.iconButton = function (opts) {
     const o = opts || {}
@@ -21,7 +21,7 @@
     const kind     = ui.asSig(o.kind     != null ? o.kind     : 'ghost')
     const disabled = ui.asSig(o.disabled != null ? o.disabled : false)
 
-    const el = ui.h('button', 'ef-ui-icon-btn', { type: 'button' })
+    const el = ui.h('button', 'aeditor-ui-icon-btn', { type: 'button' })
     ui.bind(el, titleSig, function (v) {
       const s = v == null ? '' : String(v)
       if (s) el.setAttribute('title', s)
@@ -32,8 +32,8 @@
       if (s) el.setAttribute('aria-label', s)
       else el.removeAttribute('aria-label')
     })
-    ui.bindClass(el, size, 'ef-ui-icon-btn-')
-    ui.bindClass(el, kind, 'ef-ui-btn-')
+    ui.bindClass(el, size, 'aeditor-ui-icon-btn-')
+    ui.bindClass(el, kind, 'aeditor-ui-btn-')
     ui.bindAttr(el, disabled, 'disabled')
 
     // Inner icon tracks both name (registered SVG) and size via the same
@@ -45,4 +45,4 @@
     if (o.onClick) el.addEventListener('click', function (e) { if (!el.disabled) o.onClick(e) })
     return el
   }
-})(window.EF = window.EF || {})
+})(window.aeditor = window.aeditor || {})

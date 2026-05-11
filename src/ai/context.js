@@ -1,8 +1,8 @@
-// EF.ai runtime context registries.
-;(function (EF) {
+// aeditor.ai runtime context registries.
+;(function (aeditor) {
   'use strict'
 
-  const ai = EF.ai = EF.ai || {}
+  const ai = aeditor.ai = aeditor.ai || {}
   const tools = {}
   const toolMeta = {}
   const skills = {}
@@ -132,7 +132,7 @@
   }
 
   function failToolCall(agentId, callId, found, err) {
-    if (EF.reportError) EF.reportError({ scope: 'ai', tool: found.toolCall.toolId }, err)
+    if (aeditor.reportError) aeditor.reportError({ scope: 'ai', tool: found.toolCall.toolId }, err)
     return updateToolCall(agentId, callId, { status: 'failed', error: String(err && err.message ? err.message : err) })
   }
 
@@ -396,8 +396,8 @@
       const provider = contextProviders[name]
       const matched = !provider.match || provider.match(request.target || request.agent, request.event || null, ctx)
       if (matched) {
-        const captured = EF.safeCall
-          ? EF.safeCall({ scope: 'ai', provider: name }, function () {
+        const captured = aeditor.safeCall
+          ? aeditor.safeCall({ scope: 'ai', provider: name }, function () {
             return provider.capture ? provider.capture(request.target || request.agent, request.event || null, ctx) : provider(request, ctx)
           })
           : (provider.capture ? provider.capture(request.target || request.agent, request.event || null, ctx) : provider(request, ctx))
@@ -461,4 +461,4 @@
   ai.getPlugin = getPlugin
   ai.listPlugins = function () { return keys(plugins) }
   ai.createRunContext = createRunContext
-})(window.EF = window.EF || {})
+})(window.aeditor = window.aeditor || {})

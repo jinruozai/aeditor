@@ -3,9 +3,9 @@
 // Used by sliders, vector inputs (drag-to-scrub on labels), color picker
 // canvases, range sliders, etc. Captures the pointer on the target element
 // so events keep flowing even if the cursor leaves the element.
-;(function (EF) {
+;(function (aeditor) {
   'use strict'
-  const ui = EF.ui = EF.ui || {}
+  const ui = aeditor.ui = aeditor.ui || {}
 
   // attachDrag(el, handlers)
   //   handlers.onStart(e, ctx)
@@ -38,4 +38,4 @@
     el.addEventListener('pointerdown', onDown)
     return function () { el.removeEventListener('pointerdown', onDown) }
   }
-})(window.EF = window.EF || {})
+})(window.aeditor = window.aeditor || {})

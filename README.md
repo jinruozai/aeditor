@@ -1,15 +1,15 @@
-# editorframe
+# aeditor
 
 A zero-dependency, zero-build, Blender-style UI framework for building professional web editors.
 
-[![npm](https://img.shields.io/npm/v/@gooooo/editorframe.svg)](https://www.npmjs.com/package/@gooooo/editorframe)
-[![license](https://img.shields.io/npm/l/@gooooo/editorframe.svg)](./LICENSE)
+[![npm](https://img.shields.io/npm/v/@gooooo/aeditor.svg)](https://www.npmjs.com/package/@gooooo/aeditor)
+[![license](https://img.shields.io/npm/l/@gooooo/aeditor.svg)](./LICENSE)
 
-editorframe gives editor authors one small, consistent model for the parts that usually become messy: dock layouts, panels, toolbars, UI components, property inspectors, logs, settings, AI context, and user-approved changes.
+aeditor gives editor authors one small, consistent model for the parts that usually become messy: dock layouts, panels, toolbars, UI components, property inspectors, logs, settings, AI context, and user-approved changes.
 
-You write panels and components. editorframe arranges them into a real editor.
+You write panels and components. aeditor arranges them into a real editor.
 
-![EditorFrame screenshot](./screenshots/ScreenShot_2026-05-09_180752_282.png)
+![AEditor screenshot](./screenshots/ScreenShot_2026-05-09_180752_282.png)
 
 ---
 
@@ -24,7 +24,7 @@ Most editors are built from the same primitives:
 - toolbars, tabs, menus, settings
 - optional AI assistance that can inspect context and propose changes
 
-editorframe is designed around that shape. Instead of inventing custom layout code for every tool, you register reusable panels and components, then compose them with dock containers.
+aeditor is designed around that shape. Instead of inventing custom layout code for every tool, you register reusable panels and components, then compose them with dock containers.
 
 The result is simple enough for small internal tools and structured enough for large editor applications.
 
@@ -62,7 +62,7 @@ The design goal is fewer concepts, fewer exceptions, and stronger composition. C
 - Internal tools, debugging panels, operation consoles, and visual tools
 - AI-assisted editors where agents read selected context, generate changes, and wait for user approval before applying them
 
-editorframe does not impose a business data model. Your application registers its own panels, data views, property renderers, AI tools, and context providers.
+aeditor does not impose a business data model. Your application registers its own panels, data views, property renderers, AI tools, and context providers.
 
 ---
 
@@ -70,7 +70,7 @@ editorframe does not impose a business data model. Your application registers it
 
 - **Zero build**: drop in `<script>` and CSS. It works from `file://`.
 - **Zero dependencies**: no React, Vue, runtime framework, or bundler.
-- **Single namespace**: all public APIs live under `window.EF`.
+- **Single namespace**: all public APIs live under `window.aeditor`.
 - **Blender-style dock layout**: split, merge, resize, drag tabs, pop out panels, focus mode, collapse docks.
 - **Unified component registry**: panels, toolbar items, tabs, and built-in UI are all registered components.
 - **50+ built-in UI components**: form, data, overlay, container, property editor, change review.
@@ -98,7 +98,7 @@ The AI layer includes:
 Example:
 
 ```js
-EF.ai.registerTool('game.table.createEntity', {
+aeditor.ai.registerTool('game.table.createEntity', {
   title: 'Create Entity',
   description: 'Create one entity in a game data table.',
   schema: {
@@ -113,7 +113,7 @@ EF.ai.registerTool('game.table.createEntity', {
   },
 })
 
-EF.ai.registerContextProvider('current-selection', {
+aeditor.ai.registerContextProvider('current-selection', {
   capture: function (target, event, ctx) {
     return {
       panel: 'inspector',
@@ -130,15 +130,15 @@ The application defines what AI can see, what it can call, and which changes req
 ## Installation
 
 ```html
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@gooooo/editorframe@1/dist/ef.css">
-<script src="https://cdn.jsdelivr.net/npm/@gooooo/editorframe@1/dist/ef.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@gooooo/aeditor@1/dist/aeditor.css">
+<script src="https://cdn.jsdelivr.net/npm/@gooooo/aeditor@1/dist/aeditor.js"></script>
 ```
 
 ```bash
-npm install @gooooo/editorframe
+npm install @gooooo/aeditor
 ```
 
-After loading, the framework is available as `window.EF`.
+After loading, the framework is available as `window.aeditor`.
 
 ---
 
@@ -147,7 +147,7 @@ After loading, the framework is available as `window.EF`.
 Register a component:
 
 ```js
-EF.registerComponent('my-editor', {
+aeditor.registerComponent('my-editor', {
   factory: function (propsSig, ctx) {
     var props = propsSig.peek() || {}
     var el = document.createElement('div')
@@ -161,19 +161,19 @@ EF.registerComponent('my-editor', {
 Create a dock layout:
 
 ```js
-var layout = EF.createDockLayout(document.getElementById('app'), {
-  tree: EF.split('horizontal', [
-    EF.dock({
+var layout = aeditor.createDockLayout(document.getElementById('app'), {
+  tree: aeditor.split('horizontal', [
+    aeditor.dock({
       toolbar: { direction: 'top', items: [{ component: 'tab-standard' }] },
       panels: [
-        EF.panel({ component: 'my-editor', title: 'main.js', props: { file: 'main.js' } }),
-        EF.panel({ component: 'my-editor', title: 'style.css', props: { file: 'style.css' } }),
+        aeditor.panel({ component: 'my-editor', title: 'main.js', props: { file: 'main.js' } }),
+        aeditor.panel({ component: 'my-editor', title: 'style.css', props: { file: 'style.css' } }),
       ],
     }),
-    EF.dock({
+    aeditor.dock({
       toolbar: { direction: 'top', items: [{ component: 'tab-standard' }] },
       panels: [
-        EF.panel({ component: 'log', title: 'Log', icon: 'list' }),
+        aeditor.panel({ component: 'log', title: 'Log', icon: 'list' }),
       ],
     }),
   ], [0.65, 0.35]),
@@ -186,10 +186,10 @@ That gives you a two-column, multi-tab, draggable editor shell ready for real pa
 
 ## Components
 
-A component is the smallest extension unit in editorframe. Once registered, it can be used as panel content or as a toolbar item.
+A component is the smallest extension unit in aeditor. Once registered, it can be used as panel content or as a toolbar item.
 
 ```js
-EF.registerComponent('my-component', {
+aeditor.registerComponent('my-component', {
   factory: function (propsSig, ctx) {
     var props = propsSig.peek() || {}
     var el = document.createElement('div')
@@ -253,11 +253,11 @@ Static toolbar components do not have `ctx.panel`, but they do have `ctx.dock`. 
 Tabbed editor:
 
 ```js
-EF.dock({
+aeditor.dock({
   toolbar: { direction: 'top', items: [{ component: 'tab-standard' }] },
   panels: [
-    EF.panel({ component: 'editor', title: 'main.js' }),
-    EF.panel({ component: 'editor', title: 'style.css' }),
+    aeditor.panel({ component: 'editor', title: 'main.js' }),
+    aeditor.panel({ component: 'editor', title: 'style.css' }),
   ],
 })
 ```
@@ -265,12 +265,12 @@ EF.dock({
 Sidebar:
 
 ```js
-EF.dock({
+aeditor.dock({
   toolbar: { direction: 'left', items: [{ component: 'tab-collapsible' }] },
   panels: [
-    EF.panel({ component: 'file-tree', title: 'Files', icon: 'folder' }),
-    EF.panel({ component: 'search', title: 'Search', icon: 'search' }),
-    EF.panel({ component: 'settings', title: 'Settings', icon: 'settings' }),
+    aeditor.panel({ component: 'file-tree', title: 'Files', icon: 'folder' }),
+    aeditor.panel({ component: 'search', title: 'Search', icon: 'search' }),
+    aeditor.panel({ component: 'settings', title: 'Settings', icon: 'settings' }),
   ],
 })
 ```
@@ -278,9 +278,9 @@ EF.dock({
 Fixed inspector:
 
 ```js
-EF.dock({
+aeditor.dock({
   panels: [
-    EF.panel({ component: 'inspector', title: 'Inspector' }),
+    aeditor.panel({ component: 'inspector', title: 'Inspector' }),
   ],
 })
 ```
@@ -301,12 +301,12 @@ ctx.panel.promote()
 
 ## Built-in UI
 
-`EF.ui.*` provides 50+ components built around caller-owned signals:
+`aeditor.ui.*` provides 50+ components built around caller-owned signals:
 
 ```js
-var name = EF.signal('world')
-var input = EF.ui.input({ value: name, placeholder: 'Name' })
-var button = EF.ui.button({
+var name = aeditor.signal('world')
+var input = aeditor.ui.input({ value: name, placeholder: 'Name' })
+var button = aeditor.ui.button({
   label: 'Greet',
   onClick: function () { alert('Hello ' + name()) },
 })
@@ -343,13 +343,13 @@ layout.subscribe(function (tree) {})
 You can also operate on the immutable tree directly:
 
 ```js
-EF.addPanel(tree, dockId, partial, opts)
-EF.removePanel(tree, panelId)
-EF.activatePanel(tree, panelId)
-EF.movePanel(tree, panelId, dstDockId)
-EF.updatePanel(tree, panelId, patch)
-EF.splitDock(tree, dockId, dir, side, ratio, opts)
-EF.mergeDocks(tree, winnerId, loserId)
+aeditor.addPanel(tree, dockId, partial, opts)
+aeditor.removePanel(tree, panelId)
+aeditor.activatePanel(tree, panelId)
+aeditor.movePanel(tree, panelId, dstDockId)
+aeditor.updatePanel(tree, panelId, patch)
+aeditor.splitDock(tree, dockId, dir, side, ratio, opts)
+aeditor.mergeDocks(tree, winnerId, loserId)
 ```
 
 ---
@@ -359,22 +359,22 @@ EF.mergeDocks(tree, winnerId, loserId)
 Built-in themes: `dark`, `dracula`, and `light`.
 
 ```js
-EF.theme.set('dark')
-EF.theme.set('dracula')
-EF.theme.set('light')
+aeditor.theme.set('dark')
+aeditor.theme.set('dracula')
+aeditor.theme.set('light')
 ```
 
 Custom themes should start with semantic tokens:
 
 ```css
 :root {
-  --ef-surface-panel: #1f2329;
-  --ef-surface-field: #171a20;
-  --ef-text-primary: #f3f6fb;
-  --ef-text-muted: #8b95a5;
-  --ef-brand: #569eff;
-  --ef-state-danger: #ff5c5c;
-  --ef-r-2: 8px;
+  --aeditor-surface-panel: #1f2329;
+  --aeditor-surface-field: #171a20;
+  --aeditor-text-primary: #f3f6fb;
+  --aeditor-text-muted: #8b95a5;
+  --aeditor-brand: #569eff;
+  --aeditor-state-danger: #ff5c5c;
+  --aeditor-r-2: 8px;
 }
 ```
 
@@ -383,15 +383,15 @@ Custom themes should start with semantic tokens:
 ## Local Development
 
 ```bash
-git clone https://gitee.com/lazygoo/editor-frame.git
-cd editor-frame
+git clone https://gitee.com/lazygoo/aeditor.git
+cd aeditor
 node tools/build.mjs --watch
 npx http-server -p 5570
 ```
 
 Open `http://localhost:5570`.
 
-Changes under `src/` must be rebuilt into `dist/ef.js` and `dist/ef.css`. Files under `demo/` are loaded directly by the demo page.
+Changes under `src/` must be rebuilt into `dist/aeditor.js` and `dist/aeditor.css`. Files under `demo/` are loaded directly by the demo page.
 
 Checks:
 
@@ -411,5 +411,5 @@ npm run check:dist
 ## More
 
 - [`AGENTS.md`](./AGENTS.md) — architecture, data model, and project constraints
-- [`doc/editor_style.html`](https://gitee.com/lazygoo/editor-frame/blob/master/doc/editor_style.html) — visual palette reference
-- [`index.html`](https://gitee.com/lazygoo/editor-frame/blob/master/index.html) — component browser demo
+- [`doc/editor_style.html`](https://gitee.com/lazygoo/aeditor/blob/master/doc/editor_style.html) — visual palette reference
+- [`index.html`](https://gitee.com/lazygoo/aeditor/blob/master/index.html) — component browser demo

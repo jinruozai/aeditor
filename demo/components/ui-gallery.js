@@ -1,8 +1,8 @@
 // demo component: ui-gallery
-;(function (EF) {
+;(function (aeditor) {
   'use strict'
 
-  const ui = EF.ui
+  const ui = aeditor.ui
 
   const SOURCE_OPTIONS = [
     { value: 'all', label: 'All' },
@@ -46,7 +46,7 @@
 
   function registryItems(seen) {
     const out = []
-    const regs = EF.listComponents()
+    const regs = aeditor.listComponents()
     for (let i = 0; i < regs.length; i++) {
       const reg = regs[i]
       if (seen[reg.name]) continue
@@ -104,14 +104,14 @@
       uri: 'editor://component/' + encodeURIComponent(item.component),
       kind: 'editor.component',
       title: item.label,
-      summary: 'Registered EditorFrame component ' + item.component + '.',
+      summary: 'Registered AEditor component ' + item.component + '.',
       meta: {
         component: item.component,
         label: item.label,
         category: item.category,
         source: item.source,
       },
-      tools: ['editor.readReference'],
+      tools: ['aeditor.readReference'],
     }
   }
 
@@ -140,7 +140,7 @@
     card.style.height = height + 'px'
     card.setAttribute('data-demo-id', item.entry ? item.entry.id : item.component)
     card.title = item.label + ' / ' + item.component
-    if (EF.ai && EF.ai.attach) EF.ai.attach(card, function () { return itemTarget(item) }, { contextMenu: true })
+    if (aeditor.ai && aeditor.ai.attach) aeditor.ai.attach(card, function () { return itemTarget(item) }, { contextMenu: true })
 
     const stage = ui.h('div', 'demo-ui-card-stage')
     const preview = mountPreview(item)
@@ -162,14 +162,14 @@
     const categories = categoriesFrom(items)
     const categorySigs = {}
     const collapsedSigs = {}
-    const sourceSig = EF.signal('all')
-    const widthSig = EF.signal(128)
-    const heightSig = EF.signal(150)
+    const sourceSig = aeditor.signal('all')
+    const widthSig = aeditor.signal(128)
+    const heightSig = aeditor.signal(150)
 
     for (let i = 0; i < categories.length; i++) {
       const cat = categories[i]
-      categorySigs[cat] = EF.signal(cat !== 'panel')
-      collapsedSigs[cat] = EF.signal(false)
+      categorySigs[cat] = aeditor.signal(cat !== 'panel')
+      collapsedSigs[cat] = aeditor.signal(false)
     }
 
     const toolbar = ui.h('div', 'demo-ui-gallery-toolbar')
@@ -230,11 +230,11 @@
       }
     }
 
-    ctx.onCleanup(EF.effect(render))
+    ctx.onCleanup(aeditor.effect(render))
     return root
   }
 
-  EF.registerComponent('ui-gallery', {
+  aeditor.registerComponent('ui-gallery', {
     category: 'panel',
     label: 'UI Gallery',
     icon: 'grid',
@@ -242,4 +242,4 @@
     factory: factory,
     dispose: disposeTree,
   })
-})(window.EF = window.EF || {})
+})(window.aeditor = window.aeditor || {})

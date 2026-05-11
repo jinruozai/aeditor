@@ -1,7 +1,7 @@
-;(function (EF) {
+;(function (aeditor) {
   'use strict'
 
-  const ui = EF.ui
+  const ui = aeditor.ui
   const LANG_KEY = 'aeditor.lang'
 
   function savedLang() {
@@ -16,7 +16,7 @@
   }
 
   function report(err) {
-    if (EF.reportError) EF.reportError({ scope: 'demo', component: 'topbar' }, err)
+    if (aeditor.reportError) aeditor.reportError({ scope: 'demo', component: 'topbar' }, err)
     else console.error(err)
   }
 
@@ -62,7 +62,7 @@
   }
 
   function mount(host) {
-    const lang = EF.signal(savedLang())
+    const lang = aeditor.signal(savedLang())
     const brandMenu = { handle: null }
     const languageMenu = { handle: null }
     setLanguage(lang.peek())
@@ -77,7 +77,7 @@
 
     const project = ui.h('div', 'aed-project-name')
     const spacer = ui.h('div', 'aed-topbar-spacer')
-    const languageText = EF.derived(function () { return lang() === 'zh' ? 'ZH' : 'EN' })
+    const languageText = aeditor.derived(function () { return lang() === 'zh' ? 'ZH' : 'EN' })
     const language = ui.button({
       text: languageText,
       kind: 'ghost',
@@ -101,10 +101,10 @@
         side: 'bottom',
         align: 'start',
         items: [
-          { label: 'New Project', icon: 'file', onSelect: function () { if (EF.ai.clearProjectWorkspace) EF.ai.clearProjectWorkspace() } },
-          { label: 'Open Project Folder', icon: 'folder', onSelect: function () {
-            if (!EF.ai.selectProjectDirectory) return
-            EF.ai.selectProjectDirectory().catch(report)
+          { label: 'New Workspace', icon: 'file', onSelect: function () { if (aeditor.ai.clearWorkspace) aeditor.ai.clearWorkspace() } },
+          { label: 'Open Workspace Folder', icon: 'folder', onSelect: function () {
+            if (!aeditor.ai.selectWorkspaceDirectory) return
+            aeditor.ai.selectWorkspaceDirectory().catch(report)
           } },
           { type: 'divider' },
           { label: 'Settings', icon: 'settings', onSelect: openSettings },
@@ -117,10 +117,10 @@
     host.appendChild(spacer)
     host.appendChild(language)
 
-    if (EF.ai.projectDirectoryVersion) {
-      EF.effect(function () {
-        EF.ai.projectDirectoryVersion()
-        project.textContent = EF.ai.projectDirectoryLabel ? EF.ai.projectDirectoryLabel() : 'Untitled'
+    if (aeditor.ai.workspaceVersion) {
+      aeditor.effect(function () {
+        aeditor.ai.workspaceVersion()
+        project.textContent = aeditor.ai.workspaceLabel ? aeditor.ai.workspaceLabel() : 'Untitled'
       })
     } else {
       project.textContent = 'Untitled'
@@ -128,4 +128,4 @@
   }
 
   window.AEditorTopBar = { mount: mount }
-})(window.EF = window.EF || {})
+})(window.aeditor = window.aeditor || {})

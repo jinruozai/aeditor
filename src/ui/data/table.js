@@ -1,12 +1,12 @@
-// EF.ui.table — virtualized fixed-row table with column headers.
+// aeditor.ui.table — virtualized fixed-row table with column headers.
 //
 // opts:
 //   rows      : signal<object[]>
 //   columns   : [{ key, label, width?, render?(value, row) }]
 //   rowHeight?: number  default 24
-;(function (EF) {
+;(function (aeditor) {
   'use strict'
-  const ui = EF.ui = EF.ui || {}
+  const ui = aeditor.ui = aeditor.ui || {}
 
   ui.table = function (opts) {
     const o = opts || {}
@@ -14,11 +14,11 @@
     const cols = o.columns || []
     const rowH = o.rowHeight || 24
 
-    const el = ui.h('div', 'ef-ui-table')
-    const head = ui.h('div', 'ef-ui-table-head')
+    const el = ui.h('div', 'aeditor-ui-table')
+    const head = ui.h('div', 'aeditor-ui-table-head')
     for (let i = 0; i < cols.length; i++) {
       const c = cols[i]
-      const h = ui.h('div', 'ef-ui-table-th', { text: c.label || c.key })
+      const h = ui.h('div', 'aeditor-ui-table-th', { text: c.label || c.key })
       if (c.width) h.style.width = (typeof c.width === 'number' ? c.width + 'px' : c.width)
       else h.style.flex = '1 1 0'
       head.appendChild(h)
@@ -29,10 +29,10 @@
       items: rows,
       rowHeight: rowH,
       render: function (row) {
-        const r = ui.h('div', 'ef-ui-table-row')
+        const r = ui.h('div', 'aeditor-ui-table-row')
         for (let i = 0; i < cols.length; i++) {
           const c = cols[i]
-          const cell = ui.h('div', 'ef-ui-table-td')
+          const cell = ui.h('div', 'aeditor-ui-table-td')
           if (c.width) cell.style.width = (typeof c.width === 'number' ? c.width + 'px' : c.width)
           else cell.style.flex = '1 1 0'
           const v = row[c.key]
@@ -48,8 +48,8 @@
         return r
       },
     })
-    body.classList.add('ef-ui-table-body')
+    body.classList.add('aeditor-ui-table-body')
     el.appendChild(body)
     return el
   }
-})(window.EF = window.EF || {})
+})(window.aeditor = window.aeditor || {})

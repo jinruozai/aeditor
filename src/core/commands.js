@@ -1,5 +1,5 @@
-// EF.commands - owner-aware command and menu seam registry.
-;(function (EF) {
+// aeditor.commands - owner-aware command and menu seam registry.
+;(function (aeditor) {
   'use strict'
 
   const commands = {}
@@ -143,7 +143,7 @@
     })
   }
 
-  EF.commands = {
+  aeditor.commands = {
     register: register,
     unregister: unregister,
     unregisterOwner: unregisterOwner,
@@ -158,4 +158,4 @@
     meta: function (id) { return clone(commandMeta[id] || {}) },
     menuMeta: function (id) { return clone(menuMeta[id] || {}) },
   }
-})(window.EF = window.EF || {})
+})(window.aeditor = window.aeditor || {})

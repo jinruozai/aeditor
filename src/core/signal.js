@@ -1,10 +1,10 @@
 // Minimal reactive core — signal / effect / derived / batch / onCleanup.
-// Exposed on the global EF namespace. No imports, no modules.
+// Exposed on the global aeditor namespace. No imports, no modules.
 //
 // This file is the zero-dependency bottom of the framework. It does NOT call
-// EF.reportError — effect cleanup failures go to console.error to avoid a
+// aeditor.reportError — effect cleanup failures go to console.error to avoid a
 // circular dependency with errors.js (which itself uses signal()). See § 4.7.
-;(function (EF) {
+;(function (aeditor) {
   'use strict'
 
   let currentEffect = null
@@ -37,7 +37,7 @@
 
   // Drop every dep edge and run+clear every onCleanup callback. Shared by the
   // re-run path (run) and the final dispose path, so the two can't drift.
-  // Cleanup failures go to console.error, not EF.log — § 4.7: signal.js is
+  // Cleanup failures go to console.error, not aeditor.log — § 4.7: signal.js is
   // the zero-dep bottom, so a cleanup throw is fail-loud, not panel-scoped.
   function teardown(eff) {
     eff.deps.forEach(function (s) { s.delete(eff) })
@@ -100,17 +100,17 @@
   // to pollute. Component.create is the canonical case — it runs inside the
   // reconcile effect, but component code shouldn't accidentally subscribe
   // reconcile to user-owned signals. Any real reactivity should go through
-  // EF.effect inside the component, where it creates its own effect scope.
+  // aeditor.effect inside the component, where it creates its own effect scope.
   function untracked(fn) {
     const prev = currentEffect
     currentEffect = null
     try { return fn() } finally { currentEffect = prev }
   }
 
-  EF.signal    = signal
-  EF.effect    = effect
-  EF.derived   = derived
-  EF.onCleanup = onCleanup
-  EF.batch     = batch
-  EF.untracked = untracked
-})(window.EF = window.EF || {})
+  aeditor.signal    = signal
+  aeditor.effect    = effect
+  aeditor.derived   = derived
+  aeditor.onCleanup = onCleanup
+  aeditor.batch     = batch
+  aeditor.untracked = untracked
+})(window.aeditor = window.aeditor || {})

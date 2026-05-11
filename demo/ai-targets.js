@@ -65,7 +65,7 @@
       capabilities: Object.keys(props).map(function (prop) {
         return { op: 'demo.setProp', risk: 'edit', input: { componentId: entry.id, prop: prop } }
       }),
-      tools: ['editor.readReference', 'editor.applyOperation', 'demo.setProp'],
+      tools: ['aeditor.readReference', 'aeditor.applyOperation', 'demo.setProp'],
     }
   }
 
@@ -85,7 +85,7 @@
         options: optionsOf(spec),
       },
       capabilities: [{ op: 'demo.setProp', risk: 'edit' }],
-      tools: ['editor.readReference', 'editor.applyOperation', 'demo.setProp'],
+      tools: ['aeditor.readReference', 'aeditor.applyOperation', 'demo.setProp'],
     }
   }
 
@@ -162,8 +162,8 @@
 
   const themeTokens = {}
   let themeModeSig = null
-  const THEME_STORAGE_KEY = 'ef-theme-overrides-v2'
-  const THEME_MODE_KEY = 'ef-theme-mode'
+  const THEME_STORAGE_KEY = 'aeditor-theme-overrides-v2'
+  const THEME_MODE_KEY = 'aeditor-theme-mode'
 
   function themeMode() {
     return themeModeSig ? themeModeSig.peek() : (localStorage.getItem(THEME_MODE_KEY) || 'dark')
@@ -192,7 +192,7 @@
       uri: 'demo://theme/token/' + encodeURIComponent(name),
       kind: 'demo.themeToken',
       title: 'Theme / ' + spec.label,
-      summary: 'Editable EditorFrame demo theme token ' + name + '.',
+      summary: 'Editable AEditor demo theme token ' + name + '.',
       meta: {
         token: name,
         label: spec.label,
@@ -205,7 +205,7 @@
         mode: themeMode(),
       },
       capabilities: [{ op: 'demo.setThemeToken', risk: 'edit' }, { op: 'demo.setThemeMode', risk: 'edit' }],
-      tools: ['editor.readReference', 'editor.applyOperation', 'demo.setThemeToken', 'demo.setThemeMode'],
+      tools: ['aeditor.readReference', 'aeditor.applyOperation', 'demo.setThemeToken', 'demo.setThemeMode'],
     }
   }
 
@@ -215,13 +215,13 @@
       uri: 'demo://theme/mode',
       kind: 'demo.themeMode',
       title: 'Theme / Mode',
-      summary: 'Current EditorFrame demo theme mode.',
+      summary: 'Current AEditor demo theme mode.',
       meta: {
         value: themeMode(),
         options: ['dark', 'dracula', 'light'],
       },
       capabilities: [{ op: 'demo.setThemeMode', risk: 'edit' }],
-      tools: ['editor.readReference', 'editor.applyOperation', 'demo.setThemeMode'],
+      tools: ['aeditor.readReference', 'aeditor.applyOperation', 'demo.setThemeMode'],
     }
   }
 
@@ -293,7 +293,7 @@
   function applySetThemeMode(preview) {
     if (themeModeSig) themeModeSig.set(preview.after)
     else {
-      EF.theme.set(preview.after)
+      aeditor.theme.set(preview.after)
       localStorage.setItem(THEME_MODE_KEY, preview.after)
     }
     return {
@@ -340,7 +340,7 @@
   }
 
   function recentErrors() {
-    const list = EF.log && EF.log.peek ? EF.log.peek() : []
+    const list = aeditor.log && aeditor.log.peek ? aeditor.log.peek() : []
     return list.filter(function (entry) { return entry.level === 'error' }).slice(-10).map(function (entry) {
       return {
         time: entry.time,
@@ -353,39 +353,39 @@
   function hostTarget() {
     return {
       resolver: 'editor',
-      uri: 'editor://host',
-      kind: 'editor.host',
-      title: 'EditorFrame Demo Host',
-      summary: 'Current EditorFrame demo shell. Use editor.createPanel for brand-new visible UI panels. Low-level extension and dock operations are internal/advanced paths, not the normal UI creation route.',
+      uri: 'aeditor://host',
+      kind: 'aeditor.host',
+      title: 'AEditor Demo Host',
+      summary: 'Current AEditor demo shell. Use aeditor.createPanel for brand-new visible UI panels. Low-level extension and dock operations are internal/advanced paths, not the normal UI creation route.',
       meta: {
         docks: hostDocks(),
         panelHealth: Demo.layout && Demo.layout.inspectPanels ? Demo.layout.inspectPanels() : [],
         recentErrors: recentErrors(),
         preferredDockForNewMainPanels: 'editor',
         generatedPanelGuidelines: [
-          'Use editor.createPanel for new visible UI.',
-          'Prefer EF.ui.* components when they fit the requested UI.',
-          'Use EF.ui.scrollArea for scrollable content instead of raw overflow scrollbars.',
-          'Use EF.ui.tooltip/popover/menu for floating UI; scoped EF.ui overlays close automatically when the panel is no longer active. If you manually append floating DOM outside the root, register it with EF.ui.registerScopedOverlay(anchor, close).',
+          'Use aeditor.createPanel for new visible UI.',
+          'Prefer aeditor.ui.* components when they fit the requested UI.',
+          'Use aeditor.ui.scrollArea for scrollable content instead of raw overflow scrollbars.',
+          'Use aeditor.ui.tooltip/popover/menu for floating UI; scoped aeditor.ui overlays close automatically when the panel is no longer active. If you manually append floating DOM outside the root, register it with aeditor.ui.registerScopedOverlay(anchor, close).',
           'Make the panel root responsive to dock resize: height 100%, minHeight 0, boxSizing border-box, and avoid fixed viewport dimensions.',
           'Use flex/grid with minmax(), auto-fit, and container-relative sizing for card grids.',
         ],
         createPanelPattern: {
-          tool: 'editor.createPanel',
+          tool: 'aeditor.createPanel',
           input: {
             id: 'unique-panel-id',
             title: 'Panel title',
             icon: 'box',
             dock: 'editor',
             layer: 'session',
-            source: 'function (propsSig, ctx) { const root = document.createElement("div"); root.style.cssText = "height:100%;min-height:0;box-sizing:border-box;display:flex;flex-direction:column;"; const scroll = EF.ui.scrollArea({ children: [] }); scroll.style.flex = "1 1 auto"; scroll.style.minHeight = "0"; root.appendChild(scroll); return root }',
+            source: 'function (propsSig, ctx) { const root = document.createElement("div"); root.style.cssText = "height:100%;min-height:0;box-sizing:border-box;display:flex;flex-direction:column;"; const scroll = aeditor.ui.scrollArea({ children: [] }); scroll.style.flex = "1 1 auto"; scroll.style.minHeight = "0"; root.appendChild(scroll); return root }',
           },
         },
       },
       capabilities: [
-        { op: 'editor.createPanel', risk: 'code', purpose: 'Create or replace a same-page factory panel and place it into a dock.' },
+        { op: 'aeditor.createPanel', risk: 'code', purpose: 'Create or replace a same-page factory panel and place it into a dock.' },
       ],
-      tools: ['editor.readReference', 'editor.getCapabilities', 'editor.createPanel', 'editor.applyOperation'],
+      tools: ['aeditor.readReference', 'aeditor.getCapabilities', 'aeditor.createPanel', 'aeditor.applyOperation'],
     }
   }
 
@@ -416,14 +416,14 @@
     themeMode: themeModeTarget,
   }
 
-  EF.ai.registerResourceResolver('demo', {
+  aeditor.ai.registerResourceResolver('demo', {
     resolve: function (ref) {
       if (ref.kind === 'demo.themeToken' || ref.kind === 'demo.themeMode') return resolveTheme(ref)
       return resolveRef(ref)
     },
   })
 
-  EF.ai.references.register('demo', {
+  aeditor.ai.references.register('demo', {
     read: function (ref) {
       if (ref.kind === 'demo.themeToken' || ref.kind === 'demo.themeMode') return resolveTheme(ref)
       return resolveRef(ref)
@@ -461,23 +461,23 @@
     },
   })
 
-  EF.ai.references.register('editor', {
+  aeditor.ai.references.register('editor', {
     read: function (ref) {
-      return ref.uri === 'editor://host' ? readHost(ref) : ref
+      return ref.uri === 'aeditor://host' ? readHost(ref) : ref
     },
     schema: function (ref) {
-      if (ref.uri !== 'editor://host') return null
+      if (ref.uri !== 'aeditor://host') return null
       return {
         type: 'object',
         properties: {
-          source: { type: 'string', description: 'Panel factory source for editor.createPanel. Return a responsive dock-filling HTMLElement; prefer EF.ui.* and EF.ui.scrollArea.' },
+          source: { type: 'string', description: 'Panel factory source for aeditor.createPanel. Return a responsive dock-filling HTMLElement; prefer aeditor.ui.* and aeditor.ui.scrollArea.' },
           dock: { type: 'string', enum: hostDocks().map(function (dock) { return dock.name }) },
           component: { type: 'string' },
         },
       }
     },
     capabilities: function (ref) {
-      return ref.uri === 'editor://host' ? hostTarget().capabilities : []
+      return ref.uri === 'aeditor://host' ? hostTarget().capabilities : []
     },
     search: function (query) {
       const text = String(query && (query.query || query.kind || '') || '').toLowerCase()
@@ -487,7 +487,7 @@
     },
   })
 
-  EF.ai.operations.register('demo.setProp', {
+  aeditor.ai.operations.register('demo.setProp', {
     title: 'Set Demo Property',
     schema: {
       type: 'object',
@@ -503,7 +503,7 @@
     apply: applySetProp,
   })
 
-  EF.ai.operations.register('demo.setThemeToken', {
+  aeditor.ai.operations.register('demo.setThemeToken', {
     title: 'Set Demo Theme Token',
     schema: {
       type: 'object',
@@ -518,7 +518,7 @@
     apply: applySetThemeToken,
   })
 
-  EF.ai.operations.register('demo.setThemeMode', {
+  aeditor.ai.operations.register('demo.setThemeMode', {
     title: 'Set Demo Theme Mode',
     schema: {
       type: 'object',
@@ -530,9 +530,9 @@
     apply: applySetThemeMode,
   })
 
-  EF.ai.registerTool('demo.setProp', {
+  aeditor.ai.registerTool('demo.setProp', {
     title: 'Set Demo Property',
-    description: 'Change an editable property in the EditorFrame component explorer demo. Use only prop keys returned by demo.property refs or by component meta.props; never invent keys such as children if they are not listed.',
+    description: 'Change an editable property in the AEditor component explorer demo. Use only prop keys returned by demo.property refs or by component meta.props; never invent keys such as children if they are not listed.',
     schema: {
       type: 'object',
       required: ['componentId', 'prop', 'value'],
@@ -546,14 +546,14 @@
     apply: applySetProp,
   })
 
-  EF.ai.registerTool('demo.setThemeToken', {
+  aeditor.ai.registerTool('demo.setThemeToken', {
     title: 'Set Demo Theme Token',
-    description: 'Change an EditorFrame component explorer theme token such as --ef-brand or --ef-surface-panel.',
+    description: 'Change an AEditor component explorer theme token such as --aeditor-brand or --aeditor-surface-panel.',
     schema: {
       type: 'object',
       required: ['token', 'value'],
       properties: {
-        token: { type: 'string', description: 'CSS custom property name, for example --ef-brand.' },
+        token: { type: 'string', description: 'CSS custom property name, for example --aeditor-brand.' },
         value: { description: 'New token value. Use hex colors for palette tokens, numbers for px/ms tokens, or strings for font tokens.' },
       },
     },
@@ -561,9 +561,9 @@
     apply: applySetThemeToken,
   })
 
-  EF.ai.registerTool('demo.setThemeMode', {
+  aeditor.ai.registerTool('demo.setThemeMode', {
     title: 'Set Demo Theme Mode',
-    description: 'Switch the EditorFrame component explorer theme mode.',
+    description: 'Switch the AEditor component explorer theme mode.',
     schema: {
       type: 'object',
       required: ['mode'],

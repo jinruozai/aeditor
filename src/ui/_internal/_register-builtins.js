@@ -1,5 +1,5 @@
 // Component-registry sidecar — registers the built-in ui.* widgets as
-// palette-able components so EF.ui.renderUITree (and editors / palettes
+// palette-able components so aeditor.ui.renderUITree (and editors / palettes
 // built on top of it) can instantiate them by name.
 //
 // Visual chrome (background / border / radius / padding / font / color /
@@ -10,10 +10,10 @@
 // on its outer element. Empty / null defaults mean "no inline style" which
 // lets the framework's CSS rules (theme cascade) win — that's the
 // "no edit = use theme" semantics for free.
-;(function (EF) {
+;(function (aeditor) {
   'use strict'
-  const ui = EF.ui
-  const reg = EF.registerComponent
+  const ui = aeditor.ui
+  const reg = aeditor.registerComponent
   const lift = ui.liftProps
   const BOX  = ui.BOX_STYLE_SCHEMA
   const BOX_D = ui.BOX_STYLE_DEFAULTS
@@ -184,7 +184,7 @@
     bindable: ['icon'],
     defaultProps: Object.assign({}, BOX_D, { icon: 'plus', size: 'md', kind: 'default' }),
     schema: Object.assign({}, BOX, {
-      icon:     { type: 'string', desc: 'Registered icon name (see EF.ui.registerIcon).' },
+      icon:     { type: 'string', desc: 'Registered icon name (see aeditor.ui.registerIcon).' },
       title:    { type: 'string', desc: 'Tooltip / accessibility label shown on hover.' },
       size:     { type: 'enum_string', type_agv: { options: ['sm','md','lg'] },
                   desc: 'Button size: sm · md · lg.' },
@@ -194,7 +194,7 @@
     }),
     factory: function (p) {
       const opts = lift(p, ['icon','size','kind','disabled'])
-      opts.title = EF.derived(function () {
+      opts.title = aeditor.derived(function () {
         const cur = p() || {}
         return cur.title || cur.icon || 'Icon button'
       })
@@ -227,7 +227,7 @@
     bindable: ['name'],
     defaultProps: { name: 'image', size: 'md', color: '' },
     schema: {
-      name:  { type: 'string', desc: 'Registered icon name (see EF.ui.registerIcon). Falls back to literal text.' },
+      name:  { type: 'string', desc: 'Registered icon name (see aeditor.ui.registerIcon). Falls back to literal text.' },
       size:  { type: 'enum_string', type_agv: { options: ['sm','md','lg'] },
                desc: 'Icon size: sm · md · lg.' },
       color: { type: 'string', desc: 'CSS color override. Empty inherits from text color.' },
@@ -236,7 +236,7 @@
       const el = ui.icon(lift(p, ['name','size']))
       // Single-prop "color" maps to el.style.color directly — no need for
       // the full TEXT_STYLE fragment for an icon.
-      EF.effect(function () {
+      aeditor.effect(function () {
         const c = (p() || {}).color
         el.style.color = (c == null || c === '') ? '' : c
       })
@@ -368,4 +368,4 @@
       return el
     },
   })
-})(window.EF = window.EF || {})
+})(window.aeditor = window.aeditor || {})

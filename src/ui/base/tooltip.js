@@ -1,12 +1,12 @@
-// EF.ui.tooltip — attach a hover tooltip to any element.
+// aeditor.ui.tooltip — attach a hover tooltip to any element.
 //
-// EF.ui.tooltip(target, { text: string|signal, side?: 'top'|'bottom'|'left'|'right', delay?: 400 })
+// aeditor.ui.tooltip(target, { text: string|signal, side?: 'top'|'bottom'|'left'|'right', delay?: 400 })
 //
 // `side` and `delay` are identity-time config and stay plain. `text` is
 // signal-aware so callers can update tooltip copy reactively.
-;(function (EF) {
+;(function (aeditor) {
   'use strict'
-  const ui = EF.ui = EF.ui || {}
+  const ui = aeditor.ui = aeditor.ui || {}
 
   ui.tooltip = function (target, opts) {
     const o = opts || {}
@@ -19,7 +19,7 @@
 
     function show() {
       if (tip) return
-      tip = ui.h('div', 'ef-ui-tooltip')
+      tip = ui.h('div', 'aeditor-ui-tooltip')
       ui.bindText(tip, text)
       ui.portal(tip)
       ui.place(target, tip, { side: side, align: 'center', gap: 6 })
@@ -45,4 +45,4 @@
     })
     return target
   }
-})(window.EF = window.EF || {})
+})(window.aeditor = window.aeditor || {})

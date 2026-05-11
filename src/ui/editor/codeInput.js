@@ -1,4 +1,4 @@
-// EF.ui.codeInput — monospace text editor with line numbers + tab indent.
+// aeditor.ui.codeInput — monospace text editor with line numbers + tab indent.
 //
 // Light-weight: not Monaco. A styled <textarea> with a gutter, Tab-key
 // indent, signal-bound value, and an *optional* highlight overlay whose
@@ -13,12 +13,12 @@
 //        placed inside a <code> layer behind the textarea. Called on every
 //        input change, so keep it fast.
 //
-//   2. `EF.ui.codeInput.tokenize(src, rules)`
+//   2. `aeditor.ui.codeInput.tokenize(src, rules)`
 //        Tiny sticky-regex walker exposed for convenience. Each rule is
 //        `{ cls, re }` where `re` uses the /y flag. A rule may also have
 //        `kw: Set<string>` — when an ident matches a keyword, cls 'i' is
 //        promoted to 'k'. The class `t` is emitted as raw text (no span).
-//        Returns an HTML string with tokens wrapped in <span class="ef-hl-XX">.
+//        Returns an HTML string with tokens wrapped in <span class="aeditor-hl-XX">.
 //
 // Wire them together (in user code, not the framework):
 //
@@ -39,9 +39,9 @@
 // No `highlight` → plain textarea, minimal library default.
 //
 // opts: { value, onChange?, language?, rows?, highlight? }
-;(function (EF) {
+;(function (aeditor) {
   'use strict'
-  const ui = EF.ui = EF.ui || {}
+  const ui = aeditor.ui = aeditor.ui || {}
 
   function escHtml(s) {
     return s.replace(/[&<>]/g, function (c) {
@@ -67,7 +67,7 @@
           if (cls === 'i' && rule.kw && rule.kw.has(text)) cls = 'k'
           out += cls === 't'
             ? escHtml(text)
-            : '<span class="ef-hl-' + cls + '">' + escHtml(text) + '</span>'
+            : '<span class="aeditor-hl-' + cls + '">' + escHtml(text) + '</span>'
           i += text.length
           advanced = true
           break
@@ -84,15 +84,15 @@
     const doWrite = ui.writer(sig, o.onChange, 'ui.codeInput')
     const highlightFn = typeof o.highlight === 'function' ? o.highlight : null
 
-    const el = ui.h('div', 'ef-ui-code')
-    const gutter = ui.h('div', 'ef-ui-code-gutter')
-    const editor = ui.h('div', 'ef-ui-code-editor')
-    const ta = ui.h('textarea', 'ef-ui-code-text', {
+    const el = ui.h('div', 'aeditor-ui-code')
+    const gutter = ui.h('div', 'aeditor-ui-code-gutter')
+    const editor = ui.h('div', 'aeditor-ui-code-editor')
+    const ta = ui.h('textarea', 'aeditor-ui-code-text', {
       spellcheck: 'false',
       rows: String(o.rows || 12),
     })
     if (o.language) {
-      const tag = ui.h('span', 'ef-ui-code-lang', { text: o.language })
+      const tag = ui.h('span', 'aeditor-ui-code-lang', { text: o.language })
       el.appendChild(tag)
     }
     el.appendChild(gutter)
@@ -101,11 +101,11 @@
     // Highlight overlay only when the caller provided a tokenizer.
     let hl = null, hlCode = null
     if (highlightFn) {
-      hl = ui.h('pre', 'ef-ui-code-hl')
-      hlCode = ui.h('code', 'ef-ui-code-hl-inner')
+      hl = ui.h('pre', 'aeditor-ui-code-hl')
+      hlCode = ui.h('code', 'aeditor-ui-code-hl-inner')
       hl.appendChild(hlCode)
       editor.appendChild(hl)
-      el.classList.add('ef-ui-code-hlmode')
+      el.classList.add('aeditor-ui-code-hlmode')
     }
     editor.appendChild(ta)
 
@@ -155,4 +155,4 @@
   // Exposed for callers who want to use the sticky-regex walker directly.
   ui.codeInput.tokenize = tokenize
   ui.codeInput.escHtml  = escHtml
-})(window.EF = window.EF || {})
+})(window.aeditor = window.aeditor || {})

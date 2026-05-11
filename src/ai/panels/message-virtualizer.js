@@ -1,7 +1,7 @@
-;(function (EF) {
+;(function (aeditor) {
   'use strict'
 
-  const ai = EF.ai = EF.ai || {}
+  const ai = aeditor.ai = aeditor.ai || {}
 
   function binaryLowerBound(prefix, value) {
     let lo = 0
@@ -69,4 +69,4 @@
   }
 
   ai.createMessageVirtualizer = createMessageVirtualizer
-})(window.EF = window.EF || {})
+})(window.aeditor = window.aeditor || {})

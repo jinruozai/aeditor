@@ -1,24 +1,24 @@
-// EF.ui.propRow — Blender-style property row: label on the left, control on the right.
+// aeditor.ui.propRow — Blender-style property row: label on the left, control on the right.
 //
 // opts: {
 //   label?: string|signal,
 //   control: HTMLElement,
 //   hint?: string|signal,
 // }
-;(function (EF) {
+;(function (aeditor) {
   'use strict'
-  const ui = EF.ui = EF.ui || {}
+  const ui = aeditor.ui = aeditor.ui || {}
 
   ui.propRow = function (opts) {
     const o = opts || {}
     const label = ui.asSig(o.label != null ? o.label : '')
-    const el = ui.h('div', 'ef-ui-prop-row')
-    const lab = ui.h('label', 'ef-ui-prop-label')
+    const el = ui.h('div', 'aeditor-ui-prop-row')
+    const lab = ui.h('label', 'aeditor-ui-prop-label')
     ui.bindText(lab, label)
     if (o.hint != null) ui.bindAttr(lab, ui.asSig(o.hint), 'title')
-    const ctrl = ui.h('div', 'ef-ui-prop-control')
+    const ctrl = ui.h('div', 'aeditor-ui-prop-control')
     if (o.control) ctrl.appendChild(o.control)
     el.appendChild(lab); el.appendChild(ctrl)
     return el
   }
-})(window.EF = window.EF || {})
+})(window.aeditor = window.aeditor || {})

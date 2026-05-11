@@ -2,10 +2,10 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import vm from 'node:vm'
 
-global.window = { EF: {} }
+global.window = { aeditor: {} }
 vm.runInThisContext(readFileSync('src/ai/adapter.js', 'utf8'), { filename: 'ai/adapter.js' })
 
-const ai = window.EF.ai
+const ai = window.aeditor.ai
 
 const request = {
   agent: { id: 'a_main', name: 'main', parentAgentId: null },
@@ -27,7 +27,7 @@ assert.equal(encoded.inputItems[0].type, 'text')
 assert.match(encoded.inputItems[0].text, /AVAILABLE_TOOLS/)
 assert.match(encoded.inputItems[0].text, /CURRENT_AGENT_ID: a_main/)
 assert.match(encoded.inputItems[0].text, /"parentAgentId":"a_main"/)
-assert.match(encoded.inputItems[0].text, /MUST request the matching EditorFrame tool/)
+assert.match(encoded.inputItems[0].text, /MUST request the matching AEditor tool/)
 assert.match(encoded.inputItems[0].text, /For "create an agent".*agent\.create/s)
 assert.match(encoded.inputItems[0].text, /USER: Create a helper\./)
 
@@ -36,7 +36,7 @@ const decoded = ai.decodeTextToolResponse({
   content: [
     'I will create it.',
     '```json',
-    '{"ef_tool_calls":[{"toolId":"agent.create","args":{"name":"helper","parentAgentId":"a_main"}}]}',
+    '{"aeditor_tool_calls":[{"toolId":"agent.create","args":{"name":"helper","parentAgentId":"a_main"}}]}',
     '```',
   ].join('\n'),
 })
@@ -47,7 +47,7 @@ assert.equal(decoded.toolCalls[0].args.parentAgentId, 'a_main')
 
 const rawDecoded = ai.decodeTextToolResponse({
   role: 'assistant',
-  content: '{"ef_tool_calls":[{"toolId":"agent.send","args":{"agentId":"a_child","content":"write"}}]}',
+  content: '{"aeditor_tool_calls":[{"toolId":"agent.send","args":{"agentId":"a_child","content":"write"}}]}',
 })
 assert.equal(rawDecoded.content, '')
 assert.equal(rawDecoded.toolCalls.length, 1)

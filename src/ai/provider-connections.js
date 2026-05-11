@@ -1,8 +1,8 @@
-// EF.ai built-in connection definitions.
-;(function (EF) {
+// aeditor.ai built-in connection definitions.
+;(function (aeditor) {
   'use strict'
 
-  const ai = EF.ai = EF.ai || {}
+  const ai = aeditor.ai = aeditor.ai || {}
 
   const openAiDefaults = {
     baseUrl: 'https://api.openai.com/v1',
@@ -53,4 +53,4 @@
 
   if (ai.loadCustomConnections) ai.loadCustomConnections()
   ai.setActiveConnection('mock')
-})(window.EF = window.EF || {})
+})(window.aeditor = window.aeditor || {})

@@ -1,8 +1,8 @@
-;(function (EF) {
+;(function (aeditor) {
   'use strict'
 
-  const ui = EF.ui
-  const ai = EF.ai = EF.ai || {}
+  const ui = aeditor.ui
+  const ai = aeditor.ai = aeditor.ai || {}
 
   function usageNumber(usage, keys) {
     if (!usage) return 0
@@ -72,13 +72,13 @@
   }
 
   function createMessageLiveStrip() {
-    const root = ui.h('div', 'ef-ai-live-run')
-    const plate = ui.h('div', 'ef-ai-live-run-plate')
-    const dot = ui.h('span', 'ef-ai-live-run-dot')
-    const arrow = ui.h('button', 'ef-ai-live-run-arrow', { type: 'button', title: 'Toggle run preview' })
-    const label = ui.h('span', 'ef-ai-live-run-label')
-    const preview = ui.h('span', 'ef-ai-live-run-preview')
-    const metrics = ui.h('div', 'ef-ai-live-run-metrics')
+    const root = ui.h('div', 'aeditor-ai-live-run')
+    const plate = ui.h('div', 'aeditor-ai-live-run-plate')
+    const dot = ui.h('span', 'aeditor-ai-live-run-dot')
+    const arrow = ui.h('button', 'aeditor-ai-live-run-arrow', { type: 'button', title: 'Toggle run preview' })
+    const label = ui.h('span', 'aeditor-ai-live-run-label')
+    const preview = ui.h('span', 'aeditor-ai-live-run-preview')
+    const metrics = ui.h('div', 'aeditor-ai-live-run-metrics')
     let lastState = null
     let idleExpanded = false
 
@@ -119,4 +119,4 @@
   }
 
   ai.createMessageLiveStrip = createMessageLiveStrip
-})(window.EF = window.EF || {})
+})(window.aeditor = window.aeditor || {})

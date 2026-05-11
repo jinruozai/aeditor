@@ -12,10 +12,10 @@
 //
 // It does NOT touch DOM tree structure (that's render.js) and does NOT bind
 // drag events (interactions.js).
-;(function (EF) {
+;(function (aeditor) {
   'use strict'
 
-  const signal = EF.signal
+  const signal = aeditor.signal
 
   // ── LayoutRuntime ─────────────────────────────────────
   function createLayoutRuntime(container, treeSig, opts) {
@@ -44,7 +44,7 @@
 
     layout.activatePanel = function (panelId) {
       if (layout.disposed) return
-      layout.setTree(EF.activatePanel(treeSig.peek(), panelId))
+      layout.setTree(aeditor.activatePanel(treeSig.peek(), panelId))
       layout.markActivation(panelId)
       maybeEvictLRU(layout)
     }
@@ -53,7 +53,7 @@
       if (layout.disposed) return
       const dr = findOwningDockRuntime(layout, panelId)
       const pr = dr && dr.panelRuntimes.get(panelId)
-      layout.setTree(EF.removePanel(treeSig.peek(), panelId))
+      layout.setTree(aeditor.removePanel(treeSig.peek(), panelId))
       if (pr) {
         disposePanelRuntime(pr)
         dr.panelRuntimes.delete(panelId)
@@ -65,7 +65,7 @@
     // through here, so markActivation + maybeEvictLRU are never skipped.
     layout.addPanel = function (dockId, partial, opts) {
       if (layout.disposed) return null
-      const r = EF.addPanel(treeSig.peek(), dockId, partial, opts)
+      const r = aeditor.addPanel(treeSig.peek(), dockId, partial, opts)
       layout.setTree(r.tree)
       layout.markActivation(r.panelId)
       maybeEvictLRU(layout)
@@ -74,7 +74,7 @@
 
     layout.addPanelToSplit = function (dockId, direction, side, ratio, partial) {
       if (layout.disposed) return { newDockId: null, newPanelId: null }
-      const r = EF.splitDock(treeSig.peek(), dockId, direction, side, ratio, { seedPanels: [partial] })
+      const r = aeditor.splitDock(treeSig.peek(), dockId, direction, side, ratio, { seedPanels: [partial] })
       layout.setTree(r.tree)
       layout.markActivation(r.newPanelId)
       maybeEvictLRU(layout)
@@ -87,13 +87,13 @@
     // create new runtimes, only re-homes existing ones.
     layout.movePanel = function (panelId, dstDockId, dstIndex) {
       if (layout.disposed) return
-      layout.setTree(EF.movePanel(treeSig.peek(), panelId, dstDockId, dstIndex))
+      layout.setTree(aeditor.movePanel(treeSig.peek(), panelId, dstDockId, dstIndex))
       layout.markActivation(panelId)
     }
 
     layout.movePanelToSplit = function (panelId, dstDockId, direction, side, ratio) {
       if (layout.disposed) return
-      const r = EF.movePanelToSplit(treeSig.peek(), panelId, dstDockId, direction, side, ratio)
+      const r = aeditor.movePanelToSplit(treeSig.peek(), panelId, dstDockId, direction, side, ratio)
       layout.setTree(r.tree)
       layout.markActivation(panelId)
     }
@@ -101,7 +101,7 @@
     // Preview → permanent promotion. Pure tree rewrite, no runtime impact.
     layout.promotePanel = function (panelId) {
       if (layout.disposed) return
-      layout.setTree(EF.promotePanel(treeSig.peek(), panelId))
+      layout.setTree(aeditor.promotePanel(treeSig.peek(), panelId))
     }
 
     return layout
@@ -152,7 +152,7 @@
     layout.dockRuntimes.forEach(disposeDockRuntime)
     layout.dockRuntimes.clear()
     layout.container.replaceChildren()
-    layout.container.classList.remove('ef-root')
+    layout.container.classList.remove('aeditor-root')
   }
 
   function disposeDockRuntime(dockRuntime) {
@@ -190,12 +190,12 @@
     }
   }
 
-  // Visual class sync — focused / collapsed live as classes on .ef-dock so
+  // Visual class sync — focused / collapsed live as classes on .aeditor-dock so
   // CSS handles all visuals (no JS layout math).
   function syncDockClasses(dockRuntime, dockData) {
     const cl = dockRuntime.dockEl.classList
-    cl.toggle('ef-dock-focused',   !!dockData.focused)
-    cl.toggle('ef-dock-collapsed', !!dockData.collapsed)
+    cl.toggle('aeditor-dock-focused',   !!dockData.focused)
+    cl.toggle('aeditor-dock-collapsed', !!dockData.collapsed)
   }
 
   function toolbarKey(toolbar) {
@@ -223,22 +223,22 @@
     dockRuntime.toolbarEndEl = null
 
     const cl = dockRuntime.dockEl.classList
-    cl.remove('ef-dock-with-toolbar', 'ef-dock-toolbar-top', 'ef-dock-toolbar-bottom', 'ef-dock-toolbar-left', 'ef-dock-toolbar-right', 'ef-dock-toolbar-empty')
+    cl.remove('aeditor-dock-with-toolbar', 'aeditor-dock-toolbar-top', 'aeditor-dock-toolbar-bottom', 'aeditor-dock-toolbar-left', 'aeditor-dock-toolbar-right', 'aeditor-dock-toolbar-empty')
     if (dockData.toolbar) {
       const dir = dockData.toolbar.direction || 'top'
       const toolbarEl = document.createElement('div')
-      toolbarEl.className = 'ef-toolbar ef-toolbar-' + dir
+      toolbarEl.className = 'aeditor-toolbar aeditor-toolbar-' + dir
       const start = document.createElement('div')
-      start.className = 'ef-toolbar-start'
+      start.className = 'aeditor-toolbar-start'
       const end = document.createElement('div')
-      end.className = 'ef-toolbar-end'
+      end.className = 'aeditor-toolbar-end'
       toolbarEl.appendChild(start)
       toolbarEl.appendChild(end)
       dockRuntime.dockEl.insertBefore(toolbarEl, dockRuntime.contentEl)
       dockRuntime.toolbarEl = toolbarEl
       dockRuntime.toolbarStartEl = start
       dockRuntime.toolbarEndEl = end
-      cl.add('ef-dock-with-toolbar', 'ef-dock-toolbar-' + dir)
+      cl.add('aeditor-dock-with-toolbar', 'aeditor-dock-toolbar-' + dir)
       initToolbarVisibility(dockRuntime)
       createStaticToolbarRuntimes(dockRuntime, dockData, layout)
     }
@@ -264,7 +264,7 @@
         props:     item.props || {},
         error:     null,
       }
-      sr.ctx = EF._dock.makeContext(sr, layout)
+      sr.ctx = aeditor._dock.makeContext(sr, layout)
       materializeComponentEl(sr, { dockId: dockRuntime.id })
       mountToolbarItem(sr, dockRuntime)
       dockRuntime.staticToolbarRuntimes.push(sr)
@@ -302,7 +302,7 @@
     const visible = hasVisibleToolbarChild(dockRuntime.toolbarStartEl) ||
       hasVisibleToolbarChild(dockRuntime.toolbarEndEl)
     if (dockRuntime.toolbarEl.hidden === visible) dockRuntime.toolbarEl.hidden = !visible
-    dockRuntime.dockEl.classList.toggle('ef-dock-toolbar-empty', !visible)
+    dockRuntime.dockEl.classList.toggle('aeditor-dock-toolbar-empty', !visible)
   }
 
   function hasVisibleToolbarChild(slot) {
@@ -316,7 +316,7 @@
   function isVisibleToolbarNode(el) {
     if (el.hidden) return false
     if (el.style && el.style.display === 'none') return false
-    if (el.classList.contains('ef-toolbar-item') && el.children.length === 1) {
+    if (el.classList.contains('aeditor-toolbar-item') && el.children.length === 1) {
       return isVisibleToolbarNode(el.firstElementChild)
     }
     return true
@@ -360,7 +360,7 @@
       error:                  null,
       _layout:                layout,
     }
-    pr.ctx = EF._dock.makeContext(pr, layout)
+    pr.ctx = aeditor._dock.makeContext(pr, layout)
 
     // Build dynamic toolbar runtimes from PanelData.toolbarItems. They share
     // the panel's data + dockRef signals so cross-dock moves propagate.
@@ -380,7 +380,7 @@
           props:     item.props || {},
           error:     null,
         }
-        tr.ctx = EF._dock.makeContext(tr, layout)
+        tr.ctx = aeditor._dock.makeContext(tr, layout)
         pr.dynamicToolbarRuntimes.push(tr)
       }
     }
@@ -420,7 +420,7 @@
     if (!pr.contentEl) {
       materializeComponentEl(pr, { panelId: pd.id, dockId: dockRuntime.id })
       pr.contentEl.dataset.panelId = pd.id
-      pr.contentEl.classList.add('ef-panel')
+      pr.contentEl.classList.add('aeditor-panel')
     }
 
     if (pr.contentEl.parentNode !== content) {
@@ -442,7 +442,7 @@
       const tr = items[i]
       if (!tr.contentEl) {
         materializeComponentEl(tr, { panelId: tr.panelId })
-        tr.contentEl.classList.add('ef-toolbar-item')
+        tr.contentEl.classList.add('aeditor-toolbar-item')
       }
       const slot = tr.align === 'end'
         ? dockRuntime.toolbarEndEl
@@ -459,7 +459,7 @@
     for (let i = 0; i < items.length; i++) {
       const tr = items[i]
       if (!dockRuntime && tr.contentEl && tr.contentEl.parentNode) {
-        const dockEl = tr.contentEl.closest('.ef-dock')
+        const dockEl = tr.contentEl.closest('.aeditor-dock')
         const dockId = dockEl && dockEl.dataset && dockEl.dataset.dockId
         if (dockId && panelRuntime._layout) {
           dockRuntime = panelRuntime._layout.dockRuntimes.get(dockId)
@@ -475,14 +475,14 @@
   // dynamic toolbar runtimes. Wraps spec.factory in safeCall so a buggy component
   // produces a visible error stub instead of breaking the framework.
   //
-  // The entire create() runs inside EF.untracked — reconcile invokes this
+  // The entire create() runs inside aeditor.untracked — reconcile invokes this
   // from within its own effect, and we don't want incidental ctx.* signal
   // reads (e.g. `ctx.panel.title()` for a guard check, or `ctx.dock.panels()`
   // in a toolbar tab component) to leak into the reconcile effect's dep set.
-  // Any real reactivity must go through EF.effect explicitly inside the
+  // Any real reactivity must go through aeditor.effect explicitly inside the
   // component body, which establishes its own effect scope.
   function materializeComponentEl(runtime, srcExtra) {
-    const spec = EF.resolveComponent(runtime.component)
+    const spec = aeditor.resolveComponent(runtime.component)
     const src = Object.assign({ scope: 'component', component: runtime.component }, srcExtra || {})
     // propsSig source per kind:
     //   panel runtimes track props live via ctx.panel.props (derived off
@@ -492,11 +492,11 @@
     //     the static spec.props — those don't change after registration.
     const propsSig = (runtime.kind === 'panel')
       ? runtime.ctx.panel.props
-      : EF.signal(runtime.props || {})
+      : aeditor.signal(runtime.props || {})
     runtime.propsSig = propsSig
     let el = null
     try {
-      el = EF.untracked(function () {
+      el = aeditor.untracked(function () {
         return spec.factory(propsSig, runtime.ctx)
       })
       runtime.error = null
@@ -505,19 +505,19 @@
         message: String(err && err.message ? err.message : err),
         stack: err && err.stack || null,
       }
-      if (EF.reportError) EF.reportError(src, err)
+      if (aeditor.reportError) aeditor.reportError(src, err)
     }
     if (!el) {
       if (!runtime.error) {
         runtime.error = { message: 'Component factory returned no element', stack: null }
-        if (EF.reportError) EF.reportError(src, new Error(runtime.error.message))
+        if (aeditor.reportError) aeditor.reportError(src, new Error(runtime.error.message))
       }
       runtime.contentEl = makeErrorEl(runtime.component, runtime.error.message)
       return
     }
     runtime.contentEl = el
-    if (runtime.kind === 'panel' && EF.ui && EF.ui.scope) {
-      EF.ui.scope(el, { active: runtime.active })
+    if (runtime.kind === 'panel' && aeditor.ui && aeditor.ui.scope) {
+      aeditor.ui.scope(el, { active: runtime.active })
     }
   }
 
@@ -527,15 +527,15 @@
       try { fn() } catch (e) { console.error(e) }
     }
     if (runtime.contentEl) {
-      if (runtime.kind === 'panel' && EF.ui && EF.ui.closeScope) {
-        EF.ui.closeScope(runtime.contentEl)
+      if (runtime.kind === 'panel' && aeditor.ui && aeditor.ui.closeScope) {
+        aeditor.ui.closeScope(runtime.contentEl)
       }
-      const spec = EF.resolveComponent(runtime.component)
+      const spec = aeditor.resolveComponent(runtime.component)
       if (spec.dispose) {
-        EF.safeCall({ scope: 'component', component: runtime.component },
+        aeditor.safeCall({ scope: 'component', component: runtime.component },
           function () { spec.dispose(runtime.contentEl) })
-      } else if (EF.ui && EF.ui.dispose) {
-        EF.ui.dispose(runtime.contentEl)
+      } else if (aeditor.ui && aeditor.ui.dispose) {
+        aeditor.ui.dispose(runtime.contentEl)
       } else {
         runtime.contentEl.remove()
       }
@@ -645,23 +645,23 @@
 
   function makeErrorEl(componentName, message) {
     const el = document.createElement('div')
-    el.className = 'ef-panel-error'
+    el.className = 'aeditor-panel-error'
     el.textContent = 'Failed to create component: ' + componentName + (message ? '\n' + message : '')
     return el
   }
 
-  EF._dock = EF._dock || {}
-  EF._dock.createLayoutRuntime         = createLayoutRuntime
-  EF._dock.disposeLayoutRuntime        = disposeLayoutRuntime
-  EF._dock.createDockRuntime           = createDockRuntime
-  EF._dock.updateDockRuntime           = updateDockRuntime
-  EF._dock.disposeDockRuntime          = disposeDockRuntime
-  EF._dock.createStaticToolbarRuntimes = createStaticToolbarRuntimes
-  EF._dock.syncActivePanel             = syncActivePanel
-  EF._dock.syncDockClasses             = syncDockClasses
-  EF._dock.disposeStalePanelRuntimes   = disposeStalePanelRuntimes
-  EF._dock.disposePanelRuntime         = disposePanelRuntime
-  EF._dock.findPanelRuntime            = findPanelRuntime
-  EF._dock.inspectPanels               = inspectPanels
-  EF._dock.inspectPanel                = inspectPanel
-})(window.EF = window.EF || {})
+  aeditor._dock = aeditor._dock || {}
+  aeditor._dock.createLayoutRuntime         = createLayoutRuntime
+  aeditor._dock.disposeLayoutRuntime        = disposeLayoutRuntime
+  aeditor._dock.createDockRuntime           = createDockRuntime
+  aeditor._dock.updateDockRuntime           = updateDockRuntime
+  aeditor._dock.disposeDockRuntime          = disposeDockRuntime
+  aeditor._dock.createStaticToolbarRuntimes = createStaticToolbarRuntimes
+  aeditor._dock.syncActivePanel             = syncActivePanel
+  aeditor._dock.syncDockClasses             = syncDockClasses
+  aeditor._dock.disposeStalePanelRuntimes   = disposeStalePanelRuntimes
+  aeditor._dock.disposePanelRuntime         = disposePanelRuntime
+  aeditor._dock.findPanelRuntime            = findPanelRuntime
+  aeditor._dock.inspectPanels               = inspectPanels
+  aeditor._dock.inspectPanel                = inspectPanel
+})(window.aeditor = window.aeditor || {})

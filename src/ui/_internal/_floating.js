@@ -7,9 +7,9 @@
 //
 // Floating elements MUST already be in the portal layer (so we measure them
 // as fixed-positioned, no parent layout influence).
-;(function (EF) {
+;(function (aeditor) {
   'use strict'
-  const ui = EF.ui = EF.ui || {}
+  const ui = aeditor.ui = aeditor.ui || {}
 
   // place(anchor, floating, opts)
   //   opts.side    : 'top' | 'bottom' | 'left' | 'right'   (default 'bottom')
@@ -73,4 +73,4 @@
     floating.style.top  = p.top  + 'px'
     floating.style.visibility = ''
   }
-})(window.EF = window.EF || {})
+})(window.aeditor = window.aeditor || {})

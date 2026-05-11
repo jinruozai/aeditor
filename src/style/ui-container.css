@@ -1,60 +1,60 @@
-/* editorframe — UI library: containers */
+/* aeditor — UI library: containers */
 
 /* ── section ────────────────────────────────────────────────────── */
-.ef-ui-section {
+.aeditor-ui-section {
   display: flex;
   flex-direction: column;
   min-width: 0;
-  border-bottom: 1px solid var(--ef-border);
+  border-bottom: 1px solid var(--aeditor-border);
 }
-.ef-ui-section-head {
+.aeditor-ui-section-head {
   display: flex;
   align-items: center;
   gap: 2px;
   width: 100%;
-  height: var(--ef-size-h-md);
-  padding: 0 var(--ef-space-1);
-  background: var(--ef-bg-raised);
+  height: var(--aeditor-size-h-md);
+  padding: 0 var(--aeditor-space-1);
+  background: var(--aeditor-bg-raised);
   border: 0;
-  color: var(--ef-fg-0);
-  font: 600 var(--ef-fs-sm) var(--ef-font-ui);
+  color: var(--aeditor-fg-0);
+  font: 600 var(--aeditor-fs-sm) var(--aeditor-font-ui);
   text-transform: uppercase;
   letter-spacing: .04em;
   cursor: pointer;
   text-align: left;
 }
-.ef-ui-section-head:hover { background: var(--ef-bg-3); }
-.ef-ui-section-arrow {
+.aeditor-ui-section-head:hover { background: var(--aeditor-bg-3); }
+.aeditor-ui-section-arrow {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   width: 16px;
-  color: var(--ef-fg-2);
-  font-size: var(--ef-fs-md);
+  color: var(--aeditor-fg-2);
+  font-size: var(--aeditor-fs-md);
   line-height: 1;
 }
-.ef-ui-section-title { flex: 1 1 auto; }
-.ef-ui-section-body {
+.aeditor-ui-section-title { flex: 1 1 auto; }
+.aeditor-ui-section-body {
   display: flex;
   flex-direction: column;
   min-width: 0;
-  padding: var(--ef-space-2);
-  gap: var(--ef-space-1);
+  padding: var(--aeditor-space-2);
+  gap: var(--aeditor-space-1);
 }
-.ef-ui-section-collapsed .ef-ui-section-body { display: none; }
+.aeditor-ui-section-collapsed .aeditor-ui-section-body { display: none; }
 
 /* ── propRow ────────────────────────────────────────────────────── */
-.ef-ui-prop-row {
+.aeditor-ui-prop-row {
   display: grid;
   grid-template-columns: minmax(0, 80px) minmax(0, 1fr);
   align-items: center;
-  gap: var(--ef-space-2);
+  gap: var(--aeditor-space-2);
   min-width: 0;
-  min-height: var(--ef-size-h-md);
+  min-height: var(--aeditor-size-h-md);
 }
-.ef-ui-prop-label {
-  font: var(--ef-fs-sm) var(--ef-font-ui);
-  color: var(--ef-fg-2);
+.aeditor-ui-prop-label {
+  font: var(--aeditor-fs-sm) var(--aeditor-font-ui);
+  color: var(--aeditor-fg-2);
   text-align: right;
   user-select: none;
   overflow: hidden;
@@ -66,85 +66,85 @@
    absolutely-positioned control parts that legitimately extend outside the
    flow (slider thumb at value 0/1, color-picker popovers, etc). Leave the
    shrink semantics, drop the clip. */
-.ef-ui-prop-control { display: flex; min-width: 0; }
-.ef-ui-prop-control > * { flex: 1 1 auto; min-width: 0; max-width: 100%; }
+.aeditor-ui-prop-control { display: flex; min-width: 0; }
+.aeditor-ui-prop-control > * { flex: 1 1 auto; min-width: 0; max-width: 100%; }
 
 /* ── card ───────────────────────────────────────────────────────── */
-.ef-ui-card {
-  background: var(--ef-bg-1);
-  border: 1px solid var(--ef-border);
-  border-radius: var(--ef-r-3);
+.aeditor-ui-card {
+  background: var(--aeditor-bg-1);
+  border: 1px solid var(--aeditor-border);
+  border-radius: var(--aeditor-r-3);
   display: flex;
   flex-direction: column;
 }
-.ef-ui-card-head {
-  padding: var(--ef-space-2) var(--ef-space-3);
-  font: 600 var(--ef-fs-sm) var(--ef-font-ui);
-  color: var(--ef-fg-0);
-  border-bottom: 1px solid var(--ef-border);
+.aeditor-ui-card-head {
+  padding: var(--aeditor-space-2) var(--aeditor-space-3);
+  font: 600 var(--aeditor-fs-sm) var(--aeditor-font-ui);
+  color: var(--aeditor-fg-0);
+  border-bottom: 1px solid var(--aeditor-border);
   text-transform: uppercase;
   letter-spacing: .04em;
 }
-.ef-ui-card-body { display: flex; flex-direction: column; gap: var(--ef-space-2); }
-.ef-ui-card-padded .ef-ui-card-body { padding: var(--ef-space-3); }
+.aeditor-ui-card-body { display: flex; flex-direction: column; gap: var(--aeditor-space-2); }
+.aeditor-ui-card-padded .aeditor-ui-card-body { padding: var(--aeditor-space-3); }
 
 /* ── scene / UI tree node wrapper ─────────────────────────────────
    Every renderUITree node is a real editor node. The component body fills
    the node; arbitrary children default to an absolute overlay layer. */
-.ef-ui-node {
+.aeditor-ui-node {
   position: relative;
   display: inline-block;
   min-width: 0;
   box-sizing: border-box;
 }
-.ef-ui-node-body {
+.aeditor-ui-node-body {
   position: relative;
   width: 100%;
   height: 100%;
   min-width: 0;
   box-sizing: border-box;
 }
-.ef-ui-node-body > :first-child {
+.aeditor-ui-node-body > :first-child {
   width: 100%;
   height: 100%;
   box-sizing: border-box;
 }
-.ef-ui-node-children {
+.aeditor-ui-node-children {
   position: absolute;
   inset: 0;
   pointer-events: none;
 }
-.ef-ui-node-children > .ef-ui-abs-slot {
+.aeditor-ui-node-children > .aeditor-ui-abs-slot {
   position: absolute;
   pointer-events: auto;
 }
 
 /* ── scrollArea ─────────────────────────────────────────────────── */
-.ef-ui-scrollarea {
+.aeditor-ui-scrollarea {
   overflow-y: auto;
   overflow-x: hidden;
   scrollbar-width: thin;
-  scrollbar-color: var(--ef-bg-4) transparent;
+  scrollbar-color: var(--aeditor-bg-4) transparent;
 }
-.ef-ui-scrollarea-both { overflow-x: auto; }
-.ef-ui-scrollarea::-webkit-scrollbar { width: 8px; height: 8px; }
-.ef-ui-scrollarea::-webkit-scrollbar-track { background: transparent; }
-.ef-ui-scrollarea::-webkit-scrollbar-thumb {
-  background: var(--ef-bg-4);
-  border-radius: var(--ef-r-pill);
+.aeditor-ui-scrollarea-both { overflow-x: auto; }
+.aeditor-ui-scrollarea::-webkit-scrollbar { width: 8px; height: 8px; }
+.aeditor-ui-scrollarea::-webkit-scrollbar-track { background: transparent; }
+.aeditor-ui-scrollarea::-webkit-scrollbar-thumb {
+  background: var(--aeditor-bg-4);
+  border-radius: var(--aeditor-r-pill);
 }
-.ef-ui-scrollarea::-webkit-scrollbar-thumb:hover { background: var(--ef-fg-3); }
+.aeditor-ui-scrollarea::-webkit-scrollbar-thumb:hover { background: var(--aeditor-fg-3); }
 
 
 /* ── absolute container ─────────────────────────────────────────
    The container clips children by default — this is the runtime
    behavior cards depend on. Editor surfaces (e.g. .gde-cs-canvas)
    override via specificity to let resize handles escape the frame. */
-.ef-ui-absolute { overflow: hidden; }
-.ef-ui-absolute > .ef-ui-abs-slot { position: absolute; }
+.aeditor-ui-absolute { overflow: hidden; }
+.aeditor-ui-absolute > .aeditor-ui-abs-slot { position: absolute; }
 /* The slot's geometry is fully expressed via left/top/right/bottom (see
    _layout-rect.js), so the wrapped component fills it edge-to-edge. The slot
    contract: the rendered component is always the first child; any later
    children are editor overlays (resize handles, drag affordances) that
    need their own positioning and must not be auto-sized. */
-.ef-ui-abs-slot > :first-child { width: 100%; height: 100%; box-sizing: border-box; }
+.aeditor-ui-abs-slot > :first-child { width: 100%; height: 100%; box-sizing: border-box; }

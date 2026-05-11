@@ -1,663 +1,663 @@
-/* editorframe — UI library: form widgets
+/* aeditor — UI library: form widgets
  * input, textarea, numberInput, vectorInput, slider, rangeSlider,
  * checkbox, switch, radio, segmented, select, combobox, colorInput,
  * enumInput, tagInput. All values come from theme tokens.
  */
 
 /* ── field shell (input / combobox / tagInput share) ────────────── */
-.ef-ui-field {
+.aeditor-ui-field {
   display: inline-flex;
   align-items: center;
   width: 100%;
-  height: var(--ef-size-h-md);
-  background: var(--ef-bg-2);
-  border: 1px solid var(--ef-border-input);
-  border-radius: var(--ef-r-2);
-  padding: 0 var(--ef-control-px);
-  gap: var(--ef-space-1);
+  height: var(--aeditor-size-h-md);
+  background: var(--aeditor-bg-2);
+  border: 1px solid var(--aeditor-border-input);
+  border-radius: var(--aeditor-r-2);
+  padding: 0 var(--aeditor-control-px);
+  gap: var(--aeditor-space-1);
   box-sizing: border-box;
-  transition: border-color var(--ef-dur-fast) var(--ef-ease),
-              box-shadow   var(--ef-dur-med)  var(--ef-ease),
-              background   var(--ef-dur-fast) var(--ef-ease);
+  transition: border-color var(--aeditor-dur-fast) var(--aeditor-ease),
+              box-shadow   var(--aeditor-dur-med)  var(--aeditor-ease),
+              background   var(--aeditor-dur-fast) var(--aeditor-ease);
 }
-.ef-ui-field:hover { border-color: var(--ef-border-hover); }
-.ef-ui-field:focus-within {
-  border-color: var(--ef-accent);
-  background: color-mix(in srgb, var(--ef-bg-2) 92%, var(--ef-accent));
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--ef-accent) 22%, transparent);
+.aeditor-ui-field:hover { border-color: var(--aeditor-border-hover); }
+.aeditor-ui-field:focus-within {
+  border-color: var(--aeditor-accent);
+  background: color-mix(in srgb, var(--aeditor-bg-2) 92%, var(--aeditor-accent));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--aeditor-accent) 22%, transparent);
 }
-.ef-ui-field-disabled { opacity: .38; pointer-events: none; }
-.ef-ui-field-prefix, .ef-ui-field-suffix {
+.aeditor-ui-field-disabled { opacity: .38; pointer-events: none; }
+.aeditor-ui-field-prefix, .aeditor-ui-field-suffix {
   display: inline-flex;
   align-items: center;
-  color: var(--ef-fg-2);
-  font: var(--ef-fs-md) var(--ef-font-ui);
+  color: var(--aeditor-fg-2);
+  font: var(--aeditor-fs-md) var(--aeditor-font-ui);
 }
 
 /* ── input ──────────────────────────────────────────────────────── */
-.ef-ui-input {
+.aeditor-ui-input {
   flex: 1 1 auto;
   min-width: 0;
   background: transparent;
   border: 0;
   outline: 0;
-  color: var(--ef-fg-0);
-  font: var(--ef-fs-md) var(--ef-font-ui);
+  color: var(--aeditor-fg-0);
+  font: var(--aeditor-fs-md) var(--aeditor-font-ui);
   padding: 0;
 }
-.ef-ui-input::placeholder { color: var(--ef-fg-3); }
-.ef-ui-search-field .ef-ui-field-prefix {
-  color: var(--ef-fg-3);
+.aeditor-ui-input::placeholder { color: var(--aeditor-fg-3); }
+.aeditor-ui-search-field .aeditor-ui-field-prefix {
+  color: var(--aeditor-fg-3);
 }
-.ef-ui-search-clear[hidden] {
+.aeditor-ui-search-clear[hidden] {
   display: none;
 }
-.ef-ui-search-clear {
+.aeditor-ui-search-clear {
   width: 18px;
   height: 18px;
   min-width: 18px;
   padding: 0;
-  color: var(--ef-fg-3);
+  color: var(--aeditor-fg-3);
 }
 
 /* ── textarea ───────────────────────────────────────────────────── */
-.ef-ui-textarea {
+.aeditor-ui-textarea {
   display: block;
   width: 100%;
   min-height: 60px;
   box-sizing: border-box;
-  background: var(--ef-bg-2);
-  border: 1px solid var(--ef-border-input);
-  border-radius: var(--ef-r-2);
-  padding: var(--ef-space-1) var(--ef-space-2);
-  color: var(--ef-fg-0);
-  font: var(--ef-fs-md) var(--ef-font-ui);
+  background: var(--aeditor-bg-2);
+  border: 1px solid var(--aeditor-border-input);
+  border-radius: var(--aeditor-r-2);
+  padding: var(--aeditor-space-1) var(--aeditor-space-2);
+  color: var(--aeditor-fg-0);
+  font: var(--aeditor-fs-md) var(--aeditor-font-ui);
   outline: 0;
   resize: vertical;
 }
-.ef-ui-textarea-mono { font-family: var(--ef-font-mono); font-size: var(--ef-fs-sm); }
-.ef-ui-textarea {
-  transition: border-color var(--ef-dur-fast) var(--ef-ease),
-              box-shadow   var(--ef-dur-med)  var(--ef-ease);
+.aeditor-ui-textarea-mono { font-family: var(--aeditor-font-mono); font-size: var(--aeditor-fs-sm); }
+.aeditor-ui-textarea {
+  transition: border-color var(--aeditor-dur-fast) var(--aeditor-ease),
+              box-shadow   var(--aeditor-dur-med)  var(--aeditor-ease);
 }
-.ef-ui-textarea:focus {
-  border-color: var(--ef-accent);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--ef-accent) 22%, transparent);
+.aeditor-ui-textarea:focus {
+  border-color: var(--aeditor-accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--aeditor-accent) 22%, transparent);
 }
 
 /* ── numberInput ────────────────────────────────────────────────── */
-.ef-ui-num {
+.aeditor-ui-num {
   display: inline-flex;
   align-items: center;
   gap: 2px;
-  height: var(--ef-size-h-md);
+  height: var(--aeditor-size-h-md);
   cursor: ew-resize;
   user-select: none;
   min-width: 0;
 }
-.ef-ui-num-body {
+.aeditor-ui-num-body {
   display: inline-flex;
   align-items: center;
   height: 100%;
   min-width: 0;
   flex: 1 1 auto;
   overflow: hidden;
-  background: var(--ef-bg-2);
-  border: 1px solid var(--ef-border-input);
-  border-radius: var(--ef-r-2);
+  background: var(--aeditor-bg-2);
+  border: 1px solid var(--aeditor-border-input);
+  border-radius: var(--aeditor-r-2);
   box-sizing: border-box;
 }
-.ef-ui-num:hover .ef-ui-num-body { border-color: var(--ef-border-strong); }
-.ef-ui-num:focus-within .ef-ui-num-body { border-color: var(--ef-accent); }
-.ef-ui-num-label {
+.aeditor-ui-num:hover .aeditor-ui-num-body { border-color: var(--aeditor-border-strong); }
+.aeditor-ui-num:focus-within .aeditor-ui-num-body { border-color: var(--aeditor-accent); }
+.aeditor-ui-num-label {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   flex: 0 0 auto;
   min-width: 16px;
-  padding: 0 var(--ef-space-1);
-  color: var(--ef-fg-1);
-  font: 600 var(--ef-fs-sm) var(--ef-font-ui);
+  padding: 0 var(--aeditor-space-1);
+  color: var(--aeditor-fg-1);
+  font: 600 var(--aeditor-fs-sm) var(--aeditor-font-ui);
   height: 100%;
   box-sizing: border-box;
 }
-.ef-ui-num-step {
+.aeditor-ui-num-step {
   width: 18px; height: 100%;
   background: transparent;
   border: 0;
-  color: var(--ef-fg-2);
+  color: var(--aeditor-fg-2);
   cursor: pointer;
   padding: 0;
-  font: var(--ef-fs-md) var(--ef-font-mono);
+  font: var(--aeditor-fs-md) var(--aeditor-font-mono);
 }
-.ef-ui-num-step:hover { background: var(--ef-bg-3); color: var(--ef-fg-0); }
-.ef-ui-num-text {
+.aeditor-ui-num-step:hover { background: var(--aeditor-bg-3); color: var(--aeditor-fg-0); }
+.aeditor-ui-num-text {
   flex: 1 1 auto;
   min-width: 0;
   background: transparent;
   border: 0;
   outline: 0;
   text-align: center;
-  font: var(--ef-fs-md) var(--ef-font-mono);
-  color: var(--ef-fg-0);
-  padding: 0 var(--ef-space-1);
+  font: var(--aeditor-fs-md) var(--aeditor-font-mono);
+  color: var(--aeditor-fg-0);
+  padding: 0 var(--aeditor-space-1);
   cursor: ew-resize;
   user-select: none;
 }
-.ef-ui-num-suffix {
-  padding: 0 var(--ef-space-1);
-  color: var(--ef-fg-2);
-  font: var(--ef-fs-sm) var(--ef-font-ui);
+.aeditor-ui-num-suffix {
+  padding: 0 var(--aeditor-space-1);
+  color: var(--aeditor-fg-2);
+  font: var(--aeditor-fs-sm) var(--aeditor-font-ui);
   cursor: ew-resize;
 }
-.ef-ui-num-label { cursor: ew-resize; }
-.ef-ui-num-scrubbing .ef-ui-num-body { background: var(--ef-accent-bg); }
-.ef-ui-num-scrubbing .ef-ui-num-text { cursor: ew-resize; }
-.ef-ui-num-editing .ef-ui-num-text {
+.aeditor-ui-num-label { cursor: ew-resize; }
+.aeditor-ui-num-scrubbing .aeditor-ui-num-body { background: var(--aeditor-accent-bg); }
+.aeditor-ui-num-scrubbing .aeditor-ui-num-text { cursor: ew-resize; }
+.aeditor-ui-num-editing .aeditor-ui-num-text {
   cursor: text;
   user-select: text;
-  background: var(--ef-bg-1);
+  background: var(--aeditor-bg-1);
 }
-.ef-ui-num-editing .ef-ui-num-body { background: var(--ef-bg-1); }
+.aeditor-ui-num-editing .aeditor-ui-num-body { background: var(--aeditor-bg-1); }
 
 /* ── vectorInput ────────────────────────────────────────────────── */
-.ef-ui-vec {
+.aeditor-ui-vec {
   display: inline-flex;
   gap: 2px;
   width: 100%;
 }
-.ef-ui-vec > .ef-ui-num { flex: 1 1 0; min-width: 0; }
+.aeditor-ui-vec > .aeditor-ui-num { flex: 1 1 0; min-width: 0; }
 
 /* ── slider ─────────────────────────────────────────────────────── */
-.ef-ui-slider {
+.aeditor-ui-slider {
   display: flex;
   align-items: center;
-  gap: var(--ef-space-2);
-  height: var(--ef-size-h-md);
+  gap: var(--aeditor-space-2);
+  height: var(--aeditor-size-h-md);
   width: 100%;
 }
-.ef-ui-slider-track {
+.aeditor-ui-slider-track {
   flex: 1 1 auto;
   position: relative;
   height: 4px;
-  background: var(--ef-bg-2);
-  border: 1px solid var(--ef-border-input);
-  border-radius: var(--ef-r-pill);
+  background: var(--aeditor-bg-2);
+  border: 1px solid var(--aeditor-border-input);
+  border-radius: var(--aeditor-r-pill);
   cursor: pointer;
 }
-.ef-ui-slider-fill {
+.aeditor-ui-slider-fill {
   position: absolute;
   left: 0; top: 0; bottom: 0;
-  background: var(--ef-accent);
-  border-radius: var(--ef-r-pill);
+  background: var(--aeditor-accent);
+  border-radius: var(--aeditor-r-pill);
 }
-.ef-ui-slider-thumb {
+.aeditor-ui-slider-thumb {
   position: absolute;
   top: 50%;
   left: 0;
   width: 14px; height: 14px;
   box-sizing: border-box;
   transform: translate(-50%, -50%);
-  background: var(--ef-fg-0);
-  border: 2px solid var(--ef-accent);
+  background: var(--aeditor-fg-0);
+  border: 2px solid var(--aeditor-accent);
   border-radius: 50%;
-  box-shadow: var(--ef-shadow-1), 0 0 0 0 color-mix(in srgb, var(--ef-accent) 30%, transparent);
+  box-shadow: var(--aeditor-shadow-1), 0 0 0 0 color-mix(in srgb, var(--aeditor-accent) 30%, transparent);
   cursor: grab;
-  transition: width var(--ef-dur-fast) var(--ef-ease),
-              height var(--ef-dur-fast) var(--ef-ease),
-              box-shadow var(--ef-dur-med) var(--ef-ease);
+  transition: width var(--aeditor-dur-fast) var(--aeditor-ease),
+              height var(--aeditor-dur-fast) var(--aeditor-ease),
+              box-shadow var(--aeditor-dur-med) var(--aeditor-ease);
 }
-.ef-ui-slider-track:hover .ef-ui-slider-thumb {
+.aeditor-ui-slider-track:hover .aeditor-ui-slider-thumb {
   width: 16px; height: 16px;
-  box-shadow: var(--ef-shadow-2), 0 0 0 4px color-mix(in srgb, var(--ef-accent) 18%, transparent);
+  box-shadow: var(--aeditor-shadow-2), 0 0 0 4px color-mix(in srgb, var(--aeditor-accent) 18%, transparent);
 }
-.ef-ui-slider-thumb:active {
+.aeditor-ui-slider-thumb:active {
   cursor: grabbing;
   width: 18px; height: 18px;
-  box-shadow: var(--ef-shadow-2), 0 0 0 6px color-mix(in srgb, var(--ef-accent) 24%, transparent);
+  box-shadow: var(--aeditor-shadow-2), 0 0 0 6px color-mix(in srgb, var(--aeditor-accent) 24%, transparent);
 }
-.ef-ui-slider-value {
+.aeditor-ui-slider-value {
   min-width: 36px;
   text-align: right;
-  font: var(--ef-fs-sm) var(--ef-font-mono);
-  color: var(--ef-fg-1);
+  font: var(--aeditor-fs-sm) var(--aeditor-font-mono);
+  color: var(--aeditor-fg-1);
 }
 
 /* ── checkbox ───────────────────────────────────────────────────── */
-.ef-ui-check {
+.aeditor-ui-check {
   display: inline-flex;
   align-items: center;
-  gap: var(--ef-space-2);
+  gap: var(--aeditor-space-2);
   cursor: pointer;
   user-select: none;
-  font: var(--ef-fs-md) var(--ef-font-ui);
-  color: var(--ef-fg-0);
+  font: var(--aeditor-fs-md) var(--aeditor-font-ui);
+  color: var(--aeditor-fg-0);
 }
-.ef-ui-check-box {
+.aeditor-ui-check-box {
   position: absolute;
   opacity: 0;
   width: 0; height: 0;
 }
-.ef-ui-check-mark {
+.aeditor-ui-check-mark {
   position: relative;
   width: 16px; height: 16px;
   flex: 0 0 auto;                   /* never let narrow rows squash the mark into an ellipse */
-  background: var(--ef-bg-2);
-  border: 1px solid var(--ef-border-input);
-  border-radius: var(--ef-r-2);
+  background: var(--aeditor-bg-2);
+  border: 1px solid var(--aeditor-border-input);
+  border-radius: var(--aeditor-r-2);
   display: inline-flex;
   align-items: center;
   justify-content: center;
   color: transparent;
-  font: 12px/1 var(--ef-font-ui);
-  transition: background var(--ef-dur-fast) var(--ef-ease),
-              border-color var(--ef-dur-fast) var(--ef-ease),
-              box-shadow var(--ef-dur-med) var(--ef-ease),
-              transform var(--ef-dur-fast) var(--ef-ease);
+  font: 12px/1 var(--aeditor-font-ui);
+  transition: background var(--aeditor-dur-fast) var(--aeditor-ease),
+              border-color var(--aeditor-dur-fast) var(--aeditor-ease),
+              box-shadow var(--aeditor-dur-med) var(--aeditor-ease),
+              transform var(--aeditor-dur-fast) var(--aeditor-ease);
 }
-.ef-ui-check-mark::after {
+.aeditor-ui-check-mark::after {
   content: '✓';
   display: inline-block;
   transform: scale(0.4) rotate(-12deg);
   opacity: 0;
-  transition: transform var(--ef-dur-med) cubic-bezier(.34,1.56,.64,1),
-              opacity   var(--ef-dur-fast) var(--ef-ease);
+  transition: transform var(--aeditor-dur-med) cubic-bezier(.34,1.56,.64,1),
+              opacity   var(--aeditor-dur-fast) var(--aeditor-ease);
 }
-.ef-ui-check-box:checked + .ef-ui-check-mark {
-  background: var(--ef-accent);
-  border-color: var(--ef-accent);
-  color: var(--ef-accent-fg);
+.aeditor-ui-check-box:checked + .aeditor-ui-check-mark {
+  background: var(--aeditor-accent);
+  border-color: var(--aeditor-accent);
+  color: var(--aeditor-accent-fg);
 }
-.ef-ui-check-box:checked + .ef-ui-check-mark::after {
+.aeditor-ui-check-box:checked + .aeditor-ui-check-mark::after {
   transform: scale(1) rotate(0deg);
   opacity: 1;
 }
-.ef-ui-check:hover .ef-ui-check-mark { border-color: var(--ef-accent-soft); }
-.ef-ui-check:active .ef-ui-check-mark { transform: scale(0.92); }
-.ef-ui-check-box:focus-visible + .ef-ui-check-mark {
+.aeditor-ui-check:hover .aeditor-ui-check-mark { border-color: var(--aeditor-accent-soft); }
+.aeditor-ui-check:active .aeditor-ui-check-mark { transform: scale(0.92); }
+.aeditor-ui-check-box:focus-visible + .aeditor-ui-check-mark {
   outline: none;
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--ef-accent) 32%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--aeditor-accent) 32%, transparent);
 }
 
 /* ── switch ─────────────────────────────────────────────────────── */
-.ef-ui-switch {
+.aeditor-ui-switch {
   display: inline-flex;
   align-items: center;
-  gap: var(--ef-space-2);
+  gap: var(--aeditor-space-2);
   cursor: pointer;
   user-select: none;
-  font: var(--ef-fs-md) var(--ef-font-ui);
-  color: var(--ef-fg-0);
+  font: var(--aeditor-fs-md) var(--aeditor-font-ui);
+  color: var(--aeditor-fg-0);
 }
-.ef-ui-switch-box { position: absolute; opacity: 0; width: 0; height: 0; }
-.ef-ui-switch-track {
+.aeditor-ui-switch-box { position: absolute; opacity: 0; width: 0; height: 0; }
+.aeditor-ui-switch-track {
   position: relative;
   width: 30px; height: 16px;
   flex: 0 0 auto;                   /* fixed-geometry indicator — no flex-shrink */
-  background: var(--ef-bg-3);
-  border: 1px solid var(--ef-border-input);
-  border-radius: var(--ef-r-pill);
-  transition: background var(--ef-dur-med) var(--ef-ease),
-              border-color var(--ef-dur-med) var(--ef-ease),
-              box-shadow var(--ef-dur-med) var(--ef-ease);
+  background: var(--aeditor-bg-3);
+  border: 1px solid var(--aeditor-border-input);
+  border-radius: var(--aeditor-r-pill);
+  transition: background var(--aeditor-dur-med) var(--aeditor-ease),
+              border-color var(--aeditor-dur-med) var(--aeditor-ease),
+              box-shadow var(--aeditor-dur-med) var(--aeditor-ease);
 }
-.ef-ui-switch:hover .ef-ui-switch-track { border-color: var(--ef-border-hover); }
-.ef-ui-switch-knob {
+.aeditor-ui-switch:hover .aeditor-ui-switch-track { border-color: var(--aeditor-border-hover); }
+.aeditor-ui-switch-knob {
   position: absolute;
   top: 50%;                       /* vertical centering: independent of knob/track sizes */
   transform: translateY(-50%);
   left: 1px;                       /* 1px gap from the track's left inner edge */
   width: 12px; height: 12px;
-  background: var(--ef-fg-0);
+  background: var(--aeditor-fg-0);
   border-radius: 50%;
   box-shadow: 0 1px 2px rgba(0,0,0,.4), 0 0 0 0 transparent;
-  transition: left  var(--ef-dur-med) cubic-bezier(.34,1.56,.64,1),
-              right var(--ef-dur-med) cubic-bezier(.34,1.56,.64,1),
-              width var(--ef-dur-fast) var(--ef-ease),
-              background var(--ef-dur-med) var(--ef-ease);
+  transition: left  var(--aeditor-dur-med) cubic-bezier(.34,1.56,.64,1),
+              right var(--aeditor-dur-med) cubic-bezier(.34,1.56,.64,1),
+              width var(--aeditor-dur-fast) var(--aeditor-ease),
+              background var(--aeditor-dur-med) var(--aeditor-ease);
 }
-.ef-ui-switch:active .ef-ui-switch-knob { width: 16px; }
-.ef-ui-switch-on .ef-ui-switch-track {
-  background: var(--ef-accent);
-  border-color: var(--ef-accent);
-  box-shadow: 0 0 0 0 color-mix(in srgb, var(--ef-accent) 30%, transparent),
+.aeditor-ui-switch:active .aeditor-ui-switch-knob { width: 16px; }
+.aeditor-ui-switch-on .aeditor-ui-switch-track {
+  background: var(--aeditor-accent);
+  border-color: var(--aeditor-accent);
+  box-shadow: 0 0 0 0 color-mix(in srgb, var(--aeditor-accent) 30%, transparent),
               inset 0 1px 2px rgba(0,0,0,.2);
 }
 /* On-state: anchor to the right edge with the same 1px inset as the left.
    The active squish (width: 16) still widens the knob; anchoring to `right`
    means the growing width extends leftward — matching the off-state spring
    without hardcoding pixel offsets. */
-.ef-ui-switch-on .ef-ui-switch-knob {
+.aeditor-ui-switch-on .aeditor-ui-switch-knob {
   left: auto;
   right: 1px;
-  background: var(--ef-accent-fg);
+  background: var(--aeditor-accent-fg);
 }
-.ef-ui-switch-box:focus-visible + .ef-ui-switch-track {
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--ef-accent) 30%, transparent);
+.aeditor-ui-switch-box:focus-visible + .aeditor-ui-switch-track {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--aeditor-accent) 30%, transparent);
 }
 
 /* ── radio ──────────────────────────────────────────────────────── */
 /* flex-wrap so narrow containers push whole items onto a new row instead of
    horizontally squashing the dots into ovals. row-gap controls the spacing
    between wrapped lines; column-gap keeps horizontal spacing unchanged. */
-.ef-ui-radio-group {
+.aeditor-ui-radio-group {
   display: inline-flex;
   flex-wrap: wrap;
-  column-gap: var(--ef-space-3);
-  row-gap: var(--ef-space-1);
+  column-gap: var(--aeditor-space-3);
+  row-gap: var(--aeditor-space-1);
 }
-.ef-ui-radio-vertical {
+.aeditor-ui-radio-vertical {
   flex-direction: column;
   flex-wrap: nowrap;
-  row-gap: var(--ef-space-1);
+  row-gap: var(--aeditor-space-1);
 }
-.ef-ui-radio {
+.aeditor-ui-radio {
   display: inline-flex;
   align-items: center;
-  gap: var(--ef-space-2);
+  gap: var(--aeditor-space-2);
   cursor: pointer;
-  font: var(--ef-fs-md) var(--ef-font-ui);
-  color: var(--ef-fg-0);
+  font: var(--aeditor-fs-md) var(--aeditor-font-ui);
+  color: var(--aeditor-fg-0);
 }
-.ef-ui-radio-box { position: absolute; opacity: 0; width: 0; height: 0; }
-.ef-ui-radio-dot {
+.aeditor-ui-radio-box { position: absolute; opacity: 0; width: 0; height: 0; }
+.aeditor-ui-radio-dot {
   width: 14px; height: 14px;
   flex: 0 0 auto;                   /* fixed-geometry indicator — no flex-shrink */
-  border: 1px solid var(--ef-border-input);
-  background: var(--ef-bg-2);
+  border: 1px solid var(--aeditor-border-input);
+  background: var(--aeditor-bg-2);
   border-radius: 50%;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  transition: border-color var(--ef-dur-fast) var(--ef-ease),
-              background   var(--ef-dur-fast) var(--ef-ease),
-              transform    var(--ef-dur-fast) var(--ef-ease),
-              box-shadow   var(--ef-dur-med) var(--ef-ease);
+  transition: border-color var(--aeditor-dur-fast) var(--aeditor-ease),
+              background   var(--aeditor-dur-fast) var(--aeditor-ease),
+              transform    var(--aeditor-dur-fast) var(--aeditor-ease),
+              box-shadow   var(--aeditor-dur-med) var(--aeditor-ease);
 }
-.ef-ui-radio-label { white-space: nowrap; }
-.ef-ui-radio-dot::after {
+.aeditor-ui-radio-label { white-space: nowrap; }
+.aeditor-ui-radio-dot::after {
   content: '';
   width: 6px; height: 6px;
-  background: var(--ef-accent);
+  background: var(--aeditor-accent);
   border-radius: 50%;
   transform: scale(0);
-  transition: transform var(--ef-dur-med) cubic-bezier(.34,1.56,.64,1);
+  transition: transform var(--aeditor-dur-med) cubic-bezier(.34,1.56,.64,1);
 }
-.ef-ui-radio:hover .ef-ui-radio-dot {
-  border-color: var(--ef-accent-soft);
+.aeditor-ui-radio:hover .aeditor-ui-radio-dot {
+  border-color: var(--aeditor-accent-soft);
   transform: scale(1.08);
 }
-.ef-ui-radio:active .ef-ui-radio-dot { transform: scale(0.92); }
-.ef-ui-radio-box:checked + .ef-ui-radio-dot::after { transform: scale(1); }
-.ef-ui-radio-box:checked + .ef-ui-radio-dot {
-  border-color: var(--ef-accent);
-  box-shadow: 0 0 0 4px color-mix(in srgb, var(--ef-accent) 14%, transparent);
+.aeditor-ui-radio:active .aeditor-ui-radio-dot { transform: scale(0.92); }
+.aeditor-ui-radio-box:checked + .aeditor-ui-radio-dot::after { transform: scale(1); }
+.aeditor-ui-radio-box:checked + .aeditor-ui-radio-dot {
+  border-color: var(--aeditor-accent);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--aeditor-accent) 14%, transparent);
 }
-.ef-ui-radio-box:focus-visible + .ef-ui-radio-dot {
-  box-shadow: 0 0 0 4px color-mix(in srgb, var(--ef-accent) 32%, transparent);
+.aeditor-ui-radio-box:focus-visible + .aeditor-ui-radio-dot {
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--aeditor-accent) 32%, transparent);
 }
 
 /* ── segmented ──────────────────────────────────────────────────── */
-.ef-ui-seg {
+.aeditor-ui-seg {
   display: flex;
   align-self: flex-start;
   max-width: 100%;
   min-width: 0;
-  background: var(--ef-bg-2);
-  border: 1px solid var(--ef-border-input);
-  border-radius: var(--ef-r-2);
+  background: var(--aeditor-bg-2);
+  border: 1px solid var(--aeditor-border-input);
+  border-radius: var(--aeditor-r-2);
   padding: 2px;
   gap: 2px;
   overflow-x: auto;
   overflow-y: hidden;
   scrollbar-width: thin;
-  scrollbar-color: var(--ef-bg-4) transparent;
+  scrollbar-color: var(--aeditor-bg-4) transparent;
 }
-.ef-ui-seg::-webkit-scrollbar { height: 4px; }
-.ef-ui-seg::-webkit-scrollbar-thumb { background: var(--ef-bg-4); border-radius: 2px; }
-.ef-ui-seg::-webkit-scrollbar-track { background: transparent; }
-.ef-ui-seg-btn {
+.aeditor-ui-seg::-webkit-scrollbar { height: 4px; }
+.aeditor-ui-seg::-webkit-scrollbar-thumb { background: var(--aeditor-bg-4); border-radius: 2px; }
+.aeditor-ui-seg::-webkit-scrollbar-track { background: transparent; }
+.aeditor-ui-seg-btn {
   display: inline-flex;
   align-items: center;
-  gap: var(--ef-space-1);
-  padding: 0 var(--ef-space-3);
-  height: calc(var(--ef-size-h-md) - 6px);
+  gap: var(--aeditor-space-1);
+  padding: 0 var(--aeditor-space-3);
+  height: calc(var(--aeditor-size-h-md) - 6px);
   background: transparent;
-  color: var(--ef-fg-2);
+  color: var(--aeditor-fg-2);
   border: 0;
-  border-radius: var(--ef-r-1);
-  font: var(--ef-fs-md) var(--ef-font-ui);
+  border-radius: var(--aeditor-r-1);
+  font: var(--aeditor-fs-md) var(--aeditor-font-ui);
   cursor: pointer;
   flex-shrink: 0;
   white-space: nowrap;
-  transition: background var(--ef-dur-fast) var(--ef-ease),
-              color var(--ef-dur-fast) var(--ef-ease),
-              transform var(--ef-dur-fast) var(--ef-ease),
-              box-shadow var(--ef-dur-med) var(--ef-ease);
+  transition: background var(--aeditor-dur-fast) var(--aeditor-ease),
+              color var(--aeditor-dur-fast) var(--aeditor-ease),
+              transform var(--aeditor-dur-fast) var(--aeditor-ease),
+              box-shadow var(--aeditor-dur-med) var(--aeditor-ease);
 }
-.ef-ui-seg-btn:hover { background: var(--ef-hover); color: var(--ef-fg-0); }
-.ef-ui-seg-btn:active { transform: scale(0.96); }
-.ef-ui-seg-btn:focus-visible {
+.aeditor-ui-seg-btn:hover { background: var(--aeditor-hover); color: var(--aeditor-fg-0); }
+.aeditor-ui-seg-btn:active { transform: scale(0.96); }
+.aeditor-ui-seg-btn:focus-visible {
   outline: none;
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--ef-accent) 40%, transparent);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--aeditor-accent) 40%, transparent);
 }
-.ef-ui-seg-active {
+.aeditor-ui-seg-active {
   background: linear-gradient(180deg,
-    color-mix(in srgb, var(--ef-bg-4) 80%, var(--ef-accent)) 0%,
-    var(--ef-bg-4) 100%);
-  color: var(--ef-fg-0);
+    color-mix(in srgb, var(--aeditor-bg-4) 80%, var(--aeditor-accent)) 0%,
+    var(--aeditor-bg-4) 100%);
+  color: var(--aeditor-fg-0);
   box-shadow:
-    inset 0 -2px 0 var(--ef-accent),
+    inset 0 -2px 0 var(--aeditor-accent),
     0 1px 0 rgba(0,0,0,.18);
 }
 
 /* ── select ─────────────────────────────────────────────────────── */
-.ef-ui-select {
+.aeditor-ui-select {
   display: inline-flex;
   align-items: center;
   width: 100%;
-  height: var(--ef-size-h-md);
-  background: var(--ef-bg-2);
-  border: 1px solid var(--ef-border-input);
-  border-radius: var(--ef-r-2);
-  padding: 0 var(--ef-control-px);
-  color: var(--ef-fg-0);
-  font: var(--ef-fs-md) var(--ef-font-ui);
+  height: var(--aeditor-size-h-md);
+  background: var(--aeditor-bg-2);
+  border: 1px solid var(--aeditor-border-input);
+  border-radius: var(--aeditor-r-2);
+  padding: 0 var(--aeditor-control-px);
+  color: var(--aeditor-fg-0);
+  font: var(--aeditor-fs-md) var(--aeditor-font-ui);
   cursor: pointer;
   text-align: left;
-  transition: border-color var(--ef-dur-fast) var(--ef-ease),
-              background var(--ef-dur-fast) var(--ef-ease),
-              box-shadow var(--ef-dur-med) var(--ef-ease);
+  transition: border-color var(--aeditor-dur-fast) var(--aeditor-ease),
+              background var(--aeditor-dur-fast) var(--aeditor-ease),
+              box-shadow var(--aeditor-dur-med) var(--aeditor-ease);
 }
-.ef-ui-select:hover { border-color: var(--ef-border-hover); background: var(--ef-bg-3); }
-.ef-ui-select:focus-visible,
-.ef-ui-select-open {
+.aeditor-ui-select:hover { border-color: var(--aeditor-border-hover); background: var(--aeditor-bg-3); }
+.aeditor-ui-select:focus-visible,
+.aeditor-ui-select-open {
   outline: none;
-  border-color: var(--ef-accent);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--ef-accent) 22%, transparent);
+  border-color: var(--aeditor-accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--aeditor-accent) 22%, transparent);
 }
-.ef-ui-select-label { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.ef-ui-select-placeholder { color: var(--ef-fg-3); }
-.ef-ui-select-arrow {
-  color: var(--ef-fg-2);
-  margin-left: var(--ef-space-2);
+.aeditor-ui-select-label { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.aeditor-ui-select-placeholder { color: var(--aeditor-fg-3); }
+.aeditor-ui-select-arrow {
+  color: var(--aeditor-fg-2);
+  margin-left: var(--aeditor-space-2);
   display: inline-block;
   font-size: 1.12em;
   line-height: 1;
-  transition: transform var(--ef-dur-med) var(--ef-ease);
+  transition: transform var(--aeditor-dur-med) var(--aeditor-ease);
 }
-.ef-ui-select-open .ef-ui-select-arrow { transform: rotate(180deg); }
-.ef-ui-select-auto {
+.aeditor-ui-select-open .aeditor-ui-select-arrow { transform: rotate(180deg); }
+.aeditor-ui-select-auto {
   width: auto;
   max-width: 100%;
 }
-.ef-ui-select-minimal {
+.aeditor-ui-select-minimal {
   height: 26px;
   width: auto;
   min-width: 0;
-  padding: 0 var(--ef-space-2);
+  padding: 0 var(--aeditor-space-2);
   border-color: transparent;
-  border-radius: var(--ef-r-1);
+  border-radius: var(--aeditor-r-1);
   background: transparent;
-  color: var(--ef-fg-1);
+  color: var(--aeditor-fg-1);
   box-shadow: none;
 }
-.ef-ui-select-minimal:hover {
+.aeditor-ui-select-minimal:hover {
   border-color: transparent;
-  background: var(--ef-hover);
+  background: var(--aeditor-hover);
 }
-.ef-ui-select-minimal:focus-visible,
-.ef-ui-select-minimal.ef-ui-select-open {
+.aeditor-ui-select-minimal:focus-visible,
+.aeditor-ui-select-minimal.aeditor-ui-select-open {
   border-color: transparent;
-  background: var(--ef-selected);
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--ef-accent) 28%, transparent);
+  background: var(--aeditor-selected);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--aeditor-accent) 28%, transparent);
 }
-.ef-ui-select-minimal .ef-ui-select-label {
+.aeditor-ui-select-minimal .aeditor-ui-select-label {
   flex: 0 1 auto;
 }
-.ef-ui-select-minimal .ef-ui-select-arrow {
-  margin-left: var(--ef-space-1);
+.aeditor-ui-select-minimal .aeditor-ui-select-arrow {
+  margin-left: var(--aeditor-space-1);
   font-size: 1.22em;
 }
 
 /* Menu used by select / combobox / overlay menu. Lives in the portal root,
  * which has no background of its own — without an explicit fill, the menu
- * shows whatever is behind it. Use `--ef-bg-raised` so the menu reads as a
+ * shows whatever is behind it. Use `--aeditor-bg-raised` so the menu reads as a
  * lifted surface above any panel and stays legible across all themes. */
-.ef-ui-menu {
+.aeditor-ui-menu {
   display: flex;
   flex-direction: column;
   position: relative;
-  padding: var(--ef-space-1);
+  padding: var(--aeditor-space-1);
   min-width: 120px;
   max-width: min(420px, calc(100vw - 24px));
-  background: var(--ef-bg-raised);
-  border: 1px solid var(--ef-border);
-  border-radius: var(--ef-r-2);
-  box-shadow: var(--ef-shadow-md);
+  background: var(--aeditor-bg-raised);
+  border: 1px solid var(--aeditor-border);
+  border-radius: var(--aeditor-r-2);
+  box-shadow: var(--aeditor-shadow-md);
 }
-.ef-ui-menu-item {
+.aeditor-ui-menu-item {
   display: inline-flex;
   align-items: center;
-  gap: var(--ef-space-2);
+  gap: var(--aeditor-space-2);
   background: transparent;
   border: 0;
-  padding: var(--ef-space-1) var(--ef-space-2);
-  color: var(--ef-fg-1);
-  font: var(--ef-fs-md) var(--ef-font-ui);
+  padding: var(--aeditor-space-1) var(--aeditor-space-2);
+  color: var(--aeditor-fg-1);
+  font: var(--aeditor-fs-md) var(--aeditor-font-ui);
   cursor: pointer;
   text-align: left;
-  border-radius: var(--ef-r-1);
+  border-radius: var(--aeditor-r-1);
   position: relative;
-  transition: background var(--ef-dur-fast) var(--ef-ease),
-              color var(--ef-dur-fast) var(--ef-ease),
-              padding-left var(--ef-dur-fast) var(--ef-ease);
+  transition: background var(--aeditor-dur-fast) var(--aeditor-ease),
+              color var(--aeditor-dur-fast) var(--aeditor-ease),
+              padding-left var(--aeditor-dur-fast) var(--aeditor-ease);
 }
-.ef-ui-menu-item:hover {
-  background: var(--ef-hover);
-  color: var(--ef-fg-0);
-  padding-left: calc(var(--ef-space-2) + 2px);
+.aeditor-ui-menu-item:hover {
+  background: var(--aeditor-hover);
+  color: var(--aeditor-fg-0);
+  padding-left: calc(var(--aeditor-space-2) + 2px);
 }
-.ef-ui-menu-item-text {
+.aeditor-ui-menu-item-text {
   display: flex;
   flex-direction: column;
   gap: 1px;
   min-width: 0;
 }
-.ef-ui-menu-item-label,
-.ef-ui-menu-item-sub {
+.aeditor-ui-menu-item-label,
+.aeditor-ui-menu-item-sub {
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.ef-ui-menu-item-sub {
-  color: var(--ef-fg-3);
-  font: var(--ef-fs-xs) var(--ef-font-ui);
+.aeditor-ui-menu-item-sub {
+  color: var(--aeditor-fg-3);
+  font: var(--aeditor-fs-xs) var(--aeditor-font-ui);
 }
-.ef-ui-menu-item-active {
-  background: var(--ef-accent-bg);
-  color: var(--ef-fg-0);
+.aeditor-ui-menu-item-active {
+  background: var(--aeditor-accent-bg);
+  color: var(--aeditor-fg-0);
 }
-.ef-ui-menu-item-active::before {
+.aeditor-ui-menu-item-active::before {
   content: '';
   position: absolute;
   left: 0; top: 20%; bottom: 20%;
   width: 2px;
-  background: var(--ef-accent);
-  border-radius: 0 var(--ef-r-1) var(--ef-r-1) 0;
+  background: var(--aeditor-accent);
+  border-radius: 0 var(--aeditor-r-1) var(--aeditor-r-1) 0;
 }
-.ef-ui-menu-header {
+.aeditor-ui-menu-header {
   position: sticky;
-  top: calc(-1 * var(--ef-space-1));
+  top: calc(-1 * var(--aeditor-space-1));
   z-index: 1;
-  padding: var(--ef-space-2) var(--ef-space-2) var(--ef-space-1);
-  color: var(--ef-fg-1);
-  background: var(--ef-bg-raised);
-  font: 700 var(--ef-fs-xs) var(--ef-font-ui);
+  padding: var(--aeditor-space-2) var(--aeditor-space-2) var(--aeditor-space-1);
+  color: var(--aeditor-fg-1);
+  background: var(--aeditor-bg-raised);
+  font: 700 var(--aeditor-fs-xs) var(--aeditor-font-ui);
   text-transform: uppercase;
   letter-spacing: 0;
 }
-.ef-ui-menu-divider {
+.aeditor-ui-menu-divider {
   height: 1px;
-  margin: var(--ef-space-1) 0;
-  background: var(--ef-border);
+  margin: var(--aeditor-space-1) 0;
+  background: var(--aeditor-border);
 }
-.ef-ui-menu-empty {
-  padding: var(--ef-space-2);
-  color: var(--ef-fg-3);
-  font: var(--ef-fs-sm) var(--ef-font-ui);
+.aeditor-ui-menu-empty {
+  padding: var(--aeditor-space-2);
+  color: var(--aeditor-fg-3);
+  font: var(--aeditor-fs-sm) var(--aeditor-font-ui);
   font-style: italic;
 }
 
 /* ── combobox ───────────────────────────────────────────────────── */
-.ef-ui-combobox .ef-ui-field-suffix { cursor: pointer; }
+.aeditor-ui-combobox .aeditor-ui-field-suffix { cursor: pointer; }
 
 /* ── colorInput ─────────────────────────────────────────────────── */
-.ef-ui-color {
+.aeditor-ui-color {
   display: inline-flex;
   align-items: center;
-  gap: var(--ef-space-2);
+  gap: var(--aeditor-space-2);
   width: 100%;
 }
-.ef-ui-color-swatch {
-  width: var(--ef-size-h-md);
-  height: var(--ef-size-h-md);
-  border-radius: var(--ef-r-2);
-  border: 1px solid var(--ef-border-strong);
+.aeditor-ui-color-swatch {
+  width: var(--aeditor-size-h-md);
+  height: var(--aeditor-size-h-md);
+  border-radius: var(--aeditor-r-2);
+  border: 1px solid var(--aeditor-border-strong);
   cursor: pointer;
   box-shadow: inset 0 0 0 1px rgba(0,0,0,.2);
   flex-shrink: 0;
 }
-.ef-ui-color-text {
+.aeditor-ui-color-text {
   flex: 1 1 auto;
   min-width: 0;
-  height: var(--ef-size-h-md);
-  background: var(--ef-bg-2);
-  border: 1px solid var(--ef-border-input);
-  border-radius: var(--ef-r-2);
-  padding: 0 var(--ef-control-px);
-  color: var(--ef-fg-0);
-  font: var(--ef-fs-sm) var(--ef-font-mono);
+  height: var(--aeditor-size-h-md);
+  background: var(--aeditor-bg-2);
+  border: 1px solid var(--aeditor-border-input);
+  border-radius: var(--aeditor-r-2);
+  padding: 0 var(--aeditor-control-px);
+  color: var(--aeditor-fg-0);
+  font: var(--aeditor-fs-sm) var(--aeditor-font-mono);
   outline: 0;
 }
 
-.ef-ui-color-picker {
+.aeditor-ui-color-picker {
   width: 220px;
-  padding: var(--ef-space-2);
+  padding: var(--aeditor-space-2);
   display: flex;
   flex-direction: column;
-  gap: var(--ef-space-2);
+  gap: var(--aeditor-space-2);
 }
-.ef-ui-color-sv {
+.aeditor-ui-color-sv {
   position: relative;
   width: 100%;
   aspect-ratio: 1 / 1;
-  border-radius: var(--ef-r-2);
+  border-radius: var(--aeditor-r-2);
   cursor: crosshair;
   overflow: hidden;
 }
-.ef-ui-color-sv-dot {
+.aeditor-ui-color-sv-dot {
   position: absolute;
   width: 12px; height: 12px;
   border: 2px solid #fff;
@@ -666,15 +666,15 @@
   pointer-events: none;
   box-shadow: 0 0 0 1px rgba(0,0,0,.5);
 }
-.ef-ui-color-hue {
+.aeditor-ui-color-hue {
   position: relative;
   width: 100%;
   height: 14px;
-  border-radius: var(--ef-r-pill);
+  border-radius: var(--aeditor-r-pill);
   background: linear-gradient(to right, #f00, #ff0, #0f0, #0ff, #00f, #f0f, #f00);
   cursor: crosshair;
 }
-.ef-ui-color-hue-dot {
+.aeditor-ui-color-hue-dot {
   position: absolute;
   top: 50%;
   width: 14px; height: 14px;
@@ -684,88 +684,88 @@
   pointer-events: none;
   box-shadow: 0 0 0 1px rgba(0,0,0,.5);
 }
-.ef-ui-color-hex {
+.aeditor-ui-color-hex {
   width: 100%;
-  height: var(--ef-size-h-sm);
-  background: var(--ef-bg-2);
-  border: 1px solid var(--ef-border-input);
-  border-radius: var(--ef-r-2);
-  padding: 0 var(--ef-control-px);
-  color: var(--ef-fg-0);
-  font: var(--ef-fs-sm) var(--ef-font-mono);
+  height: var(--aeditor-size-h-sm);
+  background: var(--aeditor-bg-2);
+  border: 1px solid var(--aeditor-border-input);
+  border-radius: var(--aeditor-r-2);
+  padding: 0 var(--aeditor-control-px);
+  color: var(--aeditor-fg-0);
+  font: var(--aeditor-fs-sm) var(--aeditor-font-mono);
   outline: 0;
   text-align: center;
   box-sizing: border-box;
 }
 
 /* ── enumInput ──────────────────────────────────────────────────── */
-.ef-ui-enum {
+.aeditor-ui-enum {
   display: inline-flex;
   flex-wrap: wrap;
   gap: 4px;
 }
-.ef-ui-enum-btn {
-  height: var(--ef-size-h-sm);
-  padding: 0 var(--ef-space-2);
-  background: var(--ef-bg-2);
-  border: 1px solid var(--ef-border-input);
-  border-radius: var(--ef-r-2);
-  color: var(--ef-fg-2);
-  font: var(--ef-fs-sm) var(--ef-font-ui);
+.aeditor-ui-enum-btn {
+  height: var(--aeditor-size-h-sm);
+  padding: 0 var(--aeditor-space-2);
+  background: var(--aeditor-bg-2);
+  border: 1px solid var(--aeditor-border-input);
+  border-radius: var(--aeditor-r-2);
+  color: var(--aeditor-fg-2);
+  font: var(--aeditor-fs-sm) var(--aeditor-font-ui);
   cursor: pointer;
-  transition: background var(--ef-dur-fast) var(--ef-ease),
-              border-color var(--ef-dur-fast) var(--ef-ease),
-              color var(--ef-dur-fast) var(--ef-ease),
-              transform var(--ef-dur-fast) var(--ef-ease),
-              box-shadow var(--ef-dur-med) var(--ef-ease);
+  transition: background var(--aeditor-dur-fast) var(--aeditor-ease),
+              border-color var(--aeditor-dur-fast) var(--aeditor-ease),
+              color var(--aeditor-dur-fast) var(--aeditor-ease),
+              transform var(--aeditor-dur-fast) var(--aeditor-ease),
+              box-shadow var(--aeditor-dur-med) var(--aeditor-ease);
 }
-.ef-ui-enum-btn:hover:not(.ef-ui-enum-on) {
-  background: var(--ef-bg-3);
-  border-color: var(--ef-border-hover);
-  color: var(--ef-fg-0);
+.aeditor-ui-enum-btn:hover:not(.aeditor-ui-enum-on) {
+  background: var(--aeditor-bg-3);
+  border-color: var(--aeditor-border-hover);
+  color: var(--aeditor-fg-0);
 }
-.ef-ui-enum-btn:active { transform: scale(0.94); }
-.ef-ui-enum-on {
+.aeditor-ui-enum-btn:active { transform: scale(0.94); }
+.aeditor-ui-enum-on {
   background: linear-gradient(180deg,
-    color-mix(in srgb, var(--ef-accent) 28%, var(--ef-bg-2)) 0%,
-    var(--ef-accent-bg) 100%);
-  color: var(--ef-fg-0);
-  border-color: var(--ef-accent);
+    color-mix(in srgb, var(--aeditor-accent) 28%, var(--aeditor-bg-2)) 0%,
+    var(--aeditor-accent-bg) 100%);
+  color: var(--aeditor-fg-0);
+  border-color: var(--aeditor-accent);
   box-shadow:
-    inset 0 1px 0 color-mix(in srgb, var(--ef-accent) 50%, transparent),
-    0 0 0 3px color-mix(in srgb, var(--ef-accent) 14%, transparent);
+    inset 0 1px 0 color-mix(in srgb, var(--aeditor-accent) 50%, transparent),
+    0 0 0 3px color-mix(in srgb, var(--aeditor-accent) 14%, transparent);
 }
-.ef-ui-enum-on:hover {
+.aeditor-ui-enum-on:hover {
   background: linear-gradient(180deg,
-    color-mix(in srgb, var(--ef-accent) 36%, var(--ef-bg-2)) 0%,
-    color-mix(in srgb, var(--ef-accent-bg) 85%, var(--ef-fg-0)) 100%);
+    color-mix(in srgb, var(--aeditor-accent) 36%, var(--aeditor-bg-2)) 0%,
+    color-mix(in srgb, var(--aeditor-accent-bg) 85%, var(--aeditor-fg-0)) 100%);
 }
 
 /* ── tagInput ───────────────────────────────────────────────────── */
-.ef-ui-taginput {
+.aeditor-ui-taginput {
   height: auto;
-  min-height: var(--ef-size-h-md);
+  min-height: var(--aeditor-size-h-md);
   flex-wrap: wrap;
-  padding: 2px var(--ef-control-px);
+  padding: 2px var(--aeditor-control-px);
 }
-.ef-ui-taginput-list {
+.aeditor-ui-taginput-list {
   display: contents;
 }
-.ef-ui-taginput-input {
+.aeditor-ui-taginput-input {
   flex: 1 0 60px;
   min-width: 60px;
   background: transparent;
   border: 0;
   outline: 0;
-  color: var(--ef-fg-0);
-  font: var(--ef-fs-md) var(--ef-font-ui);
+  color: var(--aeditor-fg-0);
+  font: var(--aeditor-fs-md) var(--aeditor-font-ui);
   padding: 0;
 }
 
 /* ── tab ────────────────────────────────────────────────────────── */
 /* One component, three variants (bar / compact / sidebar). Vertical
  * and icon-only are independent knobs but sidebar defaults to both. */
-.ef-ui-tab {
+.aeditor-ui-tab {
   display: flex;
   flex: 1 1 auto;
   min-width: 0;
@@ -776,71 +776,71 @@
   position: relative;
   scrollbar-width: none;
 }
-.ef-ui-tab::-webkit-scrollbar { display: none; }
-.ef-ui-tab-vertical {
+.aeditor-ui-tab::-webkit-scrollbar { display: none; }
+.aeditor-ui-tab-vertical {
   flex-direction: column;
   align-items: stretch;
   overflow-x: hidden;
   overflow-y: auto;
 }
-.ef-ui-tab-btn {
+.aeditor-ui-tab-btn {
   position: relative;
   display: inline-flex;
   flex: 0 0 auto;
   align-items: center;
-  gap: var(--ef-space-1);
-  padding: 0 var(--ef-space-3);
-  height: var(--ef-tab-h);
+  gap: var(--aeditor-space-1);
+  padding: 0 var(--aeditor-space-3);
+  height: var(--aeditor-tab-h);
   min-width: 80px;
   justify-content: center;
   background: transparent;
   border: 0;
-  border-right: 1px solid var(--ef-border);
-  color: var(--ef-fg-2);
-  font: var(--ef-fs-md) var(--ef-font-ui);
+  border-right: 1px solid var(--aeditor-border);
+  color: var(--aeditor-fg-2);
+  font: var(--aeditor-fs-md) var(--aeditor-font-ui);
   cursor: pointer;
   white-space: nowrap;
-  transition: background var(--ef-dur-fast) var(--ef-ease),
-              color      var(--ef-dur-fast) var(--ef-ease),
-              transform  var(--ef-dur-fast) var(--ef-ease);
+  transition: background var(--aeditor-dur-fast) var(--aeditor-ease),
+              color      var(--aeditor-dur-fast) var(--aeditor-ease),
+              transform  var(--aeditor-dur-fast) var(--aeditor-ease);
 }
-.ef-ui-tab-btn:active { transform: scale(0.96); }
-.ef-ui-tab-btn::after {
+.aeditor-ui-tab-btn:active { transform: scale(0.96); }
+.aeditor-ui-tab-btn::after {
   content: '';
   position: absolute;
   left: 50%; right: 50%;
   bottom: 0;
   height: 2px;
-  background: var(--ef-accent);
+  background: var(--aeditor-accent);
   border-radius: 1px 1px 0 0;
-  transition: left var(--ef-dur-med) var(--ef-ease),
-              right var(--ef-dur-med) var(--ef-ease),
-              opacity var(--ef-dur-fast) var(--ef-ease);
+  transition: left var(--aeditor-dur-med) var(--aeditor-ease),
+              right var(--aeditor-dur-med) var(--aeditor-ease),
+              opacity var(--aeditor-dur-fast) var(--aeditor-ease);
   opacity: 0;
 }
-.ef-ui-tab-btn:hover {
-  background: var(--ef-hover);
-  color: var(--ef-fg-0);
+.aeditor-ui-tab-btn:hover {
+  background: var(--aeditor-hover);
+  color: var(--aeditor-fg-0);
 }
-.ef-ui-tab-btn:hover::after { left: 30%; right: 30%; opacity: .5; }
-.ef-ui-tab-btn-active {
-  background: var(--ef-bg-1);
-  color: var(--ef-fg-0);
+.aeditor-ui-tab-btn:hover::after { left: 30%; right: 30%; opacity: .5; }
+.aeditor-ui-tab-btn-active {
+  background: var(--aeditor-bg-1);
+  color: var(--aeditor-fg-0);
 }
-.ef-ui-tab-btn-active::after {
+.aeditor-ui-tab-btn-active::after {
   left: 0; right: 0;
   opacity: 1;
-  box-shadow: 0 0 8px color-mix(in srgb, var(--ef-accent) 60%, transparent);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--aeditor-accent) 60%, transparent);
 }
-.ef-ui-tab-btn-transient .ef-ui-tab-title { font-style: italic; }
-.ef-ui-tab-btn-dirty .ef-ui-tab-title::after {
+.aeditor-ui-tab-btn-transient .aeditor-ui-tab-title { font-style: italic; }
+.aeditor-ui-tab-btn-dirty .aeditor-ui-tab-title::after {
   content: ' •';
-  color: var(--ef-accent);
+  color: var(--aeditor-accent);
 }
-.ef-ui-tab-btn-dragging { opacity: 0.45; }
+.aeditor-ui-tab-btn-dragging { opacity: 0.45; }
 
-/* close × (only visible in .ef-ui-tab-closable) */
-.ef-ui-tab-close {
+/* close × (only visible in .aeditor-ui-tab-closable) */
+.aeditor-ui-tab-close {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -848,118 +848,118 @@
   height: 16px;
   border: 0;
   background: transparent;
-  color: var(--ef-fg-3);
-  border-radius: var(--ef-r-1);
+  color: var(--aeditor-fg-3);
+  border-radius: var(--aeditor-r-1);
   cursor: pointer;
-  font: var(--ef-fs-xl) var(--ef-font-ui);
+  font: var(--aeditor-fs-xl) var(--aeditor-font-ui);
   line-height: 1;
   padding: 0;
 }
-.ef-ui-tab-close:hover {
-  background: var(--ef-bg-3);
-  color: var(--ef-fg-0);
+.aeditor-ui-tab-close:hover {
+  background: var(--aeditor-bg-3);
+  color: var(--aeditor-fg-0);
 }
 /* hover-reveal is the default close behaviour for .bar / dock-standard */
-.ef-ui-tab-closable .ef-ui-tab-btn .ef-ui-tab-close { opacity: 0; }
-.ef-ui-tab-closable .ef-ui-tab-btn:hover .ef-ui-tab-close,
-.ef-ui-tab-closable .ef-ui-tab-btn-active .ef-ui-tab-close { opacity: 1; }
+.aeditor-ui-tab-closable .aeditor-ui-tab-btn .aeditor-ui-tab-close { opacity: 0; }
+.aeditor-ui-tab-closable .aeditor-ui-tab-btn:hover .aeditor-ui-tab-close,
+.aeditor-ui-tab-closable .aeditor-ui-tab-btn-active .aeditor-ui-tab-close { opacity: 1; }
 
 /* badge (notification count etc.) */
-.ef-ui-tab-badge {
+.aeditor-ui-tab-badge {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   min-width: 14px;
   height: 14px;
   padding: 0 4px;
-  background: var(--ef-error);
-  color: var(--ef-error-fg);
-  border-radius: var(--ef-r-pill);
-  font: 600 var(--ef-fs-xs) var(--ef-font-ui);
+  background: var(--aeditor-error);
+  color: var(--aeditor-error-fg);
+  border-radius: var(--aeditor-r-pill);
+  font: 600 var(--aeditor-fs-xs) var(--aeditor-font-ui);
   margin-left: 2px;
 }
 
-.ef-ui-tab-icon {
+.aeditor-ui-tab-icon {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: var(--ef-fs-xl);
+  font-size: var(--aeditor-fs-xl);
   line-height: 1;
   min-width: 14px;
 }
 
 /* + add button */
-.ef-ui-tab-add {
+.aeditor-ui-tab-add {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: var(--ef-tab-h);
-  height: var(--ef-tab-h);
+  width: var(--aeditor-tab-h);
+  height: var(--aeditor-tab-h);
   border: 0;
   background: transparent;
-  color: var(--ef-fg-3);
+  color: var(--aeditor-fg-3);
   cursor: pointer;
-  font: 16px/1 var(--ef-font-ui);
+  font: 16px/1 var(--aeditor-font-ui);
 }
-.ef-ui-tab-add:hover {
-  background: var(--ef-hover);
-  color: var(--ef-fg-0);
+.aeditor-ui-tab-add:hover {
+  background: var(--aeditor-hover);
+  color: var(--aeditor-fg-0);
 }
 
 /* compact variant — tighter padding, smaller glyph, no min-width */
-.ef-ui-tab-compact .ef-ui-tab-btn {
-  height: calc(var(--ef-tab-h) - 4px);
-  padding: 0 var(--ef-space-2);
-  font-size: var(--ef-fs-sm);
+.aeditor-ui-tab-compact .aeditor-ui-tab-btn {
+  height: calc(var(--aeditor-tab-h) - 4px);
+  padding: 0 var(--aeditor-space-2);
+  font-size: var(--aeditor-fs-sm);
   min-width: 0;
 }
 
 /* vertical (auto for sidebar) */
-.ef-ui-tab-vertical .ef-ui-tab-btn {
+.aeditor-ui-tab-vertical .aeditor-ui-tab-btn {
   border-right: 0;
-  border-bottom: 1px solid var(--ef-border);
+  border-bottom: 1px solid var(--aeditor-border);
   justify-content: center;
 }
-.ef-ui-tab-vertical .ef-ui-tab-btn::after {
+.aeditor-ui-tab-vertical .aeditor-ui-tab-btn::after {
   left: 0; right: auto;
   top: 50%; bottom: 50%;
   width: 2px;
   height: auto;
   border-radius: 0 1px 1px 0;
-  transition: top var(--ef-dur-med) var(--ef-ease),
-              bottom var(--ef-dur-med) var(--ef-ease),
-              opacity var(--ef-dur-fast) var(--ef-ease);
+  transition: top var(--aeditor-dur-med) var(--aeditor-ease),
+              bottom var(--aeditor-dur-med) var(--aeditor-ease),
+              opacity var(--aeditor-dur-fast) var(--aeditor-ease);
 }
-.ef-ui-tab-vertical .ef-ui-tab-btn:hover::after { top: 30%; bottom: 30%; opacity: .5; }
-.ef-ui-tab-vertical .ef-ui-tab-btn-active::after { top: 0; bottom: 0; opacity: 1; }
+.aeditor-ui-tab-vertical .aeditor-ui-tab-btn:hover::after { top: 30%; bottom: 30%; opacity: .5; }
+.aeditor-ui-tab-vertical .aeditor-ui-tab-btn-active::after { top: 0; bottom: 0; opacity: 1; }
 
 /* icon-only (auto for sidebar) — 32×32 square */
-.ef-ui-tab-icon-only .ef-ui-tab-btn {
+.aeditor-ui-tab-icon-only .aeditor-ui-tab-btn {
   padding: 0;
   width: 32px;
   height: 32px;
   min-width: 0;
   gap: 0;
 }
-.ef-ui-tab-icon-only .ef-ui-tab-icon { font-size: 16px; }
+.aeditor-ui-tab-icon-only .aeditor-ui-tab-icon { font-size: 16px; }
 
 /* drop indicator (used by dock panel drag) */
-.ef-ui-tab-drop-indicator {
+.aeditor-ui-tab-drop-indicator {
   position: absolute;
-  background: var(--ef-accent);
-  box-shadow: 0 0 6px color-mix(in srgb, var(--ef-accent) 70%, transparent);
+  background: var(--aeditor-accent);
+  box-shadow: 0 0 6px color-mix(in srgb, var(--aeditor-accent) 70%, transparent);
   pointer-events: none;
   z-index: 3;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .ef-ui-tab-btn,
-  .ef-ui-tab-close,
-  .ef-ui-tab-add { transition: none; }
+  .aeditor-ui-tab-btn,
+  .aeditor-ui-tab-close,
+  .aeditor-ui-tab-add { transition: none; }
 }
 
 /* ── tabPanel (tab + body pane composite) ───────────────────────── */
-.ef-ui-tabpanel {
+.aeditor-ui-tabpanel {
   display: flex;
   flex-direction: column;
   min-width: 0;
@@ -967,9 +967,9 @@
   width: 100%;
   height: 100%;
 }
-.ef-ui-tabpanel-horizontal { flex-direction: column; }
-.ef-ui-tabpanel-vertical   { flex-direction: row; }
-.ef-ui-tabpanel-body {
+.aeditor-ui-tabpanel-horizontal { flex-direction: column; }
+.aeditor-ui-tabpanel-vertical   { flex-direction: row; }
+.aeditor-ui-tabpanel-body {
   flex: 1 1 auto;
   min-width: 0;
   min-height: 0;
@@ -983,79 +983,79 @@
    components are embedded inside a larger form. ui.propertyPanel (which
    wraps a top-level structInput) overrides those base styles below to get
    the wider "inspector" layout. */
-.ef-ui-struct-input,
-.ef-ui-array-input {
-  border: 1px solid var(--ef-border);
-  border-radius: var(--ef-r-2);
-  padding: var(--ef-space-1) var(--ef-space-2);
-  background: color-mix(in srgb, var(--ef-bg-0) 50%, transparent);
+.aeditor-ui-struct-input,
+.aeditor-ui-array-input {
+  border: 1px solid var(--aeditor-border);
+  border-radius: var(--aeditor-r-2);
+  padding: var(--aeditor-space-1) var(--aeditor-space-2);
+  background: color-mix(in srgb, var(--aeditor-bg-0) 50%, transparent);
 }
-.ef-ui-struct-input-row,
-.ef-ui-array-input-row {
+.aeditor-ui-struct-input-row,
+.aeditor-ui-array-input-row {
   display: grid;
-  gap: var(--ef-space-1);
+  gap: var(--aeditor-space-1);
   align-items: center;
   padding: 2px 0;
 }
-.ef-ui-struct-input-row { grid-template-columns: 56px minmax(0, 1fr); }
-.ef-ui-array-input-row  { grid-template-columns: auto minmax(0, 1fr) auto; }
-.ef-ui-struct-input-label,
-.ef-ui-array-input-index {
-  font: var(--ef-fs-sm) var(--ef-font-mono);
-  color: var(--ef-fg-3);
+.aeditor-ui-struct-input-row { grid-template-columns: 56px minmax(0, 1fr); }
+.aeditor-ui-array-input-row  { grid-template-columns: auto minmax(0, 1fr) auto; }
+.aeditor-ui-struct-input-label,
+.aeditor-ui-array-input-index {
+  font: var(--aeditor-fs-sm) var(--aeditor-font-mono);
+  color: var(--aeditor-fg-3);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.ef-ui-struct-input-cell,
-.ef-ui-array-input-cell { min-width: 0; }
-.ef-ui-struct-input-cell > *,
-.ef-ui-array-input-cell > * { width: 100%; max-width: 100%; box-sizing: border-box; }
-/* propertyPanel wraps each editor in a .ef-ui-slot. The editor inside the
+.aeditor-ui-struct-input-cell,
+.aeditor-ui-array-input-cell { min-width: 0; }
+.aeditor-ui-struct-input-cell > *,
+.aeditor-ui-array-input-cell > * { width: 100%; max-width: 100%; box-sizing: border-box; }
+/* propertyPanel wraps each editor in a .aeditor-ui-slot. The editor inside the
    slot also needs to fill width or every numberInput /
    colorInput / etc collapses to its intrinsic size while text inputs take
    the remaining space, producing ragged-right rows. */
-.ef-ui-slot > *,
-.ef-ui-struct-input-cell > .ef-ui-slot > * { width: 100%; max-width: 100%; box-sizing: border-box; }
-.ef-ui-array-input-rows { display: flex; flex-direction: column; gap: 2px; }
-.ef-ui-array-input-add {
+.aeditor-ui-slot > *,
+.aeditor-ui-struct-input-cell > .aeditor-ui-slot > * { width: 100%; max-width: 100%; box-sizing: border-box; }
+.aeditor-ui-array-input-rows { display: flex; flex-direction: column; gap: 2px; }
+.aeditor-ui-array-input-add {
   align-self: stretch;
   width: 100%;
-  margin-top: var(--ef-space-1);
-  background: var(--ef-bg-2);
-  border-color: var(--ef-border-input);
+  margin-top: var(--aeditor-space-1);
+  background: var(--aeditor-bg-2);
+  border-color: var(--aeditor-border-input);
 }
 
-.ef-ui-property-panel { display: flex; flex-direction: column; min-width: 0; }
+.aeditor-ui-property-panel { display: flex; flex-direction: column; min-width: 0; }
 /* Strip struct-input chrome inside the panel — both the unnamed top bucket
    (rendered flat) and the bodies of property sections share the same row
    layout: a fixed-ish label column + 1fr editor column. */
-.ef-ui-property-panel .ef-ui-struct-input {
+.aeditor-ui-property-panel .aeditor-ui-struct-input {
   border: 0;
   padding: 0;
   background: transparent;
 }
-.ef-ui-property-panel .ef-ui-struct-input > .ef-ui-struct-input-row {
+.aeditor-ui-property-panel .aeditor-ui-struct-input > .aeditor-ui-struct-input-row {
   grid-template-columns: minmax(64px, 76px) minmax(0, 1fr);
-  gap: var(--ef-space-2);
-  padding: var(--ef-space-1) 0;
+  gap: var(--aeditor-space-2);
+  padding: var(--aeditor-space-1) 0;
 }
-.ef-ui-property-panel .ef-ui-struct-input > .ef-ui-struct-input-row > .ef-ui-struct-input-label {
-  font: var(--ef-fs-sm) var(--ef-font-ui);
-  color: var(--ef-fg-2);
+.aeditor-ui-property-panel .aeditor-ui-struct-input > .aeditor-ui-struct-input-row > .aeditor-ui-struct-input-label {
+  font: var(--aeditor-fs-sm) var(--aeditor-font-ui);
+  color: var(--aeditor-fg-2);
 }
 /* Help cursor only when the label actually carries a tooltip — otherwise the
  * cursor lies. Marker is set by ui.structInput when a tooltip is wired. */
-.ef-ui-struct-input-label[data-has-tip] { cursor: help; }
+.aeditor-ui-struct-input-label[data-has-tip] { cursor: help; }
 /* Section-wrapped groups: section provides the collapsible header; we
    neutralize its body padding so rows align with the flat top bucket. */
-.ef-ui-property-section > .ef-ui-section-body { padding: 0 0 var(--ef-space-1) 0; gap: 0; }
+.aeditor-ui-property-section > .aeditor-ui-section-body { padding: 0 0 var(--aeditor-space-1) 0; gap: 0; }
 
 /* ── slot wrapper for propertyPanel editing ─────────────────────────
    Grid template gives the editor the full 1fr column and the optional reset
    button auto width on the right — no layout shift between fields with/without
    a reset. */
-.ef-ui-slot {
+.aeditor-ui-slot {
   position: relative;
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
@@ -1063,6 +1063,6 @@
   gap: 4px;
   min-width: 0;
 }
-.ef-ui-slot > * { min-width: 0; max-width: 100%; box-sizing: border-box; }
-.ef-ui-slot > :first-child { width: 100%; }
-.ef-ui-slot-reset { grid-column: 2; flex: 0 0 auto; transition: opacity var(--ef-dur-fast) var(--ef-ease); }
+.aeditor-ui-slot > * { min-width: 0; max-width: 100%; box-sizing: border-box; }
+.aeditor-ui-slot > :first-child { width: 100%; }
+.aeditor-ui-slot-reset { grid-column: 2; flex: 0 0 auto; transition: opacity var(--aeditor-dur-fast) var(--aeditor-ease); }

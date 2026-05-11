@@ -1,8 +1,8 @@
-// EF.history - generic snapshot history engine.
+// aeditor.history - generic snapshot history engine.
 //
 // The framework owns only the timeline mechanics. Applications provide
 // capture/apply functions and decide which user actions create entries.
-;(function (EF) {
+;(function (aeditor) {
   'use strict'
 
   function clone(v) {
@@ -21,9 +21,9 @@
     const equals = options.equals || same
     const limit = Math.max(1, Number(options.limit) || 200)
 
-    const entriesSig = EF.signal([])
-    const indexSig = EF.signal(-1)
-    const applyingSig = EF.signal(false)
+    const entriesSig = aeditor.signal([])
+    const indexSig = aeditor.signal(-1)
+    const applyingSig = aeditor.signal(false)
 
     let pauseDepth = 0
     let txDepth = 0
@@ -194,5 +194,5 @@
     }
   }
 
-  EF.history = { create: create }
-})(window.EF = window.EF || {})
+  aeditor.history = { create: create }
+})(window.aeditor = window.aeditor || {})

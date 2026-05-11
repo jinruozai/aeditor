@@ -1,10 +1,10 @@
 // Component registry — the single registration point for everything that can
 // be put into a panel, a toolbar, a UI tree, or a card layout. § 4.8.
 //
-//   EF.registerComponent(name, spec)
-//   EF.resolveComponent(name)             → spec     (throws on unknown)
-//   EF.componentDefaults(name)            → object   (spec.defaults?.() ?? {})
-//   EF.listComponents()                   → [{ name, ...spec }]
+//   aeditor.registerComponent(name, spec)
+//   aeditor.resolveComponent(name)             → spec     (throws on unknown)
+//   aeditor.componentDefaults(name)            → object   (spec.defaults?.() ?? {})
+//   aeditor.listComponents()                   → [{ name, ...spec }]
 //
 // ComponentSpec = {
 //   factory:           (propsSig, ctx) => HTMLElement,    // required
@@ -15,7 +15,7 @@
 //   serialize?:        (el) => any,
 //   deserialize?:      (el, state) => void,
 //
-//   // Palette / UI-tree metadata (consumed by EF.ui.renderUITree + tools that
+//   // Palette / UI-tree metadata (consumed by aeditor.ui.renderUITree + tools that
 //   // present a palette of available components, e.g. a scene editor)
 //   label?:            string,
 //   icon?:             string,
@@ -31,7 +31,7 @@
 // component decides what feeds the signal — for panel components it's
 // ctx.panel.props (live); for toolbar items / UI-tree leaves it's a frozen
 // signal seeded from the literal/static props.
-;(function (EF) {
+;(function (aeditor) {
   'use strict'
 
   const components = new Map()
@@ -109,11 +109,11 @@
     return out
   }
 
-  EF.registerComponent  = registerComponent
-  EF.resolveComponent   = resolveComponent
-  EF.componentDefaults  = componentDefaults
-  EF.listComponents     = listComponents
-  EF.unregisterComponent = unregisterComponent
-  EF.unregisterComponentOwner = unregisterComponentOwner
-  EF.componentRegistration = componentRegistration
-})(window.EF = window.EF || {})
+  aeditor.registerComponent  = registerComponent
+  aeditor.resolveComponent   = resolveComponent
+  aeditor.componentDefaults  = componentDefaults
+  aeditor.listComponents     = listComponents
+  aeditor.unregisterComponent = unregisterComponent
+  aeditor.unregisterComponentOwner = unregisterComponentOwner
+  aeditor.componentRegistration = componentRegistration
+})(window.aeditor = window.aeditor || {})

@@ -1,23 +1,23 @@
-// EF.ai store - final agent/resource model.
-;(function (EF) {
+// aeditor.ai store - final agent/resource model.
+;(function (aeditor) {
   'use strict'
 
-  const ai = EF.ai = EF.ai || {}
+  const ai = aeditor.ai = aeditor.ai || {}
 
   let nextAgentId = 1
   let nextMessageId = 1
   let nextResourceId = 1
   let nextEventId = 1
 
-  const agentsSig = EF.signal([])
-  const resourcesSig = EF.signal([])
-  const activeAgentIdSig = EF.signal(null)
+  const agentsSig = aeditor.signal([])
+  const resourcesSig = aeditor.signal([])
+  const activeAgentIdSig = aeditor.signal(null)
   const agentVersionSigs = {}
   const messageListVersionSigs = {}
   const messageVersionSigs = {}
   const activeRunStateSigs = {}
   let permissionResolver = null
-  let persistenceKey = 'editorframe.ai.v2'
+  let persistenceKey = 'aeditor.ai.v2'
   let persistenceEnabled = true
   let saveTimer = null
   const MAX_SNAPSHOT_CONTENT_CHARS = 1000000
@@ -184,7 +184,7 @@
   }
 
   function versionSig(map, key) {
-    if (!map[key]) map[key] = EF.signal(0)
+    if (!map[key]) map[key] = aeditor.signal(0)
     return map[key]
   }
 
@@ -647,7 +647,7 @@
     try {
       s.setItem(persistenceKey, JSON.stringify(data))
     } catch (err) {
-      if (EF.reportError) EF.reportError({ scope: 'ai', storage: persistenceKey }, err)
+      if (aeditor.reportError) aeditor.reportError({ scope: 'ai', storage: persistenceKey }, err)
     }
     return data
   }
@@ -973,10 +973,10 @@
   ai.agent.messages = agentMessages
 
   restore()
-  EF.effect(function () {
+  aeditor.effect(function () {
     agentsSig()
     resourcesSig()
     activeAgentIdSig()
     scheduleSave()
   })
-})(window.EF = window.EF || {})
+})(window.aeditor = window.aeditor || {})

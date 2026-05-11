@@ -1,19 +1,19 @@
-// EF.settings - schema + page registry for standard settings UI.
-;(function (EF) {
+// aeditor.settings - schema + page registry for standard settings UI.
+;(function (aeditor) {
   'use strict'
 
-  const settings = EF.settings = EF.settings || {}
+  const settings = aeditor.settings = aeditor.settings || {}
 
-  const sectionsSig = EF.signal([])
-  const schemasSig = EF.signal([])
-  const pagesSig = EF.signal([])
+  const sectionsSig = aeditor.signal([])
+  const schemasSig = aeditor.signal([])
+  const pagesSig = aeditor.signal([])
   const sectionMeta = {}
   const schemaMeta = {}
   const pageMeta = {}
-  const DEFAULT_STORAGE_KEY = 'editorframe.settings.v1'
+  const DEFAULT_STORAGE_KEY = 'aeditor.settings.v1'
   let storageKey = DEFAULT_STORAGE_KEY
   let storage = null
-  const valuesSig = EF.signal(readStoredValues())
+  const valuesSig = aeditor.signal(readStoredValues())
 
   function defaultStorage() {
     try { return window.localStorage || null } catch (_) { return null }
@@ -241,4 +241,4 @@
   settings.save = save
   settings.clearStoredValues = clearStoredValues
   settings.resolveOptions = resolveOptions
-})(window.EF = window.EF || {})
+})(window.aeditor = window.aeditor || {})

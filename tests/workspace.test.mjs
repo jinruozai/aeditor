@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import vm from 'node:vm'
 
-global.window = { EF: {} }
+global.window = { aeditor: {} }
 
 for (const file of [
   'src/core/workspace.js',
@@ -10,18 +10,18 @@ for (const file of [
   vm.runInThisContext(readFileSync(file, 'utf8'), { filename: file })
 }
 
-const EF = window.EF
-const ws = EF.workspace.memory({
+const aeditor = window.aeditor
+const ws = aeditor.workspace.memory({
   'src/panel.js': 'one\ntwo\nthree\n',
   'data/items.json': '{"items":[]}',
 })
 
-assert.throws(function () { EF.workspace.normalizePath('../secret') }, /escapes root/)
-assert.equal(EF.workspace.normalizePath('src\\./panel.js'), 'src/panel.js')
+assert.throws(function () { aeditor.workspace.normalizePath('../secret') }, /escapes root/)
+assert.equal(aeditor.workspace.normalizePath('src\\./panel.js'), 'src/panel.js')
 
 const read = await ws.read('src/panel.js')
 assert.equal(read.text, 'one\ntwo\nthree\n')
-assert.equal(read.hash, EF.workspace.hashText(read.text))
+assert.equal(read.hash, aeditor.workspace.hashText(read.text))
 
 const patched = await ws.patch('src/panel.js', read.hash, [
   { startLine: 2, endLine: 2, replacement: 'TWO' },
@@ -91,7 +91,7 @@ const src = await root.getDirectoryHandle('src', { create: true })
 const nested = await root.getDirectoryHandle('nested', { create: true })
 src.entries['panel.js'] = new FakeFileHandle('panel.js', src, 'alpha\nbeta\n')
 nested.entries['other.js'] = new FakeFileHandle('other.js', nested, 'beta\n')
-const fsa = EF.workspace.fromHandle(root)
+const fsa = aeditor.workspace.fromHandle(root)
 assert.equal((await fsa.search('beta', { path: 'src', limit: 10 })).length, 1)
 assert.equal((await fsa.search('beta', { path: 'src/panel.js', limit: 10 }))[0].path, 'src/panel.js')
 await fsa.delete('src/panel.js')

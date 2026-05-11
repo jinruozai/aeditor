@@ -1,7 +1,7 @@
-;(function (EF) {
+;(function (aeditor) {
   'use strict'
 
-  const itemsSig = EF.signal([])
+  const itemsSig = aeditor.signal([])
   const adapters = {}
   const renderers = {}
 
@@ -18,7 +18,7 @@
   }
 
   function isChangeSet(value) {
-    return !!(value && typeof value === 'object' && value.type === 'ef.changeSet')
+    return !!(value && typeof value === 'object' && value.type === 'aeditor.changeSet')
   }
 
   function normalizeStatus(status) {
@@ -93,7 +93,7 @@
     const validation = spec.validation || { ok: true, warnings: [], errors: [] }
     const resources = (spec.resources || []).map(normalizeResource)
     const out = {
-      type: 'ef.changeSet',
+      type: 'aeditor.changeSet',
       id: spec.id || nextId(),
       title: spec.title || 'Change Set',
       description: spec.description || '',
@@ -288,7 +288,7 @@
     })
   }
 
-  EF.changeSet = {
+  aeditor.changeSet = {
     items: itemsSig,
     create: create,
     update: update,
@@ -304,4 +304,4 @@
     getRenderer: getRenderer,
     rendererFor: rendererFor,
   }
-})(window.EF = window.EF || {})
+})(window.aeditor = window.aeditor || {})

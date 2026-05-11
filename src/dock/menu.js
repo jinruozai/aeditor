@@ -2,10 +2,10 @@
 //
 // This is dock-level editing surface: add registered panels, close/pin panels,
 // and adjust toolbar position/tab style for the target dock.
-;(function (EF) {
+;(function (aeditor) {
   'use strict'
 
-  const findDock = EF.findDock
+  const findDock = aeditor.findDock
 
   function openDockMenu(pos, dockId, layout) {
     const dock = findDock(layout.treeSig.peek(), dockId)
@@ -65,7 +65,7 @@
         ],
       },
     ]
-    EF.ui.contextMenu(pos, items)
+    aeditor.ui.contextMenu(pos, items)
   }
 
   function activePanel(dock) {
@@ -96,7 +96,7 @@
   function openAddPanelMenu(pos, dockId, layout) {
     const dock = findDock(layout.treeSig.peek(), dockId)
     if (!dock) return
-    const items = EF.listComponents()
+    const items = aeditor.listComponents()
       .filter(function (spec) {
         return spec.category === 'panel' && accepts(dock.node, spec.name)
       })
@@ -108,12 +108,12 @@
           icon: spec.icon || (spec.defaults && spec.defaults().icon) || 'square',
           group: spec.category || 'panel',
           onSelect: function () {
-            const defaults = EF.componentDefaults(spec.name)
+            const defaults = aeditor.componentDefaults(spec.name)
             layout.addPanel(dockId, Object.assign({}, defaults, { component: spec.name }))
           },
         }
       })
-    EF.ui.searchMenu({
+    aeditor.ui.searchMenu({
       pos: pos,
       items: items,
       placeholder: 'Add panel...',
@@ -157,7 +157,7 @@
   }
 
   function setDockToolbar(dockId, layout, toolbar) {
-    layout.setTree(EF.updateDock(layout.treeSig.peek(), dockId, { toolbar: toolbar }))
+    layout.setTree(aeditor.updateDock(layout.treeSig.peek(), dockId, { toolbar: toolbar }))
   }
 
   function defaultToolbar(direction) {
@@ -194,6 +194,6 @@
       component === 'tab-collapsible' || component === 'tab-sidebar'
   }
 
-  EF._dock = EF._dock || {}
-  EF._dock.openDockMenu = openDockMenu
-})(window.EF = window.EF || {})
+  aeditor._dock = aeditor._dock || {}
+  aeditor._dock.openDockMenu = openDockMenu
+})(window.aeditor = window.aeditor || {})

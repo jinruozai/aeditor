@@ -1,8 +1,8 @@
-// EF.ai built-in agent orchestration tools.
-;(function (EF) {
+// aeditor.ai built-in agent orchestration tools.
+;(function (aeditor) {
   'use strict'
 
-  const ai = EF.ai = EF.ai || {}
+  const ai = aeditor.ai = aeditor.ai || {}
 
   function clone(value) {
     return value == null ? value : structuredClone(value)
@@ -370,8 +370,8 @@
     id: 'orchestration',
     title: 'Agent Orchestration',
     version: '2.0.0',
-    description: 'Create, read, message, stop, delete, and reorganize EF.ai agents within permission boundaries.',
-    systemPrompt: 'Use agent.* and quest.* tools to coordinate EF.ai agents. Complete delegated tasks end-to-end when possible. Prefer agent.delegate for create/reuse + send. Delegation is parallel: continue useful local work, then use quest.result for completed inbox event batches.',
+    description: 'Create, read, message, stop, delete, and reorganize aeditor.ai agents within permission boundaries.',
+    systemPrompt: 'Use agent.* and quest.* tools to coordinate aeditor.ai agents. Complete delegated tasks end-to-end when possible. Prefer agent.delegate for create/reuse + send. Delegation is parallel: continue useful local work, then use quest.result for completed inbox event batches.',
     rules: [
       'Agents are identified by id. Names are display labels and may repeat.',
       'Use parentAgentId for parent/child ownership. There are no groups and no path identity.',
@@ -393,4 +393,4 @@
       'agent.stop',
     ],
   })
-})(window.EF = window.EF || {})
+})(window.aeditor = window.aeditor || {})

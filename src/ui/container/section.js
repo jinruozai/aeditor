@@ -1,30 +1,30 @@
-// EF.ui.section — collapsible labeled section header + body.
+// aeditor.ui.section — collapsible labeled section header + body.
 //
 // opts: {
 //   title?: string|signal,
 //   collapsed?: bool|signal, onToggle?,
 //   children?: HTMLElement[] | HTMLElement,
 // }
-;(function (EF) {
+;(function (aeditor) {
   'use strict'
-  const ui = EF.ui = EF.ui || {}
+  const ui = aeditor.ui = aeditor.ui || {}
 
   ui.section = function (opts) {
     const o = opts || {}
     const sig   = ui.asSig(o.collapsed != null ? o.collapsed : false)
     const title = ui.asSig(o.title     != null ? o.title     : '')
     const doWrite = ui.writer(sig, o.onToggle, 'ui.section')
-    const el = ui.h('section', 'ef-ui-section')
-    const head = ui.h('button', 'ef-ui-section-head', { type: 'button' })
-    const arrow = ui.h('span', 'ef-ui-section-arrow', { text: '▾' })
-    const titleEl = ui.h('span', 'ef-ui-section-title')
+    const el = ui.h('section', 'aeditor-ui-section')
+    const head = ui.h('button', 'aeditor-ui-section-head', { type: 'button' })
+    const arrow = ui.h('span', 'aeditor-ui-section-arrow', { text: '▾' })
+    const titleEl = ui.h('span', 'aeditor-ui-section-title')
     ui.bindText(titleEl, title)
     head.appendChild(arrow); head.appendChild(titleEl)
-    const body = ui.h('div', 'ef-ui-section-body')
+    const body = ui.h('div', 'aeditor-ui-section-body')
     el.appendChild(head); el.appendChild(body)
     head.addEventListener('click', function () { doWrite(!sig.peek()) })
     ui.bind(el, sig, function (v) {
-      el.classList.toggle('ef-ui-section-collapsed', !!v)
+      el.classList.toggle('aeditor-ui-section-collapsed', !!v)
       arrow.textContent = v ? '▸' : '▾'
     })
     if (o.children) {
@@ -34,4 +34,4 @@
     el.body = body
     return el
   }
-})(window.EF = window.EF || {})
+})(window.aeditor = window.aeditor || {})

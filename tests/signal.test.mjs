@@ -2,18 +2,18 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import vm from 'node:vm'
 
-global.window = { EF: {} }
+global.window = { aeditor: {} }
 vm.runInThisContext(readFileSync('src/core/signal.js', 'utf8'), { filename: 'signal.js' })
 
-const EF = window.EF
+const aeditor = window.aeditor
 
-const a = EF.signal(1)
+const a = aeditor.signal(1)
 let runs = 0
 let cleanups = 0
-const stop = EF.effect(function () {
+const stop = aeditor.effect(function () {
   runs++
   a()
-  EF.onCleanup(function () { cleanups++ })
+  aeditor.onCleanup(function () { cleanups++ })
 })
 assert.equal(runs, 1)
 a.set(2)
@@ -24,17 +24,17 @@ assert.equal(cleanups, 2)
 a.set(3)
 assert.equal(runs, 2)
 
-const b = EF.signal(2)
-const c = EF.derived(function () { return a() + b() })
+const b = aeditor.signal(2)
+const c = aeditor.derived(function () { return a() + b() })
 assert.equal(c(), 5)
 b.set(5)
 assert.equal(c(), 8)
 c.dispose()
 
 let batched = 0
-const x = EF.signal(0)
-EF.effect(function () { x(); batched++ })
-EF.batch(function () {
+const x = aeditor.signal(0)
+aeditor.effect(function () { x(); batched++ })
+aeditor.batch(function () {
   x.set(1)
   x.set(2)
 })

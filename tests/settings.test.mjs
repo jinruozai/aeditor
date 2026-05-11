@@ -4,7 +4,7 @@ import vm from 'node:vm'
 
 const memory = {}
 global.window = {
-  EF: {},
+  aeditor: {},
   localStorage: {
     getItem(key) { return Object.prototype.hasOwnProperty.call(memory, key) ? memory[key] : null },
     setItem(key, value) { memory[key] = String(value) },
@@ -15,25 +15,25 @@ global.window = {
 vm.runInThisContext(readFileSync('src/core/signal.js', 'utf8'), { filename: 'signal.js' })
 vm.runInThisContext(readFileSync('src/core/settings.js', 'utf8'), { filename: 'settings.js' })
 
-const EF = window.EF
+const aeditor = window.aeditor
 
-EF.settings.registerSchema('ai', { key: 'ai.deepseek.apiKey', default: '' })
-assert.equal(EF.settings.get('ai.deepseek.apiKey'), '')
+aeditor.settings.registerSchema('ai', { key: 'ai.deepseek.apiKey', default: '' })
+assert.equal(aeditor.settings.get('ai.deepseek.apiKey'), '')
 
-EF.settings.set('ai.deepseek.apiKey', 'k1')
-assert.equal(EF.settings.get('ai.deepseek.apiKey'), 'k1')
-assert.equal(JSON.parse(memory['editorframe.settings.v1'])['ai.deepseek.apiKey'], 'k1')
+aeditor.settings.set('ai.deepseek.apiKey', 'k1')
+assert.equal(aeditor.settings.get('ai.deepseek.apiKey'), 'k1')
+assert.equal(JSON.parse(memory['aeditor.settings.v1'])['ai.deepseek.apiKey'], 'k1')
 
-EF.settings.configurePersistence({ key: 'editorframe.settings.v1' })
-assert.equal(EF.settings.get('ai.deepseek.apiKey'), 'k1')
+aeditor.settings.configurePersistence({ key: 'aeditor.settings.v1' })
+assert.equal(aeditor.settings.get('ai.deepseek.apiKey'), 'k1')
 
-EF.settings.reset('ai.deepseek.apiKey')
-assert.equal(EF.settings.get('ai.deepseek.apiKey'), '')
-assert.equal(Object.prototype.hasOwnProperty.call(JSON.parse(memory['editorframe.settings.v1']), 'ai.deepseek.apiKey'), false)
+aeditor.settings.reset('ai.deepseek.apiKey')
+assert.equal(aeditor.settings.get('ai.deepseek.apiKey'), '')
+assert.equal(Object.prototype.hasOwnProperty.call(JSON.parse(memory['aeditor.settings.v1']), 'ai.deepseek.apiKey'), false)
 
-EF.settings.importValues({ 'ai.deepseek.apiKey': 'k2' })
-assert.equal(JSON.parse(memory['editorframe.settings.v1'])['ai.deepseek.apiKey'], 'k2')
-EF.settings.clearStoredValues()
-assert.equal(memory['editorframe.settings.v1'], undefined)
+aeditor.settings.importValues({ 'ai.deepseek.apiKey': 'k2' })
+assert.equal(JSON.parse(memory['aeditor.settings.v1'])['ai.deepseek.apiKey'], 'k2')
+aeditor.settings.clearStoredValues()
+assert.equal(memory['aeditor.settings.v1'], undefined)
 
 console.log('settings tests ok')

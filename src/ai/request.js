@@ -1,8 +1,8 @@
-// EF.ai canonical request builder.
-;(function (EF) {
+// aeditor.ai canonical request builder.
+;(function (aeditor) {
   'use strict'
 
-  const ai = EF.ai = EF.ai || {}
+  const ai = aeditor.ai = aeditor.ai || {}
 
   function resolveResourceRef(ref, all) {
     if (typeof ref === 'string') return all.find(function (item) { return item.id === ref }) || { id: ref }
@@ -341,7 +341,7 @@
 
   function runtimeGuideMessage(agent) {
     const lines = [
-      'You are an EditorFrame AI agent running inside an editor runtime.',
+      'You are an AEditor AI agent running inside an editor runtime.',
       'Complete the user request end-to-end in the current turn whenever the available tools make that possible.',
       'Do not stop after a partial setup step. For delegated work, prefer agent.delegate because it creates/reuses an agent and sends the task in one workflow.',
       'If you use agent.create separately for a delegated task, immediately send that agent the task with agent.send unless the user only asked to create the agent.',
@@ -352,18 +352,18 @@
       'A response that contains agent.delegate or agent.send is an action turn. Do not put final user-visible answer content in that same message; continue in the runtime follow-up continuation.',
       'If new user messages are queued while you are running, finish the current request cleanly unless the queued message is explicitly interrupting or marked as guidance.',
       'After applying an editor operation that creates or changes visible UI, verify the returned result and any available host/panel health reference before claiming the UI is done.',
-      'For EditorFrame UI panels, prefer EF.ui.* components over hand-built controls when the library has a suitable component.',
-      'For scrollable panel content, use EF.ui.scrollArea instead of native overflow scrollbars so styling matches the framework.',
-      'For hover tips or anchored floating UI, prefer EF.ui.tooltip/popover/menu; scoped EF.ui overlays close automatically when the panel is no longer active. If you manually append floating DOM outside the panel root, register it with EF.ui.registerScopedOverlay(anchor, close).',
+      'For AEditor UI panels, prefer aeditor.ui.* components over hand-built controls when the library has a suitable component.',
+      'For scrollable panel content, use aeditor.ui.scrollArea instead of native overflow scrollbars so styling matches the framework.',
+      'For hover tips or anchored floating UI, prefer aeditor.ui.tooltip/popover/menu; scoped aeditor.ui overlays close automatically when the panel is no longer active. If you manually append floating DOM outside the panel root, register it with aeditor.ui.registerScopedOverlay(anchor, close).',
       'Generated panels live inside resizable docks: make the root height:100%, minHeight:0, boxSizing:border-box, avoid viewport-sized or fixed-width layouts, and use flex/grid with minmax()/auto-fit where possible.',
-      'When a project directory is set, use workspace.* tools to inspect and edit files. Those tools are bounded to the current project directory shared by all agents.',
+      'When an AI workspace is set, use workspace.* tools to inspect and edit files. Those tools are bounded to the current AI workspace shared by all agents.',
       'Only ask the user for clarification or confirmation when the requested outcome is ambiguous, destructive, or blocked by permissions/errors.',
       'If you are already a child agent, do not create another child agent unless the user explicitly requests deeper delegation.',
       'CURRENT_AGENT_ID: ' + (agent.id || ''),
       'CURRENT_AGENT_NAME: ' + (agent.name || ''),
       'CURRENT_PARENT_AGENT_ID: ' + (agent.parentAgentId || ''),
     ]
-    if (EF.ai.projectDirectory && EF.ai.projectDirectory()) lines.push('CURRENT_PROJECT_DIRECTORY: ' + compactJson(EF.ai.projectDirectory(), 400))
+    if (aeditor.ai.workspaceMeta && aeditor.ai.workspaceMeta()) lines.push('CURRENT_AI_WORKSPACE: ' + compactJson(aeditor.ai.workspaceMeta(), 400))
     if (agent.systemPrompt) lines.push('AGENT_SYSTEM_PROMPT:\n' + agent.systemPrompt)
     const skills = skillLines(agent)
     if (skills.length) lines.push('ACTIVE_SKILLS:\n' + skills.join('\n'))
@@ -424,4 +424,4 @@
   }
 
   ai.makeRequest = makeRequest
-})(window.EF = window.EF || {})
+})(window.aeditor = window.aeditor || {})

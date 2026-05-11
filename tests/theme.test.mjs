@@ -22,41 +22,41 @@ class FakeEl {
 const root = new FakeEl()
 const scoped = new FakeEl()
 
-global.window = { EF: {} }
+global.window = { aeditor: {} }
 global.document = { documentElement: root }
 global.getComputedStyle = function (el) {
   return {
     getPropertyValue: function (name) {
-      return el.style.getPropertyValue(name) || (name === '--ef-brand' ? '#569eff' : '')
+      return el.style.getPropertyValue(name) || (name === '--aeditor-brand' ? '#569eff' : '')
     },
   }
 }
 
 vm.runInThisContext(readFileSync('src/core/theme.js', 'utf8'), { filename: 'theme.js' })
 
-const EF = window.EF
+const aeditor = window.aeditor
 
-assert.equal(EF.theme.get(), 'dark')
-EF.theme.set('light')
-assert.equal(root.getAttribute('data-ef-theme'), 'light')
-assert.equal(EF.theme.get(), 'light')
-EF.theme.set('dark')
-assert.equal(root.getAttribute('data-ef-theme'), null)
-assert.equal(EF.theme.get(), 'dark')
+assert.equal(aeditor.theme.get(), 'dark')
+aeditor.theme.set('light')
+assert.equal(root.getAttribute('data-aeditor-theme'), 'light')
+assert.equal(aeditor.theme.get(), 'light')
+aeditor.theme.set('dark')
+assert.equal(root.getAttribute('data-aeditor-theme'), null)
+assert.equal(aeditor.theme.get(), 'dark')
 
-EF.theme.set('dark', scoped)
-assert.equal(scoped.getAttribute('data-ef-theme'), 'dark')
-EF.theme.set('light', scoped)
-assert.equal(scoped.getAttribute('data-ef-theme'), 'light')
+aeditor.theme.set('dark', scoped)
+assert.equal(scoped.getAttribute('data-aeditor-theme'), 'dark')
+aeditor.theme.set('light', scoped)
+assert.equal(scoped.getAttribute('data-aeditor-theme'), 'light')
 
-EF.theme.apply({ '--ef-brand': '#123456', '--ef-surface-panel': '#222222' })
-assert.equal(root.style.getPropertyValue('--ef-brand'), '#123456')
-assert.equal(EF.theme.read('--ef-brand'), '#123456')
-EF.theme.reset(null, ['--ef-brand'])
-assert.equal(root.style.getPropertyValue('--ef-brand'), '')
-assert.equal(EF.theme.read('--ef-brand'), '#569eff')
+aeditor.theme.apply({ '--aeditor-brand': '#123456', '--aeditor-surface-panel': '#222222' })
+assert.equal(root.style.getPropertyValue('--aeditor-brand'), '#123456')
+assert.equal(aeditor.theme.read('--aeditor-brand'), '#123456')
+aeditor.theme.reset(null, ['--aeditor-brand'])
+assert.equal(root.style.getPropertyValue('--aeditor-brand'), '')
+assert.equal(aeditor.theme.read('--aeditor-brand'), '#569eff')
 
-const css = EF.theme.exportCss(null, ['--ef-brand'])
-assert.equal(css, ':root {\n  --ef-brand: #569eff;\n}')
+const css = aeditor.theme.exportCss(null, ['--aeditor-brand'])
+assert.equal(css, ':root {\n  --aeditor-brand: #569eff;\n}')
 
 console.log('theme tests ok')

@@ -1,15 +1,15 @@
-// EF.ui.scrollArea — styled scroll container (relies on browser scrollbars,
+// aeditor.ui.scrollArea — styled scroll container (relies on browser scrollbars,
 // but applies the framework's scrollbar theming via WebKit pseudo-elements
 // and Firefox `scrollbar-color`).
 //
 // opts: { children?, maxHeight?, both? }
-;(function (EF) {
+;(function (aeditor) {
   'use strict'
-  const ui = EF.ui = EF.ui || {}
+  const ui = aeditor.ui = aeditor.ui || {}
 
   ui.scrollArea = function (opts) {
     const o = opts || {}
-    const el = ui.h('div', 'ef-ui-scrollarea' + (o.both ? ' ef-ui-scrollarea-both' : ''))
+    const el = ui.h('div', 'aeditor-ui-scrollarea' + (o.both ? ' aeditor-ui-scrollarea-both' : ''))
     if (o.maxHeight != null) el.style.maxHeight = (typeof o.maxHeight === 'number' ? o.maxHeight + 'px' : o.maxHeight)
     if (o.children) {
       const list = Array.isArray(o.children) ? o.children : [o.children]
@@ -17,4 +17,4 @@
     }
     return el
   }
-})(window.EF = window.EF || {})
+})(window.aeditor = window.aeditor || {})

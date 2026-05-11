@@ -2,13 +2,13 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import vm from 'node:vm'
 
-global.window = { EF: {} }
+global.window = { aeditor: {} }
 vm.runInThisContext(readFileSync('src/core/signal.js', 'utf8'), { filename: 'signal.js' })
 vm.runInThisContext(readFileSync('src/ai/name-generator.js', 'utf8'), { filename: 'ai/name-generator.js' })
 vm.runInThisContext(readFileSync('src/ai/store.js', 'utf8'), { filename: 'ai/store.js' })
 vm.runInThisContext(readFileSync('src/ai/target.js', 'utf8'), { filename: 'ai/target.js' })
 
-const ai = window.EF.ai
+const ai = window.aeditor.ai
 
 ai.registerTargetProvider('case', {
   match: function (source) { return source && source.kind === 'case-source' },
@@ -49,11 +49,11 @@ const dragEvent = {
     effectAllowed: '',
     setData: function (type, value) { dragPayload[type] = value },
     getData: function (type) { return dragPayload[type] || '' },
-    types: ['application/x-ef-ai-target-list'],
+    types: ['application/x-aeditor-ai-target-list'],
   },
 }
 ai.writeTargetDragData(dragEvent, [captured])
-assert.equal(JSON.parse(dragPayload['application/x-ef-ai-target']).uri, captured.uri)
+assert.equal(JSON.parse(dragPayload['application/x-aeditor-ai-target']).uri, captured.uri)
 assert.equal(ai.readTargetFromDragEvent(dragEvent)[0].uri, captured.uri)
 
 const textFileTarget = await ai.fileToTarget({

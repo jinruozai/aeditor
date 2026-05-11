@@ -1,7 +1,7 @@
-;(function (EF) {
+;(function (aeditor) {
   'use strict'
 
-  const ui = EF.ui
+  const ui = aeditor.ui
 
   function read(v) { return ui.isSignal(v) ? v() : v }
   function readList(v) { return read(v) || [] }
@@ -33,19 +33,19 @@
   }
 
   function makeAgentLabel(node) {
-    const wrap = ui.h('span', 'ef-ai-agent-label')
-    wrap.appendChild(ui.h('span', 'ef-ai-agent-dot ef-ai-agent-dot-' + node.status))
-    wrap.appendChild(ui.h('span', 'ef-ai-agent-name', { text: node.label }))
+    const wrap = ui.h('span', 'aeditor-ai-agent-label')
+    wrap.appendChild(ui.h('span', 'aeditor-ai-agent-dot aeditor-ai-agent-dot-' + node.status))
+    wrap.appendChild(ui.h('span', 'aeditor-ai-agent-name', { text: node.label }))
     wrap.title = node.label
     return wrap
   }
 
   function makeStatus(node) {
-    const wrap = ui.h('span', 'ef-ai-agent-meta')
+    const wrap = ui.h('span', 'aeditor-ai-agent-meta')
     const count = Number(node.queuedCount || 0) + Number(node.unreadInboxCount || 0)
-    if (count) wrap.appendChild(ui.h('span', 'ef-ai-group-count', { text: String(count) }))
+    if (count) wrap.appendChild(ui.h('span', 'aeditor-ai-group-count', { text: String(count) }))
     if (node.status && node.status !== 'idle') {
-      wrap.appendChild(ui.h('span', 'ef-ai-status-pill ef-ai-status-' + node.status, { text: statusLabel(node.status) }))
+      wrap.appendChild(ui.h('span', 'aeditor-ai-status-pill aeditor-ai-status-' + node.status, { text: statusLabel(node.status) }))
     }
     return wrap
   }
@@ -61,7 +61,7 @@
   }
 
   function toTreeItems(agents) {
-    const activeId = read(EF.ai.activeAgentId)
+    const activeId = read(aeditor.ai.activeAgentId)
     const roots = []
     const byId = {}
     for (let i = 0; i < agents.length; i++) {
@@ -121,7 +121,7 @@
   }
 
   function activeNodeId() {
-    const id = read(EF.ai.activeAgentId)
+    const id = read(aeditor.ai.activeAgentId)
     return id ? agentNodeId(id) : null
   }
 
@@ -135,28 +135,28 @@
   }
 
   function createAgent(parentAgentId) {
-    EF.ai.createAgent({ parentAgentId: parentAgentId || null })
+    aeditor.ai.createAgent({ parentAgentId: parentAgentId || null })
   }
 
   function renameNode(node) {
     ui.prompt({ title: 'Rename Agent', message: 'Name', default: node.label }).then(function (name) {
       if (!name || name === node.label) return
-      EF.ai.renameAgent(node.agentId, name)
+      aeditor.ai.renameAgent(node.agentId, name)
     })
   }
 
   function deleteNode(node) {
-    EF.ai.deleteAgent(node.agentId)
+    aeditor.ai.deleteAgent(node.agentId)
   }
 
   function commitDrop(target, position, data) {
     const source = data.nodes[0]
     if (!source || source.id === target.id) return
     if (position === 'inside') {
-      EF.ai.reparentAgent(source.agentId, target.agentId)
+      aeditor.ai.reparentAgent(source.agentId, target.agentId)
       return
     }
-    EF.ai.reparentAgent(source.agentId, target.parentAgentId || null, target.sortOrder + (position === 'after' ? 1 : -1))
+    aeditor.ai.reparentAgent(source.agentId, target.parentAgentId || null, target.sortOrder + (position === 'after' ? 1 : -1))
   }
 
   function rootMenu() {
@@ -164,20 +164,20 @@
   }
 
   function openRootMenu(ev) {
-    if (ev.target.closest && ev.target.closest('.ef-ui-tree-row')) return
+    if (ev.target.closest && ev.target.closest('.aeditor-ui-tree-row')) return
     ev.preventDefault()
     ui.contextMenu({ x: ev.clientX, y: ev.clientY }, rootMenu())
   }
 
   function factory() {
-    const root = ui.h('div', 'ef-ai-panel ef-ai-agents')
-    const itemsSig = EF.signal([])
-    const selectedSig = EF.signal([])
-    const expandedSig = EF.signal(new Set())
+    const root = ui.h('div', 'aeditor-ai-panel aeditor-ai-agents')
+    const itemsSig = aeditor.signal([])
+    const selectedSig = aeditor.signal([])
+    const expandedSig = aeditor.signal(new Set())
     let expansionSeeded = false
     let knownAgentIds = new Set()
 
-    const toolbar = ui.h('div', 'ef-ai-toolbar')
+    const toolbar = ui.h('div', 'aeditor-ai-toolbar')
     toolbar.appendChild(ui.button({
       text: 'New Chat',
       kind: 'default',
@@ -199,7 +199,7 @@
       onSelect: function (ids) {
         if (!ids.length) return
         const node = findNode(itemsSig.peek(), ids[0])
-        if (node) EF.ai.selectAgent(node.agentId)
+        if (node) aeditor.ai.selectAgent(node.agentId)
       },
       trailingSlot: makeStatus,
       leadingSlot: function () { return null },
@@ -220,23 +220,23 @@
       },
       dnd: {
         canDrag: function () { return true },
-        getDragData: function (nodes) { return { types: ['ef.ai/agent'], nodes: nodes } },
+        getDragData: function (nodes) { return { types: ['aeditor.ai/agent'], nodes: nodes } },
         dropZones: function () { return ['before', 'inside', 'after'] },
         canDrop: function (node, position, data) {
           const source = data.nodes[0]
           if (!source || source.id === node.id) return false
-          if (position === 'inside') return !EF.ai.isDescendant(source.agentId, node.agentId)
+          if (position === 'inside') return !aeditor.ai.isDescendant(source.agentId, node.agentId)
           return true
         },
         onDrop: commitDrop,
       },
     })
-    tree.classList.add('ef-ai-agent-tree')
+    tree.classList.add('aeditor-ai-agent-tree')
     tree.addEventListener('contextmenu', openRootMenu)
     root.appendChild(tree)
 
     function syncTree() {
-      const agents = readList(EF.ai.agents)
+      const agents = readList(aeditor.ai.agents)
       const items = toTreeItems(agents)
       itemsSig.set(items)
       if (!expansionSeeded) {
@@ -258,11 +258,11 @@
       if (selected !== active) selectedSig.set(active ? [active] : [])
     }
 
-    ui.collect(root, EF.effect(syncTree))
+    ui.collect(root, aeditor.effect(syncTree))
     return root
   }
 
-  EF.registerComponent('ai-agents-list', {
+  aeditor.registerComponent('ai-agents-list', {
     category: 'panel',
     label: 'AI Agents',
     icon: 'user',
@@ -270,4 +270,4 @@
     factory: factory,
     dispose: disposeTree,
   })
-})(window.EF = window.EF || {})
+})(window.aeditor = window.aeditor || {})

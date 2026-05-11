@@ -1,8 +1,8 @@
-// EF.ai provider adapters.
-;(function (EF) {
+// aeditor.ai provider adapters.
+;(function (aeditor) {
   'use strict'
 
-  const ai = EF.ai = EF.ai || {}
+  const ai = aeditor.ai = aeditor.ai || {}
 
   function messageText(content) {
     if (content && typeof content === 'object' && content.type === 'rich-prompt') {
@@ -302,23 +302,23 @@
       }
     })
     return [
-      'SYSTEM: You are running inside EditorFrame. Some user requests require changing editor state.',
-      'If a user asks you to create, delete, rename, move, reparent, send to, or inspect an EditorFrame agent/group/resource, you MUST request the matching EditorFrame tool.',
-      'Do not merely say you will do it. The host cannot act unless you emit an ef_tool_calls JSON block.',
+      'SYSTEM: You are running inside AEditor. Some user requests require changing editor state.',
+      'If a user asks you to create, delete, rename, move, reparent, send to, or inspect an AEditor agent/group/resource, you MUST request the matching AEditor tool.',
+      'Do not merely say you will do it. The host cannot act unless you emit an aeditor_tool_calls JSON block.',
       'Complete the user request end-to-end. For delegated work, prefer toolId "agent.delegate" because it creates/reuses an agent and sends the task in one workflow.',
       'If you use agent.create separately for a delegated task, do not stop after agent.create; continue with agent.send, then quest.read/message.read when the quest completes.',
       'If a tool result gives you a questId, do not poll quest.result immediately. Child completion is delivered later as an inbox notification; then use quest.result for completed events in that batch.',
       'A reply that emits agent.delegate or agent.send is an action turn. Do not include final user-visible answer content in the same reply as those tool calls.',
       'If you need a tool, end your reply with exactly one JSON code block using this shape:',
       '```json',
-      '{"ef_tool_calls":[{"toolId":"agent.create","args":{"name":"poet","parentAgentId":"' + ((request.agent && request.agent.id) || '') + '","systemPrompt":"Write concise poems."}}]}',
+      '{"aeditor_tool_calls":[{"toolId":"agent.create","args":{"name":"poet","parentAgentId":"' + ((request.agent && request.agent.id) || '') + '","systemPrompt":"Write concise poems."}}]}',
       '```',
       'For "create an agent" or "create a child agent" with no work, use toolId "agent.create".',
       'For "create an agent and have it do work", use toolId "agent.delegate".',
       'For "message another agent", use toolId "agent.send".',
       'For "get delegated agent result", prefer toolId "quest.result".',
-      'For normal conversation that does not change editor state, answer normally and do not emit ef_tool_calls.',
-      'Do not claim that a tool was executed unless you emit an ef_tool_calls block. The host UI will preview/apply tools after your reply.',
+      'For normal conversation that does not change editor state, answer normally and do not emit aeditor_tool_calls.',
+      'Do not claim that a tool was executed unless you emit an aeditor_tool_calls block. The host UI will preview/apply tools after your reply.',
       'CURRENT_AGENT_ID: ' + ((request.agent && request.agent.id) || ''),
       'CURRENT_AGENT_NAME: ' + ((request.agent && request.agent.name) || ''),
       'CURRENT_PARENT_AGENT_ID: ' + ((request.agent && request.agent.parentAgentId) || ''),
@@ -375,7 +375,7 @@
       const raw = match[1].trim()
       let data = null
       try { data = JSON.parse(raw) } catch (_) { continue }
-      const list = data && (data.ef_tool_calls || data.toolCalls || data.tool_calls)
+      const list = data && (data.aeditor_tool_calls || data.toolCalls || data.tool_calls)
       if (!Array.isArray(list)) continue
       for (let i = 0; i < list.length; i++) {
         const item = list[i] || {}
@@ -387,12 +387,12 @@
       }
       cleaned = cleaned.replace(match[0], '').trim()
     }
-    const rawRe = /(^|\n)\s*(\{[^\n]*"ef_tool_calls"[^\n]*\})\s*(?=\n|$)/g
+    const rawRe = /(^|\n)\s*(\{[^\n]*"aeditor_tool_calls"[^\n]*\})\s*(?=\n|$)/g
     while ((match = rawRe.exec(cleaned))) {
       const raw = match[2].trim()
       let data = null
       try { data = JSON.parse(raw) } catch (_) { continue }
-      const list = data && (data.ef_tool_calls || data.toolCalls || data.tool_calls)
+      const list = data && (data.aeditor_tool_calls || data.toolCalls || data.tool_calls)
       if (!Array.isArray(list)) continue
       for (let i = 0; i < list.length; i++) {
         const item = list[i] || {}
@@ -431,4 +431,4 @@
   ai.anthropicSystem = anthropicSystem
   ai.encodeTextToolRequest = encodeTextToolRequest
   ai.decodeTextToolResponse = decodeTextToolResponse
-})(window.EF = window.EF || {})
+})(window.aeditor = window.aeditor || {})

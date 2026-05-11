@@ -1,11 +1,11 @@
-// EF.ai target protocol - stable editor object references for AI context.
-;(function (EF) {
+// aeditor.ai target protocol - stable editor object references for AI context.
+;(function (aeditor) {
   'use strict'
 
-  const ai = EF.ai = EF.ai || {}
+  const ai = aeditor.ai = aeditor.ai || {}
   const providers = {}
-  const TARGET_MIME = 'application/x-ef-ai-target'
-  const TARGET_LIST_MIME = 'application/x-ef-ai-target-list'
+  const TARGET_MIME = 'application/x-aeditor-ai-target'
+  const TARGET_LIST_MIME = 'application/x-aeditor-ai-target-list'
 
   function clone(v) {
     return v == null ? v : JSON.parse(JSON.stringify(v))
@@ -117,7 +117,7 @@
     const list = normalizeTargets(targets)
     if (!list.length) return []
     if (typeof window !== 'undefined' && typeof CustomEvent !== 'undefined') {
-      window.dispatchEvent(new CustomEvent('ef-ai-add-to-chat', { detail: { targets: list } }))
+      window.dispatchEvent(new CustomEvent('aeditor-ai-add-to-chat', { detail: { targets: list } }))
     }
     return list
   }
@@ -307,8 +307,8 @@
   }
 
   function addCleanup(el, fn) {
-    el.__efCleanups = el.__efCleanups || []
-    el.__efCleanups.push(fn)
+    el.__aeditorCleanups = el.__aeditorCleanups || []
+    el.__aeditorCleanups.push(fn)
   }
 
   function attach(el, targetOrFn, opts) {
@@ -325,9 +325,9 @@
     if (opts.contextMenu) {
       const onContext = function (ev) {
         const targets = resolveTarget(targetOrFn, ev)
-        if (!targets.length || !EF.ui || !EF.ui.contextMenu) return
+        if (!targets.length || !aeditor.ui || !aeditor.ui.contextMenu) return
         ev.preventDefault()
-        EF.ui.contextMenu({ x: ev.clientX, y: ev.clientY }, [
+        aeditor.ui.contextMenu({ x: ev.clientX, y: ev.clientY }, [
           {
             label: 'Add to Chat',
             icon: 'plus',
@@ -348,17 +348,17 @@
       if (!hasTargetDrag(ev) && !hasFileDrag(ev)) return
       ev.preventDefault()
       if (ev.dataTransfer) ev.dataTransfer.dropEffect = 'copy'
-      el.classList.add('ef-ai-target-drop-active')
+      el.classList.add('aeditor-ai-target-drop-active')
     }
     const onDragLeave = function (ev) {
-      if (ev.currentTarget === el) el.classList.remove('ef-ai-target-drop-active')
+      if (ev.currentTarget === el) el.classList.remove('aeditor-ai-target-drop-active')
     }
     const onDrop = function (ev) {
       const targets = readTargetFromDragEvent(ev)
       const files = filesFromDragEvent(ev)
       if (!targets.length && !files.length) return
       ev.preventDefault()
-      el.classList.remove('ef-ai-target-drop-active')
+      el.classList.remove('aeditor-ai-target-drop-active')
       if (files.length) {
         Promise.all(files.map(fileToTarget)).then(function (fileTargets) {
           const all = targets.concat(fileTargets.filter(Boolean))
@@ -396,4 +396,4 @@
   ai.readTargetFromDragEvent = readTargetFromDragEvent
   ai.writeTargetDragData = writeDragData
   ai.fileToTarget = fileToTarget
-})(window.EF = window.EF || {})
+})(window.aeditor = window.aeditor || {})

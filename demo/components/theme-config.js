@@ -1,80 +1,80 @@
 // demo component: theme-config
 //
-// A panel that lets the user live-edit the editorframe theme tokens. Writes
+// A panel that lets the user live-edit the aeditor theme tokens. Writes
 // to documentElement.style.setProperty so the change reflects everywhere
 // instantly. State persists to localStorage under a versioned override key.
 //
 // Tabs: Palette / Spacing / Sizing / Radius / Typography / Motion. Each row
 // is built from the actual UI library, so this panel doubles as a real-world
 // usage sample.
-;(function (EF) {
+;(function (aeditor) {
   'use strict'
-  const ui = EF.ui
+  const ui = aeditor.ui
 
-  const STORAGE_KEY = 'ef-theme-overrides-v2'
-  const THEME_KEY   = 'ef-theme-mode'
+  const STORAGE_KEY = 'aeditor-theme-overrides-v2'
+  const THEME_KEY   = 'aeditor-theme-mode'
 
   // ── token catalog ─────────────────────────────────────────────────
   // [name, label, type, opts?]   type: color | px | num | text
   const PALETTE = [
-    ['--ef-surface-canvas', 'Surface / Canvas'],
-    ['--ef-surface-lower',  'Surface / Lower'],
-    ['--ef-surface-frame',  'Surface / Frame'],
-    ['--ef-surface-panel',  'Surface / Panel'],
-    ['--ef-surface-field',  'Surface / Field'],
-    ['--ef-surface-hover',  'Surface / Hover'],
-    ['--ef-surface-active', 'Surface / Active'],
-    ['--ef-surface-raised', 'Surface / Raised'],
-    ['--ef-text-primary',   'Text / Primary'],
-    ['--ef-text-body',      'Text / Body'],
-    ['--ef-text-label',     'Text / Label'],
-    ['--ef-text-muted',     'Text / Muted'],
-    ['--ef-text-disabled',  'Text / Disabled'],
-    ['--ef-stroke-subtle',  'Stroke / Subtle'],
-    ['--ef-stroke-strong',  'Stroke / Strong'],
-    ['--ef-stroke-field',   'Stroke / Field'],
-    ['--ef-stroke-hover',   'Stroke / Hover'],
-    ['--ef-brand',          'Brand / Accent'],
-    ['--ef-brand-hover',    'Brand / Hover'],
-    ['--ef-brand-contrast', 'Brand / Contrast'],
-    ['--ef-state-success',  'State / Success'],
-    ['--ef-state-warning',  'State / Warning'],
-    ['--ef-state-danger',   'State / Danger'],
-    ['--ef-state-info',     'State / Info'],
+    ['--aeditor-surface-canvas', 'Surface / Canvas'],
+    ['--aeditor-surface-lower',  'Surface / Lower'],
+    ['--aeditor-surface-frame',  'Surface / Frame'],
+    ['--aeditor-surface-panel',  'Surface / Panel'],
+    ['--aeditor-surface-field',  'Surface / Field'],
+    ['--aeditor-surface-hover',  'Surface / Hover'],
+    ['--aeditor-surface-active', 'Surface / Active'],
+    ['--aeditor-surface-raised', 'Surface / Raised'],
+    ['--aeditor-text-primary',   'Text / Primary'],
+    ['--aeditor-text-body',      'Text / Body'],
+    ['--aeditor-text-label',     'Text / Label'],
+    ['--aeditor-text-muted',     'Text / Muted'],
+    ['--aeditor-text-disabled',  'Text / Disabled'],
+    ['--aeditor-stroke-subtle',  'Stroke / Subtle'],
+    ['--aeditor-stroke-strong',  'Stroke / Strong'],
+    ['--aeditor-stroke-field',   'Stroke / Field'],
+    ['--aeditor-stroke-hover',   'Stroke / Hover'],
+    ['--aeditor-brand',          'Brand / Accent'],
+    ['--aeditor-brand-hover',    'Brand / Hover'],
+    ['--aeditor-brand-contrast', 'Brand / Contrast'],
+    ['--aeditor-state-success',  'State / Success'],
+    ['--aeditor-state-warning',  'State / Warning'],
+    ['--aeditor-state-danger',   'State / Danger'],
+    ['--aeditor-state-info',     'State / Info'],
   ]
   const SPACING = [
-    ['--ef-space-1', 'Tight gap', 0, 32],
-    ['--ef-space-2', 'Control gap', 0, 32],
-    ['--ef-space-3', 'Row gap', 0, 64],
-    ['--ef-space-4', 'Panel padding', 0, 64],
-    ['--ef-space-5', 'Section gap', 0, 96],
-    ['--ef-space-6', 'Large gap', 0, 128],
+    ['--aeditor-space-1', 'Tight gap', 0, 32],
+    ['--aeditor-space-2', 'Control gap', 0, 32],
+    ['--aeditor-space-3', 'Row gap', 0, 64],
+    ['--aeditor-space-4', 'Panel padding', 0, 64],
+    ['--aeditor-space-5', 'Section gap', 0, 96],
+    ['--aeditor-space-6', 'Large gap', 0, 128],
   ]
   const SIZING = [
-    ['--ef-size-h-xs', 'Control height xs', 12, 40],
-    ['--ef-size-h-sm', 'Control height sm', 14, 44],
-    ['--ef-size-h-md', 'Control height md', 16, 48],
-    ['--ef-size-h-lg', 'Control height lg', 18, 56],
-    ['--ef-toolbar-h', 'Toolbar height',    16, 60],
-    ['--ef-tab-h',     'Tab height',        16, 60],
+    ['--aeditor-size-h-xs', 'Control height xs', 12, 40],
+    ['--aeditor-size-h-sm', 'Control height sm', 14, 44],
+    ['--aeditor-size-h-md', 'Control height md', 16, 48],
+    ['--aeditor-size-h-lg', 'Control height lg', 18, 56],
+    ['--aeditor-toolbar-h', 'Toolbar height',    16, 60],
+    ['--aeditor-tab-h',     'Tab height',        16, 60],
   ]
   const RADIUS = [
-    ['--ef-r-1', 'Tiny radius', 0, 24],
-    ['--ef-r-2', 'Control radius', 0, 24],
-    ['--ef-r-3', 'Panel radius', 0, 24],
-    ['--ef-r-4', 'Floating radius', 0, 24],
+    ['--aeditor-r-1', 'Tiny radius', 0, 24],
+    ['--aeditor-r-2', 'Control radius', 0, 24],
+    ['--aeditor-r-3', 'Panel radius', 0, 24],
+    ['--aeditor-r-4', 'Floating radius', 0, 24],
   ]
   const TYPO_PX = [
-    ['--ef-fs-xs', 'Font size xs',  8, 24],
-    ['--ef-fs-sm', 'Font size sm',  8, 24],
-    ['--ef-fs-md', 'Font size md',  8, 28],
-    ['--ef-fs-lg', 'Font size lg',  8, 32],
-    ['--ef-fs-xl', 'Font size xl',  8, 36],
+    ['--aeditor-fs-xs', 'Font size xs',  8, 24],
+    ['--aeditor-fs-sm', 'Font size sm',  8, 24],
+    ['--aeditor-fs-md', 'Font size md',  8, 28],
+    ['--aeditor-fs-lg', 'Font size lg',  8, 32],
+    ['--aeditor-fs-xl', 'Font size xl',  8, 36],
   ]
   const MOTION_MS = [
-    ['--ef-dur-fast', 'Fast', 0, 1000],
-    ['--ef-dur-med',  'Med',  0, 1000],
-    ['--ef-dur-slow', 'Slow', 0, 1000],
+    ['--aeditor-dur-fast', 'Fast', 0, 1000],
+    ['--aeditor-dur-med',  'Med',  0, 1000],
+    ['--aeditor-dur-slow', 'Slow', 0, 1000],
   ]
 
   // ── helpers ───────────────────────────────────────────────────────
@@ -105,9 +105,9 @@
     for (const k in o) document.documentElement.style.setProperty(k, o[k])
   }
   // 'dark' is the implicit default (no attribute); any other mode sets
-  // data-ef-theme=<mode> for the theme.css rule to key off.
+  // data-aeditor-theme=<mode> for the theme.css rule to key off.
   function applyThemeMode(mode) {
-    EF.theme.set(mode)
+    aeditor.theme.set(mode)
     localStorage.setItem(THEME_KEY, mode)
   }
   function pxNum(s) {
@@ -124,7 +124,7 @@
   })()
 
   // ── component ────────────────────────────────────────────────────────
-  EF.registerComponent('theme-config', {
+  aeditor.registerComponent('theme-config', {
     category: 'panel',
     label: 'Theme',
     icon: 'palette',
@@ -137,11 +137,11 @@
       // synchronously on first call — anything it touches must already exist.
       //
       // IMPORTANT: the write-effect below is guarded by an "inline cascade
-      // match" check. Without that, every EF.effect runs synchronously on
+      // match" check. Without that, every aeditor.effect runs synchronously on
       // creation and writes the current cascade value back as an inline
       // style on :root — locking Layer 1 primitives so that switching to
       // light mode later has no visual effect (inline specificity beats
-      // [data-ef-theme="light"]). The guard means: only writeToken when
+      // [data-aeditor-theme="light"]). The guard means: only writeToken when
       // the signal's desired literal differs from what the cascade already
       // resolves to, so initial mount is a no-op and only user edits pollute
       // inline styles.
@@ -150,7 +150,7 @@
         allSigs.push({ sig: sig, name: name, parse: parse, format: format })
       }
       function bindWriter(sig, name, format) {
-        const stop = EF.effect(function () {
+        const stop = aeditor.effect(function () {
           const v = sig()
           const literal = format ? format(v) : v
           // getPropertyValue on documentElement.style returns the INLINE value
@@ -165,8 +165,8 @@
         ctx.onCleanup(stop)
       }
       function bindThemeTarget(row, name) {
-        if (EF.ai && EF.ai.attach && Demo.aiTargets) {
-          EF.ai.attach(row.querySelector('.ef-ui-prop-label'), function () { return Demo.aiTargets.themeToken(name) }, { contextMenu: true })
+        if (aeditor.ai && aeditor.ai.attach && Demo.aiTargets) {
+          aeditor.ai.attach(row.querySelector('.aeditor-ui-prop-label'), function () { return Demo.aiTargets.themeToken(name) }, { contextMenu: true })
         }
       }
       function registerThemeToken(name, label, category, sig, format, parse, extra) {
@@ -199,7 +199,7 @@
       // Header stays compact in the left dock: theme mode + reset/export only.
       // Category tabs are placed in a footer at the bottom of the panel.
       const head = ui.h('div', 'demo-theme-head')
-      const tabSig = EF.signal('palette')
+      const tabSig = aeditor.signal('palette')
       const tabBar = ui.segmented({
         value: tabSig,
         options: [
@@ -213,7 +213,7 @@
       })
       tabBar.classList.add('demo-theme-tabbar')
 
-      const modeSig = EF.signal(localStorage.getItem(THEME_KEY) || 'dark')
+      const modeSig = aeditor.signal(localStorage.getItem(THEME_KEY) || 'dark')
       if (Demo.aiTargets) Demo.aiTargets.registerThemeMode(modeSig)
       const modeSel = ui.select({
         value: modeSig,
@@ -251,7 +251,7 @@
       const exportBtn = ui.button({
         text: 'Export', kind: 'ghost', size: 'sm',
         onClick: function () {
-          const text = EF.theme.exportCss()
+          const text = aeditor.theme.exportCss()
           navigator.clipboard && navigator.clipboard.writeText(text)
           ui.toast({ kind: 'info', title: 'CSS copied', message: text })
         },
@@ -270,7 +270,7 @@
         const wrap = ui.h('div', 'demo-theme-pane')
         for (let i = 0; i < PALETTE.length; i++) {
           const name = PALETTE[i][0], label = PALETTE[i][1]
-          const sig = EF.signal(readToken(name) || '#000000')
+          const sig = aeditor.signal(readToken(name) || '#000000')
           track(sig, name, null, null)
           bindWriter(sig, name, null)
           registerThemeToken(name, label, 'palette', sig, null, null, { unit: 'color' })
@@ -285,7 +285,7 @@
         for (let i = 0; i < catalog.length; i++) {
           const row = catalog[i]
           const name = row[0], label = row[1], min = row[2], max = row[3]
-          const sig = EF.signal(pxNum(readToken(name)))
+          const sig = aeditor.signal(pxNum(readToken(name)))
           track(sig, name, pxNum, pxFormat)
           bindWriter(sig, name, pxFormat)
           registerThemeToken(name, label, 'px', sig, pxFormat, pxNum, { unit: 'px', min: min, max: max })
@@ -300,7 +300,7 @@
         for (let i = 0; i < MOTION_MS.length; i++) {
           const r = MOTION_MS[i]
           const name = r[0], label = r[1], min = r[2], max = r[3]
-          const sig = EF.signal(pxNum(readToken(name)))
+          const sig = aeditor.signal(pxNum(readToken(name)))
           track(sig, name, pxNum, msFormat)
           bindWriter(sig, name, msFormat)
           registerThemeToken(name, label, 'motion', sig, msFormat, pxNum, { unit: 'ms', min: min, max: max })
@@ -313,20 +313,20 @@
       function buildTypography() {
         const wrap = ui.h('div', 'demo-theme-pane')
         // Font stacks are free-text inputs.
-        const uiFontSig = EF.signal(readToken('--ef-font-ui'))
-        track(uiFontSig, '--ef-font-ui', null, null)
-        bindWriter(uiFontSig, '--ef-font-ui', null)
-        registerThemeToken('--ef-font-ui', 'UI font', 'typography', uiFontSig, null, null, { unit: 'font' })
+        const uiFontSig = aeditor.signal(readToken('--aeditor-font-ui'))
+        track(uiFontSig, '--aeditor-font-ui', null, null)
+        bindWriter(uiFontSig, '--aeditor-font-ui', null)
+        registerThemeToken('--aeditor-font-ui', 'UI font', 'typography', uiFontSig, null, null, { unit: 'font' })
         const uiFontRow = ui.propRow({ label: 'UI font', control: ui.input({ value: uiFontSig }) })
-        bindThemeTarget(uiFontRow, '--ef-font-ui')
+        bindThemeTarget(uiFontRow, '--aeditor-font-ui')
         wrap.appendChild(uiFontRow)
 
-        const monoFontSig = EF.signal(readToken('--ef-font-mono'))
-        track(monoFontSig, '--ef-font-mono', null, null)
-        bindWriter(monoFontSig, '--ef-font-mono', null)
-        registerThemeToken('--ef-font-mono', 'Mono font', 'typography', monoFontSig, null, null, { unit: 'font' })
+        const monoFontSig = aeditor.signal(readToken('--aeditor-font-mono'))
+        track(monoFontSig, '--aeditor-font-mono', null, null)
+        bindWriter(monoFontSig, '--aeditor-font-mono', null)
+        registerThemeToken('--aeditor-font-mono', 'Mono font', 'typography', monoFontSig, null, null, { unit: 'font' })
         const monoFontRow = ui.propRow({ label: 'Mono font', control: ui.input({ value: monoFontSig }) })
-        bindThemeTarget(monoFontRow, '--ef-font-mono')
+        bindThemeTarget(monoFontRow, '--aeditor-font-mono')
         wrap.appendChild(monoFontRow)
 
         // Then the size scale
@@ -378,4 +378,4 @@
       return root
     },
   })
-})(window.EF = window.EF || {})
+})(window.aeditor = window.aeditor || {})

@@ -9,14 +9,14 @@
 //
 // Panel drag (tab tear-out, cross-dock move, pop-out) lives in its own file
 // dock/panel-drag.js — that's an independent subsystem, no shared state.
-// Both read the drag threshold from --ef-drag-threshold via ui.readNum().
-;(function (EF) {
+// Both read the drag threshold from --aeditor-drag-threshold via ui.readNum().
+;(function (aeditor) {
   'use strict'
 
-  const findDock = EF.findDock
-  const resizeAt = EF.resizeAt
+  const findDock = aeditor.findDock
+  const resizeAt = aeditor.resizeAt
 
-  // Drag threshold comes from --ef-drag-threshold (theme.css). Read per drag
+  // Drag threshold comes from --aeditor-drag-threshold (theme.css). Read per drag
   // session so live theme edits take effect on the next drag.
 
   // attachSplitterDrag / attachCornerDrag both receive the layout runtime
@@ -30,15 +30,15 @@
       if (e.button !== 0) return
       e.preventDefault()
       splitter.setPointerCapture(e.pointerId)
-      splitter.classList.add('ef-splitter-active')
-      document.body.classList.add('ef-dragging', 'ef-dragging-' + splitNode.direction)
+      splitter.classList.add('aeditor-splitter-active')
+      document.body.classList.add('aeditor-dragging', 'aeditor-dragging-' + splitNode.direction)
 
       const isH = splitNode.direction === 'horizontal'
       const rect = splitEl.getBoundingClientRect()
       const total = isH ? rect.width : rect.height
       const start = isH ? e.clientX : e.clientY
 
-      const wraps = splitEl.querySelectorAll(':scope > .ef-split-child')
+      const wraps = splitEl.querySelectorAll(':scope > .aeditor-split-child')
       const a = wraps[idx], b = wraps[idx + 1]
       const sizes = splitNode.sizes.slice()
       const origA = sizes[idx], origB = sizes[idx + 1]
@@ -70,8 +70,8 @@
         window.removeEventListener('pointercancel', onCancel)
         window.removeEventListener('blur', onCancel)
         splitter.removeEventListener('lostpointercapture', onCancel)
-        splitter.classList.remove('ef-splitter-active')
-        document.body.classList.remove('ef-dragging', 'ef-dragging-horizontal', 'ef-dragging-vertical')
+        splitter.classList.remove('aeditor-splitter-active')
+        document.body.classList.remove('aeditor-dragging', 'aeditor-dragging-horizontal', 'aeditor-dragging-vertical')
         return true
       }
 
@@ -94,7 +94,7 @@
     handle.addEventListener('contextmenu', function (e) {
       e.preventDefault()
       e.stopPropagation()
-      EF._dock.openDockMenu({ x: e.clientX, y: e.clientY }, dockId, layout)
+      aeditor._dock.openDockMenu({ x: e.clientX, y: e.clientY }, dockId, layout)
     })
 
     handle.addEventListener('pointerdown', function (e) {
@@ -103,19 +103,19 @@
       e.stopPropagation()
       handle.setPointerCapture(e.pointerId)
 
-      const rootEl = handle.closest('.ef-root')
-      const dockEl = handle.closest('.ef-dock')
+      const rootEl = handle.closest('.aeditor-root')
+      const dockEl = handle.closest('.aeditor-dock')
       const dockRect = dockEl.getBoundingClientRect()
 
       const overlay = document.createElement('div')
-      overlay.className = 'ef-overlay'
+      overlay.className = 'aeditor-overlay'
       rootEl.appendChild(overlay)
 
-      document.body.classList.add('ef-dragging')
-      dockEl.classList.add('ef-dock-dragging')
+      document.body.classList.add('aeditor-dragging')
+      dockEl.classList.add('aeditor-dock-dragging')
 
       const startX = e.clientX, startY = e.clientY
-      const threshold = EF.ui.readNum('--ef-drag-threshold', 6)
+      const threshold = aeditor.ui.readNum('--aeditor-drag-threshold', 6)
       let mode = null
       let mergeTargetId = null
       let ratio = 0.5
@@ -136,7 +136,7 @@
         if (inside) {
           const horizDominant = Math.abs(dx) > Math.abs(dy)
           overlay.style.display = 'block'
-          overlay.className = 'ef-overlay ef-overlay-split'
+          overlay.className = 'aeditor-overlay aeditor-overlay-split'
           overlay.style.left   = dockRect.left   + 'px'
           overlay.style.top    = dockRect.top    + 'px'
           overlay.style.width  = dockRect.width  + 'px'
@@ -150,7 +150,7 @@
               ? x / dockRect.width
               : (dockRect.width - x) / dockRect.width
             const line = document.createElement('div')
-            line.className = 'ef-preview-line-v'
+            line.className = 'aeditor-preview-line-v'
             line.style.left = x + 'px'
             overlay.appendChild(line)
           } else {
@@ -160,20 +160,20 @@
               ? y / dockRect.height
               : (dockRect.height - y) / dockRect.height
             const line = document.createElement('div')
-            line.className = 'ef-preview-line-h'
+            line.className = 'aeditor-preview-line-h'
             line.style.top = y + 'px'
             overlay.appendChild(line)
           }
         } else {
           const el = document.elementFromPoint(ev.clientX, ev.clientY)
-          const targetDock = el && el.closest && el.closest('.ef-dock')
+          const targetDock = el && el.closest && el.closest('.aeditor-dock')
           if (targetDock && targetDock.dataset.dockId !== dockId &&
               canMergeInto(treeSig.peek(), dockId, targetDock.dataset.dockId)) {
             mode = 'merge'
             mergeTargetId = targetDock.dataset.dockId
             const r = targetDock.getBoundingClientRect()
             overlay.style.display = 'block'
-            overlay.className = 'ef-overlay ef-overlay-merge'
+            overlay.className = 'aeditor-overlay aeditor-overlay-merge'
             overlay.style.left   = r.left   + 'px'
             overlay.style.top    = r.top    + 'px'
             overlay.style.width  = r.width  + 'px'
@@ -195,8 +195,8 @@
         window.removeEventListener('keydown', onKey)
         window.removeEventListener('blur', onCancel)
         handle.removeEventListener('lostpointercapture', onCancel)
-        document.body.classList.remove('ef-dragging')
-        dockEl.classList.remove('ef-dock-dragging')
+        document.body.classList.remove('aeditor-dragging')
+        dockEl.classList.remove('aeditor-dock-dragging')
         overlay.remove()
         return true
       }
@@ -207,15 +207,15 @@
         const t = treeSig.peek()
         if (mode === 'split-h') {
           const side = corner.charAt(1) === 'l' ? 'before' : 'after'
-          const seed = EF._dock.computeSplitSeed(t, dockId)
-          treeSig.set(EF.splitDock(t, dockId, 'horizontal', side, ratio, { seedPanels: seed }).tree)
+          const seed = aeditor._dock.computeSplitSeed(t, dockId)
+          treeSig.set(aeditor.splitDock(t, dockId, 'horizontal', side, ratio, { seedPanels: seed }).tree)
         } else if (mode === 'split-v') {
           const side = corner.charAt(0) === 't' ? 'before' : 'after'
-          const seed = EF._dock.computeSplitSeed(t, dockId)
-          treeSig.set(EF.splitDock(t, dockId, 'vertical', side, ratio, { seedPanels: seed }).tree)
+          const seed = aeditor._dock.computeSplitSeed(t, dockId)
+          treeSig.set(aeditor.splitDock(t, dockId, 'vertical', side, ratio, { seedPanels: seed }).tree)
         } else if (mode === 'merge') {
           // § 4.2 dirty check via layout hook
-          const r = EF.mergeDocks(t, dockId, mergeTargetId)
+          const r = aeditor.mergeDocks(t, dockId, mergeTargetId)
           let proceed = true
           if (r.discardedPanels.some(function (p) { return p.dirty })) {
             const hook = layout.hooks && layout.hooks.onDirtyDiscard
@@ -254,14 +254,14 @@
 
   function makeMergeLabel() {
     const el = document.createElement('div')
-    el.className = 'ef-merge-label'
+    el.className = 'aeditor-merge-label'
     el.textContent = 'Merge →'
     return el
   }
 
   function clamp(v, lo, hi) { return v < lo ? lo : v > hi ? hi : v }
 
-  EF._dock = EF._dock || {}
-  EF._dock.attachSplitterDrag = attachSplitterDrag
-  EF._dock.attachCornerDrag   = attachCornerDrag
-})(window.EF = window.EF || {})
+  aeditor._dock = aeditor._dock || {}
+  aeditor._dock.attachSplitterDrag = attachSplitterDrag
+  aeditor._dock.attachCornerDrag   = attachCornerDrag
+})(window.aeditor = window.aeditor || {})

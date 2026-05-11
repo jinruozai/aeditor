@@ -1,11 +1,11 @@
-// EF.extensions — owner-aware extension runtime.
-;(function (EF) {
+// aeditor.extensions — owner-aware extension runtime.
+;(function (aeditor) {
   'use strict'
 
   const extensions = {}
   const layouts = {}
   const adapters = {}
-  const DEFAULT_STORAGE_KEY = 'editorframe.extensions.v1'
+  const DEFAULT_STORAGE_KEY = 'aeditor.extensions.v1'
   let storageKey = DEFAULT_STORAGE_KEY
   let storage = null
   let safeModeEnabled = false
@@ -62,7 +62,7 @@
       h ^= source.charCodeAt(i)
       h = Math.imul(h, 16777619) >>> 0
     }
-    return 'ef-fnv1a-' + h.toString(16)
+    return 'aeditor-fnv1a-' + h.toString(16)
   }
 
   function normalizeManifest(input) {
@@ -209,8 +209,8 @@
     }
     if (permissionPolicy && permissionPolicy[action]) return permissionPolicy[action](details) === true
     if (permissionPolicy && permissionPolicy.can) return permissionPolicy.can(details) === true
-    if (EF.ai && EF.ai.canUseOperation && opts.agentId) {
-      return EF.ai.canUseOperation(details.actor, details.agentId, 'editor.' + action + 'Extension', action === 'preview' ? 'preview' : 'apply', details)
+    if (aeditor.ai && aeditor.ai.canUseOperation && opts.agentId) {
+      return aeditor.ai.canUseOperation(details.actor, details.agentId, 'editor.' + action + 'Extension', action === 'preview' ? 'preview' : 'apply', details)
     }
     return true
   }
@@ -233,7 +233,7 @@
     if (!source.trim()) return { ok: false, error: 'Panel source is required' }
     if (!/^\s*function\b/.test(source)) return { ok: false, error: 'Panel source must be a function expression: function (propsSig, ctx) { return HTMLElement }' }
     try {
-      Function('EF', '"use strict"; return (' + source + ')')
+      Function('aeditor', '"use strict"; return (' + source + ')')
     } catch (err) {
       return { ok: false, error: String(err && err.message || err) }
     }
@@ -252,7 +252,7 @@
       if ((list[i].kind === 'factory' || list[i].kind === 'iframe') && list[i].hash && list[i].hash !== sourceHash(list[i].source || list[i].srcdoc || '')) {
         errors.push({ path: 'contributes.components[' + i + '].hash', message: 'Code panel hash mismatch: ' + list[i].publicId })
       }
-      const existing = EF.componentRegistration && EF.componentRegistration(list[i].publicId)
+      const existing = aeditor.componentRegistration && aeditor.componentRegistration(list[i].publicId)
       if (existing && existing.owner !== owner) {
         errors.push({ path: 'contributes.components[' + i + '].id', message: 'Component already registered: ' + list[i].publicId })
       }
@@ -279,7 +279,7 @@
       return
     }
     const component = resolveComponentRef(map, node.component)
-    if (!map[node.component] && !(EF.componentRegistration && EF.componentRegistration(component))) {
+    if (!map[node.component] && !(aeditor.componentRegistration && aeditor.componentRegistration(component))) {
       errors.push({ path: path + '.component', message: 'UI component not registered: ' + component })
     }
     for (let i = 0; node.children && i < node.children.length; i++) {
@@ -324,7 +324,7 @@
         errors.push({ path: 'contributes.dockPanels[' + i + '].dock', message: 'Dock not found: ' + dockName })
       }
       const component = resolveComponentRef(map, docks[i].component)
-      if (!map[docks[i].component] && !(EF.componentRegistration && EF.componentRegistration(component))) {
+      if (!map[docks[i].component] && !(aeditor.componentRegistration && aeditor.componentRegistration(component))) {
         errors.push({ path: 'contributes.dockPanels[' + i + '].component', message: 'Component not registered: ' + component })
       }
     }
@@ -362,7 +362,7 @@
       factory: function (propsSig, ctx) {
         if (contribution.kind === 'iframe') {
           const frame = document.createElement('iframe')
-          frame.className = 'ef-extension-iframe'
+          frame.className = 'aeditor-extension-iframe'
           frame.setAttribute('sandbox', contribution.sandbox || 'allow-scripts')
           frame.setAttribute('referrerpolicy', 'no-referrer')
           frame.srcdoc = contribution.srcdoc || contribution.source || ''
@@ -370,12 +370,12 @@
         }
         if (contribution.kind === 'factory') {
           if (contribution.isolation !== 'same-page') throw new Error('Unsupported factory isolation: ' + contribution.isolation)
-          const maker = Function('EF', '"use strict"; return (' + contribution.source + ')')(EF)
+          const maker = Function('aeditor', '"use strict"; return (' + contribution.source + ')')(aeditor)
           return maker(propsSig, ctx || {})
         }
         if (!uiTree) {
           const el = document.createElement('div')
-          el.className = 'ef-extension-empty'
+          el.className = 'aeditor-extension-empty'
           el.textContent = contribution.title
           return el
         }
@@ -388,10 +388,10 @@
           },
           data: propsSig,
         })
-        return EF.ui.renderUITree(uiTree, extCtx)
+        return aeditor.ui.renderUITree(uiTree, extCtx)
       },
       dispose: function (el) {
-        if (EF.ui && EF.ui.dispose) EF.ui.dispose(el)
+        if (aeditor.ui && aeditor.ui.dispose) aeditor.ui.dispose(el)
       },
     }
   }
@@ -401,9 +401,9 @@
     const list = manifest.contributes.components
     for (let i = 0; i < list.length; i++) {
       const c = list[i]
-      EF.registerComponent(c.publicId, makeComponentSpec(manifest, c), { owner: owner, layer: manifest.layer })
+      aeditor.registerComponent(c.publicId, makeComponentSpec(manifest, c), { owner: owner, layer: manifest.layer })
       rollback.push(function (name) {
-        return function () { EF.unregisterComponent(name, { owner: owner }) }
+        return function () { aeditor.unregisterComponent(name, { owner: owner }) }
       }(c.publicId))
     }
   }
@@ -417,7 +417,7 @@
   }
 
   function registerReferences(manifest, rollback) {
-    const ai = EF.ai
+    const ai = aeditor.ai
     if (!ai || !ai.references) return
     const owner = ownerFor(manifest.id)
     const list = manifest.contributes.references
@@ -441,7 +441,7 @@
   }
 
   function registerOperations(manifest, rollback) {
-    const ai = EF.ai
+    const ai = aeditor.ai
     if (!ai || !ai.operations) return
     const owner = ownerFor(manifest.id)
     const list = manifest.contributes.operations
@@ -462,7 +462,7 @@
   }
 
   function registerCommands(manifest, rollback) {
-    if (!EF.commands) return
+    if (!aeditor.commands) return
     const owner = ownerFor(manifest.id)
     const list = manifest.contributes.commands
     for (let i = 0; i < list.length; i++) {
@@ -478,28 +478,28 @@
           ? c.run
           : (adapterId ? makeAdapterCall(adapterId, 'run') : null),
       }
-      EF.commands.register(c.publicId, spec, { owner: owner, layer: manifest.layer })
+      aeditor.commands.register(c.publicId, spec, { owner: owner, layer: manifest.layer })
       rollback.push(function (name) {
-        return function () { EF.commands.unregister(name, { owner: owner }) }
+        return function () { aeditor.commands.unregister(name, { owner: owner }) }
       }(c.publicId))
     }
   }
 
   function registerMenus(manifest, rollback) {
-    if (!EF.commands) return
+    if (!aeditor.commands) return
     const owner = ownerFor(manifest.id)
     const list = manifest.contributes.menus
     for (let i = 0; i < list.length; i++) {
       const m = list[i]
-      EF.commands.registerMenu(m.publicId, m, { owner: owner, layer: manifest.layer })
+      aeditor.commands.registerMenu(m.publicId, m, { owner: owner, layer: manifest.layer })
       rollback.push(function (name) {
-        return function () { EF.commands.unregisterMenu(name, { owner: owner }) }
+        return function () { aeditor.commands.unregisterMenu(name, { owner: owner }) }
       }(m.publicId))
     }
   }
 
   function registerSettings(manifest, rollback) {
-    if (!EF.settings) return
+    if (!aeditor.settings) return
     const owner = ownerFor(manifest.id)
     const list = manifest.contributes.settings
     const meta = { owner: owner, layer: manifest.layer }
@@ -507,17 +507,17 @@
       const s = list[i]
       if (s.section) {
         const id = s.section.id || s.id || manifest.id
-        EF.settings.registerSection(id, s.section, meta)
+        aeditor.settings.registerSection(id, s.section, meta)
       }
-      if (s.schemas) EF.settings.registerSchema(s.section && s.section.id || s.sectionId || s.id || manifest.id, s.schemas, meta)
-      if (s.schema) EF.settings.registerSchema(s.section && s.section.id || s.sectionId || s.id || manifest.id, s.schema, meta)
+      if (s.schemas) aeditor.settings.registerSchema(s.section && s.section.id || s.sectionId || s.id || manifest.id, s.schemas, meta)
+      if (s.schema) aeditor.settings.registerSchema(s.section && s.section.id || s.sectionId || s.id || manifest.id, s.schema, meta)
       if (s.pages) {
         const pages = Array.isArray(s.pages) ? s.pages : [s.pages]
-        for (let j = 0; j < pages.length; j++) EF.settings.registerPage(pages[j].id, pages[j], meta)
+        for (let j = 0; j < pages.length; j++) aeditor.settings.registerPage(pages[j].id, pages[j], meta)
       }
-      if (s.page) EF.settings.registerPage(s.page.id, s.page, meta)
+      if (s.page) aeditor.settings.registerPage(s.page.id, s.page, meta)
     }
-    rollback.push(function () { EF.settings.unregisterOwner(owner) })
+    rollback.push(function () { aeditor.settings.unregisterOwner(owner) })
   }
 
   function registerLayout(name, handle) {
@@ -790,14 +790,14 @@
     const review = reviewInstall(input, opts)
     if (!review.canInstall) return Promise.resolve(Object.assign({}, review, { installed: false, error: 'Permission denied' }))
     if (review.canApply && !opts.confirm) return Promise.resolve(installExtension(review.manifest, opts))
-    if (!EF.ui || !EF.ui.confirm) return Promise.resolve(review)
+    if (!aeditor.ui || !aeditor.ui.confirm) return Promise.resolve(review)
     const lines = [
       review.title,
       review.summary,
       review.permissions.length ? 'Permissions: ' + review.permissions.join(', ') : '',
       review.requiredConsent ? 'Requires explicit consent: ' + review.requiredConsent : '',
     ].filter(Boolean)
-    return EF.ui.confirm(lines.join('\n')).then(function (ok) {
+    return aeditor.ui.confirm(lines.join('\n')).then(function (ok) {
       if (!ok) return Object.assign({}, review, { installed: false, cancelled: true })
       return installExtension(review.manifest, Object.assign({}, opts, { allowCode: opts.allowCode || review.requiredConsent === 'allowCode' }))
     })
@@ -836,11 +836,11 @@
     const owner = entry.owner
     if (opts.replaceExternal !== false) replaceExternalPanels(entry)
     const removedPanels = removeOwnedPanels(owner)
-    if (EF.ai && EF.ai.references && EF.ai.references.unregisterOwner) EF.ai.references.unregisterOwner(owner)
-    if (EF.ai && EF.ai.operations && EF.ai.operations.unregisterOwner) EF.ai.operations.unregisterOwner(owner)
-    if (EF.commands && EF.commands.unregisterOwner) EF.commands.unregisterOwner(owner)
-    if (EF.settings && EF.settings.unregisterOwner) EF.settings.unregisterOwner(owner)
-    if (EF.unregisterComponentOwner) EF.unregisterComponentOwner(owner)
+    if (aeditor.ai && aeditor.ai.references && aeditor.ai.references.unregisterOwner) aeditor.ai.references.unregisterOwner(owner)
+    if (aeditor.ai && aeditor.ai.operations && aeditor.ai.operations.unregisterOwner) aeditor.ai.operations.unregisterOwner(owner)
+    if (aeditor.commands && aeditor.commands.unregisterOwner) aeditor.commands.unregisterOwner(owner)
+    if (aeditor.settings && aeditor.settings.unregisterOwner) aeditor.settings.unregisterOwner(owner)
+    if (aeditor.unregisterComponentOwner) aeditor.unregisterComponentOwner(owner)
     entry.active = false
     entry.panels = []
     return removedPanels
@@ -1140,8 +1140,8 @@
   }
 
   function registerRecoveryComponent() {
-    if (EF.componentRegistration && EF.componentRegistration('extension-disabled')) return
-    EF.registerComponent('extension-disabled', {
+    if (aeditor.componentRegistration && aeditor.componentRegistration('extension-disabled')) return
+    aeditor.registerComponent('extension-disabled', {
       title: 'Extension Disabled',
       icon: 'alert-triangle',
       defaults: function () {
@@ -1149,19 +1149,19 @@
       },
       factory: function (propsSig) {
         const el = document.createElement('div')
-        el.className = 'ef-extension-disabled'
+        el.className = 'aeditor-extension-disabled'
         const title = document.createElement('div')
-        title.className = 'ef-extension-disabled-title'
+        title.className = 'aeditor-extension-disabled-title'
         const body = document.createElement('div')
-        body.className = 'ef-extension-disabled-body'
+        body.className = 'aeditor-extension-disabled-body'
         el.appendChild(title)
         el.appendChild(body)
-        const stop = EF.effect(function () {
+        const stop = aeditor.effect(function () {
           const p = propsSig() || {}
           title.textContent = 'Extension disabled'
           body.textContent = (p.extensionTitle || p.extensionId || 'Extension') + ' is disabled or unavailable. Component: ' + (p.component || 'unknown')
         })
-        if (EF.ui && EF.ui.collect) EF.ui.collect(el, stop)
+        if (aeditor.ui && aeditor.ui.collect) aeditor.ui.collect(el, stop)
         return el
       },
     })
@@ -1330,20 +1330,20 @@
   }
 
   function registerAiOperations() {
-    if (!EF.ai || !EF.ai.operations) return
-    EF.ai.operations.register('editor.createPanel', {
+    if (!aeditor.ai || !aeditor.ai.operations) return
+    aeditor.ai.operations.register('aeditor.createPanel', {
       title: 'Create Code Panel',
       risk: 'code',
       preview: previewCreatePanel,
       apply: applyCreatePanel,
-    }, { owner: 'ef.extensions', layer: 'builtin' })
-    EF.ai.operations.register('editor.installExtension', {
+    }, { owner: 'aeditor.extensions', layer: 'builtin' })
+    aeditor.ai.operations.register('aeditor.installExtension', {
       title: 'Install Editor Extension',
       risk: 'edit',
       preview: function (input, ctx) { return reviewInstall(input, { actor: ctx && ctx.actor, agentId: ctx && ctx.agent && ctx.agent.id, allowCode: !!(input && input.allowCode) }) },
       apply: function (preview, ctx) { return installExtension(preview.manifest || preview.input, { allowCode: !!(preview.input && preview.input.allowCode), actor: ctx && ctx.actor, agentId: ctx && ctx.agent && ctx.agent.id }) },
-    }, { owner: 'ef.extensions', layer: 'builtin' })
-    EF.ai.operations.register('editor.removeExtension', {
+    }, { owner: 'aeditor.extensions', layer: 'builtin' })
+    aeditor.ai.operations.register('aeditor.removeExtension', {
       title: 'Remove Editor Extension',
       risk: 'edit',
       preview: function (input) {
@@ -1356,8 +1356,8 @@
         }
       },
       apply: function (preview, ctx) { return uninstallExtension(preview.input.id, { force: true, actor: ctx && ctx.actor, agentId: ctx && ctx.agent && ctx.agent.id }) },
-    }, { owner: 'ef.extensions', layer: 'builtin' })
-    EF.ai.operations.register('editor.updateExtension', {
+    }, { owner: 'aeditor.extensions', layer: 'builtin' })
+    aeditor.ai.operations.register('aeditor.updateExtension', {
       title: 'Update Editor Extension',
       risk: 'edit',
       preview: function (input, ctx) { return reviewInstall(input, { actor: ctx && ctx.actor, agentId: ctx && ctx.agent && ctx.agent.id, allowCode: !!(input && input.allowCode) }) },
@@ -1365,8 +1365,8 @@
         const manifest = preview.manifest || preview.input && preview.input.manifest
         return updateExtension(manifest.id, manifest, { allowCode: !!(preview.input && preview.input.allowCode), actor: ctx && ctx.actor, agentId: ctx && ctx.agent && ctx.agent.id })
       },
-    }, { owner: 'ef.extensions', layer: 'builtin' })
-    EF.ai.operations.register('editor.promoteExtensionLayer', {
+    }, { owner: 'aeditor.extensions', layer: 'builtin' })
+    aeditor.ai.operations.register('aeditor.promoteExtensionLayer', {
       title: 'Promote Extension Layer',
       risk: 'edit',
       preview: function (input) {
@@ -1379,8 +1379,8 @@
         }
       },
       apply: function (preview, ctx) { return setLayer(preview.input.id, preview.input.layer, { actor: ctx && ctx.actor, agentId: ctx && ctx.agent && ctx.agent.id }) },
-    }, { owner: 'ef.extensions', layer: 'builtin' })
-    EF.ai.operations.register('editor.enableExtension', {
+    }, { owner: 'aeditor.extensions', layer: 'builtin' })
+    aeditor.ai.operations.register('aeditor.enableExtension', {
       title: 'Enable Editor Extension',
       risk: 'edit',
       preview: function (input) {
@@ -1393,8 +1393,8 @@
         }
       },
       apply: function (preview, ctx) { return enableExtension(preview.input.id, { actor: ctx && ctx.actor, agentId: ctx && ctx.agent && ctx.agent.id }) },
-    }, { owner: 'ef.extensions', layer: 'builtin' })
-    EF.ai.operations.register('editor.disableExtension', {
+    }, { owner: 'aeditor.extensions', layer: 'builtin' })
+    aeditor.ai.operations.register('aeditor.disableExtension', {
       title: 'Disable Editor Extension',
       risk: 'edit',
       preview: function (input) {
@@ -1407,14 +1407,14 @@
         }
       },
       apply: function (preview, ctx) { return disableExtension(preview.input.id, { actor: ctx && ctx.actor, agentId: ctx && ctx.agent && ctx.agent.id }) },
-    }, { owner: 'ef.extensions', layer: 'builtin' })
-    EF.ai.operations.register('editor.addPanelToDock', {
+    }, { owner: 'aeditor.extensions', layer: 'builtin' })
+    aeditor.ai.operations.register('aeditor.addPanelToDock', {
       title: 'Add Panel To Dock',
       risk: 'edit',
       preview: previewAddPanelToDock,
       apply: applyAddPanelToDock,
-    }, { owner: 'ef.extensions', layer: 'builtin' })
-    EF.ai.operations.register('editor.removePanelFromDock', {
+    }, { owner: 'aeditor.extensions', layer: 'builtin' })
+    aeditor.ai.operations.register('aeditor.removePanelFromDock', {
       title: 'Remove Panel From Dock',
       risk: 'edit',
       preview: function (input) {
@@ -1427,7 +1427,7 @@
         }
       },
       apply: function (preview) { return removePanelFromDock(preview.input) },
-    }, { owner: 'ef.extensions', layer: 'builtin' })
+    }, { owner: 'aeditor.extensions', layer: 'builtin' })
   }
 
   function previewAddPanelToDock(input) {
@@ -1440,7 +1440,7 @@
     if (!layout) errors.push({ path: 'layout', message: 'Layout not registered: ' + layoutName })
     else if (!dockExists(layout.tree(), dockName)) errors.push({ path: 'dock', message: 'Dock not found: ' + dockName })
     if (!component) errors.push({ path: 'component', message: 'Component is required' })
-    else if (!(EF.componentRegistration && EF.componentRegistration(component))) {
+    else if (!(aeditor.componentRegistration && aeditor.componentRegistration(component))) {
       errors.push({ path: 'component', message: 'Component not registered: ' + component })
     }
     return {
@@ -1475,17 +1475,17 @@
   }
 
   function registerAiTools() {
-    if (!EF.ai || !EF.ai.registerTool) return
-    EF.ai.registerTool('editor.createPanel', {
+    if (!aeditor.ai || !aeditor.ai.registerTool) return
+    aeditor.ai.registerTool('aeditor.createPanel', {
       title: 'Create Code Panel',
       description: [
-        'Create or replace a same-page EditorFrame panel from JavaScript factory source.',
+        'Create or replace a same-page AEditor panel from JavaScript factory source.',
         'Use this for brand-new visible UI panels.',
         'The source must be a function expression: function (propsSig, ctx) { return HTMLElement }.',
-        'Do not call EF.registerComponent; the runtime registers and places the panel.',
+        'Do not call aeditor.registerComponent; the runtime registers and places the panel.',
         'Use normal JavaScript for loops, conditions, local state, events, canvas, and animation.',
-        'Prefer EF.ui.* components when available, especially EF.ui.scrollArea for scrollable regions.',
-        'Prefer EF.ui.tooltip/popover/menu for floating UI; scoped EF.ui overlays close automatically when the panel is no longer active. If you manually append floating DOM outside the root, register it with EF.ui.registerScopedOverlay(anchor, close).',
+        'Prefer aeditor.ui.* components when available, especially aeditor.ui.scrollArea for scrollable regions.',
+        'Prefer aeditor.ui.tooltip/popover/menu for floating UI; scoped aeditor.ui overlays close automatically when the panel is no longer active. If you manually append floating DOM outside the root, register it with aeditor.ui.registerScopedOverlay(anchor, close).',
         'Make the root responsive inside a resizable dock: height 100%, minHeight 0, boxSizing border-box, no viewport-sized or fixed-width layout.',
       ].join(' '),
       schema: {
@@ -1500,15 +1500,15 @@
           layer: { type: 'string', enum: ['session', 'user', 'project'], description: 'Storage layer. Use session for AI-generated panels.' },
           props: { type: 'object', description: 'Initial JSON-serializable props passed to propsSig.' },
           transient: { type: 'boolean' },
-          source: { type: 'string', description: 'JavaScript function expression. Return a responsive dock-filling HTMLElement. Prefer EF.ui.* and EF.ui.scrollArea for framework-styled controls/scrolling.' },
+          source: { type: 'string', description: 'JavaScript function expression. Return a responsive dock-filling HTMLElement. Prefer aeditor.ui.* and aeditor.ui.scrollArea for framework-styled controls/scrolling.' },
         },
       },
       preview: previewCreatePanel,
       apply: applyCreatePanel,
     })
-    EF.ai.registerTool('editor.installExtension', {
+    aeditor.ai.registerTool('aeditor.installExtension', {
       title: 'Install Editor Extension',
-      description: 'Install a low-level EditorFrame extension manifest. Do not use this for ordinary visible UI panels; use editor.createPanel instead. This is only for full extension manifests with commands, references, operations, settings, or advanced contributions.',
+      description: 'Install a low-level AEditor extension manifest. Do not use this for ordinary visible UI panels; use aeditor.createPanel instead. This is only for full extension manifests with commands, references, operations, settings, or advanced contributions.',
       schema: {
         type: 'object',
         required: ['manifest'],
@@ -1534,9 +1534,9 @@
         }))
       },
     })
-    EF.ai.registerTool('editor.addPanelToDock', {
+    aeditor.ai.registerTool('aeditor.addPanelToDock', {
       title: 'Add Panel To Dock',
-      description: 'Add an already registered component as a panel in a dock. Do not use this to create new UI; use editor.createPanel instead.',
+      description: 'Add an already registered component as a panel in a dock. Do not use this to create new UI; use aeditor.createPanel instead.',
       schema: {
         type: 'object',
         required: ['dock', 'component'],
@@ -1555,7 +1555,7 @@
     })
   }
 
-  EF.extensions = {
+  aeditor.extensions = {
     preview: previewExtension,
     review: reviewInstall,
     installWithReview: installWithReview,
@@ -1593,4 +1593,4 @@
   registerRecoveryComponent()
   registerAiOperations()
   registerAiTools()
-})(window.EF = window.EF || {})
+})(window.aeditor = window.aeditor || {})

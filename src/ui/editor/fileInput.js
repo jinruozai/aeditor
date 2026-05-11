@@ -1,26 +1,26 @@
-// EF.ui.fileInput — drop zone + click-to-pick file input. Uses the shared
+// aeditor.ui.fileInput — drop zone + click-to-pick file input. Uses the shared
 // ui.dropzone primitive so OS file drops and the reject/accept affordance
 // stay consistent with every other asset-aware component.
 //
 // opts: { value: signal<File|null>, onChange?, accept?, multiple? }
 //   value: if multiple, signal holds File[]; otherwise File or null.
-;(function (EF) {
+;(function (aeditor) {
   'use strict'
-  const ui = EF.ui = EF.ui || {}
+  const ui = aeditor.ui = aeditor.ui || {}
 
   ui.fileInput = function (opts) {
     const o = opts || {}
     const sig = ui.asSig(o.value != null ? o.value : null)
     const doWrite = ui.writer(sig, o.onChange, 'ui.fileInput')
-    const el = ui.h('div', 'ef-ui-fileinput')
+    const el = ui.h('div', 'aeditor-ui-fileinput')
     const inp = ui.h('input', null, { type: 'file' })
     if (o.accept) inp.accept = o.accept
     if (o.multiple) inp.multiple = true
     inp.style.display = 'none'
 
-    const label = ui.h('div', 'ef-ui-fileinput-label')
-    const ic = ui.h('div', 'ef-ui-fileinput-icon', { text: '⬆' })
-    const tx = ui.h('div', 'ef-ui-fileinput-text', { text: 'Click or drop file…' })
+    const label = ui.h('div', 'aeditor-ui-fileinput-label')
+    const ic = ui.h('div', 'aeditor-ui-fileinput-icon', { text: '⬆' })
+    const tx = ui.h('div', 'aeditor-ui-fileinput-text', { text: 'Click or drop file…' })
     label.appendChild(ic); label.appendChild(tx)
     el.appendChild(inp); el.appendChild(label)
 
@@ -45,4 +45,4 @@
 
     return el
   }
-})(window.EF = window.EF || {})
+})(window.aeditor = window.aeditor || {})
