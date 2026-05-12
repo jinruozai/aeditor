@@ -162,7 +162,7 @@
 
   const themeTokens = {}
   let themeModeSig = null
-  const THEME_STORAGE_KEY = 'aeditor-theme-overrides-v2'
+  const THEME_STORAGE_KEY = 'aeditor-theme-overrides-v3'
   const THEME_MODE_KEY = 'aeditor-theme-mode'
 
   function themeMode() {
@@ -218,7 +218,7 @@
       summary: 'Current AEditor demo theme mode.',
       meta: {
         value: themeMode(),
-        options: ['dark', 'dracula', 'light'],
+        options: ['dark', 'dracula', 'harbor', 'light'],
       },
       capabilities: [{ op: 'demo.setThemeMode', risk: 'edit' }],
       tools: ['aeditor.readReference', 'aeditor.applyOperation', 'demo.setThemeMode'],
@@ -232,7 +232,7 @@
       kind: ref.kind,
       title: ref.title,
       value: themeMode(),
-      options: ['dark', 'dracula', 'light'],
+      options: ['dark', 'dracula', 'harbor', 'light'],
     }
     const spec = themeTokens[meta.token]
     if (!spec) return { uri: ref.uri, kind: ref.kind, title: ref.title, meta: meta }
@@ -282,7 +282,7 @@
 
   function previewSetThemeMode(args) {
     const mode = String(args.mode || '')
-    if (['dark', 'dracula', 'light'].indexOf(mode) < 0) throw new Error('Invalid theme mode: ' + mode)
+    if (['dark', 'dracula', 'harbor', 'light'].indexOf(mode) < 0) throw new Error('Invalid theme mode: ' + mode)
     return {
       before: themeMode(),
       after: mode,
@@ -351,41 +351,68 @@
   }
 
   function hostTarget() {
+    const project = window.Demo && Demo.project && Demo.project.current ? Demo.project.current() : null
+    const workspace = aeditor.ai && aeditor.ai.currentWorkspace && aeditor.ai.currentWorkspace()
+    const projectWorkflow = project ? [
+      'This demo has an open workspace-backed editor project.',
+      'For durable UI, inspect and edit files with workspace.* and code.* tools; demo.project.* is only for demo-specific descriptor/layout actions.',
+      'Project panel files should call Demo.project.component(componentId, spec).',
+      'After writing a panel file, prefer demo.project.mountPanel with component and entryPath. It keeps descriptor, layout, reload, and placement on one path.',
+      'Use demo.project.reload after file edits when a tool does not reload automatically.',
+    ] : workspace ? [
+      'An AI workspace is selected, but it is not opened as a demo project yet.',
+      'A valid demo workspace contains aeditor.project.json with type "aeditor-project", id, entries, layout, and project.code.load permission.',
+      'After writing a panel file, call demo.project.mountPanel with component and entryPath. It can bootstrap/open the workspace project and place the panel.',
+      'Do not guess dock/panel operation names such as dock.addPanel, panel.create, or panel.add.',
+    ] : [
+      'No workspace-backed demo project is open.',
+      'Open or select a workspace project before asking the agent to create or modify durable editor UI.',
+      'Agent-authored panels are always project files, then mounted by registered component name.',
+      'Do not fall back to low-level extension install or dock panel tools when no project workspace is open.',
+    ]
     return {
       resolver: 'editor',
       uri: 'aeditor://host',
       kind: 'aeditor.host',
       title: 'AEditor Demo Host',
-      summary: 'Current AEditor demo shell. Use aeditor.createPanel for brand-new visible UI panels. Low-level extension and dock operations are internal/advanced paths, not the normal UI creation route.',
+      summary: project
+        ? 'Current AEditor demo shell with an open workspace-backed editor project. Durable UI should be created as project files, then placed by registered component name.'
+        : (workspace
+          ? 'Current AEditor demo shell with an AI workspace selected, but no demo project opened. Open the workspace project before mounting panels.'
+          : 'Current AEditor demo shell. No workspace project is open, so the agent should inspect the shell but not generate panels.'),
       meta: {
+        project: project ? {
+          id: project.id,
+          title: project.title,
+          descriptor: project.descriptor,
+        } : null,
         docks: hostDocks(),
         panelHealth: Demo.layout && Demo.layout.inspectPanels ? Demo.layout.inspectPanels() : [],
         recentErrors: recentErrors(),
         preferredDockForNewMainPanels: 'editor',
-        generatedPanelGuidelines: [
-          'Use aeditor.createPanel for new visible UI.',
+        generatedPanelGuidelines: projectWorkflow.concat([
           'Prefer aeditor.ui.* components when they fit the requested UI.',
-          'Use aeditor.ui.scrollArea for scrollable content instead of raw overflow scrollbars.',
+          'Use aeditor.ui.view for view surfaces and scrollable panel content instead of raw overflow scrollbars; do not put raw overflowY/overflow:auto on the main panel content when aeditor.ui.view fits.',
+          'Use aeditor.ui.button/iconButton/card/list/tree/table/form controls before hand-building equivalent controls.',
           'Use aeditor.ui.tooltip/popover/menu for floating UI; scoped aeditor.ui overlays close automatically when the panel is no longer active. If you manually append floating DOM outside the root, register it with aeditor.ui.registerScopedOverlay(anchor, close).',
           'Make the panel root responsive to dock resize: height 100%, minHeight 0, boxSizing border-box, and avoid fixed viewport dimensions.',
           'Use flex/grid with minmax(), auto-fit, and container-relative sizing for card grids.',
-        ],
-        createPanelPattern: {
-          tool: 'aeditor.createPanel',
-          input: {
-            id: 'unique-panel-id',
-            title: 'Panel title',
-            icon: 'box',
-            dock: 'editor',
-            layer: 'session',
-            source: 'function (propsSig, ctx) { const root = document.createElement("div"); root.style.cssText = "height:100%;min-height:0;box-sizing:border-box;display:flex;flex-direction:column;"; const scroll = aeditor.ui.scrollArea({ children: [] }); scroll.style.flex = "1 1 auto"; scroll.style.minHeight = "0"; root.appendChild(scroll); return root }',
-          },
-        },
+        ]),
+        projectPanelPattern: project ? {
+          file: 'src/panels/main-panel.js',
+          component: project.id + '.mainPanel',
+          registration: "Demo.project.component('" + project.id + ".mainPanel', { defaults: function () { return { title: 'Main Panel', icon: 'columns', props: {} } }, factory: function (propsSig, ctx) { const root = document.createElement('div'); root.style.cssText = 'height:100%;min-height:0;box-sizing:border-box;display:flex;flex-direction:column;'; const view = aeditor.ui.view({ children: [] }); view.style.flex = '1 1 auto'; view.style.minHeight = '0'; root.appendChild(view); return root } })",
+          addPanelTool: 'demo.project.mountPanel',
+        } : null,
       },
       capabilities: [
-        { op: 'aeditor.createPanel', risk: 'code', purpose: 'Create or replace a same-page factory panel and place it into a dock.' },
-      ],
-      tools: ['aeditor.readReference', 'aeditor.getCapabilities', 'aeditor.createPanel', 'aeditor.applyOperation'],
+        project
+          ? { op: 'demo.project.mountPanel', risk: 'edit', purpose: 'Place an already registered project component into the persistent layout.' }
+          : (workspace ? { op: 'demo.project.mountPanel', risk: 'edit', purpose: 'Bootstrap/open the selected workspace and mount a registered component.' } : null)
+      ].filter(Boolean),
+      tools: project
+        ? ['aeditor.readReference', 'aeditor.getCapabilities', 'workspace.fileSummary', 'workspace.searchFiles', 'workspace.readFile', 'workspace.patchFile', 'workspace.writeFile', 'code.map', 'code.outline', 'demo.project.readDescriptor', 'demo.project.mountPanel', 'demo.project.reload']
+        : (workspace ? ['aeditor.readReference', 'aeditor.getCapabilities', 'workspace.fileSummary', 'workspace.readFile', 'workspace.writeFile', 'demo.project.mountPanel'] : ['aeditor.readReference', 'aeditor.getCapabilities']),
     }
   }
 
@@ -401,7 +428,7 @@
       recentErrors: target.meta.recentErrors,
       preferredDockForNewMainPanels: target.meta.preferredDockForNewMainPanels,
       generatedPanelGuidelines: target.meta.generatedPanelGuidelines,
-      createPanelPattern: target.meta.createPanelPattern,
+      projectPanelPattern: target.meta.projectPanelPattern,
       capabilities: target.capabilities,
       tools: target.tools,
     }
@@ -415,13 +442,6 @@
     themeToken: themeTokenTarget,
     themeMode: themeModeTarget,
   }
-
-  aeditor.ai.registerResourceResolver('demo', {
-    resolve: function (ref) {
-      if (ref.kind === 'demo.themeToken' || ref.kind === 'demo.themeMode') return resolveTheme(ref)
-      return resolveRef(ref)
-    },
-  })
 
   aeditor.ai.references.register('demo', {
     read: function (ref) {
@@ -452,7 +472,7 @@
       if (ref.kind === 'demo.themeMode') return {
         type: 'object',
         required: ['mode'],
-        properties: { mode: { type: 'string', enum: ['dark', 'dracula', 'light'] } },
+        properties: { mode: { type: 'string', enum: ['dark', 'dracula', 'harbor', 'light'] } },
       }
       return null
     },
@@ -470,9 +490,9 @@
       return {
         type: 'object',
         properties: {
-          source: { type: 'string', description: 'Panel factory source for aeditor.createPanel. Return a responsive dock-filling HTMLElement; prefer aeditor.ui.* and aeditor.ui.scrollArea.' },
+          component: { type: 'string', description: 'Registered component id to place in a dock.' },
+          entryPath: { type: 'string', description: 'Workspace file path containing Demo.project.component registration.' },
           dock: { type: 'string', enum: hostDocks().map(function (dock) { return dock.name }) },
-          component: { type: 'string' },
         },
       }
     },
@@ -481,7 +501,7 @@
     },
     search: function (query) {
       const text = String(query && (query.query || query.kind || '') || '').toLowerCase()
-      return /host|dock|panel|window|editor|main|ui|界面|面板|窗口|主视图|背包|inventory/.test(text)
+      return /host|dock|panel|window|editor|main|ui|界面|面板|窗口|主视图/.test(text)
         ? [hostTarget()]
         : []
     },
@@ -523,14 +543,14 @@
     schema: {
       type: 'object',
       required: ['mode'],
-      properties: { mode: { type: 'string', enum: ['dark', 'dracula', 'light'] } },
+      properties: { mode: { type: 'string', enum: ['dark', 'dracula', 'harbor', 'light'] } },
     },
     risk: 'edit',
     preview: previewSetThemeMode,
     apply: applySetThemeMode,
   })
 
-  aeditor.ai.registerTool('demo.setProp', {
+  aeditor.ai.tools.register('demo.setProp', {
     title: 'Set Demo Property',
     description: 'Change an editable property in the AEditor component explorer demo. Use only prop keys returned by demo.property refs or by component meta.props; never invent keys such as children if they are not listed.',
     schema: {
@@ -546,7 +566,7 @@
     apply: applySetProp,
   })
 
-  aeditor.ai.registerTool('demo.setThemeToken', {
+  aeditor.ai.tools.register('demo.setThemeToken', {
     title: 'Set Demo Theme Token',
     description: 'Change an AEditor component explorer theme token such as --aeditor-brand or --aeditor-surface-panel.',
     schema: {
@@ -561,14 +581,14 @@
     apply: applySetThemeToken,
   })
 
-  aeditor.ai.registerTool('demo.setThemeMode', {
+  aeditor.ai.tools.register('demo.setThemeMode', {
     title: 'Set Demo Theme Mode',
     description: 'Switch the AEditor component explorer theme mode.',
     schema: {
       type: 'object',
       required: ['mode'],
       properties: {
-        mode: { type: 'string', enum: ['dark', 'dracula', 'light'] },
+        mode: { type: 'string', enum: ['dark', 'dracula', 'harbor', 'light'] },
       },
     },
     preview: previewSetThemeMode,

@@ -17,6 +17,7 @@ aeditor.log
 aeditor.reportError
 aeditor.safeCall
 
+aeditor.names
 aeditor.bus
 aeditor.history
 aeditor.theme
@@ -49,6 +50,11 @@ component and plugin errors so one failing panel does not take down the shell.
 
 Design rule: only user-code boundaries need safe wrapping. Internal framework
 contracts should stay simple and fail clearly.
+
+## Names
+
+`aeditor.names.matchesPrefix(name, prefix)` is the shared dotted-prefix matcher
+used by registries for list and cleanup behavior.
 
 ## Bus
 
@@ -94,6 +100,7 @@ Implemented abilities:
 aeditor.settings.registerSection(id, spec, meta)
 aeditor.settings.registerSchema(key, schema, meta)
 aeditor.settings.registerPage(id, spec, meta)
+aeditor.settings.unregisterPrefix(prefix)
 aeditor.settings.unregisterOwner(owner)
 aeditor.settings.sectionMeta(id)
 aeditor.settings.schemaMeta(key)
@@ -113,6 +120,10 @@ aeditor.settings.resolveOptions(definition, context)
 Settings are framework-level configuration infrastructure. Domain-specific
 settings belong under domain prefixes.
 
+The settings UI is only a generic shell. Each module registers its own setting
+sections and schemas next to the module code that owns them; the settings panel
+must not import AI, theme, workspace, or domain-specific configuration logic.
+
 ## Commands And Menus
 
 `aeditor.commands` is a generic command registry and menu contribution surface.
@@ -122,6 +133,7 @@ Implemented abilities:
 ```js
 aeditor.commands.register(id, spec, meta)
 aeditor.commands.unregister(id, meta)
+aeditor.commands.unregisterPrefix(prefix)
 aeditor.commands.unregisterOwner(owner)
 aeditor.commands.get(id)
 aeditor.commands.list(filter)
@@ -160,8 +172,8 @@ infrastructure; dictionaries are provided outside Core.
 `aeditor.workspace` is documented in [workspace.md](./workspace.md). It is part
 of Core because it only defines bounded file access, not a project model.
 
-## Current Metadata Note
+## Metadata Note
 
-Some current registries still accept metadata such as `owner` and `layer`.
-The final design should prefer dotted prefixes for lifecycle and grouping. See
-[current-gaps.md](./current-gaps.md).
+Some registries accept metadata such as `owner` and `layer` for diagnostics,
+palette filtering, permission review, and extension safety policy. Prefix
+cleanup is the lifecycle path.

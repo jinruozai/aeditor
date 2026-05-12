@@ -31,7 +31,7 @@
   width: 100%;
   height: 24px;
   border-radius: var(--aeditor-r-2);
-  border: 1px solid var(--aeditor-border-strong);
+  border: 1px solid var(--aeditor-border-input);
   cursor: copy;
   box-shadow: inset 0 0 0 1px var(--aeditor-highlight-subtle);
 }
@@ -120,8 +120,12 @@
   display: flex;
   flex-direction: column;
   width: 100%;
-  height: 100%;                    /* fill parent when parent has a definite height */
-  min-width: 180px;
+  height: auto;
+  max-width: 100%;
+  max-height: 100%;
+  aspect-ratio: 1 / 1;
+  min-width: 0;
+  min-height: 0;
   background: var(--aeditor-bg-2);
   border: 1px solid var(--aeditor-border-input);
   border-radius: var(--aeditor-r-2);
@@ -129,16 +133,12 @@
   gap: var(--aeditor-space-1);
   box-sizing: border-box;
 }
-/* Canvas area grows/shrinks with the available height after the (optional)
-   presets row + padding. No aspect-ratio: that locks the intrinsic height to
-   100% of width, which overflows short parents (the demo's 220×160 cell was
-   getting a 220-tall canvas = ~60px overflow before this). min-height gives
-   a sensible floor when the parent is auto-sized. */
 .aeditor-ui-curve-canvas-wrap {
   position: relative;
-  flex: 1 1 auto;
+  flex: 1 1 0;
   width: 100%;
-  min-height: 120px;
+  aspect-ratio: 1 / 1;
+  min-height: 0;
 }
 .aeditor-ui-curve-canvas {
   position: absolute;
@@ -252,15 +252,15 @@
 .aeditor-ui-path-browse {
   width: 22px;
   height: 22px;
-  background: var(--aeditor-bg-3);
-  border: 1px solid var(--aeditor-border-strong);
+  background: var(--aeditor-button-bg);
+  border: 1px solid var(--aeditor-button-border);
   border-radius: var(--aeditor-r-1);
   color: var(--aeditor-fg-1);
   cursor: pointer;
   font: var(--aeditor-fs-md) var(--aeditor-font-ui);
   padding: 0;
 }
-.aeditor-ui-path-browse:hover { background: var(--aeditor-bg-4); color: var(--aeditor-fg-0); }
+.aeditor-ui-path-browse:hover { background: var(--aeditor-button-hover-bg); border-color: var(--aeditor-button-hover-border); color: var(--aeditor-fg-0); }
 
 /* ── fileInput ──────────────────────────────────────────────────── */
 .aeditor-ui-fileinput {
@@ -270,7 +270,7 @@
   width: 100%;
   min-height: 80px;
   background: var(--aeditor-bg-2);
-  border: 1px dashed var(--aeditor-border-strong);
+  border: 1px dashed var(--aeditor-border-input);
   border-radius: var(--aeditor-r-3);
   cursor: pointer;
   transition: background var(--aeditor-dur-fast) var(--aeditor-ease),
@@ -346,7 +346,7 @@
   gap: 2px;
   padding: 2px;
   background: var(--aeditor-bg-2);
-  border: 1px solid var(--aeditor-border);
+  border: 1px solid var(--aeditor-border-input);
   border-radius: var(--aeditor-r-2);
 }
 .aeditor-ui-anchor-cell {

@@ -4,30 +4,30 @@
  * ui-form.css (.aeditor-ui-tab*) and are visually owned by aeditor.ui.tab; the
  * dock-tabs thin shell adds the `.aeditor-dock-tabs` marker class for
  * interactions.js hit-testing. Error-log moved to ui-data.css
- * (.aeditor-ui-errlog*) and is built from ui.card + ui.scrollArea.
+ * (.aeditor-ui-errlog*) and is built from ui.card + ui.view.
  */
 
 /* ── toolbar container ─────────────────────────── */
 .aeditor-toolbar {
   display: flex;
   flex-shrink: 0;
-  background: var(--aeditor-bg-raised);
+  background: var(--aeditor-toolbar-bg);
   align-items: stretch;
   user-select: none;
   min-height: var(--aeditor-toolbar-h);
 }
 .aeditor-toolbar[hidden] { display: none; }
-.aeditor-toolbar-top    { border-bottom: 1px solid var(--aeditor-border); }
-.aeditor-toolbar-bottom { border-top:    1px solid var(--aeditor-border); }
+.aeditor-toolbar-top    { border-bottom: var(--aeditor-toolbar-border-w) solid var(--aeditor-toolbar-border); }
+.aeditor-toolbar-bottom { border-top:    var(--aeditor-toolbar-border-w) solid var(--aeditor-toolbar-border); }
 .aeditor-toolbar-left {
   flex-direction: column;
-  border-right: 1px solid var(--aeditor-border);
+  border-right: var(--aeditor-toolbar-border-w) solid var(--aeditor-toolbar-border);
   min-width: var(--aeditor-toolbar-h);
   min-height: 0;
 }
 .aeditor-toolbar-right {
   flex-direction: column;
-  border-left: 1px solid var(--aeditor-border);
+  border-left: var(--aeditor-toolbar-border-w) solid var(--aeditor-toolbar-border);
   min-width: var(--aeditor-toolbar-h);
   min-height: 0;
 }

@@ -115,18 +115,58 @@
     return Math.ceil(ascii / 4 + wide * 0.8)
   }
 
-  function contextEstimate(agent, draftValue) {
+  function messagesForEstimate(agent) {
+    if (!agent) return []
+    if (aeditor.ai.compaction && aeditor.ai.compaction.requestMessages) return aeditor.ai.compaction.requestMessages(agent, null)
+    return agent && agent.messages || []
+  }
+
+  function compactedMessageCount(agent) {
+    const seen = {}
+    const records = agent && agent.compactions || []
+    for (let i = 0; i < records.length; i++) {
+      const ids = records[i].messageIds || []
+      for (let j = 0; j < ids.length; j++) seen[ids[j]] = true
+    }
+    return Object.keys(seen).length
+  }
+
+  function latestCompaction(agent) {
+    const records = agent && agent.compactions || []
+    return records.length ? records[records.length - 1] : null
+  }
+
+  function contextMetrics(agent, draftValue) {
     const parts = []
-    const messages = agent && agent.messages || []
+    const rawParts = []
+    const messages = messagesForEstimate(agent)
     for (let i = 0; i < messages.length; i++) {
       const msg = messages[i]
       if (msg.status === 'running') continue
       parts.push((msg.role || 'message') + ': ' + textOfContent(msg.content != null ? msg.content : msg.text))
     }
-    if (draftValue && !aeditor.ai.richPrompt.isEmpty(draftValue)) {
-      parts.push('draft: ' + aeditor.ai.richPrompt.toModelText(draftValue))
+    const compacted = aeditor.ai.compaction && aeditor.ai.compaction.contextMessages ? aeditor.ai.compaction.contextMessages(agent) : []
+    for (let i = 0; i < compacted.length; i++) parts.push('system: ' + textOfContent(compacted[i].content))
+    const rawMessages = agent && agent.messages || []
+    for (let i = 0; i < rawMessages.length; i++) {
+      const msg = rawMessages[i]
+      if (msg.status === 'running') continue
+      rawParts.push((msg.role || 'message') + ': ' + textOfContent(msg.content != null ? msg.content : msg.text))
     }
-    return estimateTokens(parts.join('\n\n'))
+    if (draftValue && !aeditor.ai.richPrompt.isEmpty(draftValue)) {
+      const draftText = 'draft: ' + aeditor.ai.richPrompt.toModelText(draftValue)
+      parts.push(draftText)
+      rawParts.push(draftText)
+    }
+    const last = latestCompaction(agent)
+    return {
+      used: estimateTokens(parts.join('\n\n')),
+      rawUsed: estimateTokens(rawParts.join('\n\n')),
+      compactions: agent && agent.compactions ? agent.compactions.length : 0,
+      compactedMessages: compactedMessageCount(agent),
+      latestBefore: last && last.tokenEstimateBefore || 0,
+      latestAfter: last && last.tokenEstimateAfter || 0,
+    }
   }
 
   function configuredConnectionOptions() {
@@ -165,7 +205,14 @@
     return idx < 0 ? { connection: defaultConnection(), model: s } : { connection: s.slice(0, idx), model: s.slice(idx + 2) }
   }
 
-  function groupedModelOptions() {
+  function hasModelOption(items, value) {
+    for (let i = 0; i < items.length; i++) {
+      if (items[i].value === value) return true
+    }
+    return false
+  }
+
+  function groupedModelOptions(currentConnection, currentModel) {
     const groups = configuredConnectionOptions()
     const out = []
     for (let i = 0; i < groups.length; i++) {
@@ -181,6 +228,12 @@
         })
       }
     }
+    const currentValue = modelValue(currentConnection, currentModel)
+    if (currentConnection && currentModel && !hasModelOption(out, currentValue)) {
+      if (out.length) out.push({ type: 'divider' })
+      out.push({ type: 'header', label: 'Current agent' })
+      out.push({ value: currentValue, label: currentModel })
+    }
     return out
   }
 
@@ -188,8 +241,8 @@
     return readList(aeditor.ai.agents)
   }
 
-  function resources() {
-    return readList(aeditor.ai.resources)
+  function attachments() {
+    return readList(aeditor.ai.attachments)
   }
 
   function activeAgent() {
@@ -216,14 +269,14 @@
   }
 
   function openResourceMenu(anchor, insertResources) {
-    const all = resources()
+    const all = attachments()
     const items = all.length ? all.map(function (res) {
       return {
         label: refTitle(res),
         icon: 'plus',
         onSelect: function () { insertResources([res]) },
       }
-    }) : [{ type: 'header', label: 'No resources available' }]
+    }) : [{ type: 'header', label: 'No attachments available' }]
     ui.menu({ anchor: anchor, items: items, side: 'top', align: 'start' })
   }
 
@@ -261,7 +314,7 @@
     const sendDisabled = aeditor.derived(function () { return !hasTarget() || (aeditor.ai.richPrompt.isEmpty(draft()) && !stoppable()) })
     const sendIcon = aeditor.derived(function () { return stoppable() && aeditor.ai.richPrompt.isEmpty(draft()) ? 'square' : 'arrow-up' })
 
-    const root = ui.h('div', 'aeditor-ai-panel aeditor-ai-chat')
+    const root = ui.view({ scroll: 'hidden', className: 'aeditor-ai-panel aeditor-ai-chat' })
     ui.collect(root, hasTarget.dispose)
     ui.collect(root, busy.dispose)
     ui.collect(root, stoppable.dispose)
@@ -315,25 +368,34 @@
     })
     const modelSlot = ui.h('div', 'aeditor-ai-model-control')
     const contextMeter = ui.h('div', 'aeditor-ai-context-meter')
-    const contextInfo = aeditor.signal({ used: 0, limit: modelContextLimit(model.peek()) })
+    const contextInfo = aeditor.signal({ used: 0, rawUsed: 0, limit: modelContextLimit(model.peek()), compactions: 0, compactedMessages: 0, latestBefore: 0, latestAfter: 0 })
     let contextTimer = null
     function scheduleContextEstimate(delay) {
       if (contextTimer) clearTimeout(contextTimer)
       contextTimer = setTimeout(function () {
         contextTimer = null
         const a = activeAgent()
-        contextInfo.set({
-          used: contextEstimate(a, draft.peek()),
+        contextInfo.set(Object.assign({
           limit: modelContextLimit(model.peek()),
-        })
+        }, contextMetrics(a, draft.peek())))
       }, delay == null ? 260 : delay)
     }
     const contextTip = aeditor.derived(function () {
       const info = contextInfo()
       const used = info.used || 0
+      const rawUsed = info.rawUsed || used
       const limit = info.limit || modelContextLimit(model.peek())
       const pct = Math.min(100, Math.round(used / limit * 100))
-      return 'Context ' + pct + '%\n' + used.toLocaleString() + ' / ' + limit.toLocaleString() + ' tokens (estimated)'
+      const lines = [
+        'Context ' + pct + '%',
+        used.toLocaleString() + ' / ' + limit.toLocaleString() + ' tokens (estimated request view)',
+      ]
+      if (rawUsed > used) lines.push('Raw transcript estimate: ' + rawUsed.toLocaleString() + ' tokens')
+      if (info.compactions) {
+        lines.push('Compactions: ' + info.compactions + ' records, ' + (info.compactedMessages || 0) + ' raw messages hidden from request')
+        if (info.latestBefore || info.latestAfter) lines.push('Latest compaction: ' + (info.latestBefore || 0).toLocaleString() + ' -> ' + (info.latestAfter || 0).toLocaleString() + ' tokens')
+      }
+      return lines.join('\n')
     })
     ui.collect(root, contextTip.dispose)
     ui.tooltip(contextMeter, { text: contextTip, side: 'top', delay: 250 })
@@ -382,7 +444,7 @@
     }))
 
     ui.collect(root, aeditor.effect(function () {
-      const opts = groupedModelOptions()
+      const opts = groupedModelOptions(connection(), model())
       const selected = aeditor.signal(modelValue(connection(), model()))
       disposeTree(modelSlot.firstChild)
       modelSlot.appendChild(ui.select({
@@ -402,20 +464,6 @@
           })
         },
       }))
-      let found = false
-      const current = selected.peek()
-      for (let i = 0; i < opts.length; i++) found = found || opts[i].value === current
-      if (!found) {
-        const first = opts.find(function (it) { return it.value })
-        if (first) {
-          const parsed = parseModelValue(first.value)
-          aeditor.batch(function () {
-            connection.set(parsed.connection)
-            model.set(parsed.model)
-            updateCurrentAgent({ connection: parsed.connection, model: parsed.model, stream: !!connectionConfig(parsed.connection).stream })
-          })
-        }
-      }
     }))
 
     ui.collect(root, aeditor.effect(function () {
@@ -468,7 +516,7 @@
         connection: connection.peek(),
         model: model.peek() || defaultModel(connection.peek()),
         permissionMode: permissionMode.peek(),
-        resourceRefs: refs,
+        attachmentRefs: refs,
         renderedText: content.renderedText,
       }
       aeditor.ai.message.send(agent.id, { content: content, contextRefs: refs, meta: meta, from: 'user' })

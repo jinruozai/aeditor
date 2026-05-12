@@ -7,8 +7,14 @@
   const definitions = []
   const DEFAULT_PREVIEW_CHARS = 24000
   const DEFAULT_PREVIEW_LINES = 240
+  const DEFAULT_BRIDGE_URL = 'http://127.0.0.1:8787'
+  const PROJECT_HOST_COMPONENT = 'demo-project-root'
+  const DEFAULT_LAYOUT_PATH = 'aeditor.layout.json'
   let activeId = null
   let nextVersion = 1
+  let loadingRuntime = null
+  const checkResults = {}
+  const projectTick = aeditor.signal ? aeditor.signal(0) : null
 
   function clone(value) {
     return value == null ? value : JSON.parse(JSON.stringify(value))
@@ -28,9 +34,22 @@
     return spec
   }
 
+  function defaultLayoutRoot() {
+    return { type: 'dock', id: 'dock-main', name: 'main', panels: [], activeId: null }
+  }
+
+  function bumpProjectTick() {
+    if (projectTick && projectTick.set) projectTick.set(projectTick.peek() + 1)
+  }
+
   function normalizeEntry(entry) {
     if (typeof entry === 'string') return { type: 'script', src: entry }
     return Object.assign({ type: 'script' }, entry || {})
+  }
+
+  function normalizeEntries(entries) {
+    const list = Array.isArray(entries) ? entries : []
+    return list.map(normalizeEntry)
   }
 
   async function readJson(workspace, path) {
@@ -45,6 +64,7 @@
     d.schemaVersion = d.schemaVersion || 1
     d.kind = d.kind || 'app'
     d.entry = normalizeEntry(d.entry)
+    d.entries = normalizeEntries(d.entries)
     d.styles = d.styles || []
     d.permissions = d.permissions || {}
     return d
@@ -80,8 +100,67 @@
     }
   }
 
+  function hostWorkspaceFor(runtime) {
+    return runtime.workspace
+  }
+
+  function bindAiWorkspace(runtime) {
+    if (!runtime || !aeditor.ai || !aeditor.ai.setWorkspace) return
+    aeditor.ai.setWorkspace(runtime.workspace, {
+      id: 'demo.project:' + runtime.id,
+      label: runtime.descriptor.title || runtime.id,
+      kind: 'demo-project',
+    })
+  }
+
+  function validateScriptSyntax(path, text) {
+    try {
+      ;(new Function(String(text || '')))
+    } catch (err) {
+      throw new Error('Project script syntax error in ' + path + ': ' + (err && err.message || err))
+    }
+  }
+
+  function validateWorkspaceText(path, text, opts) {
+    if (aeditor.workspace && aeditor.workspace.validateText) aeditor.workspace.validateText(path, text, opts || {})
+  }
+
+  function omitFileText(result) {
+    if (!result || !Object.prototype.hasOwnProperty.call(result, 'text')) return result
+    const next = Object.assign({}, result)
+    delete next.text
+    next.textOmitted = true
+    return next
+  }
+
+  function writeProjectFile(runtime, path, text, opts) {
+    text = String(text == null ? '' : text)
+    validateWorkspaceText(path, text, opts || {})
+    return hostWorkspaceFor(runtime).write(path, text, opts || {}).then(omitFileText)
+  }
+
+  async function patchProjectFile(runtime, path, baseHash, patches, opts) {
+    const ws = hostWorkspaceFor(runtime)
+    const current = await ws.read(path)
+    const text = aeditor.workspace.applyLinePatches(current.text, baseHash, patches || [])
+    validateWorkspaceText(path, text, opts || {})
+    return omitFileText(await ws.write(path, text, { baseHash: baseHash }))
+  }
+
+  function clearAiWorkspace(runtime) {
+    if (
+      runtime &&
+      aeditor.ai &&
+      aeditor.ai.currentWorkspace &&
+      aeditor.ai.clearWorkspace &&
+      aeditor.ai.currentWorkspace() === runtime.workspace
+    ) {
+      aeditor.ai.clearWorkspace()
+    }
+  }
+
   function cleanupOwner(owner) {
-    if (aeditor.ai && aeditor.ai.unregisterToolOwner) aeditor.ai.unregisterToolOwner(owner)
+    if (aeditor.ai && aeditor.ai.tools && aeditor.ai.tools.unregisterOwner) aeditor.ai.tools.unregisterOwner(owner)
     if (aeditor.ai && aeditor.ai.references && aeditor.ai.references.unregisterOwner) aeditor.ai.references.unregisterOwner(owner)
     if (aeditor.ai && aeditor.ai.operations && aeditor.ai.operations.unregisterOwner) aeditor.ai.operations.unregisterOwner(owner)
     if (aeditor.commands && aeditor.commands.unregisterOwner) aeditor.commands.unregisterOwner(owner)
@@ -105,7 +184,8 @@
     const meta = { owner: runtime.owner, layer: 'project' }
     const ctx = {
       projectId: runtime.id,
-      owner: runtime.owner,
+      owner: stableOwner(runtime.id),
+      runtimeOwner: runtime.owner,
       stableOwner: stableOwner(runtime.id),
       descriptor: clone(runtime.descriptor),
       workspace: workspaceFor(runtime),
@@ -128,9 +208,9 @@
         return aeditor.commands.registerMenu(id, spec, meta)
       },
       tool: function (id, spec) {
-        if (!aeditor.ai || !aeditor.ai.registerTool) throw new Error('Project tool registry is not available')
+        if (!aeditor.ai || !aeditor.ai.tools) throw new Error('Project tool registry is not available')
         requirePermission(runtime, 'ai.tools.register')
-        return aeditor.ai.registerTool(id, spec, meta)
+        return aeditor.ai.tools.register(id, spec, meta)
       },
       reference: function (id, spec) {
         if (!aeditor.ai || !aeditor.ai.references) throw new Error('Project reference registry is not available')
@@ -163,9 +243,29 @@
     return ctx
   }
 
+  function registrationRuntime() {
+    const runtime = loadingRuntime || projects[activeId]
+    if (!runtime) throw new Error('Demo.project registration requires a loading or active project')
+    return runtime
+  }
+
+  function registerProjectComponent(id, spec) {
+    const runtime = registrationRuntime()
+    const nextSpec = Object.assign({ category: 'panel' }, spec)
+    return aeditor.registerComponent(id, nextSpec, { owner: runtime.owner, layer: 'project' })
+  }
+
+  function withLoadingRuntime(runtime, task) {
+    const prev = loadingRuntime
+    loadingRuntime = runtime
+    return Promise.resolve().then(task).finally(function () {
+      loadingRuntime = prev
+    })
+  }
+
   async function textUrl(runtime, path, mime) {
-    requirePermission(runtime, 'workspace.read')
-    const file = await runtime.workspace.read(path)
+    const file = await hostWorkspaceFor(runtime).read(path)
+    if (mime === 'text/javascript') validateScriptSyntax(path, file.text)
     if (typeof Blob === 'undefined' || !window.URL || !URL.createObjectURL) {
       throw new Error('Project loader requires object URLs for file-backed entries')
     }
@@ -176,7 +276,12 @@
 
   async function loadScript(runtime, path) {
     if (!path) return
-    if (typeof document === 'undefined' || !document.createElement) throw new Error('Project script loading requires document')
+    if (typeof document === 'undefined' || !document.createElement) {
+      const file = await hostWorkspaceFor(runtime).read(path)
+      validateScriptSyntax(path, file.text)
+      ;(new Function(file.text))()
+      return
+    }
     const src = await textUrl(runtime, path, 'text/javascript')
     await new Promise(function (resolve, reject) {
       const el = document.createElement('script')
@@ -196,8 +301,7 @@
 
   async function installStyle(runtime, path) {
     if (typeof document === 'undefined' || !document.createElement) return null
-    requirePermission(runtime, 'workspace.read')
-    const file = await runtime.workspace.read(path)
+    const file = await hostWorkspaceFor(runtime).read(path)
     const el = document.createElement('style')
     el.setAttribute('data-aeditor-project-style', runtime.id)
     el.textContent = file.text
@@ -213,18 +317,54 @@
     return null
   }
 
+  function noopProjectHandle() {
+    return {
+      destroy: function () {},
+      inspectPanel: function () { return null },
+      inspectPanels: function () { return [] },
+    }
+  }
+
+  function defaultProjectSpec(runtime) {
+    return {
+      id: runtime.id,
+      title: runtime.descriptor.title || runtime.id,
+      mount: function (container, ctx) {
+        if (!container || container.nodeType !== 1) return noopProjectHandle()
+        container.textContent = ''
+        const tree = ctx.layout || defaultLayoutRoot()
+        return ctx.createDockLayout(container, { tree: tree, lru: { max: -1 } })
+      },
+    }
+  }
+
   async function loadSpec(runtime) {
     const entry = runtime.descriptor.entry || {}
     const start = definitions.length
     requirePermission(runtime, 'project.code.load')
-    if (entry.type === 'module') {
-      return loadModule(runtime, entry.src, entry.export || 'default')
+    for (let i = 0; i < runtime.descriptor.entries.length; i++) {
+      const extra = runtime.descriptor.entries[i]
+      await withLoadingRuntime(runtime, function () {
+        return extra.type === 'module'
+          ? loadModule(runtime, extra.src, extra.export || 'default')
+          : loadScript(runtime, extra.src)
+      })
     }
-    if (entry.src) await loadScript(runtime, entry.src)
+    if (entry.type === 'module') {
+      return withLoadingRuntime(runtime, function () {
+        return loadModule(runtime, entry.src, entry.export || 'default')
+      })
+    }
+    if (entry.src) {
+      await withLoadingRuntime(runtime, function () {
+        return loadScript(runtime, entry.src)
+      })
+    }
     if (entry.symbol && window[entry.symbol]) return window[entry.symbol]
     const defined = findDefinedSpec(runtime.id, start)
     if (defined) return defined
-    throw new Error('Project entry did not provide a spec: ' + runtime.id)
+    if (runtime.layoutData) return defaultProjectSpec(runtime)
+    throw new Error('Project entry did not provide a spec or layout: ' + runtime.id)
   }
 
   async function activateRuntime(runtime, spec, mountTarget) {
@@ -258,8 +398,7 @@
       openedAt: Date.now(),
     }
     if (descriptor.layout) {
-      requirePermission(runtime, 'workspace.read')
-      const layout = await workspace.read(descriptor.layout)
+      const layout = await hostWorkspaceFor(runtime).read(descriptor.layout)
       const parsed = JSON.parse(layout.text)
       runtime.layoutData = parsed.root || parsed
     }
@@ -272,13 +411,81 @@
     return activateRuntime(runtime, runtime.spec, options && options.mount)
   }
 
+  function walkDocks(node, out) {
+    if (!node) return out
+    if (node.type === 'dock') {
+      out.push(node)
+      return out
+    }
+    const children = node.children || []
+    for (let i = 0; i < children.length; i++) walkDocks(children[i], out)
+    return out
+  }
+
+  function findPanel(node, predicate) {
+    if (!node) return null
+    if (node.type === 'dock') {
+      const panels = node.panels || []
+      for (let i = 0; i < panels.length; i++) {
+        if (predicate(panels[i])) return panels[i]
+      }
+      return null
+    }
+    const children = node.children || []
+    for (let j = 0; j < children.length; j++) {
+      const found = findPanel(children[j], predicate)
+      if (found) return found
+    }
+    return null
+  }
+
+  function hostDockName() {
+    if (!Demo.layout || !Demo.layout.tree) return ''
+    const docks = walkDocks(Demo.layout.tree(), [])
+    const names = docks.map(function (dock) { return dock.name || dock.id })
+    const preferred = ['editor', 'main', 'chat']
+    for (let i = 0; i < preferred.length; i++) {
+      if (names.indexOf(preferred[i]) >= 0) return preferred[i]
+    }
+    for (let j = 0; j < names.length; j++) {
+      if (names[j] !== 'sidebar') return names[j]
+    }
+    return names[0] || ''
+  }
+
+  function projectHostPanelId(runtime) {
+    return 'project-host-' + safeId(runtime.id)
+  }
+
+  function ensureProjectHostPanel(runtime) {
+    if (!Demo.layout || !Demo.layout.addPanel || !Demo.layout.tree) return
+    const panelId = projectHostPanelId(runtime)
+    const existing = findPanel(Demo.layout.tree(), function (panel) {
+      return panel.id === panelId || (panel.component === PROJECT_HOST_COMPONENT && panel.props && panel.props.projectId === runtime.id)
+    })
+    if (existing) {
+      if (Demo.layout.activatePanel) Demo.layout.activatePanel(existing.id)
+      return
+    }
+    const dockName = hostDockName()
+    if (!dockName) return
+    Demo.layout.addPanel(dockName, {
+      id: panelId,
+      component: PROJECT_HOST_COMPONENT,
+      title: runtime.descriptor.title || runtime.id,
+      icon: runtime.descriptor.icon || 'box',
+      props: { projectId: runtime.id },
+    })
+  }
+
   async function open(workspace, options) {
     options = options || {}
     const descriptor = normalizeDescriptor(await readJson(workspace, 'aeditor.project.json'))
     const old = projects[descriptor.id] || null
-    const runtime = await prepareRuntime(workspace, descriptor, options)
+    let runtime = null
     if (old) close(descriptor.id)
     try {
+      runtime = await prepareRuntime(workspace, descriptor, Object.assign({}, options, { versionedOwner: !!old }))
       await activateRuntime(runtime, runtime.spec, options && options.mount)
     } catch (err) {
       disposeRuntime(runtime)
@@ -291,12 +498,16 @@
     }
     projects[descriptor.id] = runtime
     activeId = descriptor.id
+    bindAiWorkspace(runtime)
+    ensureProjectHostPanel(runtime)
+    bumpProjectTick()
     return publicRuntime(runtime)
   }
 
   function disposeRuntime(runtime) {
     if (!runtime) return
     if (runtime.handle && runtime.handle.destroy) runtime.handle.destroy()
+    runtime.handle = null
     for (let i = runtime.cleanups.length - 1; i >= 0; i--) runtime.cleanups[i]()
     runtime.cleanups.length = 0
     cleanupOwner(runtime.owner)
@@ -312,6 +523,9 @@
     disposeRuntime(runtime)
     delete projects[id]
     if (activeId === id) activeId = keys(projects)[0] || null
+    if (activeId) bindAiWorkspace(projects[activeId])
+    else clearAiWorkspace(runtime)
+    bumpProjectTick()
     return true
   }
 
@@ -319,23 +533,28 @@
     id = id || activeId
     const old = projects[id]
     if (!old) throw new Error('Project not open: ' + id)
-    requirePermission(old, 'project.reload')
     const workspace = old.workspace
     const mount = options && Object.prototype.hasOwnProperty.call(options, 'mount') ? options.mount : (old.options && old.options.mount)
     const nextOptions = Object.assign({}, old.options || {}, options || {}, { mount: mount })
-    const descriptor = normalizeDescriptor(await readJson(workspaceFor(old), 'aeditor.project.json'))
-    const candidate = await prepareRuntime(workspace, descriptor, nextOptions)
+    const descriptor = normalizeDescriptor(await readJson(hostWorkspaceFor(old), 'aeditor.project.json'))
+    let candidate = null
     close(id)
     try {
+      candidate = await prepareRuntime(workspace, descriptor, Object.assign({}, nextOptions, { versionedOwner: true }))
       await activateRuntime(candidate, candidate.spec, mount)
       projects[candidate.id] = candidate
       activeId = candidate.id
+      bindAiWorkspace(candidate)
+      ensureProjectHostPanel(candidate)
+      bumpProjectTick()
       return publicRuntime(candidate)
     } catch (err) {
       disposeRuntime(candidate)
       const restored = await createRuntime(workspace, old.descriptor, Object.assign({}, old.options || {}, { mount: mount }), old.spec)
       projects[id] = restored
       activeId = id
+      bindAiWorkspace(restored)
+      bumpProjectTick()
       throw err
     }
   }
@@ -373,6 +592,107 @@
     return p
   }
 
+  function projectAvailable() {
+    return !!activeId
+  }
+
+  function workspaceAvailable() {
+    return !!(aeditor.ai && aeditor.ai.currentWorkspace && aeditor.ai.currentWorkspace())
+  }
+
+  function openCurrentWorkspace(options) {
+    if (!workspaceAvailable()) throw new Error('No AI workspace is selected')
+    return open(aeditor.ai.currentWorkspace(), options || { mount: {} })
+  }
+
+  function normalizeCheckResult(runtime, result) {
+    const r = result && typeof result === 'object'
+      ? Object.assign({}, result)
+      : { ok: result !== false, result: result }
+    if (r.ok == null) r.ok = r.error ? false : true
+    if (r.checked == null) r.checked = true
+    if (!r.projectId) r.projectId = runtime.id
+    if (!Array.isArray(r.diagnostics)) r.diagnostics = []
+    r.checkedAt = r.checkedAt || Date.now()
+    checkResults[runtime.id] = r
+    return r
+  }
+
+  async function runProjectCheck(input) {
+    input = input || {}
+    const runtime = projectForTool(input.projectId)
+    if (runtime.spec && runtime.spec.check) {
+      return normalizeCheckResult(runtime, await Promise.resolve(runtime.spec.check(runtime.ctx, input)))
+    }
+    return normalizeCheckResult(runtime, { ok: true, checked: false, reason: 'Project has no check hook' })
+  }
+
+  function projectDiagnostics(input) {
+    const runtime = projectForTool(input && input.projectId)
+    const last = checkResults[runtime.id] || null
+    if (last && last.diagnostics && last.diagnostics.length) return last.diagnostics.slice(0, input && input.maxItems || 100)
+    const panels = runtime.handle && runtime.handle.inspectPanels ? runtime.handle.inspectPanels() : []
+    const out = []
+    for (let i = 0; i < panels.length; i++) {
+      const panel = panels[i] || {}
+      if (panel.status && panel.status !== 'ready') {
+        out.push({
+          source: 'panel',
+          panelId: panel.panelId || panel.id || '',
+          status: panel.status,
+          message: panel.error || panel.message || ('Panel status: ' + panel.status),
+        })
+      }
+    }
+    return out.slice(0, input && input.maxItems || 100)
+  }
+
+  function bridgeBaseUrl() {
+    if (
+      aeditor.ai &&
+      aeditor.ai.getConnectionConfig &&
+      aeditor.ai.getConnectionConfig('local-bridge') &&
+      aeditor.ai.getConnectionConfig('local-bridge').baseUrl
+    ) {
+      return aeditor.ai.getConnectionConfig('local-bridge').baseUrl.replace(/\/+$/, '')
+    }
+    return DEFAULT_BRIDGE_URL
+  }
+
+  async function bridgeJson(path, body) {
+    if (typeof fetch !== 'function') throw new Error('Local bridge fetch is not available')
+    const opts = body == null
+      ? { method: 'GET' }
+      : { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) }
+    const res = await fetch(bridgeBaseUrl() + path, opts)
+    const text = await res.text()
+    const data = text ? JSON.parse(text) : {}
+    if (!res.ok) throw new Error(data.error || res.statusText || 'Local bridge request failed')
+    return data
+  }
+
+  async function bridgeVerifyList() {
+    try {
+      const data = await bridgeJson('/verify/list')
+      return data.checks || []
+    } catch (_) {
+      return []
+    }
+  }
+
+  async function bridgeVerifyRun(args) {
+    return bridgeJson('/verify/run', args || {})
+  }
+
+  async function bridgeVerifyDiagnostics(args) {
+    try {
+      const data = await bridgeJson('/verify/diagnostics', args || {})
+      return data.diagnostics || []
+    } catch (_) {
+      return []
+    }
+  }
+
   function textPreview(file, options) {
     const o = options || {}
     const maxChars = o.maxChars || DEFAULT_PREVIEW_CHARS
@@ -395,7 +715,7 @@
   }
 
   async function readProjectFile(runtime, path, options) {
-    const file = await workspaceFor(runtime).read(path)
+    const file = await hostWorkspaceFor(runtime).read(path)
     if (options && options.full === true) return file
     const max = options && options.maxChars || DEFAULT_PREVIEW_CHARS
     if (file.size <= max) return file
@@ -406,100 +726,215 @@
     return String(value || 'panel').trim().replace(/[^A-Za-z0-9_.-]+/g, '-').replace(/^-+|-+$/g, '') || 'panel'
   }
 
-  function jsString(value) {
-    return JSON.stringify(String(value == null ? '' : value))
-  }
-
-  function findDraftSource(input) {
-    if (input.source) return String(input.source)
-    if (!input.extensionId || !aeditor.extensions || !aeditor.extensions.get) return ''
-    const ext = aeditor.extensions.get(input.extensionId)
-    const components = ext && ext.manifest && ext.manifest.contributes && ext.manifest.contributes.components || []
-    for (let i = 0; i < components.length; i++) {
-      if (components[i].source) return String(components[i].source)
-    }
-    return ''
-  }
-
-  function promotedPanelFile(input, componentId, source) {
-    const title = input.title || componentId
-    const icon = input.icon || ''
-    const props = clone(input.props || {})
-    return [
-      '// AEditor project panel: ' + componentId,
-      ';(function (aeditor) {',
-      "  'use strict'",
-      '',
-      '  aeditor.registerComponent(' + jsString(componentId) + ', {',
-      '    title: ' + jsString(title) + ',',
-      '    icon: ' + jsString(icon) + ',',
-      '    defaults: function () {',
-      '      return { title: ' + jsString(title) + ', icon: ' + jsString(icon) + ', props: ' + JSON.stringify(props) + ' }',
-      '    },',
-      '    factory: ' + source + ',',
-      '    dispose: function (el) {',
-      '      if (aeditor.ui && aeditor.ui.dispose) aeditor.ui.dispose(el)',
-      '    },',
-      '  })',
-      '})(window.aeditor = window.aeditor || {})',
-      '',
-    ].join('\n')
-  }
-
-  function addPanelToLayoutTree(node, dock, panel) {
+  function addPanelToLayoutTree(node, dock, panel, state) {
     if (!node) return node
     if (node.type === 'dock') {
       if (node.id !== dock && node.name !== dock) return node
+      state.found = true
       const panels = (node.panels || []).slice()
+      for (let i = 0; i < panels.length; i++) {
+        if (panels[i].id === panel.id || panels[i].component === panel.component) {
+          const nextPanel = Object.assign({}, panels[i], {
+            title: panel.title || panels[i].title,
+            icon: panel.icon || panels[i].icon,
+            props: Object.assign({}, panels[i].props || {}, panel.props || {}),
+          })
+          panels[i] = nextPanel
+          state.existing = true
+          return Object.assign({}, node, { panels: panels, activeId: nextPanel.id })
+        }
+      }
       panels.push(panel)
       return Object.assign({}, node, { panels: panels, activeId: panel.id })
     }
     if (!node.children) return node
     let changed = false
     const children = node.children.map(function (child) {
-      const next = addPanelToLayoutTree(child, dock, panel)
+      const next = addPanelToLayoutTree(child, dock, panel, state)
       if (next !== child) changed = true
       return next
     })
     return changed ? Object.assign({}, node, { children: children }) : node
   }
 
-  async function promotePanel(input) {
+  function entryMatchesPath(entry, path) {
+    return String(entry && entry.src || '') === String(path || '')
+  }
+
+  async function ensureDescriptorEntry(runtime, path) {
+    if (!path) return null
+    const ws = hostWorkspaceFor(runtime)
+    const file = await ws.read('aeditor.project.json')
+    const descriptor = normalizeDescriptor(JSON.parse(file.text))
+    for (let i = 0; i < descriptor.entries.length; i++) {
+      if (entryMatchesPath(descriptor.entries[i], path)) return null
+    }
+    descriptor.entries.push({ type: 'script', src: path })
+    return omitFileText(await ws.write('aeditor.project.json', JSON.stringify(descriptor, null, 2), { baseHash: file.hash }))
+  }
+
+  async function readJsonOrNull(ws, path) {
+    try {
+      const file = await ws.read(path)
+      return { file: file, json: JSON.parse(file.text) }
+    } catch (_) {
+      return null
+    }
+  }
+
+  function workspaceLabel(ws) {
+    if (!ws) return 'workspace'
+    const root = typeof ws.rootId === 'function' ? ws.rootId() : ws.rootId
+    return safeId(root || 'workspace')
+  }
+
+  async function ensureWorkspaceProject(ws, input) {
+    input = input || {}
+    const entryPath = input.entryPath || input.path || ''
+    const existing = await readJsonOrNull(ws, 'aeditor.project.json')
+    const raw = existing && existing.json && typeof existing.json === 'object' ? existing.json : {}
+    const projectId = safeId(input.projectId || raw.id || raw.name || workspaceLabel(ws))
+    const layoutPath = input.layoutPath || raw.layout || DEFAULT_LAYOUT_PATH
+    const descriptor = raw.type === 'aeditor-project'
+      ? normalizeDescriptor(raw)
+      : normalizeDescriptor({
+        type: 'aeditor-project',
+        schemaVersion: 1,
+        id: projectId,
+        title: input.projectTitle || raw.title || raw.name || projectId,
+        entries: [],
+        layout: layoutPath,
+        permissions: {
+          'project.code.load': true,
+          workspace: 'readwrite',
+          'ai.operations.apply': true,
+        },
+      })
+    let changed = raw.type !== 'aeditor-project'
+    if (!descriptor.title && (input.projectTitle || raw.name)) {
+      descriptor.title = input.projectTitle || raw.name
+      changed = true
+    }
+    if (!descriptor.layout) {
+      descriptor.layout = layoutPath
+      changed = true
+    }
+    descriptor.permissions = descriptor.permissions || {}
+    if (descriptor.permissions['project.code.load'] !== true) {
+      descriptor.permissions['project.code.load'] = true
+      changed = true
+    }
+    if (entryPath) {
+      let hasEntry = false
+      for (let i = 0; i < descriptor.entries.length; i++) {
+        if (entryMatchesPath(descriptor.entries[i], entryPath)) hasEntry = true
+      }
+      if (!hasEntry) {
+        descriptor.entries.push({ type: 'script', src: entryPath })
+        changed = true
+      }
+    }
+    if (changed || !existing) {
+      await ws.write('aeditor.project.json', JSON.stringify(descriptor, null, 2), existing && existing.file ? { baseHash: existing.file.hash } : {})
+    }
+    const layout = await readJsonOrNull(ws, descriptor.layout)
+    if (!layout) {
+      await ws.write(descriptor.layout, JSON.stringify({ root: defaultLayoutRoot() }, null, 2))
+    }
+    return descriptor
+  }
+
+  async function mountPanel(input) {
+    input = input || {}
+    const componentId = input.component || input.componentId
+    if (!componentId) throw new Error('demo.project.mountPanel: component is required')
+    const entryPath = input.entryPath || input.path || ''
+    let runtime = input.projectId ? projects[input.projectId] : projects[activeId]
+    if (!runtime) {
+      if (!workspaceAvailable()) throw new Error('No AI workspace is selected')
+      const ws = aeditor.ai.currentWorkspace()
+      const descriptor = await ensureWorkspaceProject(ws, input)
+      await open(ws, { mount: {} })
+      runtime = projects[descriptor.id]
+    }
+    const result = await addPanel(Object.assign({}, input, {
+      projectId: runtime.id,
+      component: componentId,
+      dock: input.dock || input.dockId || 'main',
+      entryPath: entryPath,
+    }))
+    return Object.assign({ mounted: true }, result)
+  }
+
+  function registeredComponentDefaults(componentId) {
+    try {
+      return aeditor.componentDefaults(componentId) || {}
+    } catch (_) {
+      return {}
+    }
+  }
+
+  async function addPanel(input) {
     input = input || {}
     const runtime = projectForTool(input.projectId)
-    const ws = workspaceFor(runtime)
-    requirePermission(runtime, 'workspace.write')
-    const id = safeId(input.id || input.extensionId || input.title)
-    const componentId = input.componentId || (runtime.id + '.' + id)
-    const path = input.path || ('src/panels/' + id + '.panel.js')
-    const source = findDraftSource(input)
-    if (!source) throw new Error('project.promotePanel: source or extensionId is required')
-    const file = await ws.write(path, promotedPanelFile(input, componentId, source), input.baseHash ? { baseHash: input.baseHash } : {})
-    let layout = null
+    const ws = hostWorkspaceFor(runtime)
+    const componentId = input.component || input.componentId
+    if (!componentId) throw new Error('demo.project.addPanel: component is required')
+    const dock = input.dock || input.dockId || 'main'
     const layoutPath = input.layoutPath || runtime.descriptor.layout || ''
-    if (layoutPath && input.dock) {
-      const current = await ws.read(layoutPath)
-      const parsed = JSON.parse(current.text)
-      const root = parsed.root || parsed
-      const panel = {
-        id: input.panelId || ('panel-' + id),
-        component: componentId,
-        title: input.title || id,
-        icon: input.icon || '',
-        props: clone(input.props || {}),
-        owner: stableOwner(runtime.id),
-      }
-      const nextRoot = addPanelToLayoutTree(root, input.dock, panel)
-      const nextLayout = parsed.root ? Object.assign({}, parsed, { root: nextRoot }) : nextRoot
-      layout = await ws.write(layoutPath, JSON.stringify(nextLayout, null, 2), { baseHash: current.hash })
+    if (!layoutPath) throw new Error('demo.project.addPanel: layoutPath is required')
+    const current = await ws.read(layoutPath)
+    const parsed = JSON.parse(current.text)
+    const root = parsed.root || parsed
+    const id = safeId(input.id || input.panelId || componentId.split(/[/.]/).pop())
+    const defaults = registeredComponentDefaults(componentId)
+    const defaultProps = clone(defaults.props || {})
+    const panel = {
+      id: input.panelId || ('panel-' + id),
+      component: componentId,
+      title: input.title || defaults.title || id,
+      icon: input.icon || defaults.icon || '',
+      props: Object.assign(defaultProps, clone(input.props || {})),
+      owner: stableOwner(runtime.id),
     }
-    return { ok: true, projectId: runtime.id, componentId: componentId, path: file.path, hash: file.hash, layout: layout }
+    const state = { found: false }
+    const nextRoot = addPanelToLayoutTree(root, dock, panel, state)
+    if (!state.found) throw new Error('demo.project.addPanel: dock not found: ' + dock)
+    const nextLayout = parsed.root ? Object.assign({}, parsed, { root: nextRoot }) : nextRoot
+    const entryPath = input.entryPath || input.path || ''
+    const descriptorBefore = entryPath ? await ws.read('aeditor.project.json') : null
+    const layout = omitFileText(await ws.write(layoutPath, JSON.stringify(nextLayout, null, 2), { baseHash: current.hash }))
+    let descriptor = null
+    let reloaded = null
+    try {
+      descriptor = await ensureDescriptorEntry(runtime, entryPath)
+      if (input.reload !== false) reloaded = await reload(runtime.id)
+    } catch (err) {
+      const currentLayout = await ws.read(layoutPath)
+      await ws.write(layoutPath, current.text, { baseHash: currentLayout.hash })
+      if (descriptor) {
+        const currentDescriptor = await ws.read('aeditor.project.json')
+        await ws.write('aeditor.project.json', descriptorBefore.text, { baseHash: currentDescriptor.hash })
+      }
+      throw err
+    }
+    return {
+      ok: true,
+      projectId: runtime.id,
+      component: componentId,
+      panelId: panel.id,
+      dock: dock,
+      existing: !!state.existing,
+      layout: layout,
+      descriptor: descriptor,
+      reloaded: !!reloaded,
+    }
   }
 
   async function readSourceProjection(runtime, path, options) {
     const o = options || {}
     const projection = o.projection || 'summary'
-    const ws = workspaceFor(runtime)
+    const ws = hostWorkspaceFor(runtime)
     if (projection === 'search') {
       return { path: path, projection: projection, matches: await ws.search(o.query || '', { path: path, limit: o.limit || 20 }) }
     }
@@ -536,136 +971,316 @@
     }
   }
 
+  function registerProjectHostComponent() {
+    if (aeditor.componentRegistration && aeditor.componentRegistration(PROJECT_HOST_COMPONENT)) return
+    aeditor.registerComponent(PROJECT_HOST_COMPONENT, {
+      palette: false,
+      defaults: function () {
+        return { title: 'Project', icon: 'box', props: {} }
+      },
+      factory: function (propsSig) {
+        const root = document.createElement('div')
+        root.style.cssText = 'height:100%;min-height:0;box-sizing:border-box;'
+        let handle = null
+        let mountedRuntime = null
+
+        function destroyMounted() {
+          if (handle && handle.destroy) handle.destroy()
+          if (mountedRuntime && mountedRuntime.handle === handle) mountedRuntime.handle = null
+          handle = null
+          mountedRuntime = null
+        }
+
+        function mountCurrent() {
+          const props = propsSig.peek ? (propsSig.peek() || {}) : (propsSig() || {})
+          const projectId = props.projectId || activeId
+          const runtime = projectId ? projects[projectId] : projects[activeId]
+          destroyMounted()
+          root.textContent = ''
+          if (!runtime || !runtime.spec || !runtime.spec.mount || !runtime.ctx) {
+            root.textContent = 'No project is open.'
+            return
+          }
+          mountedRuntime = runtime
+          handle = runtime.spec.mount(root, runtime.ctx)
+          runtime.handle = handle
+        }
+
+        if (projectTick && aeditor.effect) {
+          const stop = aeditor.effect(function () {
+            propsSig()
+            projectTick()
+            mountCurrent()
+          })
+          if (aeditor.ui && aeditor.ui.collect) aeditor.ui.collect(root, stop)
+        } else {
+          mountCurrent()
+        }
+        if (aeditor.ui && aeditor.ui.collect) aeditor.ui.collect(root, destroyMounted)
+        return root
+      },
+      dispose: function (el) {
+        if (aeditor.ui && aeditor.ui.dispose) aeditor.ui.dispose(el)
+      },
+    }, { owner: 'demo.project', layer: 'builtin' })
+  }
+
   function registerAiTools() {
-    if (!aeditor.ai || !aeditor.ai.registerTool) return
+    if (!aeditor.ai || !aeditor.ai.tools) return
     const owner = 'demo.project'
-    aeditor.ai.registerTool('demo.project.readDescriptor', {
+    aeditor.ai.tools.register('demo.project.openWorkspace', {
+      title: 'Open Workspace Project',
+      description: 'Open the current AI workspace as an AEditor demo project when it contains aeditor.project.json. Use this before demo.project.addPanel if files exist but no demo project is open.',
+      schema: { type: 'object', properties: {} },
+      permissions: ['tool.call', 'tool.apply'],
+      exposeToModel: false,
+      available: function () { return workspaceAvailable() && !projectAvailable() },
+      run: function () { return openCurrentWorkspace({ mount: {} }) },
+    }, { owner: owner, layer: 'builtin' })
+    aeditor.ai.tools.register('demo.project.readDescriptor', {
       title: 'Read Project Descriptor',
       description: 'Read the current AEditor project descriptor.',
       schema: { type: 'object', properties: { projectId: { type: 'string' } } },
+      permissions: ['tool.call'],
+      available: projectAvailable,
       run: function (args) { return clone(projectForTool(args && args.projectId).descriptor) },
     }, { owner: owner, layer: 'builtin' })
-    aeditor.ai.registerTool('demo.project.searchFiles', {
+    aeditor.ai.tools.register('demo.project.searchFiles', {
       title: 'Search Project Files',
       description: 'Search files in the current project workspace. Prefer this before reading whole files.',
       schema: { type: 'object', required: ['query'], properties: { projectId: { type: 'string' }, query: { type: 'string' }, path: { type: 'string' }, limit: { type: 'number' } } },
-      run: function (args) { return workspaceFor(projectForTool(args && args.projectId)).search(args.query || '', args || {}) },
+      permissions: ['tool.call'],
+      available: projectAvailable,
+      run: function (args) { return hostWorkspaceFor(projectForTool(args && args.projectId)).search(args.query || '', args || {}) },
     }, { owner: owner, layer: 'builtin' })
-    aeditor.ai.registerTool('demo.project.readFile', {
+    aeditor.ai.tools.register('demo.project.readFile', {
       title: 'Read Project File',
       description: 'Read one project file. Use readFileRange for large source files.',
       schema: { type: 'object', required: ['path'], properties: { projectId: { type: 'string' }, path: { type: 'string' }, full: { type: 'boolean' }, maxChars: { type: 'number' }, maxLines: { type: 'number' } } },
+      permissions: ['tool.call'],
+      available: projectAvailable,
       run: function (args) { return readProjectFile(projectForTool(args && args.projectId), args.path, args || {}) },
     }, { owner: owner, layer: 'builtin' })
-    aeditor.ai.registerTool('demo.project.readFileRange', {
+    aeditor.ai.tools.register('demo.project.readFileRange', {
       title: 'Read Project File Range',
       description: 'Read a 1-based line range from one project file.',
       schema: { type: 'object', required: ['path', 'startLine', 'endLine'], properties: { projectId: { type: 'string' }, path: { type: 'string' }, startLine: { type: 'number' }, endLine: { type: 'number' } } },
+      permissions: ['tool.call'],
+      available: projectAvailable,
       run: async function (args) {
-        const file = await workspaceFor(projectForTool(args && args.projectId)).read(args.path)
+        const file = await hostWorkspaceFor(projectForTool(args && args.projectId)).read(args.path)
         const lines = file.text.split(/\r?\n/)
         const start = Math.max(1, args.startLine || 1)
         const end = Math.min(lines.length, args.endLine || start)
         return { path: file.path, hash: file.hash, startLine: start, endLine: end, text: lines.slice(start - 1, end).join('\n') }
       },
     }, { owner: owner, layer: 'builtin' })
-    aeditor.ai.registerTool('demo.project.readSource', {
+    aeditor.ai.tools.register('demo.project.readSource', {
       title: 'Read Project Source Projection',
       description: 'Read a source file projection: summary, outline, events, search, range, or full.',
       schema: { type: 'object', required: ['path'], properties: { projectId: { type: 'string' }, path: { type: 'string' }, projection: { type: 'string' }, query: { type: 'string' }, startLine: { type: 'number' }, endLine: { type: 'number' }, limit: { type: 'number' } } },
+      permissions: ['tool.call'],
+      available: projectAvailable,
       run: function (args) { return readSourceProjection(projectForTool(args && args.projectId), args.path, args || {}) },
     }, { owner: owner, layer: 'builtin' })
-    aeditor.ai.registerTool('demo.project.writeFile', {
+    aeditor.ai.tools.register('demo.project.writeFile', {
       title: 'Write Project File',
-      description: 'Write one project file. Broad rewrites are high risk; prefer patchFile when possible.',
-      schema: { type: 'object', required: ['path', 'text'], properties: { projectId: { type: 'string' }, path: { type: 'string' }, text: { type: 'string' }, baseHash: { type: 'string' } } },
-      run: function (args) { return workspaceFor(projectForTool(args && args.projectId)).write(args.path, args.text || '', { baseHash: args.baseHash }) },
+      description: 'Write one complete project file. JS/JSON writes are validated before commit; broad rewrites are high risk, prefer patchFile when possible.',
+      schema: { type: 'object', required: ['path', 'text'], properties: { projectId: { type: 'string' }, path: { type: 'string' }, text: { type: 'string' }, baseHash: { type: 'string' }, validate: { type: 'string', enum: ['auto', 'none', 'javascript', 'json'] } } },
+      permissions: ['tool.call', 'tool.apply'],
+      exposeToModel: false,
+      available: projectAvailable,
+      run: function (args) { return writeProjectFile(projectForTool(args && args.projectId), args.path, args.text || '', { baseHash: args.baseHash, validate: args.validate }) },
     }, { owner: owner, layer: 'builtin' })
-    aeditor.ai.registerTool('demo.project.createFile', {
+    aeditor.ai.tools.register('demo.project.createFile', {
       title: 'Create Project File',
-      description: 'Create or overwrite one project file in the authorized workspace.',
-      schema: { type: 'object', required: ['path', 'text'], properties: { projectId: { type: 'string' }, path: { type: 'string' }, text: { type: 'string' } } },
-      run: function (args) { return workspaceFor(projectForTool(args && args.projectId)).write(args.path, args.text || '') },
+      description: 'Create or overwrite one complete project file in the authorized workspace. JS/JSON writes are validated before commit.',
+      schema: { type: 'object', required: ['path', 'text'], properties: { projectId: { type: 'string' }, path: { type: 'string' }, text: { type: 'string' }, validate: { type: 'string', enum: ['auto', 'none', 'javascript', 'json'] } } },
+      permissions: ['tool.call', 'tool.apply'],
+      exposeToModel: false,
+      available: projectAvailable,
+      run: function (args) { return writeProjectFile(projectForTool(args && args.projectId), args.path, args.text || '', { validate: args.validate }) },
     }, { owner: owner, layer: 'builtin' })
-    aeditor.ai.registerTool('demo.project.patchFile', {
+    aeditor.ai.tools.register('demo.project.patchFile', {
       title: 'Patch Project File',
-      description: 'Patch a project file with 1-based line patches and a base hash.',
-      schema: { type: 'object', required: ['path', 'baseHash', 'patches'], properties: { projectId: { type: 'string' }, path: { type: 'string' }, baseHash: { type: 'string' }, patches: { type: 'array' } } },
-      run: function (args) { return workspaceFor(projectForTool(args && args.projectId)).patch(args.path, args.baseHash, args.patches || []) },
+      description: 'Patch a project file with 1-based line patches and a base hash. JS/JSON results are validated before commit.',
+      schema: { type: 'object', required: ['path', 'baseHash', 'patches'], properties: { projectId: { type: 'string' }, path: { type: 'string' }, baseHash: { type: 'string' }, patches: { type: 'array' }, validate: { type: 'string', enum: ['auto', 'none', 'javascript', 'json'] } } },
+      permissions: ['tool.call', 'tool.apply'],
+      exposeToModel: false,
+      available: projectAvailable,
+      run: function (args) { return patchProjectFile(projectForTool(args && args.projectId), args.path, args.baseHash, args.patches || [], { validate: args.validate }) },
     }, { owner: owner, layer: 'builtin' })
-    aeditor.ai.registerTool('demo.project.deleteFile', {
+    aeditor.ai.tools.register('demo.project.deleteFile', {
       title: 'Delete Project File',
       description: 'Delete one project file from the authorized workspace.',
       schema: { type: 'object', required: ['path'], properties: { projectId: { type: 'string' }, path: { type: 'string' } } },
-      run: function (args) { return workspaceFor(projectForTool(args && args.projectId)).delete(args.path) },
+      permissions: ['tool.call', 'tool.apply'],
+      exposeToModel: false,
+      available: projectAvailable,
+      run: function (args) { return hostWorkspaceFor(projectForTool(args && args.projectId)).delete(args.path) },
     }, { owner: owner, layer: 'builtin' })
-    aeditor.ai.registerTool('demo.project.promotePanel', {
-      title: 'Promote Draft Panel',
-      description: 'Write a session draft panel to project files and optionally add it to layout.json.',
+    aeditor.ai.tools.register('demo.project.addPanel', {
+      title: 'Add Project Panel',
+      description: 'Add an already registered project component to the persistent project layout. This does not accept code. Write or patch project files first, ensure the component file is listed in aeditor.project.json entries, reload if needed, then add by component name.',
       schema: {
         type: 'object',
-        required: ['id'],
+        required: ['component', 'dock'],
         properties: {
           projectId: { type: 'string' },
-          extensionId: { type: 'string' },
-          id: { type: 'string' },
-          componentId: { type: 'string' },
-          title: { type: 'string' },
-          icon: { type: 'string' },
-          dock: { type: 'string' },
-          path: { type: 'string' },
+          component: { type: 'string', description: 'Registered component id, for example app.mainPanel.' },
+          dock: { type: 'string', description: 'Dock name or id.' },
+          id: { type: 'string', description: 'Stable panel id suffix. Defaults to the component name suffix.' },
+          panelId: { type: 'string' },
+          title: { type: 'string', description: 'Optional override. Defaults to the component defaults().title.' },
+          icon: { type: 'string', description: 'Optional override. Defaults to the component defaults().icon.' },
+          props: { type: 'object', description: 'Optional override props merged over component defaults().props.' },
           layoutPath: { type: 'string' },
-          source: { type: 'string' },
-          props: { type: 'object' },
+          entryPath: { type: 'string', description: 'Optional component file path to append to aeditor.project.json entries before reload.' },
+          reload: { type: 'boolean', description: 'Defaults to true so the changed layout appears immediately.' },
         },
       },
-      run: function (args) { return promotePanel(args || {}) },
+      permissions: ['tool.call', 'tool.apply'],
+      exposeToModel: false,
+      available: projectAvailable,
+      run: function (args) { return addPanel(args || {}) },
     }, { owner: owner, layer: 'builtin' })
-    aeditor.ai.registerTool('demo.project.updateDescriptor', {
+    aeditor.ai.tools.register('demo.project.mountPanel', {
+      title: 'Mount Project Panel',
+      description: 'Open or bootstrap the current workspace as a demo project, ensure the component file is listed in aeditor.project.json, then place the registered component into the project layout by component name. Use this after writing a panel file; title/icon/props default from the registered component.',
+      schema: {
+        type: 'object',
+        required: ['component', 'entryPath'],
+        properties: {
+          projectId: { type: 'string' },
+          projectTitle: { type: 'string' },
+          component: { type: 'string', description: 'Registered component id, for example app.mainPanel.' },
+          entryPath: { type: 'string', description: 'Workspace file path containing Demo.project.component registration.' },
+          dock: { type: 'string', description: 'Project dock name or id. Defaults to main.' },
+          id: { type: 'string' },
+          panelId: { type: 'string' },
+          title: { type: 'string', description: 'Optional override. Defaults to the component defaults().title.' },
+          icon: { type: 'string', description: 'Optional override. Defaults to the component defaults().icon.' },
+          props: { type: 'object', description: 'Optional override props merged over component defaults().props.' },
+          layoutPath: { type: 'string', description: 'Defaults to aeditor.layout.json for new projects.' },
+        },
+      },
+      permissions: ['tool.call', 'tool.apply'],
+      available: function () { return workspaceAvailable() || projectAvailable() },
+      run: function (args) { return mountPanel(args || {}) },
+    }, { owner: owner, layer: 'builtin' })
+    aeditor.ai.tools.register('demo.project.updateDescriptor', {
       title: 'Update Project Descriptor',
       description: 'Update aeditor.project.json in the current project.',
       schema: { type: 'object', required: ['descriptor'], properties: { projectId: { type: 'string' }, descriptor: { type: 'object' }, baseHash: { type: 'string' } } },
+      permissions: ['tool.call', 'tool.apply'],
+      available: projectAvailable,
       run: function (args) {
-        return workspaceFor(projectForTool(args && args.projectId)).write('aeditor.project.json', JSON.stringify(args.descriptor || {}, null, 2), { baseHash: args.baseHash })
+        return writeProjectFile(projectForTool(args && args.projectId), 'aeditor.project.json', JSON.stringify(args.descriptor || {}, null, 2), { baseHash: args.baseHash, validate: 'json' })
       },
     }, { owner: owner, layer: 'builtin' })
-    aeditor.ai.registerTool('demo.project.reload', {
+    aeditor.ai.tools.register('demo.project.reload', {
       title: 'Reload Project',
       description: 'Reload the current AEditor project after file edits.',
       schema: { type: 'object', properties: { projectId: { type: 'string' } } },
+      permissions: ['tool.call', 'tool.apply'],
+      available: projectAvailable,
       run: function (args) { return reload(args && args.projectId) },
     }, { owner: owner, layer: 'builtin' })
-    aeditor.ai.registerTool('demo.project.inspectPanel', {
+    aeditor.ai.tools.register('demo.project.inspectPanel', {
       title: 'Inspect Project Panel',
       description: 'Inspect runtime health for a mounted project panel.',
       schema: { type: 'object', required: ['panelId'], properties: { projectId: { type: 'string' }, panelId: { type: 'string' } } },
+      permissions: ['tool.call'],
+      available: projectAvailable,
       run: function (args) {
         const p = projectForTool(args && args.projectId)
         return p.handle && p.handle.inspectPanel ? p.handle.inspectPanel(args.panelId) : null
       },
     }, { owner: owner, layer: 'builtin' })
-    aeditor.ai.registerTool('demo.project.runCheck', {
+    aeditor.ai.tools.register('demo.project.runCheck', {
       title: 'Run Project Check',
       description: 'Run the current project check hook when the project provides one.',
       schema: { type: 'object', properties: { projectId: { type: 'string' } } },
-      run: function (args) {
-        const p = projectForTool(args && args.projectId)
-        if (p.spec && p.spec.check) return p.spec.check(p.ctx)
-        return { ok: true, checked: false, reason: 'Project has no check hook' }
-      },
+      permissions: ['tool.call'],
+      available: projectAvailable,
+      run: function (args) { return runProjectCheck(args || {}) },
     }, { owner: owner, layer: 'builtin' })
+  }
+
+  function configureVerifyAdapter() {
+    if (!aeditor.ai || !aeditor.ai.configureVerify) return
+    aeditor.ai.configureVerify({
+      list: async function () {
+        const out = []
+        const ids = keys(projects)
+        for (let i = 0; i < ids.length; i++) {
+          const runtime = projects[ids[i]]
+          if (runtime && runtime.spec && runtime.spec.check) {
+            out.push({
+              id: 'demo.project.check',
+              title: 'Project Check',
+              projectId: runtime.id,
+              projectTitle: runtime.descriptor.title || runtime.id,
+            })
+          }
+        }
+        const bridgeChecks = await bridgeVerifyList()
+        for (let i = 0; i < bridgeChecks.length; i++) {
+          out.push(Object.assign({ source: 'bridge' }, bridgeChecks[i]))
+        }
+        return out
+      },
+      run: function (args) {
+        args = args || {}
+        if (args.check && args.check !== 'demo.project.check') return bridgeVerifyRun(args)
+        if (args.source === 'bridge') return bridgeVerifyRun(args)
+        return runProjectCheck(args)
+      },
+      diagnostics: async function (args) {
+        const project = projectDiagnostics(args || {})
+        const bridge = await bridgeVerifyDiagnostics(args || {})
+        return project.concat(bridge)
+      },
+    })
+  }
+
+  function registerAiSkills() {
+    if (!aeditor.ai || !aeditor.ai.skills || !aeditor.ai.skills.register) return
+    aeditor.ai.skills.register('demo.project.authoring', {
+      title: 'Demo Project Authoring',
+      systemPrompt: 'Use the current demo project runtime as the host-specific AEditor authoring environment. Keep UI code file-backed and mount registered components by name.',
+      auto: function (ctx) {
+        return !!(ctx && ctx.uiAuthoringIntent && (workspaceAvailable() || projectAvailable()))
+      },
+      rules: [
+        'A demo project is a workspace folder with aeditor.project.json, optional aeditor.layout.json, and plain .js entry files.',
+        'Demo project component files register with Demo.project.component(componentId, spec). Use this instead of aeditor.registerComponent inside demo project entry files.',
+        'Use generic dotted component ids such as app.mainPanel or tool.timeline. Do not copy ids from examples unless they match the requested feature.',
+        'For an empty workspace, write the component file first, then call demo.project.mountPanel; it will create or update the project descriptor and layout.',
+        'demo.project.mountPanel is the normal path for placing a newly authored panel. It can bootstrap/open the workspace project, update descriptor/layout, reload, and mount by component name.',
+        'Pass title, icon, or props only when overriding component defaults; otherwise defaults() supplies them.',
+        'Do not manually create aeditor.project.json or aeditor.layout.json unless the user explicitly asks to edit project metadata or layout files.',
+        'Do not call demo.project.addPanel directly unless explicitly asked to edit only layout for an already loaded component.',
+      ],
+    })
   }
 
   Demo.project = {
     define: define,
     open: open,
+    openCurrentWorkspace: openCurrentWorkspace,
     close: close,
     reload: reload,
     current: current,
     list: list,
-    promotePanel: promotePanel,
+    addPanel: addPanel,
+    mountPanel: mountPanel,
+    component: registerProjectComponent,
     stableOwner: stableOwner,
   }
 
+  registerProjectHostComponent()
+  registerAiSkills()
   registerAiTools()
+  configureVerifyAdapter()
 })(window.aeditor = window.aeditor || {}, window.Demo = window.Demo || {})

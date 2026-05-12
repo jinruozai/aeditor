@@ -56,27 +56,57 @@
 
   function factory() {
     const root = ui.h('div', 'demo-panel-list')
-    const scroll = ui.scrollArea()
-    const list = ui.h('div', 'demo-panel-list-items')
-    scroll.appendChild(list)
-    root.appendChild(scroll)
+    const querySig = aeditor.signal('')
+    const itemsSig = aeditor.signal(panelItems())
+    const filteredSig = aeditor.signal(itemsSig.peek())
 
-    const items = panelItems()
-    for (let i = 0; i < items.length; i++) {
-      const item = items[i]
-      const row = ui.h('button', 'demo-panel-list-row', { type: 'button', title: item.name })
-      row.appendChild(ui.icon({ name: item.icon, size: 'sm' }))
-      const text = ui.h('span', 'demo-panel-list-text')
-      text.appendChild(ui.h('span', 'demo-panel-list-name', { text: item.label }))
-      text.appendChild(ui.h('span', 'demo-panel-list-id', { text: item.name }))
-      row.appendChild(text)
-      row.addEventListener('pointerdown', function (ev) { beginDrag(ev, item) })
-      row.addEventListener('dblclick', function () {
+    const toolbar = ui.h('div', 'demo-panel-list-toolbar')
+    toolbar.appendChild(ui.searchInput({
+      value: querySig,
+      placeholder: 'Search panels...',
+    }))
+    root.appendChild(toolbar)
+
+    const list = ui.list({
+      items: filteredSig,
+      rowHeight: 36,
+      multi: false,
+      render: function (item) {
+        const row = ui.h('div', 'demo-panel-list-row', { title: item.name })
+        row.appendChild(ui.icon({ name: item.icon, size: 'sm' }))
+        const text = ui.h('span', 'demo-panel-list-text')
+        text.appendChild(ui.h('span', 'demo-panel-list-name', { text: item.label }))
+        text.appendChild(ui.h('span', 'demo-panel-list-id', { text: item.name }))
+        row.appendChild(text)
+        row.addEventListener('pointerdown', function (ev) { beginDrag(ev, item) })
+        return row
+      },
+      onActivate: function (item) {
         if (Demo.layout) Demo.layout.addPanel('chat', panelData(item))
-      })
-      list.appendChild(row)
-    }
-
+      },
+    })
+    root.appendChild(list)
+    ui.collect(root, aeditor.effect(function () {
+      if (aeditor.componentRegistryVersion) aeditor.componentRegistryVersion()
+      itemsSig.set(panelItems())
+    }))
+    ui.collect(root, aeditor.effect(function () {
+      const q = String(querySig() || '').trim().toLowerCase()
+      const items = itemsSig()
+      if (!q) {
+        filteredSig.set(items)
+        return
+      }
+      filteredSig.set(items.filter(function (item) {
+        return [
+          item.label,
+          item.name,
+          item.title,
+          item.owner,
+          item.layer,
+        ].join(' ').toLowerCase().indexOf(q) >= 0
+      }))
+    }))
     return root
   }
 

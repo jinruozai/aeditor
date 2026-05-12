@@ -107,6 +107,7 @@
     const toolCalls = []
     const snapshotState = { text: '' }
     let usage = null
+    let finishReason = null
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i]
       if (line.indexOf('data:') !== 0) continue
@@ -117,11 +118,13 @@
       const chunk = normalizeSnapshotDelta(normalizeStreamDelta(extractDelta(data), data.usage || null), snapshotState)
       if (chunk.text) parts.push(chunk.text)
       if (chunk.reasoning_content) reasoning.push(chunk.reasoning_content)
+      if (chunk.finishReason || chunk.finish_reason || chunk.stopReason || chunk.stop_reason) finishReason = chunk.finishReason || chunk.finish_reason || chunk.stopReason || chunk.stop_reason
       for (let j = 0; chunk.toolCalls && j < chunk.toolCalls.length; j++) toolCalls.push(chunk.toolCalls[j])
     }
     const out = { content: parts.join(''), usage: usage }
     if (reasoning.length) out.reasoning_content = reasoning.join('')
     if (toolCalls.length) out.toolCalls = toolCalls
+    if (finishReason) out.finishReason = finishReason
     return out
   }
 
@@ -166,7 +169,7 @@
   }
 
   function hasStreamDelta(delta) {
-    return !!(delta && (delta.text || delta.reasoning_content || delta.usage || (delta.toolCalls && delta.toolCalls.length) || (delta.tool_calls && delta.tool_calls.length)))
+    return !!(delta && (delta.text || delta.reasoning_content || delta.usage || delta.finishReason || delta.finish_reason || delta.stopReason || delta.stop_reason || (delta.toolCalls && delta.toolCalls.length) || (delta.tool_calls && delta.tool_calls.length)))
   }
 
   function estimateUsageCost(provider, model, usage) {

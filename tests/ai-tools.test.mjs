@@ -1,4 +1,4 @@
-﻿import assert from 'node:assert/strict'
+import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import vm from 'node:vm'
 
@@ -7,6 +7,7 @@ global.window = { aeditor: {} }
 for (const file of [
   'src/core/signal.js',
   'src/core/log.js',
+  'src/core/names.js',
   'src/ai/name-generator.js',
   'src/ai/store.js',
   'src/ai/connection.js',
@@ -40,7 +41,7 @@ const agent = ai.createAgent({
 let previewCtx = null
 let runCtx = null
 let applyCtx = null
-ai.registerTool('edit-record', {
+ai.tools.register('edit-record', {
   title: 'Edit Record',
   description: 'Preview, run, and apply a record edit.',
   schema: { type: 'object', required: ['id'] },
@@ -68,6 +69,29 @@ const defaultToolRequest = ai.makeRequest(defaultToolAgent, null, 'run_default_t
 assert.deepEqual(defaultToolRequest.tools, ['edit-record'])
 assert.equal(defaultToolRequest.toolSpecs.length, 1)
 assert.equal(defaultToolRequest.toolSpecs[0].id, 'edit-record')
+
+ai.tools.register('hidden-by-default', {
+  exposeToModel: false,
+  run: function () { return true },
+})
+ai.tools.register('currently-unavailable', {
+  available: function () { return false },
+  run: function () { return true },
+})
+const filteredToolRequest = ai.makeRequest(ai.createAgent({
+  name: 'Filtered Tool Agent',
+  path: 'tools/filtered',
+  connection: 'mock',
+}), null, 'run_filtered_tools', 'user', 0)
+assert.equal(filteredToolRequest.tools.includes('hidden-by-default'), false)
+assert.equal(filteredToolRequest.tools.includes('currently-unavailable'), false)
+const explicitToolRequest = ai.makeRequest(ai.createAgent({
+  name: 'Explicit Tool Agent',
+  path: 'tools/explicit',
+  connection: 'mock',
+  toolRefs: ['hidden-by-default', 'currently-unavailable', 'edit-record'],
+}), null, 'run_explicit_tools', 'user', 0)
+assert.deepEqual(explicitToolRequest.tools, ['hidden-by-default', 'edit-record'])
 
 const proposed = ai.createToolCall(agent.id, {
   toolId: 'edit-record',
@@ -99,7 +123,7 @@ assert.equal(applied.status, 'applied')
 assert.deepEqual(applied.applyResult, { applied: true, id: 'sword', after: 12 })
 assert.equal(applyCtx.toolCall.id, proposed.id)
 
-ai.registerTool('semantic-fail', {
+ai.tools.register('semantic-fail', {
   run: function () { return { patch: { type: 'gde.patch' } } },
   apply: function () {
     return {
@@ -115,8 +139,10 @@ await semanticRun.promise
 const semanticApplied = ai.applyToolCall(agent.id, semanticFail.id, 'user')
 assert.equal(semanticApplied.status, 'failed')
 assert.match(semanticApplied.error, /invalid patch/)
+assert.equal(semanticApplied.errorDetails.ok, false)
+assert.equal(semanticApplied.errorDetails.phase, 'apply')
 
-ai.registerTool('invalid-preview', {
+ai.tools.register('invalid-preview', {
   preview: function () {
     return { ok: false, errors: [{ path: 'prop', message: 'unknown property' }] }
   },
@@ -124,6 +150,11 @@ ai.registerTool('invalid-preview', {
     return { applied: true }
   },
 })
+assert.equal(ai.tools.get('edit-record'), ai.tools.get('edit-record'))
+ai.tools.register('case.extra', { run: function () { return 'extra' } })
+assert.deepEqual(ai.tools.list('case'), ['case.extra'])
+assert.deepEqual(ai.tools.unregisterPrefix('case'), ['case.extra'])
+assert.equal(ai.tools.get('case.extra'), undefined)
 const invalidPreviewCall = ai.createToolCall(agent.id, { toolId: 'invalid-preview' }, 'user')
 const invalidPreview = ai.previewToolCall(agent.id, invalidPreviewCall.id, 'user')
 assert.equal(invalidPreview.status, 'failed')
@@ -132,7 +163,21 @@ const invalidPreviewState = ai.getToolCallActionState(agent.id, invalidPreviewCa
 assert.equal(invalidPreviewState.canApply, false)
 assert.equal(invalidPreviewState.canPreview, false)
 
-ai.registerTool('async-apply', {
+ai.tools.register('run-semantic-fail', {
+  run: function () {
+    return { ok: false, code: 'NO_WORKSPACE', message: 'No workspace is selected', hint: 'Open a workspace first.' }
+  },
+})
+const runSemanticCall = ai.createToolCall(agent.id, { toolId: 'run-semantic-fail' }, 'user')
+assert.equal(ai.approveToolCall(agent.id, runSemanticCall.id, 'user').status, 'approved')
+const runSemantic = ai.runToolCall(agent.id, runSemanticCall.id, 'user')
+const runSemanticFailed = await runSemantic.promise
+assert.equal(runSemanticFailed.status, 'failed')
+assert.equal(runSemanticFailed.result.ok, false)
+assert.equal(runSemanticFailed.errorDetails.code, 'NO_WORKSPACE')
+assert.match(runSemanticFailed.errorDetails.hint, /Open a workspace/)
+
+ai.tools.register('async-apply', {
   run: function () { return { id: 'async' } },
   apply: function (result) {
     return Promise.resolve({ applied: true, id: result.id })
@@ -148,7 +193,7 @@ const asyncDone = await asyncApply.promise
 assert.equal(asyncDone.status, 'applied')
 assert.deepEqual(asyncDone.applyResult, { applied: true, id: 'async' })
 
-ai.registerTool('async-apply-fail', {
+ai.tools.register('async-apply-fail', {
   run: function () { return { id: 'async-fail' } },
   apply: function () {
     return Promise.reject(new Error('async apply failed'))
@@ -200,7 +245,7 @@ const rejected = ai.createToolCall(agent.id, {
 assert.equal(ai.rejectToolCall(agent.id, rejected.id, 'not needed').status, 'rejected')
 assert.equal(latestCall(agent.id).error, 'not needed')
 
-ai.registerTool('explode', {
+ai.tools.register('explode', {
   run: function () { throw new Error('boom') },
 })
 const failing = ai.createToolCall(agent.id, { toolId: 'explode' }, 'user')
@@ -209,6 +254,9 @@ const failedRun = ai.runToolCall(agent.id, failing.id, 'user')
 const failed = await failedRun.promise
 assert.equal(failed.status, 'failed')
 assert.equal(failed.error, 'boom')
+assert.equal(failed.result.ok, false)
+assert.equal(failed.result.code, 'TOOL_FAILED')
+assert.equal(failed.errorDetails.message, 'boom')
 const failedState = ai.getToolCallActionState(agent.id, failing.id, 'user')
 assert.equal(failedState.canPreview, false)
 assert.equal(failedState.canApply, false)
@@ -225,6 +273,9 @@ ai.setPermissionResolver(function (ctx, next) {
 
 assert.equal(ai.canUseTool('user', agent.id, 'edit-record', 'call'), true)
 assert.equal(ai.canUseTool('user', agent.id, 'edit-record', 'apply'), false)
+assert.equal(ai.permissionAuditRecords().some(function (item) {
+  return item.scope === 'tool.apply' && item.entry === 'edit-record' && item.decision === 'deny'
+}), true)
 assert.equal(ai.createToolCall(agent.id, { toolId: 'edit-record' }, 'blocked'), null)
 assert.equal(ai.applyToolCall(agent.id, proposed.id, 'user'), null)
 assert.deepEqual(calls.some(function (call) {
@@ -233,7 +284,7 @@ assert.deepEqual(calls.some(function (call) {
 ai.setPermissionResolver(null)
 
 let loopRequests = []
-ai.registerTool('read-number', {
+ai.tools.register('read-number', {
   title: 'Read Number',
   schema: { id: 'string' },
   run: function (args) {
@@ -267,5 +318,24 @@ const loopReply = await loopRun.promise
 assert.equal(loopReply.content, 'Tool says 42')
 assert.equal(loopRequests.length, 2)
 assert.equal(ai.findAgent(loopAgent.id).messages.some(function (message) { return message.role === 'tool' }), true)
+
+ai.bundles.register('bundle.case', {
+  connections: [{ id: 'bundle.connection', auth: { type: 'none' }, transport: { type: 'mock' }, configDefaults: {} }],
+  skills: [{ id: 'bundle.skill', title: 'Bundle Skill' }],
+  tools: [{ id: 'bundle.tool', run: function () { return true } }],
+  contextProviders: [{ id: 'bundle.context', capture: function () { return 'ctx' } }],
+  agentTemplates: [{ id: 'bundle.agent', title: 'Bundle Agent' }],
+})
+assert.equal(ai.getConnection('bundle.connection').id, 'bundle.connection')
+assert.equal(ai.skills.get('bundle.skill').title, 'Bundle Skill')
+assert.equal(ai.tools.get('bundle.tool').run(), true)
+assert.equal(ai.context.get('bundle.context').capture(), 'ctx')
+assert.equal(ai.agentTemplates.get('bundle.agent').title, 'Bundle Agent')
+assert.equal(ai.bundles.unregister('bundle.case'), true)
+assert.equal(ai.getConnection('bundle.connection'), undefined)
+assert.equal(ai.skills.get('bundle.skill'), undefined)
+assert.equal(ai.tools.get('bundle.tool'), undefined)
+assert.equal(ai.context.get('bundle.context'), undefined)
+assert.equal(ai.agentTemplates.get('bundle.agent'), undefined)
 
 console.log('ai tools tests ok')

@@ -104,7 +104,7 @@
   }
 
   function renderSchemaPage(sectionId) {
-    const root = ui.h('div', 'aeditor-settings-page')
+    const root = ui.view({ scroll: 'hidden', className: 'aeditor-settings-page' })
     const section = findSection(sectionId)
     root.appendChild(pageHeader(section ? section.title : 'Settings', section ? section.description : ''))
     const schemaSig = aeditor.signal(schemaFor(sectionId))
@@ -156,8 +156,7 @@
     const selected = aeditor.signal([])
     const expanded = aeditor.signal(new Set())
     const search = aeditor.signal('')
-    const content = ui.scrollArea({ children: [] })
-    content.classList.add('aeditor-settings-content')
+    const content = ui.view({ children: [], className: 'aeditor-settings-content' })
 
     const navWrap = ui.h('div', 'aeditor-settings-nav')
     navWrap.appendChild(ui.searchInput({
@@ -184,7 +183,7 @@
       },
     })
     nav.classList.add('aeditor-settings-tree')
-    navWrap.appendChild(nav)
+    navWrap.appendChild(ui.view({ children: nav, scroll: 'hidden', className: 'aeditor-settings-tree-view' }))
     const splitter = ui.h('div', 'aeditor-settings-splitter aeditor-splitter aeditor-splitter-horizontal')
     root.appendChild(navWrap)
     root.appendChild(splitter)

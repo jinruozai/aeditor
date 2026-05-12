@@ -1,4 +1,4 @@
-// aeditor.ai store - final agent/resource model.
+// aeditor.ai store - agents, messages, and chat attachments.
 ;(function (aeditor) {
   'use strict'
 
@@ -6,11 +6,13 @@
 
   let nextAgentId = 1
   let nextMessageId = 1
-  let nextResourceId = 1
+  let nextAttachmentId = 1
   let nextEventId = 1
+  let nextPermissionAuditId = 1
 
   const agentsSig = aeditor.signal([])
-  const resourcesSig = aeditor.signal([])
+  const attachmentsSig = aeditor.signal([])
+  const permissionAuditSig = aeditor.signal([])
   const activeAgentIdSig = aeditor.signal(null)
   const agentVersionSigs = {}
   const messageListVersionSigs = {}
@@ -24,6 +26,7 @@
   const MAX_SNAPSHOT_REASONING_CHARS = 65536
   const MAX_STORED_STATE_CHARS = 5000000
   const MAX_SNAPSHOT_TOOL_STRING_CHARS = 12000
+  const MAX_PERMISSION_AUDIT = 500
 
   function now() { return Date.now() }
 
@@ -73,6 +76,7 @@
       activeQuestId: spec.activeQuestId || null,
       systemPrompt: spec.systemPrompt || '',
       messages: (spec.messages || []).map(makeMessage),
+      compactions: (spec.compactions || []).map(makeCompaction),
       queue: (spec.queue || []).map(makeQueueItem),
       inbox: (spec.inbox || []).map(makeInboxEvent),
       quests: (spec.quests || []).map(makeQuest),
@@ -158,11 +162,11 @@
     }
   }
 
-  function makeResource(spec) {
+  function makeAttachment(spec) {
     spec = spec || {}
     return {
-      id: spec.id || makeId('r', nextResourceId++),
-      kind: spec.kind || 'resource',
+      id: spec.id || makeId('att', nextAttachmentId++),
+      kind: spec.kind || 'attachment',
       uri: spec.uri || '',
       title: spec.title || '',
       summary: spec.summary || '',
@@ -177,6 +181,28 @@
     const agents = agentsSig.peek()
     for (let i = 0; i < agents.length; i++) if (agents[i].id === id) return agents[i]
     return null
+  }
+
+  function makeCompaction(spec) {
+    spec = spec || {}
+    return {
+      id: spec.id || makeId('cmp', nextMessageId++),
+      agentId: spec.agentId || null,
+      range: spec.range || { fromMessageId: null, toMessageId: null },
+      messageIds: spec.messageIds ? spec.messageIds.slice() : [],
+      createdAt: spec.createdAt || now(),
+      model: spec.model || 'deterministic',
+      sourceHash: spec.sourceHash || '',
+      summary: spec.summary || '',
+      facts: spec.facts ? spec.facts.slice() : [],
+      decisions: spec.decisions ? spec.decisions.slice() : [],
+      openItems: spec.openItems ? spec.openItems.slice() : [],
+      changedRefs: spec.changedRefs ? spec.changedRefs.slice() : [],
+      toolObservations: spec.toolObservations ? spec.toolObservations.slice() : [],
+      omittedDetails: spec.omittedDetails ? spec.omittedDetails.slice() : [],
+      tokenEstimateBefore: spec.tokenEstimateBefore || 0,
+      tokenEstimateAfter: spec.tokenEstimateAfter || 0,
+    }
   }
 
   function messageKey(agentId, messageId) {
@@ -518,15 +544,15 @@
     return out
   }
 
-  function addResource(spec) {
-    const res = makeResource(spec)
-    resourcesSig.update(function (items) { return items.concat([res]) })
-    return res
+  function addAttachment(spec) {
+    const attachment = makeAttachment(spec)
+    attachmentsSig.update(function (items) { return items.concat([attachment]) })
+    return attachment
   }
 
-  function removeResource(id) {
+  function removeAttachment(id) {
     let removed = null
-    resourcesSig.update(function (items) {
+    attachmentsSig.update(function (items) {
       return items.filter(function (item) {
         if (item.id === id) { removed = item; return false }
         return true
@@ -550,7 +576,7 @@
     return {
       version: 2,
       agents: agentsSig.peek().map(snapshotAgent),
-      resources: resourcesSig.peek(),
+      attachments: attachmentsSig.peek(),
       activeAgentId: activeAgentIdSig.peek(),
     }
   }
@@ -578,23 +604,40 @@
     return out
   }
 
-  function compactSnapshotValue(value, depth) {
+  function stringifySnapshotValue(value) {
+    try { return ai.serialize && ai.serialize.stringify ? ai.serialize.stringify(value) : JSON.stringify(value) } catch (err) {
+      return JSON.stringify({ error: 'Value is not JSON serializable', message: String(err && err.message || err) })
+    }
+  }
+
+  function compactSnapshotValue(value, depth, seen) {
     if (value == null) return value
     if (typeof value === 'string') return limitString(value, MAX_SNAPSHOT_TOOL_STRING_CHARS)
     if (typeof value === 'number' || typeof value === 'boolean') return value
-    if (depth <= 0) return limitString(JSON.stringify(value), MAX_SNAPSHOT_TOOL_STRING_CHARS)
+    if (typeof value === 'bigint') return String(value)
+    if (typeof value === 'function') return '[Function]'
+    if (typeof value !== 'object') return String(value)
+    if (value.nodeType === 1 || value.nodeType === 9 || value.nodeType === 11) {
+      return ai.serialize && ai.serialize.stringify ? JSON.parse(ai.serialize.stringify(value)) : '[DOM node]'
+    }
+    seen = seen || []
+    for (let s = 0; s < seen.length; s++) if (seen[s] === value) return '[Circular]'
+    if (depth <= 0) return limitString(stringifySnapshotValue(value), MAX_SNAPSHOT_TOOL_STRING_CHARS)
+    seen.push(value)
     if (Array.isArray(value)) {
       const out = []
       const n = Math.min(value.length, 32)
-      for (let i = 0; i < n; i++) out.push(compactSnapshotValue(value[i], depth - 1))
+      for (let i = 0; i < n; i++) out.push(compactSnapshotValue(value[i], depth - 1, seen))
       if (value.length > n) out.push('[+' + (value.length - n) + ' items truncated]')
+      seen.pop()
       return out
     }
     const out = {}
     const keys = Object.keys(value)
     const n = Math.min(keys.length, 48)
-    for (let i = 0; i < n; i++) out[keys[i]] = compactSnapshotValue(value[keys[i]], depth - 1)
+    for (let i = 0; i < n; i++) out[keys[i]] = compactSnapshotValue(value[keys[i]], depth - 1, seen)
     if (keys.length > n) out.__truncatedKeys = keys.length - n
+    seen.pop()
     return out
   }
 
@@ -662,7 +705,7 @@
     const next = data || readStored()
     if (!next || next.version !== 2) return null
     agentsSig.set((next.agents || []).map(function (agent) { return normalizeRestoredRuntime(makeAgent(agent)) }))
-    resourcesSig.set((next.resources || []).map(makeResource))
+    attachmentsSig.set((next.attachments || next.resources || []).map(makeAttachment))
     activeAgentIdSig.set(next.activeAgentId || (agentsSig.peek()[0] && agentsSig.peek()[0].id) || null)
     const agents = agentsSig.peek()
     for (let i = 0; i < agents.length; i++) touchMessages(agents[i].id, agents[i].messages)
@@ -741,7 +784,56 @@
     return isDescendant(actorAgent.id, target.id)
   }
 
-  function resolvePermission(actor, targetAgentId, scope, details) {
+  function normalizePermissionDecision(value, ctx) {
+    if (value === true) return { decision: 'allow', allowed: true, reason: 'allowed' }
+    if (value === false || value == null) return { decision: 'deny', allowed: false, reason: 'denied' }
+    if (typeof value === 'string') {
+      const decision = value === 'allow' || value === 'ask' || value === 'unavailable' ? value : 'deny'
+      return { decision: decision, allowed: decision === 'allow', reason: decision }
+    }
+    const decision = value.decision || value.status || (value.allowed ? 'allow' : 'deny')
+    return {
+      decision: decision,
+      allowed: value.allowed != null ? !!value.allowed : decision === 'allow',
+      reason: value.reason || decision,
+      details: value.details || null,
+      ctx: value.ctx || ctx || null,
+    }
+  }
+
+  function permissionEntry(ctx) {
+    return ctx.toolId || ctx.operation || ctx.op || ctx.changeSetId || ctx.extensionId || ctx.adapter || ctx.scope || ''
+  }
+
+  function auditPermission(ctx, decision) {
+    const item = {
+      id: 'perm_' + now().toString(36) + '_' + nextPermissionAuditId++,
+      time: now(),
+      traceId: ctx.traceId || null,
+      runId: ctx.runId || null,
+      agentId: ctx.targetAgentId || (ctx.agent && ctx.agent.id) || null,
+      actor: ctx.actor || 'user',
+      scope: ctx.scope || '',
+      entry: permissionEntry(ctx),
+      phase: ctx.phase || '',
+      target: ctx.target || ctx.path || ctx.dock || ctx.setting || null,
+      workspace: ctx.workspace || null,
+      origin: ctx.origin || null,
+      risk: ctx.risk || null,
+      decision: decision.decision,
+      allowed: !!decision.allowed,
+      reason: decision.reason || '',
+      baseVersion: ctx.baseVersion || null,
+      resultVersion: ctx.resultVersion || null,
+    }
+    permissionAuditSig.update(function (items) {
+      const next = items.concat([item])
+      return next.length > MAX_PERMISSION_AUDIT ? next.slice(next.length - MAX_PERMISSION_AUDIT) : next
+    })
+    return item
+  }
+
+  function decidePermission(actor, targetAgentId, scope, details) {
     const ctx = Object.assign({
       actor: actor || 'user',
       targetAgentId: targetAgentId,
@@ -750,7 +842,14 @@
       agent: findAgent(targetAgentId),
     }, details || {})
     const next = function (nextCtx) { return defaultPermission(nextCtx || ctx) }
-    return permissionResolver ? permissionResolver(ctx, next) === true : next(ctx) === true
+    const raw = permissionResolver ? permissionResolver(ctx, next) : next(ctx)
+    const decision = normalizePermissionDecision(raw, ctx)
+    auditPermission(ctx, decision)
+    return decision
+  }
+
+  function resolvePermission(actor, targetAgentId, scope, details) {
+    return decidePermission(actor, targetAgentId, scope, details).allowed === true
   }
 
   function setPermissionResolver(fn) {
@@ -759,11 +858,13 @@
   }
 
   function getPermissionResolver() { return permissionResolver }
+  function permissionAudit() { return permissionAuditSig() }
+  function clearPermissionAudit() { permissionAuditSig.set([]) }
   function canRead(actorId, targetId, scope) { return resolvePermission(actorId, targetId, scope || 'agent.full') }
   function canSend(actorId, targetId) { return resolvePermission(actorId, targetId, 'messages.send') }
   function canManage(actorId, targetId) { return resolvePermission(actorId, targetId, 'agent.manage') }
   function canUseTool(actorId, targetId, toolId, phase) {
-    return resolvePermission(actorId, targetId, phase === 'apply' ? 'tool.apply' : 'tool.call', { toolId: toolId, phase: phase || 'call' })
+    return resolvePermission(actorId, targetId, phase === 'apply' ? 'tool.apply' : 'tool.call', { toolId: toolId, entry: toolId, phase: phase || 'call' })
   }
 
   function canUseOperation(actorId, targetId, op, phase, details) {
@@ -915,7 +1016,8 @@
   }
 
   ai.agents = agentsSig
-  ai.resources = resourcesSig
+  ai.attachments = attachmentsSig
+  ai.permissionAudit = permissionAuditSig
   ai.activeAgentId = activeAgentIdSig
   ai.findAgent = findAgent
   ai.getActiveAgent = getActiveAgent
@@ -946,8 +1048,8 @@
   ai.updateQuest = updateQuest
   ai.appendInboxEvent = appendInboxEvent
   ai.markInboxEventConsumed = markInboxEventConsumed
-  ai.addResource = addResource
-  ai.removeResource = removeResource
+  ai.addAttachment = addAttachment
+  ai.removeAttachment = removeAttachment
   ai.canAccessPath = canAccessPath
   ai.canReadPath = canReadPath
   ai.canWritePath = canWritePath
@@ -956,6 +1058,9 @@
   ai.canManage = canManage
   ai.canUseTool = canUseTool
   ai.canUseOperation = canUseOperation
+  ai.decidePermission = decidePermission
+  ai.permissionAuditRecords = permissionAudit
+  ai.clearPermissionAudit = clearPermissionAudit
   ai.setPermissionResolver = setPermissionResolver
   ai.getPermissionResolver = getPermissionResolver
   ai.snapshot = snapshot
@@ -975,7 +1080,7 @@
   restore()
   aeditor.effect(function () {
     agentsSig()
-    resourcesSig()
+    attachmentsSig()
     activeAgentIdSig()
     scheduleSave()
   })

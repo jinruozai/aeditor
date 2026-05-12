@@ -39,6 +39,18 @@
     return spec
   }
 
+  function unregisterConnection(id) {
+    if (!connections[id]) return false
+    delete connections[id]
+    if (activeConnection === id) {
+      const ids = Object.keys(connections)
+      activeConnection = ids[0] || ''
+      ai.defaultConnection = activeConnection
+    }
+    connectionsSig.set(connectionOptions())
+    return true
+  }
+
   function customConnections() {
     if (aeditor.settings && aeditor.settings.values) aeditor.settings.values()
     return aeditor.settings && aeditor.settings.get ? (aeditor.settings.get(CUSTOM_KEY) || []) : []
@@ -238,6 +250,7 @@
   ai.registerAuthDriver = registerAuthDriver
   ai.registerTransport = registerTransport
   ai.registerConnection = registerConnection
+  ai.unregisterConnection = unregisterConnection
   ai.createCustomConnection = createCustomConnection
   ai.loadCustomConnections = loadCustomConnections
   ai.getConnection = getConnection

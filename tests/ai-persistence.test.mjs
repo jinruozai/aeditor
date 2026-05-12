@@ -24,7 +24,7 @@ const agent = ai.createAgent({
   parentAgentId: parent.id,
   messages: [{ role: 'user', content: 'hello' }],
 })
-const res = ai.addResource({ resolver: 'case', uri: 'case://one', title: 'One' })
+const res = ai.addAttachment({ resolver: 'case', uri: 'case://one', title: 'One' })
 ai.updateAgent(agent.id, { contextRefs: [res.id] })
 ai.updateAgent(agent.id, {
   status: 'running',
@@ -35,7 +35,7 @@ ai.updateAgent(agent.id, {
     role: 'assistant',
     content: 'in flight',
     status: 'running',
-    toolCalls: [{ id: 'big_tool', toolId: 'aeditor.createPanel', args: { source: 'x'.repeat(50000) }, applyResult: { source: 'x'.repeat(50000) } }],
+    toolCalls: [{ id: 'big_tool', toolId: 'demo.project.writeFile', args: { text: 'x'.repeat(50000) }, applyResult: { text: 'x'.repeat(50000) } }],
   }]),
   quests: [{ id: 'q1', requestMessageId: 'q1', status: 'running' }],
 })
@@ -44,12 +44,12 @@ ai.save()
 const stored = JSON.parse(window.localStorage.getItem('test.ai'))
 assert.equal(stored.version, 2)
 assert.equal(stored.agents.length, 2)
-assert.equal(stored.resources.length, 1)
+assert.equal(stored.attachments.length, 1)
 assert.equal('groups' in stored, false)
 assert.equal('path' in stored.agents[1], false)
 assert.equal('groupId' in stored.agents[1], false)
 assert.deepEqual(stored.agents[1].contextRefs, [])
-assert.equal(stored.agents[1].messages[1].toolCalls[0].args.source.length < 13000, true)
+assert.equal(stored.agents[1].messages[1].toolCalls[0].args.text.length < 13000, true)
 
 global.window.aeditor = {}
 vm.runInThisContext(readFileSync('src/core/signal.js', 'utf8'), { filename: 'signal.js#2' })
@@ -69,7 +69,7 @@ assert.equal(restored.queue.length, 0)
 assert.equal(restored.messages[1].status, 'stopped')
 assert.equal(restored.quests[0].status, 'stopped')
 assert.deepEqual(restored.contextRefs, [])
-assert.equal(ai.resources()[0].uri, 'case://one')
+assert.equal(ai.attachments()[0].uri, 'case://one')
 assert.equal(ai.activeAgentId(), agent.id)
 
 ai.clearStoredState()

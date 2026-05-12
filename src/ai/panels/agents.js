@@ -21,7 +21,11 @@
   }
 
   function statusLabel(status) {
-    return String(status || 'idle').toUpperCase()
+    return String(status || 'idle').replace(/[_-]+/g, ' ').toUpperCase()
+  }
+
+  function statusClass(status) {
+    return String(status || 'idle').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'idle'
   }
 
   function orderOf(item, index) {
@@ -34,9 +38,12 @@
 
   function makeAgentLabel(node) {
     const wrap = ui.h('span', 'aeditor-ai-agent-label')
-    wrap.appendChild(ui.h('span', 'aeditor-ai-agent-dot aeditor-ai-agent-dot-' + node.status))
-    wrap.appendChild(ui.h('span', 'aeditor-ai-agent-name', { text: node.label }))
-    wrap.title = node.label
+    const tip = 'Status: ' + statusLabel(node.status)
+    const dot = ui.h('span', 'aeditor-ai-agent-dot aeditor-ai-agent-dot-' + node.statusClass)
+    dot.setAttribute('aria-label', tip)
+    ui.tooltip(dot, { text: tip, side: 'right', delay: 250 })
+    wrap.appendChild(dot)
+    wrap.appendChild(ui.h('span', 'aeditor-ai-agent-name', { text: node.label, title: node.label }))
     return wrap
   }
 
@@ -44,9 +51,6 @@
     const wrap = ui.h('span', 'aeditor-ai-agent-meta')
     const count = Number(node.queuedCount || 0) + Number(node.unreadInboxCount || 0)
     if (count) wrap.appendChild(ui.h('span', 'aeditor-ai-group-count', { text: String(count) }))
-    if (node.status && node.status !== 'idle') {
-      wrap.appendChild(ui.h('span', 'aeditor-ai-status-pill aeditor-ai-status-' + node.status, { text: statusLabel(node.status) }))
-    }
     return wrap
   }
 
@@ -66,13 +70,15 @@
     const byId = {}
     for (let i = 0; i < agents.length; i++) {
       const agent = agents[i]
+      const status = statusOf(agent)
       byId[agent.id] = {
         id: agentNodeId(agent.id),
         label: labelOf(agent, 'Agent'),
         kind: 'agent',
         agentId: agent.id,
         parentAgentId: agent.parentAgentId || null,
-        status: statusOf(agent),
+        status: status,
+        statusClass: statusClass(status),
         queuedCount: (agent.queue || []).length,
         unreadInboxCount: (agent.inbox || []).filter(function (event) { return !event.consumed }).length,
         isActive: agent.id === activeId,
@@ -232,8 +238,9 @@
       },
     })
     tree.classList.add('aeditor-ai-agent-tree')
-    tree.addEventListener('contextmenu', openRootMenu)
-    root.appendChild(tree)
+    const treeView = ui.view({ children: tree, scroll: 'hidden', className: 'aeditor-ai-agent-tree-view' })
+    treeView.addEventListener('contextmenu', openRootMenu)
+    root.appendChild(treeView)
 
     function syncTree() {
       const agents = readList(aeditor.ai.agents)

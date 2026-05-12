@@ -1,4 +1,4 @@
-﻿import assert from 'node:assert/strict'
+import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import vm from 'node:vm'
 
@@ -7,7 +7,9 @@ global.window = { aeditor: {} }
 for (const file of [
   'src/core/signal.js',
   'src/core/log.js',
+  'src/core/names.js',
   'src/ai/name-generator.js',
+  'src/ai/serialize.js',
   'src/ai/store.js',
   'src/ai/connection.js',
   'src/ai/adapter.js',
@@ -96,7 +98,7 @@ assert.equal(await run.promise, null)
 assert.equal(byId(ai.agents(), aborting.id).messages.length, 1)
 assert.equal(byId(ai.agents(), aborting.id).messages[0].status, 'stopped')
 
-ai.registerTool('stream-read', {
+ai.tools.register('stream-read', {
   run: function (args) { return { ok: true, query: args.query } },
 })
 let toolStreamRequests = 0
@@ -140,7 +142,51 @@ assert.equal(byId(ai.agents(), streamingTool.id).messages.some(function (message
   return message.content === 'stream tool continued'
 }), true)
 
-ai.registerTool('stream-approval-edit', {
+ai.tools.register('stream-hidden-tool', {
+  exposeToModel: false,
+  run: function () { hiddenToolExecuted += 1; throw new Error('hidden tool must not run') },
+})
+let hiddenToolRequests = 0
+let hiddenToolExecuted = 0
+ai.registerTransport('stream-hidden-tool-flow', {
+  send: function (connection, request) {
+    hiddenToolRequests += 1
+    assert.equal(request.tools.includes('stream-hidden-tool'), false)
+    if (hiddenToolRequests === 1) {
+      return {
+        role: 'assistant',
+        content: '',
+        toolCalls: [{ id: 'call_hidden', toolId: 'stream-hidden-tool', args: {} }],
+      }
+    }
+    return { role: 'assistant', content: 'continued after unavailable tool' }
+  },
+})
+ai.registerConnection('stream-hidden-tool-flow', { auth: { type: 'none' }, transport: { type: 'stream-hidden-tool-flow' }, configDefaults: {} })
+const hiddenToolAgent = ai.createAgent({
+  name: 'Hidden Tool Guard',
+  connection: 'stream-hidden-tool-flow',
+  permissionMode: 'full',
+})
+await ai.message.send(hiddenToolAgent.id, { content: 'try hidden tool' }, 'user').promise
+assert.equal(hiddenToolRequests, 2)
+const hiddenToolMessage = byId(ai.agents(), hiddenToolAgent.id).messages.find(function (message) {
+  return message.toolCalls && message.toolCalls[0] && message.toolCalls[0].toolId === 'stream-hidden-tool'
+})
+assert.equal(hiddenToolMessage.toolCalls[0].status, 'failed')
+assert.match(hiddenToolMessage.toolCalls[0].error, /not available/)
+assert.equal(hiddenToolExecuted, 0)
+assert.equal(byId(ai.agents(), hiddenToolAgent.id).messages.some(function (message) {
+  return message.role === 'tool' && /not available/.test(message.content)
+}), true)
+assert.equal(byId(ai.agents(), hiddenToolAgent.id).messages.some(function (message) {
+  return message.role === 'tool' && /not allowed/.test(message.content)
+}), false)
+assert.equal(byId(ai.agents(), hiddenToolAgent.id).messages.some(function (message) {
+  return message.content === 'continued after unavailable tool'
+}), true)
+
+ai.tools.register('stream-approval-edit', {
   preview: function (args) { return { before: args.before, after: args.after } },
   apply: function (preview) { return { applied: true, preview: preview } },
 })
@@ -193,5 +239,42 @@ const reasoningMessage = byId(ai.agents(), reasoningAgent.id).messages.find(func
 assert.equal(reasoningMessage.content, 'visible')
 assert.equal(reasoningMessage.reasoning_content, 'hidden thought')
 assert.equal(ai.peekActiveRunState(reasoningAgent.id).modelTail, 'hidden thoughtvisible')
+
+ai.tools.register('circular-tool-result', {
+  run: function () {
+    const out = { ok: true }
+    out.self = out
+    return out
+  },
+})
+let circularRequests = 0
+ai.registerTransport('stream-circular-tool-flow', {
+  send: function () {
+    circularRequests += 1
+    if (circularRequests === 1) {
+      return {
+        role: 'assistant',
+        content: '',
+        toolCalls: [{ id: 'call_circular', toolId: 'circular-tool-result', args: {} }],
+      }
+    }
+    return { role: 'assistant', content: 'continued after unserializable tool result' }
+  },
+})
+ai.registerConnection('stream-circular-tool-flow', { auth: { type: 'none' }, transport: { type: 'stream-circular-tool-flow' }, configDefaults: {} })
+const circularAgent = ai.createAgent({
+  name: 'Circular Tool',
+  connection: 'stream-circular-tool-flow',
+  permissionMode: 'full',
+  toolRefs: ['circular-tool-result'],
+})
+const circularRun = ai.message.send(circularAgent.id, { content: 'use circular tool' }, 'user')
+await circularRun.promise
+assert.equal(byId(ai.agents(), circularAgent.id).status, 'idle')
+assert.equal(circularRequests, 2)
+assert.equal(byId(ai.agents(), circularAgent.id).messages.some(function (message) {
+  return message.role === 'tool' && /\[Circular\]/.test(message.content)
+}), true)
+assert.equal(ai.peekActiveRunState(circularAgent.id).state, 'idle')
 
 console.log('ai stream tests ok')

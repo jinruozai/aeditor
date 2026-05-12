@@ -35,7 +35,7 @@
 /* ── splitter ───────────────────────────────────────── */
 .aeditor-splitter {
   flex: 0 0 1px;
-  background: var(--aeditor-border);
+  background: var(--aeditor-splitter-bg);
   position: relative;
   z-index: var(--aeditor-z-sticky);
   transition: background var(--aeditor-dur-fast) var(--aeditor-ease);
@@ -49,7 +49,7 @@
 .aeditor-splitter-vertical   { cursor: ns-resize; }
 .aeditor-splitter-vertical::after { left: 0; right: 0; top: -3px; bottom: -3px; }
 .aeditor-splitter:hover,
-.aeditor-splitter-active { background: var(--aeditor-accent); }
+.aeditor-splitter-active { background: var(--aeditor-splitter-active-bg); }
 
 /* ── dock (leaf) ────────────────────────────────────── */
 .aeditor-dock {
@@ -58,8 +58,8 @@
   display: flex;
   flex-direction: column;
   min-width: 0; min-height: 0;
-  background: var(--aeditor-bg-1);
-  border: 1px solid var(--aeditor-border);
+  background: var(--aeditor-bg-0);
+  border: 1px solid var(--aeditor-dock-border);
   contain: layout style paint;
   overflow: hidden;
 }
@@ -80,6 +80,7 @@
   min-width: 0; min-height: 0;
   overflow: hidden;
   position: relative;
+  background: var(--aeditor-bg-1);
 }
 .aeditor-panel {
   flex: 1 1 auto;

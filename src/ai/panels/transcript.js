@@ -421,7 +421,16 @@
     if (!state) return null
     if (state.canApply) return afterToolAction(agentId, aeditor.ai.applyToolCall(agentId, call.id, 'user'))
     if (state.canPreview) {
-      aeditor.ai.previewToolCall(agentId, call.id, 'user')
+      const preview = aeditor.ai.previewToolCall(agentId, call.id, 'user')
+      if (preview && preview.promise) {
+        return afterToolAction(agentId, {
+          promise: preview.promise.then(function () {
+            const next = aeditor.ai.getToolCallActionState(agentId, call.id, 'user')
+            const applied = next && next.canApply ? aeditor.ai.applyToolCall(agentId, call.id, 'user') : null
+            return applied && applied.promise ? applied.promise : applied
+          }),
+        })
+      }
       state = aeditor.ai.getToolCallActionState(agentId, call.id, 'user')
       if (state && state.canApply) return afterToolAction(agentId, aeditor.ai.applyToolCall(agentId, call.id, 'user'))
       return null
@@ -626,8 +635,7 @@
   function factory(propsSig, ctx) {
     const root = ui.h('div', 'aeditor-ai-panel aeditor-ai-transcript')
 
-    const scroll = ui.scrollArea({ children: [] })
-    scroll.classList.add('aeditor-ai-message-scroll')
+    const scroll = ui.view({ children: [], scroll: 'both', className: 'aeditor-ai-message-scroll' })
     root.appendChild(scroll)
     const topSpacer = ui.h('div', 'aeditor-ai-message-virtual-spacer')
     const windowEl = ui.h('div', 'aeditor-ai-message-window')

@@ -4,8 +4,12 @@ import vm from 'node:vm'
 
 global.window = { aeditor: {} }
 vm.runInThisContext(readFileSync('src/core/signal.js', 'utf8'), { filename: 'signal.js' })
+vm.runInThisContext(readFileSync('src/core/names.js', 'utf8'), { filename: 'names.js' })
 vm.runInThisContext(readFileSync('src/ai/name-generator.js', 'utf8'), { filename: 'ai/name-generator.js' })
 vm.runInThisContext(readFileSync('src/ai/store.js', 'utf8'), { filename: 'ai/store.js' })
+vm.runInThisContext(readFileSync('src/ai/context.js', 'utf8'), { filename: 'ai/context.js' })
+vm.runInThisContext(readFileSync('src/ai/reference.js', 'utf8'), { filename: 'ai/reference.js' })
+vm.runInThisContext(readFileSync('src/ai/request.js', 'utf8'), { filename: 'ai/request.js' })
 vm.runInThisContext(readFileSync('src/ai/target.js', 'utf8'), { filename: 'ai/target.js' })
 
 const ai = window.aeditor.ai
@@ -33,7 +37,7 @@ assert.deepEqual(captured.meta, { id: 'a' })
 const resource = ai.addTarget(captured)
 const same = ai.addTarget(captured)
 assert.equal(resource.id, same.id)
-assert.equal(ai.resources().length, 1)
+assert.equal(ai.attachments().length, 1)
 
 const agent = ai.createAgent({ name: 'Target Agent', path: 'target-agent' })
 ai.attachTargetToAgent(agent.id, captured)
@@ -41,7 +45,11 @@ ai.attachTargetsToAgent(agent.id, [captured, { uri: 'case://item/b', kind: 'case
 
 const after = ai.findAgent(agent.id)
 assert.equal(after.contextRefs.length, 2)
-assert.equal(ai.resources().length, 2)
+assert.equal(ai.attachments().length, 2)
+
+const request = ai.makeRequest(after, { attachments: [{ uri: 'case://item/c', kind: 'case.item', title: 'C' }] }, 'run-1', 'user', 0)
+assert.equal(request.contextRefs.length, 3)
+assert.equal(request.attachmentRefs.some(function (ref) { return ref.uri === 'case://item/c' }), true)
 
 let dragPayload = {}
 const dragEvent = {
@@ -55,6 +63,66 @@ const dragEvent = {
 ai.writeTargetDragData(dragEvent, [captured])
 assert.equal(JSON.parse(dragPayload['application/x-aeditor-ai-target']).uri, captured.uri)
 assert.equal(ai.readTargetFromDragEvent(dragEvent)[0].uri, captured.uri)
+
+function mockElement(tag) {
+  const el = {
+    tagName: tag || 'div',
+    dataset: {},
+    attrs: {},
+    parentElement: null,
+    listeners: {},
+    setAttribute: function (name, value) { this.attrs[name] = String(value) },
+    getAttribute: function (name) { return this.attrs[name] },
+    hasAttribute: function (name) { return Object.prototype.hasOwnProperty.call(this.attrs, name) },
+    removeAttribute: function (name) { delete this.attrs[name] },
+    addEventListener: function (type, fn) { this.listeners[type] = fn },
+    removeEventListener: function (type) { delete this.listeners[type] },
+    querySelector: function (selector) { return this.children && this.children.find(function (child) { return child.selector === selector }) || null },
+    matches: function (selector) {
+      const parts = selector.split(',').map(function (part) { return part.trim() })
+      for (let i = 0; i < parts.length; i++) {
+        if (parts[i] === this.tagName) return true
+        if (parts[i] === '[role="slider"]' && this.attrs.role === 'slider') return true
+        if (parts[i] === '[data-aeditor-ai-drag-ignore]' && this.attrs['data-aeditor-ai-drag-ignore'] != null) return true
+        if (parts[i] === '[data-aeditor-ai-drag-handle]' && this.attrs['data-aeditor-ai-drag-handle'] != null) return true
+      }
+      return false
+    },
+  }
+  return el
+}
+
+const cardEl = mockElement('div')
+const handleEl = mockElement('div')
+handleEl.selector = '.drag-handle'
+handleEl.parentElement = cardEl
+cardEl.children = [handleEl]
+ai.attach(cardEl, captured, { dragHandle: '.drag-handle' })
+assert.equal(cardEl.attrs.draggable, undefined)
+assert.equal(handleEl.draggable, true)
+let handleDragPayload = {}
+handleEl.listeners.dragstart({
+  target: handleEl,
+  dataTransfer: {
+    effectAllowed: '',
+    setData: function (type, value) { handleDragPayload[type] = value },
+  },
+  preventDefault: function () { this.prevented = true },
+})
+assert.equal(JSON.parse(handleDragPayload['application/x-aeditor-ai-target']).uri, captured.uri)
+
+const rootEl = mockElement('div')
+const sliderEl = mockElement('div')
+sliderEl.attrs.role = 'slider'
+sliderEl.parentElement = rootEl
+ai.attach(rootEl, captured)
+let prevented = false
+rootEl.listeners.dragstart({
+  target: sliderEl,
+  dataTransfer: { setData: function () {} },
+  preventDefault: function () { prevented = true },
+})
+assert.equal(prevented, true)
 
 const textFileTarget = await ai.fileToTarget({
   name: 'note.txt',

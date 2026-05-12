@@ -110,7 +110,10 @@
 
       const zone = classifyDockZone(dockEl, ev.clientX, ev.clientY)
       if (zone.kind === 'center') {
-        if (dstId === srcDockId) return
+        if (dstId === srcDockId) {
+          lastOverlay = makeDockDropOverlay(dockEl, Object.assign({}, zone, { active: null }))
+          return
+        }
         dockEl.classList.add('aeditor-drop-target')
         lastDockEl = dockEl
         drop = { kind: 'move', dockId: dstId, index: null }
@@ -372,7 +375,7 @@
     appendDropShape(svg, 'right',  '100,0 100,100 76,76 76,24', zone.name)
     appendDropShape(svg, 'bottom', '0,100 100,100 76,76 24,76', zone.name)
     const center = document.createElementNS('http://www.w3.org/2000/svg', 'rect')
-    center.setAttribute('class', 'aeditor-panel-drop-shape aeditor-panel-drop-shape-center' + (zone.name === 'center' ? ' aeditor-panel-drop-active' : ''))
+    center.setAttribute('class', 'aeditor-panel-drop-shape aeditor-panel-drop-shape-center' + (activeZoneName(zone) === 'center' ? ' aeditor-panel-drop-active' : ''))
     center.setAttribute('x', '24')
     center.setAttribute('y', '24')
     center.setAttribute('width', '52')
@@ -385,9 +388,14 @@
 
   function appendDropShape(svg, name, points, activeName) {
     const shape = document.createElementNS('http://www.w3.org/2000/svg', 'polygon')
-    shape.setAttribute('class', 'aeditor-panel-drop-shape aeditor-panel-drop-shape-' + name + (activeName === name ? ' aeditor-panel-drop-active' : ''))
+    shape.setAttribute('class', 'aeditor-panel-drop-shape aeditor-panel-drop-shape-' + name + (activeZoneName({ name: activeName }) === name ? ' aeditor-panel-drop-active' : ''))
     shape.setAttribute('points', points)
     svg.appendChild(shape)
+  }
+
+  function activeZoneName(zone) {
+    if (zone && Object.prototype.hasOwnProperty.call(zone, 'active')) return zone.active
+    return zone && zone.name
   }
 
   // Build a short accent bar between two tabs (or before/after the whole

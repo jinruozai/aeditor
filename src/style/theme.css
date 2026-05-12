@@ -222,6 +222,23 @@
   --aeditor-toolbar-h:    28px;
   --aeditor-tab-h:        28px;
   --aeditor-control-px:   8px;       /* default horizontal padding inside controls */
+  --aeditor-toolbar-bg:   var(--aeditor-bg-raised);
+  --aeditor-toolbar-border-w: 1px;
+  --aeditor-toolbar-border: var(--aeditor-border);
+  --aeditor-dock-border: var(--aeditor-border);
+  --aeditor-chrome-border: var(--aeditor-border);
+  --aeditor-view-bg:      var(--aeditor-bg-0);
+  --aeditor-view-radius:  var(--aeditor-r-3);
+  --aeditor-splitter-bg:  var(--aeditor-border);
+  --aeditor-splitter-active-bg: var(--aeditor-accent);
+  --aeditor-dock-tab-fg: var(--aeditor-fg-2);
+  --aeditor-dock-tab-active-fg: var(--aeditor-fg-0);
+  --aeditor-button-bg:    var(--aeditor-bg-2);
+  --aeditor-button-border: var(--aeditor-border-strong);
+  --aeditor-button-hover-bg: var(--aeditor-bg-3);
+  --aeditor-button-hover-border: var(--aeditor-border-hover);
+  --aeditor-button-active-bg: var(--aeditor-bg-4);
+  --aeditor-button-active-border: var(--aeditor-button-border);
 
   /* ── Layer 3 — Interaction thresholds (JS reads via ui.readNum) ── */
   --aeditor-drag-threshold: 6;       /* px before a pointerdown becomes a drag */
@@ -343,6 +360,114 @@
 }
 
 /* ── Light theme — only the primitives flip; roles inherit. ────────── */
+/* Harbor theme - layered charcoal editor palette with quiet translucent tabs. */
+:root[data-aeditor-theme="harbor"],
+.aeditor-root[data-aeditor-theme="harbor"] {
+  --aeditor-surface-canvas: #18181a;
+  --aeditor-surface-lower:  #272729;
+  --aeditor-surface-frame:  #313035;
+  --aeditor-surface-panel:  #3f4045;
+  --aeditor-surface-field:  #313035;
+  --aeditor-surface-hover:  #37363b;
+  --aeditor-surface-active: #3f4045;
+  --aeditor-surface-raised: #313035;
+
+  --aeditor-text-primary:  #cacbd0;
+  --aeditor-text-body:     #cacbd0;
+  --aeditor-text-label:    #97969c;
+  --aeditor-text-muted:    #65656c;
+  --aeditor-text-disabled: #55555b;
+
+  --aeditor-stroke-subtle: #37363b;
+  --aeditor-stroke-strong: #4a4a51;
+  --aeditor-stroke-field:  #37363b;
+  --aeditor-stroke-hover:  #55555b;
+
+  --aeditor-brand:          #72d6b4;
+  --aeditor-brand-hover:    #8effd5;
+  --aeditor-brand-contrast: #10211b;
+
+  --aeditor-state-success: #72d6b4;
+  --aeditor-state-warning: #d4b76a;
+  --aeditor-state-danger:  #ef746b;
+  --aeditor-state-info:    #7eb6d8;
+
+  --aeditor-c-00: #18181a;
+  --aeditor-c-01: #272729;
+  --aeditor-c-02: #313035;
+  --aeditor-c-03: #3f4045;
+  --aeditor-c-04: #37363b;
+  --aeditor-c-05: #4a4a51;
+  --aeditor-c-06: #55555b;
+  --aeditor-c-07: #65656c;
+  --aeditor-c-08: #7b7b82;
+  --aeditor-c-09: #97969c;
+  --aeditor-c-10: #b4b5ba;
+  --aeditor-c-11: #cacbd0;
+
+  --aeditor-c-accent:      var(--aeditor-brand);
+  --aeditor-c-accent-soft: var(--aeditor-brand-hover);
+  --aeditor-c-success: var(--aeditor-state-success);
+  --aeditor-c-warn:    var(--aeditor-state-warning);
+  --aeditor-c-error:   var(--aeditor-state-danger);
+  --aeditor-c-info:    var(--aeditor-state-info);
+
+  --aeditor-bg-0: var(--aeditor-surface-canvas);
+  --aeditor-bg-1: var(--aeditor-surface-panel);
+  --aeditor-bg-2: var(--aeditor-surface-field);
+  --aeditor-bg-3: var(--aeditor-surface-hover);
+  --aeditor-bg-4: var(--aeditor-surface-active);
+  --aeditor-bg-raised: var(--aeditor-surface-raised);
+
+  --aeditor-fg-0: var(--aeditor-text-primary);
+  --aeditor-fg-1: var(--aeditor-text-body);
+  --aeditor-fg-2: var(--aeditor-text-label);
+  --aeditor-fg-3: var(--aeditor-text-muted);
+
+  --aeditor-border:        var(--aeditor-stroke-subtle);
+  --aeditor-border-strong: var(--aeditor-stroke-strong);
+  --aeditor-border-input:  var(--aeditor-stroke-field);
+  --aeditor-border-hover:  var(--aeditor-stroke-hover);
+
+  --aeditor-accent:      var(--aeditor-brand);
+  --aeditor-accent-soft: var(--aeditor-brand-hover);
+  --aeditor-accent-fg:   var(--aeditor-brand-contrast);
+  --aeditor-accent-bg:   color-mix(in srgb, var(--aeditor-brand) 16%, transparent);
+  --aeditor-accent-bg-strong: color-mix(in srgb, var(--aeditor-brand) 26%, transparent);
+
+  --aeditor-hover:    color-mix(in srgb, var(--aeditor-text-primary) 5%, transparent);
+  --aeditor-active:   color-mix(in srgb, var(--aeditor-brand) 16%, transparent);
+  --aeditor-selected: color-mix(in srgb, var(--aeditor-brand) 20%, transparent);
+  --aeditor-scrim:    color-mix(in srgb, var(--aeditor-surface-canvas) 66%, transparent);
+
+  --aeditor-toolbar-bg: transparent;
+  --aeditor-toolbar-border-w: 0px;
+  --aeditor-toolbar-border: transparent;
+  --aeditor-dock-border: transparent;
+  --aeditor-chrome-border: transparent;
+  --aeditor-view-bg: var(--aeditor-bg-2);
+  --aeditor-view-radius: var(--aeditor-r-4);
+  --aeditor-splitter-bg: transparent;
+  --aeditor-splitter-active-bg: var(--aeditor-accent);
+  --aeditor-dock-tab-fg: #65656c;
+  --aeditor-dock-tab-active-fg: #cacbd0;
+  --aeditor-button-bg: #272729;
+  --aeditor-button-border: #313235;
+  --aeditor-button-hover-bg: #313035;
+  --aeditor-button-hover-border: #313235;
+  --aeditor-button-active-bg: #3f4045;
+  --aeditor-button-active-border: #313235;
+
+  --aeditor-highlight-subtle: color-mix(in srgb, var(--aeditor-fg-0) 3%, transparent);
+  --aeditor-highlight-strong: color-mix(in srgb, var(--aeditor-fg-0) 8%, transparent);
+
+  --aeditor-shadow-1: 0 1px 2px rgba(0,0,0,.20);
+  --aeditor-shadow-2: 0 2px 8px rgba(0,0,0,.28);
+  --aeditor-shadow-3: 0 4px 16px rgba(0,0,0,.36);
+  --aeditor-shadow-4: 0 8px 32px rgba(0,0,0,.46);
+  --aeditor-shadow-raised: none;
+}
+
 :root[data-aeditor-theme="light"],
 .aeditor-root[data-aeditor-theme="light"] {
   --aeditor-surface-canvas: #f4f4f7;

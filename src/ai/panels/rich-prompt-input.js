@@ -1,4 +1,4 @@
-// aeditor.ui.richPromptInput - focused AI prompt input with inline resource atoms.
+// aeditor.ui.richPromptInput - AI prompt input with inline reference atoms.
 ;(function (aeditor) {
   'use strict'
 

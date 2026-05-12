@@ -7,6 +7,7 @@
 //   value    : signal<number[]>     required
 //   onChange?: (v) => void
 //   labels   : string[]             default ['X','Y','Z','W'].slice(0, length)
+//   layout   : 'row'|'column'       default 'column'
 //   step?, precision?
 //   linked   : signal<boolean>      optional toggle for proportional editing
 ;(function (aeditor) {
@@ -20,9 +21,11 @@
     const init = sig.peek()
     const n = init.length
     const labels = o.labels || ['X', 'Y', 'Z', 'W'].slice(0, n)
+    const layout = ui.asSig(o.layout || 'column')
     const linked = o.linked
 
     const wrap = ui.h('div', 'aeditor-ui-vec aeditor-ui-vec-' + n)
+    ui.bindClass(wrap, layout, 'aeditor-ui-vec-')
 
     // Per-channel signals. Two effects per channel form a sync bridge with
     // a `writing` flag to break feedback loops.
@@ -59,7 +62,6 @@
         value: cs, label: labels[idx], step: o.step, precision: o.precision,
       }))
     }
-
     return wrap
   }
 })(window.aeditor = window.aeditor || {})

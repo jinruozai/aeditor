@@ -1,20 +1,20 @@
-// aeditor.ui — TypeConfig: schema-driven property editing.
+// aeditor.ui TypeConfig: schema-driven property editing.
 //
 // TypeConfig is a two-level registry:
 //   1. Builtin types        (int, float, string, enum, bool, color, ...)
-//   2. Project overlays      (application-specific aliases / variants)
+//   2. Application overlays  (application-specific aliases / variants)
 //
 // A `FieldDef` references a type by name and optionally refines its
 // presentation via `type_agv` (args). Resolution layers the three, with
-// the field's own agv winning over project over builtin.
+// the field's own agv winning over overrides over builtin.
 //
 //   aeditor.ui.setTypeConfig(builtin, { overrides })
-//   aeditor.ui.getTypeConfig()                  → { [name]: TypeDef }
-//   aeditor.ui.resolveType(typeName)            → merged TypeDef or null
-//   aeditor.ui.resolveFieldDef(fieldDef)        → TypeDef + field overrides merged
-//   aeditor.ui.registerRenderer(kind, fn)       → extend the render kind table
-//   aeditor.ui.getRenderer(kind)                → fn or null
-//   aeditor.ui.listRenderKinds()                → [name, ...] (for picker UIs)
+//   aeditor.ui.getTypeConfig()                  -> { [name]: TypeDef }
+//   aeditor.ui.resolveType(typeName)            -> merged TypeDef or null
+//   aeditor.ui.resolveFieldDef(fieldDef)        -> TypeDef + field overrides merged
+//   aeditor.ui.registerRenderer(kind, fn)       -> extend the render kind table
+//   aeditor.ui.getRenderer(kind)                -> fn or null
+//   aeditor.ui.listRenderKinds()                -> [name, ...] (for picker UIs)
 //
 // See propertyEditor.js / propertyPanel.js for consumption.
 //
@@ -22,7 +22,7 @@
 //   TypeDef = {
 //     name:        string,        // human-readable
 //     base_type:   'int'|'float'|'string'|'struct'|'array'|'var',
-//     type_render: string,        // kind key → a registered renderer
+//     type_render: string,        // kind key -> a registered renderer
 //     default:     any,
 //     mem?:        string,        // tooltip / description
 //     type_agv?:   object,        // renderer args (radix/min/max/options/...)
@@ -33,13 +33,13 @@
 //   FieldDef = { type: string, mem?: string, type_agv?: object, ... }
 //
 // The merge in resolveFieldDef is shallow on the top level but DEEP on
-// type_agv — so a field that sets `type_agv: { max: 60 }` doesn't erase
+// type_agv, so a field that sets `type_agv: { max: 60 }` doesn't erase
 // the type's baseline `type_agv: { min: 1 }`.
 ;(function (aeditor) {
   'use strict'
   const ui = aeditor.ui = aeditor.ui || {}
 
-  // ── Default builtin TypeConfig ───────────────────────────────
+  // Default builtin TypeConfig.
   // Fields not overridden by user's setTypeConfig() fall back to these.
   // These are the types every editor is expected to support out of the box.
   const DEFAULT_BUILTIN = {
@@ -66,7 +66,7 @@
     'ref_id':       { name: 'Reference ID',  base_type: 'int',    type_render: 'ref_id',  default: 0,  mem: 'Reference to another entity id' },
   }
 
-  // ── Mutable state ────────────────────────────────────────────
+  // Mutable state.
   let builtin   = Object.assign({}, DEFAULT_BUILTIN)
   let overrides = {}
   // Derived on demand in resolveType().
@@ -88,7 +88,7 @@
 
   function getTypeConfig() {
     // Merged view. Overrides win per top-level key, but individual fields
-    // merge *shallowly* — a project override can add `name`/`mem`/`type_agv`
+    // merge shallowly; an override can add `name`/`mem`/`type_agv`
     // without having to re-declare `base_type`.
     const merged = {}
     Object.keys(builtin).forEach(function (k) { merged[k] = builtin[k] })
@@ -113,8 +113,8 @@
   }
 
   function resolveFieldDef(fieldDef) {
-    if (!fieldDef || !fieldDaeditor.type) return null
-    const t = resolveType(fieldDaeditor.type)
+    if (!fieldDef || !fieldDef.type) return null
+    const t = resolveType(fieldDef.type)
     // Fallback: unknown type → treat as string with an _unknown marker so
     // calling code can surface it in the UI (e.g. ghosted label).
     if (!t) {
@@ -123,7 +123,7 @@
       }, fieldDef, { _unknown: true })
     }
     const merged = Object.assign({}, t, fieldDef)
-    const agv = Object.assign({}, t.type_agv || {}, fieldDaeditor.type_agv || {})
+    const agv = Object.assign({}, t.type_agv || {}, fieldDef.type_agv || {})
     merged.type_agv = agv
     return merged
   }

@@ -1,168 +1,455 @@
-// aeditor.ui.colorInput — color swatch + popover with HSV picker + hex input.
+// aeditor.ui.colorInput - compact swatch + rich ARGB color picker.
 //
 // opts:
-//   value:     string|int|signal   hex ("#rrggbb") or 24-bit int (0xRRGGBB)
+//   value:     string|int|signal   "#rrggbb", "#aarrggbb", or 24-bit int
 //   onChange?: (v) => void
-//   valueKind?: 'hex' | 'int'      (default 'hex')   how the bound signal holds the value
+//   valueKind?: 'hex' | 'int'      (default 'hex')
+//   disabled?: bool|signal
 //
-// With valueKind='int', the signal stores an integer 0..0xFFFFFF. The swatch
-// and picker internally work in hex strings; round-trip conversion happens at
-// the signal boundary.
+// The picker works internally as #AARRGGBB so alpha editing is lossless. The
+// public value preserves the existing contract: valueKind:'int' remains 24-bit
+// RGB, while hex values stay #RRGGBB unless alpha is edited or the input already
+// carried alpha.
 ;(function (aeditor) {
   'use strict'
   const ui = aeditor.ui = aeditor.ui || {}
-
-  function toHexStr(v) {
-    if (typeof v === 'number') {
-      const n = Math.max(0, Math.min(0xffffff, Math.trunc(v || 0)))
-      let s = n.toString(16); while (s.length < 6) s = '0' + s
-      return '#' + s
-    }
-    return v
-  }
+  const FAVORITES_KEY = 'aeditor-color-picker-favorites'
 
   ui.colorInput = function (opts) {
     const o = opts || {}
     const valueKind = o.valueKind === 'int' ? 'int' : 'hex'
     const sig = ui.asSig(o.value != null ? o.value : (valueKind === 'int' ? 0x7b6ef6 : '#7b6ef6'))
+    const disabled = ui.asSig(o.disabled != null ? o.disabled : false)
     const rawWrite = ui.writer(sig, o.onChange, 'ui.colorInput')
-    // Internal API operates on hex strings; translate to/from int at the edge.
-    function doWrite(hex) {
-      if (valueKind === 'int') rawWrite(parseInt(hex.slice(1), 16))
-      else rawWrite(hex)
+    let lastExternal = sig.peek()
+    let pop = null
+
+    function writeArgb(argb, preferAlpha) {
+      const next = formatForValue(argb, lastExternal, valueKind, preferAlpha)
+      rawWrite(next)
     }
 
     const el = ui.h('div', 'aeditor-ui-color')
-    const swatch = ui.h('div', 'aeditor-ui-color-swatch')
-    const text = ui.h('input', 'aeditor-ui-color-text', { type: 'text' })
-    el.appendChild(swatch); el.appendChild(text)
+    const swatch = ui.h('button', 'aeditor-ui-color-swatch', { type: 'button', title: 'Pick color', 'aria-label': 'Pick color' })
+    const swatchFill = ui.h('span', 'aeditor-ui-color-swatch-fill')
+    const text = ui.input({
+      value: '',
+      disabled: disabled,
+      onChange: function (raw) {
+        const parsed = parseColor(raw)
+        if (parsed) writeArgb(parsed, alphaOf(parsed) < 255)
+      },
+    })
+    text.classList.add('aeditor-ui-color-text')
+    swatch.appendChild(swatchFill)
+    el.appendChild(swatch)
+    el.appendChild(text)
 
+    ui.bindAttr(swatch, disabled, 'disabled')
+    ui.bind(el, disabled, function (v) { el.classList.toggle('aeditor-ui-color-disabled', !!v) })
     ui.bind(el, sig, function (v) {
-      const hex = toHexStr(v)
-      swatch.style.background = hex
-      if (document.activeElement !== text) text.value = valueKind === 'int' ? String(v) : hex
-    })
-    text.addEventListener('input', function () {
-      const raw = text.value.trim()
-      // Accept "#rrggbb" / "#rgb" / a plain integer literal.
-      if (/^#[0-9a-f]{6}$/i.test(raw) || /^#[0-9a-f]{3}$/i.test(raw)) {
-        doWrite(raw)
-      } else if (/^\d+$/.test(raw)) {
-        const hex = toHexStr(parseInt(raw, 10))
-        doWrite(hex)
-      }
+      lastExternal = v
+      const argb = normalizeColor(v, valueKind)
+      swatchFill.style.background = argbToRgba(argb)
+      const shown = formatForValue(argb, v, valueKind, alphaOf(argb) < 255 || hasAlpha(v))
+      const input = text.querySelector('input')
+      if (input && document.activeElement !== input) input.value = shown
+      if (pop && pop.sync) pop.sync(argb)
     })
 
-    let pop = null
     swatch.addEventListener('click', function () {
+      if (disabled.peek()) return
       if (pop) { pop.close(); pop = null; return }
-      pop = openPicker(el, sig, doWrite, function () { pop = null })
+      pop = openPicker(el, normalizeColor(sig.peek(), valueKind), writeArgb, function () { pop = null })
     })
-    // If the component is disposed while the picker is open, tear it down.
     ui.collect(el, function () { if (pop) { pop.close(); pop = null } })
     return el
   }
 
-  // ── HSV picker popover ─────────────────────────────────────────
-  function openPicker(anchor, sig, doWrite, onClose) {
+  function openPicker(anchor, initialArgb, doWrite, onClose) {
+    const state = {
+      argb: normalizeColor(initialArgb, 'hex'),
+      mode: aeditor.signal('hex'),
+      favorites: readFavorites(),
+      valueInputs: [],
+      valueFills: [],
+    }
     const wrap = ui.h('div', 'aeditor-ui-color-picker')
-
-    // The picker always works in hex internally; int-valued signals get
-    // translated at the boundary by doWrite().
-    const hsv = hexToHsv(toHexStr(sig.peek())) || { h: 0, s: 1, v: 1 }
-    const sigH = aeditor.signal(hsv.h)
-    const sigS = aeditor.signal(hsv.s)
-    const sigV = aeditor.signal(hsv.v)
-
-    // SV square
+    const main = ui.h('div', 'aeditor-ui-color-picker-main')
     const sv = ui.h('div', 'aeditor-ui-color-sv')
     const svDot = ui.h('div', 'aeditor-ui-color-sv-dot')
-    sv.appendChild(svDot)
-    // Hue strip
     const hue = ui.h('div', 'aeditor-ui-color-hue')
-    const hueDot = ui.h('div', 'aeditor-ui-color-hue-dot')
-    hue.appendChild(hueDot)
-    // Hex input
-    const hex = ui.h('input', 'aeditor-ui-color-hex', { type: 'text' })
-
-    wrap.appendChild(sv); wrap.appendChild(hue); wrap.appendChild(hex)
-
-    function update() {
-      sv.style.background = 'linear-gradient(to top, #000, transparent), linear-gradient(to right, #fff, hsl(' +
-                            (sigH.peek() * 360) + ',100%,50%))'
-      svDot.style.left = (sigS.peek() * 100) + '%'
-      svDot.style.top  = ((1 - sigV.peek()) * 100) + '%'
-      hueDot.style.left = (sigH.peek() * 100) + '%'
-      const out = hsvToHex(sigH.peek(), sigS.peek(), sigV.peek())
-      doWrite(out)
-      if (document.activeElement !== hex) hex.value = out
-    }
-    const stopEffect = aeditor.effect(function () { sigH(); sigS(); sigV(); update() })
-
-    ui.attachDrag(sv, {
-      onStart: scrubSv, onMove: scrubSv,
+    const hueInput = ui.h('input', 'aeditor-ui-color-range', { type: 'range', min: '0', max: '360' })
+    const alpha = ui.h('div', 'aeditor-ui-color-alpha')
+    const alphaInput = ui.h('input', 'aeditor-ui-color-range', { type: 'range', min: '0', max: '1', step: '0.01' })
+    const values = ui.h('div', 'aeditor-ui-color-values')
+    const mode = ui.segmented({
+      value: state.mode,
+      options: [
+        { value: 'hex', label: 'HEX' },
+        { value: 'rgb', label: 'RGB' },
+        { value: 'hsl', label: 'HSL' },
+      ],
     })
+    const valueRow = ui.h('div', 'aeditor-ui-color-value-row')
+    const favorites = ui.h('div', 'aeditor-ui-color-favorites')
+
+    sv.appendChild(svDot)
+    hue.appendChild(hueInput)
+    alpha.appendChild(alphaInput)
+    main.appendChild(sv)
+    main.appendChild(hue)
+    main.appendChild(alpha)
+    values.appendChild(mode)
+    values.appendChild(valueRow)
+    wrap.appendChild(main)
+    wrap.appendChild(values)
+    wrap.appendChild(favorites)
+
+    function setArgb(argb, preferAlpha) {
+      state.argb = normalizeColor(argb, 'hex')
+      render()
+      doWrite(state.argb, preferAlpha)
+    }
+
+    function sync(argb) {
+      state.argb = normalizeColor(argb, 'hex')
+      render()
+    }
+
+    function render() {
+      const hsl = argbToHsl(state.argb)
+      const rgb = argbToRgb(state.argb)
+      const hueColor = 'hsl(' + hsl.h + ', 100%, 50%)'
+      const brightness = hsl.l / (50 + (100 - hsl.s) / 2)
+      sv.style.background = 'linear-gradient(to bottom, transparent 0%, black 100%), linear-gradient(to right, white 0%, ' + hueColor + ' 100%)'
+      svDot.style.left = hsl.s + '%'
+      svDot.style.top = (100 - clamp01(brightness) * 100) + '%'
+      hueInput.value = String(hsl.h)
+      alphaInput.value = String(rgb.a)
+      alphaInput.style.background = 'linear-gradient(to right, transparent, ' + argbToRgba(setAlpha(state.argb, 255)) + ')'
+      updateValueControls()
+      renderFavorites()
+    }
+
+    function renderValueRow() {
+      ui.disposeChildren(valueRow)
+      state.valueInputs = []
+      state.valueFills = []
+      const currentMode = state.mode.peek()
+      const rgb = argbToRgb(state.argb)
+      const hsl = argbToHsl(state.argb)
+      if (currentMode === 'hex') {
+        const preview = colorPreview(state.argb, 'aeditor-ui-color-current')
+        const hex = ui.input({
+          value: state.argb,
+          onChange: function (v) {
+            const parsed = parseColor(v)
+            if (parsed) setArgb(parsed, hasAlpha(v))
+          },
+        })
+        hex.classList.add('aeditor-ui-color-hex-field')
+        state.valueFills.push(preview.querySelector('.aeditor-ui-color-preview-fill'))
+        state.valueInputs.push({ kind: 'hex', el: hex.querySelector('input') })
+        valueRow.appendChild(preview)
+        valueRow.appendChild(hex)
+        if ('EyeDropper' in window) {
+          valueRow.appendChild(ui.iconButton({
+            icon: 'pipette',
+            title: 'Pick color from screen',
+            size: 'sm',
+            onClick: function () { pickFromScreen(setArgb) },
+          }))
+        }
+        valueRow.appendChild(ui.iconButton({
+          icon: 'plus',
+          title: 'Add to favorites',
+          size: 'sm',
+          onClick: function () {
+            addFavorite(state)
+            renderFavorites()
+          },
+        }))
+        updateValueControls()
+        return
+      }
+      const channels = currentMode === 'rgb'
+        ? [
+            ['r', rgb.r, 0, 255, 1],
+            ['g', rgb.g, 0, 255, 1],
+            ['b', rgb.b, 0, 255, 1],
+            ['a', rgb.a, 0, 1, 0.01],
+          ]
+        : [
+            ['h', hsl.h, 0, 360, 1],
+            ['s', hsl.s, 0, 100, 1],
+            ['l', hsl.l, 0, 100, 1],
+            ['a', hsl.a, 0, 1, 0.01],
+          ]
+      for (let i = 0; i < channels.length; i++) {
+        const ch = channels[i]
+        valueRow.appendChild(channelInput(ch[0], ch[1], ch[2], ch[3], ch[4], function (next) {
+          if (currentMode === 'rgb') {
+            const nextRgb = argbToRgb(state.argb)
+            nextRgb[ch[0]] = next
+            setArgb(rgbToArgb(nextRgb.r, nextRgb.g, nextRgb.b, nextRgb.a), true)
+          } else {
+            const nextHsl = argbToHsl(state.argb)
+            nextHsl[ch[0]] = next
+            setArgb(hslToArgb(nextHsl.h, nextHsl.s, nextHsl.l, nextHsl.a), true)
+          }
+        }))
+      }
+      state.valueInputs = Array.prototype.slice.call(valueRow.querySelectorAll('.aeditor-ui-color-channel-input')).map(function (el, index) {
+        return { kind: currentMode, channel: channels[index][0], step: channels[index][4], el: el }
+      })
+      updateValueControls()
+    }
+
+    function updateValueControls() {
+      const rgb = argbToRgb(state.argb)
+      const hsl = argbToHsl(state.argb)
+      for (let i = 0; i < state.valueFills.length; i++) {
+        if (state.valueFills[i]) state.valueFills[i].style.background = argbToRgba(state.argb)
+      }
+      for (let i = 0; i < state.valueInputs.length; i++) {
+        const item = state.valueInputs[i]
+        if (!item.el || document.activeElement === item.el) continue
+        if (item.kind === 'hex') item.el.value = state.argb
+        else {
+          const source = item.kind === 'rgb' ? rgb : hsl
+          const value = source[item.channel]
+          item.el.value = item.step < 1 ? String(round2(value)) : String(Math.round(value))
+        }
+      }
+    }
+
+    function renderFavorites() {
+      ui.disposeChildren(favorites)
+      if (!state.favorites.length) {
+        favorites.style.display = 'none'
+        return
+      }
+      favorites.style.display = ''
+      favorites.appendChild(ui.h('div', 'aeditor-ui-color-favorites-title', { text: 'FAVORITES' }))
+      const grid = ui.h('div', 'aeditor-ui-color-favorites-grid')
+      for (let i = 0; i < state.favorites.length; i++) {
+        const fav = state.favorites[i]
+        const btn = ui.h('button', 'aeditor-ui-color-favorite', {
+          type: 'button',
+          title: 'Left click to use, right click to remove',
+          'aria-label': fav,
+        })
+        btn.appendChild(colorPreview(fav, 'aeditor-ui-color-favorite-fill'))
+        btn.classList.toggle('aeditor-ui-color-favorite-active', fav.toUpperCase() === state.argb.toUpperCase())
+        btn.addEventListener('click', function () { setArgb(fav, alphaOf(fav) < 255) })
+        btn.addEventListener('contextmenu', function (e) {
+          e.preventDefault()
+          removeFavorite(state, fav)
+          renderFavorites()
+        })
+        grid.appendChild(btn)
+      }
+      favorites.appendChild(grid)
+    }
+
+    ui.bind(wrap, state.mode, renderValueRow)
+    ui.collect(wrap, ui.attachDrag(sv, {
+      onStart: scrubSv,
+      onMove: scrubSv,
+    }))
     function scrubSv(e) {
       const r = sv.getBoundingClientRect()
-      sigS.set(Math.max(0, Math.min(1, (e.clientX - r.left) / r.width)))
-      sigV.set(Math.max(0, Math.min(1, 1 - (e.clientY - r.top) / r.height)))
+      const x = clamp01((e.clientX - r.left) / r.width)
+      const y = clamp01((e.clientY - r.top) / r.height)
+      const hsl = argbToHsl(state.argb)
+      const s = Math.round(x * 100)
+      const brightness = 1 - y
+      const l = Math.round(brightness * (50 + (100 - s) / 2))
+      setArgb(hslToArgb(hsl.h, s, l, hsl.a), alphaOf(state.argb) < 255)
     }
-    ui.attachDrag(hue, {
-      onStart: scrubHue, onMove: scrubHue,
+    hueInput.addEventListener('input', function () {
+      const hsl = argbToHsl(state.argb)
+      setArgb(hslToArgb(Number(hueInput.value), hsl.s, hsl.l, hsl.a), alphaOf(state.argb) < 255)
     })
-    function scrubHue(e) {
-      const r = hue.getBoundingClientRect()
-      sigH.set(Math.max(0, Math.min(1, (e.clientX - r.left) / r.width)))
-    }
-    hex.addEventListener('input', function () {
-      const h = hexToHsv(hex.value.trim())
-      if (h) { sigH.set(h.h); sigS.set(h.s); sigV.set(h.v) }
+    alphaInput.addEventListener('input', function () {
+      const hsl = argbToHsl(state.argb)
+      setArgb(hslToArgb(hsl.h, hsl.s, hsl.l, Number(alphaInput.value)), true)
     })
+    render()
 
-    return ui.popover({
-      anchor: anchor, content: wrap, side: 'bottom', align: 'start',
-      onDismiss: function () { stopEffect(); onClose && onClose() },
+    const pop = ui.popover({
+      anchor: anchor,
+      content: wrap,
+      side: 'bottom',
+      align: 'start',
+      onDismiss: onClose,
     })
+    pop.sync = sync
+    return pop
   }
 
-  // ── color math ─────────────────────────────────────────────────
-  function hexToHsv(hex) {
-    if (!hex) return null
-    let m = /^#?([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(hex)
-    if (!m) return null
-    let h = m[1]
-    if (h.length === 3) h = h[0]+h[0]+h[1]+h[1]+h[2]+h[2]
-    const r = parseInt(h.slice(0,2), 16) / 255
-    const g = parseInt(h.slice(2,4), 16) / 255
-    const b = parseInt(h.slice(4,6), 16) / 255
-    const mx = Math.max(r,g,b), mn = Math.min(r,g,b), d = mx - mn
-    let H = 0
-    if (d > 0) {
-      if (mx === r) H = ((g - b) / d) % 6
-      else if (mx === g) H = (b - r) / d + 2
-      else H = (r - g) / d + 4
-      H = (H * 60 + 360) % 360 / 360
-    }
-    const S = mx === 0 ? 0 : d / mx
-    const V = mx
-    return { h: H, s: S, v: V }
+  function colorPreview(argb, cls) {
+    const el = ui.h('span', cls || 'aeditor-ui-color-preview')
+    const fill = ui.h('span', 'aeditor-ui-color-preview-fill')
+    fill.style.background = argbToRgba(normalizeColor(argb, 'hex'))
+    el.appendChild(fill)
+    return el
   }
-  function hsvToHex(h, s, v) {
-    const i = Math.floor(h * 6)
-    const f = h * 6 - i
-    const p = v * (1 - s)
-    const q = v * (1 - f * s)
-    const t = v * (1 - (1 - f) * s)
+
+  function channelInput(label, value, min, max, step, onChange) {
+    const wrap = ui.h('label', 'aeditor-ui-color-channel')
+    const lab = ui.h('span', 'aeditor-ui-color-channel-label', { text: label })
+    const input = ui.h('input', 'aeditor-ui-color-channel-input', {
+      type: 'number',
+      min: String(min),
+      max: String(max),
+      step: String(step),
+    })
+    input.value = step < 1 ? String(round2(value)) : String(Math.round(value))
+    input.addEventListener('input', function () {
+      const n = Number(input.value)
+      if (Number.isFinite(n)) onChange(Math.max(min, Math.min(max, n)))
+    })
+    wrap.appendChild(lab)
+    wrap.appendChild(input)
+    return wrap
+  }
+
+  async function pickFromScreen(setArgb) {
+    try {
+      const eyeDropper = new window.EyeDropper()
+      const result = await eyeDropper.open()
+      if (!result || !result.sRGBHex) return
+      setArgb(normalizeColor(result.sRGBHex, 'hex'), false)
+    } catch (_) {}
+  }
+
+  function readFavorites() {
+    const raw = localStorage.getItem(FAVORITES_KEY)
+    if (!raw) return []
+    try {
+      const parsed = JSON.parse(raw)
+      return Array.isArray(parsed) ? parsed.map(function (v) { return normalizeColor(v, 'hex') }).slice(0, 16) : []
+    } catch (_) {
+      return []
+    }
+  }
+  function saveFavorites(list) {
+    localStorage.setItem(FAVORITES_KEY, JSON.stringify(list.slice(0, 16)))
+  }
+  function addFavorite(state) {
+    const color = state.argb.toUpperCase()
+    const next = [color]
+    for (let i = 0; i < state.favorites.length; i++) {
+      if (state.favorites[i].toUpperCase() !== color) next.push(state.favorites[i])
+    }
+    state.favorites = next.slice(0, 16)
+    saveFavorites(state.favorites)
+  }
+  function removeFavorite(state, color) {
+    const key = color.toUpperCase()
+    state.favorites = state.favorites.filter(function (v) { return v.toUpperCase() !== key })
+    saveFavorites(state.favorites)
+  }
+
+  function parseColor(v) {
+    if (v == null) return null
+    const s = String(v).trim()
+    if (/^#[0-9a-f]{3}$/i.test(s)) return '#FF' + s[1]+s[1] + s[2]+s[2] + s[3]+s[3]
+    if (/^#[0-9a-f]{4}$/i.test(s)) return expandArgb(s)
+    if (/^#[0-9a-f]{6}$/i.test(s)) return '#FF' + s.slice(1).toUpperCase()
+    if (/^#[0-9a-f]{8}$/i.test(s)) return s.toUpperCase()
+    if (/^[0-9a-f]{6}$/i.test(s)) return '#FF' + s.toUpperCase()
+    if (/^[0-9a-f]{8}$/i.test(s)) return '#' + s.toUpperCase()
+    if (/^\d+$/.test(s)) {
+      const n = Math.max(0, Math.min(0xffffffff, Math.trunc(Number(s))))
+      let hex = n.toString(16).toUpperCase()
+      if (hex.length <= 6) return '#FF' + pad(hex, 6)
+      return '#' + pad(hex, 8)
+    }
+    return null
+  }
+  function normalizeColor(v, valueKind) {
+    if (valueKind === 'int' && typeof v === 'number') return '#FF' + pad(Math.max(0, Math.min(0xffffff, Math.trunc(v || 0))).toString(16).toUpperCase(), 6)
+    return parseColor(v) || '#FF000000'
+  }
+  function formatForValue(argb, original, valueKind, preferAlpha) {
+    const normalized = normalizeColor(argb, 'hex')
+    if (valueKind === 'int') return parseInt(normalized.slice(3), 16)
+    if (!preferAlpha && !hasAlpha(original) && normalized.slice(1, 3).toUpperCase() === 'FF') return '#' + normalized.slice(3)
+    return normalized
+  }
+  function hasAlpha(v) {
+    if (typeof v !== 'string') return false
+    const s = v.trim()
+    return /^#[0-9a-f]{8}$/i.test(s) || /^[0-9a-f]{8}$/i.test(s) || /^#[0-9a-f]{4}$/i.test(s)
+  }
+  function alphaOf(argb) { return parseInt(normalizeColor(argb, 'hex').slice(1, 3), 16) }
+  function setAlpha(argb, a) { return '#' + hex2(a) + normalizeColor(argb, 'hex').slice(3) }
+  function argbToRgb(argb) {
+    const s = normalizeColor(argb, 'hex')
+    return {
+      a: round2(parseInt(s.slice(1, 3), 16) / 255),
+      r: parseInt(s.slice(3, 5), 16),
+      g: parseInt(s.slice(5, 7), 16),
+      b: parseInt(s.slice(7, 9), 16),
+    }
+  }
+  function rgbToArgb(r, g, b, a) {
+    return '#' + hex2((Number(a) || 0) * 255) + hex2(r) + hex2(g) + hex2(b)
+  }
+  function argbToRgba(argb) {
+    const s = normalizeColor(argb, 'hex')
+    return '#' + s.slice(3) + s.slice(1, 3)
+  }
+  function argbToHsl(argb) {
+    const rgb = argbToRgb(argb)
+    const r = rgb.r / 255
+    const g = rgb.g / 255
+    const b = rgb.b / 255
+    const max = Math.max(r, g, b)
+    const min = Math.min(r, g, b)
+    let h = 0
+    let s = 0
+    const l = (max + min) / 2
+    if (max !== min) {
+      const d = max - min
+      s = l > 0.5 ? d / (2 - max - min) : d / (max + min)
+      if (max === r) h = (g - b) / d + (g < b ? 6 : 0)
+      else if (max === g) h = (b - r) / d + 2
+      else h = (r - g) / d + 4
+      h = h / 6
+    }
+    return { h: Math.round(h * 360), s: Math.round(s * 100), l: Math.round(l * 100), a: rgb.a }
+  }
+  function hslToArgb(h, s, l, a) {
+    h = ((Number(h) % 360) + 360) % 360 / 360
+    s = clamp01(Number(s) / 100)
+    l = clamp01(Number(l) / 100)
     let r, g, b
-    switch (i % 6) {
-      case 0: r = v; g = t; b = p; break
-      case 1: r = q; g = v; b = p; break
-      case 2: r = p; g = v; b = t; break
-      case 3: r = p; g = q; b = v; break
-      case 4: r = t; g = p; b = v; break
-      case 5: r = v; g = p; b = q; break
+    if (s === 0) {
+      r = g = b = l
+    } else {
+      const q = l < 0.5 ? l * (1 + s) : l + s - l * s
+      const p = 2 * l - q
+      r = hue2rgb(p, q, h + 1 / 3)
+      g = hue2rgb(p, q, h)
+      b = hue2rgb(p, q, h - 1 / 3)
     }
-    function h2(x) { return ('0' + Math.round(x * 255).toString(16)).slice(-2) }
-    return '#' + h2(r) + h2(g) + h2(b)
+    return rgbToArgb(r * 255, g * 255, b * 255, a)
   }
+  function hue2rgb(p, q, t) {
+    if (t < 0) t += 1
+    if (t > 1) t -= 1
+    if (t < 1 / 6) return p + (q - p) * 6 * t
+    if (t < 1 / 2) return q
+    if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6
+    return p
+  }
+  function expandArgb(s) { return '#' + s[1]+s[1] + s[2]+s[2] + s[3]+s[3] + s[4]+s[4] }
+  function pad(s, n) { while (s.length < n) s = '0' + s; return s }
+  function hex2(v) { return pad(Math.max(0, Math.min(255, Math.round(Number(v) || 0))).toString(16).toUpperCase(), 2) }
+  function clamp01(v) { return Math.max(0, Math.min(1, Number(v) || 0)) }
+  function round2(v) { return Math.round((Number(v) || 0) * 100) / 100 }
 })(window.aeditor = window.aeditor || {})

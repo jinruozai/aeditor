@@ -1,9 +1,8 @@
 # AI Registries
 
-This document describes the final registry shape and the current implementation
-that must be migrated carefully.
+This document describes the registry shape used by the current implementation.
 
-## Final Registry Shape
+## Registry Shape
 
 AI has three primary registries:
 
@@ -13,13 +12,13 @@ context
 operations
 ```
 
-No new model-facing registry should be added for attachments, references,
-resources, resolvers, or skills.
+No new model-facing registry should be added for attachments, references, or
+skills.
 
 Skills are separate from these registries. They shape agent behavior and prompt
 rules, but they do not execute actions, read context, or apply changes.
 
-Target API:
+Public API:
 
 ```js
 aeditor.ai.tools.register(name, spec)
@@ -54,33 +53,59 @@ ui module        -> ui.* tools / context / operations
 domain code      -> domain-prefix.* tools / context / operations
 ```
 
-## Current Tool Registry
+## Tool Registry
 
-Current code exposes a flat tool registry:
+There is one tool facade:
 
 ```js
-aeditor.ai.registerTool(name, spec, meta)
-aeditor.ai.unregisterTool(name, meta)
-aeditor.ai.getTool(name)
-aeditor.ai.listTools()
+aeditor.ai.tools.register(name, spec, meta)
+aeditor.ai.tools.unregister(name, meta)
+aeditor.ai.tools.unregisterPrefix(prefix)
+aeditor.ai.tools.get(name)
+aeditor.ai.tools.list(prefix)
 ```
 
-The existing registry is functional and should be wrapped or migrated into
-`aeditor.ai.tools.*` without changing tool execution semantics.
+Do not create a second tool registry. New framework code should use
+`aeditor.ai.tools.*`.
 
-Current built-in tool prefixes:
+`meta.owner` may exist for diagnostics and safety checks. Lifecycle cleanup uses
+dotted prefixes through `unregisterPrefix(prefix)`.
+
+Built-in tool prefixes:
 
 ```text
 workspace.*
+code.*
+git.*
+verify.*
 aeditor.*
 agent.*
 quest.*
 message.*
 ```
 
+`git.*` and `verify.*` are optional host-adapter prefixes. They should only be
+registered when their adapter is configured, so the model never sees unavailable
+tools.
+
+Tool specs may also expose two model-visibility fields:
+
+```js
+{
+  available: function (requestContext) { return true },
+  exposeToModel: false,
+}
+```
+
+`available` is for runtime state such as "a workspace is currently open".
+`exposeToModel: false` is for low-level host escape hatches that remain callable
+by framework code but should not appear in normal model requests. Direct
+registry access is unchanged; the visibility rule only decides what the request
+builder sends to the provider.
+
 ## Context, Reference, Target
 
-Final definitions:
+Definitions:
 
 ```text
 Context
@@ -110,22 +135,22 @@ Everything else should fold into that flow:
 ```text
 attachment      runtime chat/session state
 rich prompt ref inline reference inside message text
-resolver        implementation detail behind context reads
 ```
 
 These are useful implementation pieces, not new architecture categories.
 
-## Current References And Context
+## References And Context
 
-There are currently two similar meanings:
+There are two related pieces:
 
-1. `aeditor.ai.resources` is a signal containing attached chat/session items.
+1. `aeditor.ai.attachments` is a signal containing attached chat/session items.
 2. `aeditor.ai.references` is a provider registry for readable editor
    references.
 
-Final design should avoid this collision.
+The public runtime attachment name is `attachments`; do not reintroduce
+`resources` for chat attachments.
 
-Recommended final split:
+Public split:
 
 ```text
 aeditor.ai.attachments      // runtime attached items in chat/session
@@ -133,7 +158,7 @@ aeditor.ai.context          // registry of readable model-context providers
 aeditor.ai.references       // normalized reference protocol
 ```
 
-Current reference APIs:
+Reference APIs:
 
 ```js
 aeditor.ai.references.register(name, provider, meta)
@@ -151,56 +176,35 @@ The reference protocol is valuable and should not be lost. It should remain a
 small pointer/helper protocol under the context flow, not a competing registry
 concept.
 
-Current resolver APIs:
-
-```js
-aeditor.ai.registerResourceResolver(name, resolver)
-aeditor.ai.getResourceResolver(name)
-aeditor.ai.listResourceResolvers()
-```
-
-Resolvers are the bridge from normalized references to readable content. In the
-final design, a resolver is simply an implementation detail of a context
-provider. It should not become a fourth registry.
-
-Reference providers, resource resolvers, target providers, and rich prompt refs
-all support one user-facing idea:
+Reference providers, target providers, and rich prompt refs all support one
+user-facing idea:
 
 ```text
 the user points at something -> the model can read the right context
 ```
 
-Keep that idea unified even if current code has several helper registries.
-
-Migration target:
-
-```text
-aeditor.ai.resources              -> aeditor.ai.attachments
-aeditor.ai.references provider API -> context-backed reference protocol
-registerResourceResolver           -> internal context resolver helper
-```
+Keep that idea unified: UI selection and rich prompt helpers should always
+produce normalized references that can be read through the reference protocol.
 
 ## Operations
 
-Current operations are already close to the final design:
+Public operation API:
 
 ```js
 aeditor.ai.operations.register(name, spec, meta)
 aeditor.ai.operations.unregister(name, meta)
+aeditor.ai.operations.unregisterPrefix(prefix)
 aeditor.ai.operations.get(name)
-aeditor.ai.operations.list(filter)
-aeditor.ai.operations.preview(input, ctx)
+aeditor.ai.operations.list(prefixOrFilter)
+aeditor.ai.operations.preview(name, input, ctx)
 aeditor.ai.operations.apply(preview, ctx)
 ```
 
 Operations support validation, risk, preview storage, apply, and transaction
 integration.
 
-Final changes needed:
-
-- add `unregisterPrefix(prefix)`
-- align call shape with `preview(name, input)` if desired
-- keep existing preview/apply semantics
+Preview stores a reviewable operation preview. Apply consumes that preview and
+returns the operation result.
 
 ## Targets
 
@@ -226,7 +230,8 @@ aeditor.ai.fileToTarget(file)
 ```
 
 This is the implemented "add to chat" foundation. It must stay as a first-class
-part of the AI layer.
+part of the AI layer implementation. Architecturally it belongs to the Context
+Reference UX flow, not to the public five-concept model in [ai.md](./ai.md).
 
 ## Rich Prompt
 
@@ -254,7 +259,7 @@ AI registry category.
 
 ## Change Set
 
-`aeditor.changeSet` is currently implemented for grouped reviewable changes.
+`aeditor.changeSet` provides grouped reviewable changes.
 
 Implemented APIs:
 
@@ -270,7 +275,7 @@ aeditor.changeSet.registerAdapter(name, adapter)
 aeditor.changeSet.registerRenderer(name, renderer)
 ```
 
-Final design relationship:
+Design relationship:
 
 - Operation: one previewable action.
 - ChangeSet: review UI and grouped application for many changes/targets.

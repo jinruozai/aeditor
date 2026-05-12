@@ -1,15 +1,15 @@
-// Component registry — the single registration point for everything that can
-// be put into a panel, a toolbar, a UI tree, or a card layout. § 4.8.
+// Component registry - the single registration point for everything that can
+// be put into a panel, a toolbar, a UI tree, or a card layout.
 //
 //   aeditor.registerComponent(name, spec)
-//   aeditor.resolveComponent(name)             → spec     (throws on unknown)
-//   aeditor.componentDefaults(name)            → object   (spec.defaults?.() ?? {})
-//   aeditor.listComponents()                   → [{ name, ...spec }]
+//   aeditor.resolveComponent(name)             -> spec     (throws on unknown)
+//   aeditor.componentDefaults(name)            -> object   (spec.defaults?.() ?? {})
+//   aeditor.listComponents()                   -> [{ name, ...spec }]
 //
 // ComponentSpec = {
 //   factory:           (propsSig, ctx) => HTMLElement,    // required
 //
-//   // Panel/toolbar lifecycle (consumed by the dock runtime — § 4.16)
+//   // Panel/toolbar lifecycle (consumed by the dock runtime)
 //   defaults?:         () => ({ title?, icon?, props?, toolbarItems? }),
 //   dispose?:          (el) => void,
 //   serialize?:        (el) => any,
@@ -28,7 +28,7 @@
 // The factory's first parameter is a signal carrying the current props.
 // Read with `propsSig()` inside an effect for reactivity, or `propsSig.peek()`
 // for a one-shot snapshot. The runtime / renderer that materializes the
-// component decides what feeds the signal — for panel components it's
+// component decides what feeds the signal: for panel components it's
 // ctx.panel.props (live); for toolbar items / UI-tree leaves it's a frozen
 // signal seeded from the literal/static props.
 ;(function (aeditor) {
@@ -36,6 +36,11 @@
 
   const components = new Map()
   const componentMeta = new Map()
+  const versionSig = aeditor.signal(0)
+
+  function bumpVersion() {
+    versionSig.set(versionSig.peek() + 1)
+  }
 
   function registerComponent(name, spec, meta) {
     if (typeof name !== 'string' || name.length === 0)
@@ -46,6 +51,7 @@
       throw new Error('registerComponent: spec.factory must be a function')
     components.set(name, spec)
     componentMeta.set(name, normalizeMeta(meta))
+    bumpVersion()
     return spec
   }
 
@@ -71,6 +77,8 @@
     return out
   }
 
+  const matchesPrefix = aeditor.names.matchesPrefix
+
   function unregisterComponent(name, meta) {
     if (!components.has(name)) return false
     const existing = componentMeta.get(name) || {}
@@ -80,7 +88,20 @@
       throw new Error('unregisterComponent: cannot remove ownerless component "' + name + '" by owner')
     components.delete(name)
     componentMeta.delete(name)
+    bumpVersion()
     return true
+  }
+
+  function unregisterComponentPrefix(prefix) {
+    const removed = []
+    components.forEach(function (spec, name) {
+      if (!matchesPrefix(name, prefix)) return
+      components.delete(name)
+      componentMeta.delete(name)
+      removed.push(name)
+    })
+    if (removed.length) bumpVersion()
+    return removed
   }
 
   function unregisterComponentOwner(owner) {
@@ -93,6 +114,7 @@
         removed.push(name)
       }
     })
+    if (removed.length) bumpVersion()
     return removed
   }
 
@@ -114,6 +136,8 @@
   aeditor.componentDefaults  = componentDefaults
   aeditor.listComponents     = listComponents
   aeditor.unregisterComponent = unregisterComponent
+  aeditor.unregisterComponentPrefix = unregisterComponentPrefix
   aeditor.unregisterComponentOwner = unregisterComponentOwner
   aeditor.componentRegistration = componentRegistration
+  aeditor.componentRegistryVersion = versionSig
 })(window.aeditor = window.aeditor || {})

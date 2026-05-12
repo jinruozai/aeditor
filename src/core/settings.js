@@ -58,6 +58,8 @@
     return out
   }
 
+  const matchesPrefix = aeditor.names.matchesPrefix
+
   function registerSection(id, spec, meta) {
     const s = spec || {}
     const section = {
@@ -127,6 +129,26 @@
     const sectionIds = Object.keys(sectionMeta).filter(function (id) { return sectionMeta[id].owner === owner })
     const schemaKeys = Object.keys(schemaMeta).filter(function (key) { return schemaMeta[key].owner === owner })
     const pageIds = Object.keys(pageMeta).filter(function (id) { return pageMeta[id].owner === owner })
+    sectionsSig.update(function (list) {
+      return list.filter(function (item) { return sectionIds.indexOf(item.id) < 0 })
+    })
+    schemasSig.update(function (list) {
+      return list.filter(function (item) { return schemaKeys.indexOf(item.key) < 0 })
+    })
+    pagesSig.update(function (list) {
+      return list.filter(function (item) { return pageIds.indexOf(item.id) < 0 })
+    })
+    for (let i = 0; i < sectionIds.length; i++) { delete sectionMeta[sectionIds[i]]; removed.push(sectionIds[i]) }
+    for (let j = 0; j < schemaKeys.length; j++) { delete schemaMeta[schemaKeys[j]]; removed.push(schemaKeys[j]) }
+    for (let k = 0; k < pageIds.length; k++) { delete pageMeta[pageIds[k]]; removed.push(pageIds[k]) }
+    return removed
+  }
+
+  function unregisterPrefix(prefix) {
+    const removed = []
+    const sectionIds = Object.keys(sectionMeta).filter(function (id) { return matchesPrefix(id, prefix) })
+    const schemaKeys = Object.keys(schemaMeta).filter(function (key) { return matchesPrefix(key, prefix) })
+    const pageIds = Object.keys(pageMeta).filter(function (id) { return matchesPrefix(id, prefix) })
     sectionsSig.update(function (list) {
       return list.filter(function (item) { return sectionIds.indexOf(item.id) < 0 })
     })
@@ -228,6 +250,7 @@
   settings.registerSchema = registerSchema
   settings.registerPage = registerPage
   settings.unregisterOwner = unregisterOwner
+  settings.unregisterPrefix = unregisterPrefix
   settings.sectionMeta = function (id) { return Object.assign({}, sectionMeta[id] || {}) }
   settings.schemaMeta = function (key) { return Object.assign({}, schemaMeta[key] || {}) }
   settings.pageMeta = function (id) { return Object.assign({}, pageMeta[id] || {}) }

@@ -50,12 +50,15 @@
     for (let i = 0; i < regs.length; i++) {
       const reg = regs[i]
       if (seen[reg.name]) continue
+      if (reg.palette === false) continue
+      if (!reg.label && !reg.category && !reg.schema && !reg.bindable && !reg.appendChild) continue
       const source = sourceOfRegistration(reg)
+      const category = String(reg.category || 'custom').toLowerCase()
       out.push({
         id: 'component:' + reg.name,
         component: reg.name,
-        label: reg.label || reg.title || reg.name,
-        category: reg.category || 'custom',
+        label: reg.label || reg.name,
+        category: category,
         source: source,
         reg: reg,
       })
@@ -135,21 +138,32 @@
   }
 
   function renderCard(item, width, height) {
-    const card = ui.h('div', 'demo-ui-card')
+    const card = ui.card({ padded: false })
+    card.classList.add('demo-ui-card')
     card.style.width = width + 'px'
     card.style.height = height + 'px'
+    card.setAttribute('data-demo-category', item.category || '')
+    card.setAttribute('data-demo-component', item.component || '')
     card.setAttribute('data-demo-id', item.entry ? item.entry.id : item.component)
     card.title = item.label + ' / ' + item.component
-    if (aeditor.ai && aeditor.ai.attach) aeditor.ai.attach(card, function () { return itemTarget(item) }, { contextMenu: true })
 
-    const stage = ui.h('div', 'demo-ui-card-stage')
+    const stage = ui.view({ scroll: 'hidden', className: 'demo-ui-card-stage' })
+    const previewFrame = ui.h('div', 'demo-ui-card-preview')
+    previewFrame.setAttribute('data-demo-category', item.category || '')
+    previewFrame.setAttribute('data-demo-component', item.component || '')
     const preview = mountPreview(item)
-    if (preview) stage.appendChild(preview)
+    if (preview) previewFrame.appendChild(preview)
+    const footer = ui.h('div', 'demo-ui-card-footer')
     const name = ui.h('div', 'demo-ui-card-name', { text: item.label })
     const meta = ui.h('div', 'demo-ui-card-meta', { text: item.component })
-    card.appendChild(stage)
-    card.appendChild(name)
-    card.appendChild(meta)
+    footer.appendChild(name)
+    footer.appendChild(meta)
+    if (aeditor.ai && aeditor.ai.attach) {
+      aeditor.ai.attach(card, function () { return itemTarget(item) }, { contextMenu: true, dragHandle: footer })
+    }
+    stage.appendChild(previewFrame)
+    card.body.appendChild(stage)
+    card.body.appendChild(footer)
     card.addEventListener('click', function () {
       if (item.entry) Demo.selected.set(item.entry.id)
     })
@@ -165,6 +179,7 @@
     const sourceSig = aeditor.signal('all')
     const widthSig = aeditor.signal(128)
     const heightSig = aeditor.signal(150)
+    const allCollapsedSig = aeditor.signal(false)
 
     for (let i = 0; i < categories.length; i++) {
       const cat = categories[i]
@@ -178,6 +193,17 @@
     toolbar.appendChild(ui.h('span', 'demo-ui-gallery-tool-label', { text: 'H' }))
     toolbar.appendChild(ui.numberInput({ value: heightSig, min: 96, max: 360, step: 4, precision: 0 }))
     toolbar.appendChild(ui.select({ value: sourceSig, options: SOURCE_OPTIONS, variant: 'minimal' }))
+    toolbar.appendChild(ui.stateButton({
+      value: allCollapsedSig,
+      off: { icon: 'chevron-up', title: 'Collapse all', pressed: false },
+      on: { icon: 'chevron-down', title: 'Expand all', pressed: false },
+      size: 'sm',
+      kind: 'ghost',
+      onChange: function (next) {
+        const cats = visibleCategories()
+        for (let j = 0; j < cats.length; j++) collapsedSigs[cats[j]].set(next)
+      },
+    }))
 
     const categoryBar = ui.h('div', 'demo-ui-gallery-cats')
     for (let c = 0; c < categories.length; c++) {
@@ -187,9 +213,8 @@
     toolbar.appendChild(categoryBar)
     root.appendChild(toolbar)
 
-    const body = ui.h('div', 'demo-ui-gallery-body')
-    const scroll = ui.scrollArea({ children: body })
-    root.appendChild(scroll)
+    const body = ui.view({ className: 'demo-ui-gallery-body' })
+    root.appendChild(body)
 
     function filteredItems() {
       const source = sourceSig()
@@ -203,6 +228,20 @@
       return out
     }
 
+    function visibleCategories() {
+      const list = filteredItems()
+      const seen = {}
+      const out = []
+      for (let i = 0; i < list.length; i++) {
+        const cat = list[i].category
+        if (!seen[cat]) {
+          seen[cat] = true
+          out.push(cat)
+        }
+      }
+      return out
+    }
+
     function render() {
       while (body.firstChild) disposeTree(body.firstChild)
       const width = Math.max(88, Number(widthSig()) || 128)
@@ -212,25 +251,29 @@
         const cat = categories[i]
         const groupItems = list.filter(function (item) { return item.category === cat })
         if (!groupItems.length) continue
-        const section = ui.h('section', 'demo-ui-module')
-        const head = ui.h('button', 'demo-ui-module-head', { type: 'button' })
-        head.appendChild(ui.icon({ name: collapsedSigs[cat]() ? 'chevron-right' : 'chevron-down', size: 'sm' }))
-        head.appendChild(ui.h('span', 'demo-ui-module-title', { text: titleCase(cat) }))
-        head.appendChild(ui.h('span', 'demo-ui-module-count', { text: String(groupItems.length) }))
-        head.addEventListener('click', function (category) {
-          return function () { collapsedSigs[category].set(!collapsedSigs[category].peek()) }
-        }(cat))
-        section.appendChild(head)
-        if (!collapsedSigs[cat]()) {
-          const grid = ui.h('div', 'demo-ui-card-grid')
-          for (let j = 0; j < groupItems.length; j++) grid.appendChild(renderCard(groupItems[j], width, height))
-          section.appendChild(grid)
-        }
+        const grid = ui.h('div', 'demo-ui-card-grid')
+        for (let j = 0; j < groupItems.length; j++) grid.appendChild(renderCard(groupItems[j], width, height))
+        const section = ui.section({
+          title: titleCase(cat),
+          meta: String(groupItems.length),
+          collapsed: collapsedSigs[cat],
+          className: 'demo-ui-module',
+          bodyClassName: 'demo-ui-module-body',
+          children: grid,
+        })
         body.appendChild(section)
       }
     }
 
     ctx.onCleanup(aeditor.effect(render))
+    ctx.onCleanup(aeditor.effect(function () {
+      const cats = visibleCategories()
+      let allCollapsed = cats.length > 0
+      for (let i = 0; i < cats.length; i++) {
+        if (!collapsedSigs[cats[i]]()) allCollapsed = false
+      }
+      allCollapsedSig.set(allCollapsed)
+    }))
     return root
   }
 

@@ -110,8 +110,8 @@ assert.equal(normalized[0].toolId, 'agent.create')
 assert.equal(normalized[0].args.name, 'worker')
 
 const imageRequest = {
-  resourceRefs: [{ kind: 'file.image', title: 'icon.png' }],
-  resources: [{ dataUrl: 'data:image/png;base64,AAAA' }],
+  attachmentRefs: [{ kind: 'file.image', title: 'icon.png' }],
+  attachments: [{ dataUrl: 'data:image/png;base64,AAAA' }],
 }
 const anthropicMessages = ai.anthropicPayloadMessages([{ role: 'user', content: 'Look.' }], imageRequest)
 assert.equal(anthropicMessages[0].content[0].type, 'text')

@@ -88,6 +88,25 @@ codex-bridge
 Transport drivers send normalized requests and return normalized assistant
 messages, tool calls, usage, and streaming deltas.
 
+## Reliability Contract
+
+Every transport should expose the same operational contract:
+
+```text
+timeoutMs
+abort
+retryPolicy
+rateLimitState
+capabilities
+health
+lastError
+```
+
+Retries must be bounded and should respect provider status codes such as 429.
+Abort must stop local parsing and prevent late chunks from mutating the finished
+run. Capability and model discovery may be cached, but cache entries need an
+explicit refresh path.
+
 ## Streaming
 
 Provider helpers support:
@@ -99,6 +118,11 @@ aeditor.ai.provider.requestMaybeStream(url, options, extractDelta)
 The stream path should emit text, reasoning text, tool call deltas, and usage as
 soon as they are parsed. The UI should consume the runtime live state instead of
 re-rendering the whole transcript for every chunk.
+
+Stream parsers must tolerate partial chunks, empty keepalive chunks, late usage
+metadata, and provider-specific reasoning/tool-call deltas. Parsed events should
+carry `runId`, `requestId`, and provider timing metadata so UI, logs, and audit
+records can be correlated.
 
 ## Request Adapter
 
@@ -130,3 +154,6 @@ aeditor.ai.estimateUsageCost(provider, model, usage)
 
 Cost estimation is optional metadata. The runtime should still operate when no
 price information is available.
+
+Hosts may set request budgets such as maximum tokens, maximum cost estimate, or
+maximum wall-clock duration. Budget stops are run failures, not silent truncation.

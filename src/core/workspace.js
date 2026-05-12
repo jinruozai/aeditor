@@ -3,6 +3,8 @@
   'use strict'
 
   const workspace = {}
+  const HANDLE_DB = 'aeditor.workspace.handles'
+  const HANDLE_STORE = 'handles'
 
   function hashText(text) {
     text = String(text == null ? '' : text)
@@ -40,6 +42,73 @@
   function textResult(path, text) {
     text = String(text == null ? '' : text)
     return { path: path, text: text, hash: hashText(text), size: text.length }
+  }
+
+  function diffSummary(before, after) {
+    before = String(before == null ? '' : before)
+    after = String(after == null ? '' : after)
+    const a = before.split(/\r?\n/)
+    const b = after.split(/\r?\n/)
+    let prefix = 0
+    while (prefix < a.length && prefix < b.length && a[prefix] === b[prefix]) prefix++
+    let suffix = 0
+    while (
+      suffix + prefix < a.length &&
+      suffix + prefix < b.length &&
+      a[a.length - 1 - suffix] === b[b.length - 1 - suffix]
+    ) suffix++
+    const removed = Math.max(0, a.length - prefix - suffix)
+    const added = Math.max(0, b.length - prefix - suffix)
+    return {
+      beforeHash: hashText(before),
+      afterHash: hashText(after),
+      beforeSize: before.length,
+      afterSize: after.length,
+      beforeLines: a.length,
+      afterLines: b.length,
+      startLine: prefix + 1,
+      removedLines: removed,
+      addedLines: added,
+      changed: before !== after,
+    }
+  }
+
+  function extensionOf(path) {
+    const name = fileName(normalizePath(path)).toLowerCase()
+    const i = name.lastIndexOf('.')
+    return i >= 0 ? name.slice(i) : ''
+  }
+
+  function hasTruncationMarker(text) {
+    return String(text || '').indexOf('...[truncated]') >= 0
+  }
+
+  function isClassicScript(text) {
+    return !/(^|\n)\s*(import\s+[\w*{(]|export\s+)/.test(String(text || ''))
+  }
+
+  function validateText(path, text, opts) {
+    const o = opts || {}
+    const mode = o.validate || 'auto'
+    if (mode === false || mode === 'none') return true
+    text = String(text == null ? '' : text)
+    if (hasTruncationMarker(text)) throw new Error('workspace.validate: text contains a truncation marker: ' + path)
+    const ext = extensionOf(path)
+    const jsonLike = mode === 'json' || (mode === 'auto' && (ext === '.json' || ext === '.jsonc'))
+    const jsLike = mode === 'javascript' || (mode === 'auto' && ['.js', '.mjs', '.cjs'].indexOf(ext) >= 0)
+    if (jsonLike) {
+      try { JSON.parse(text) } catch (err) {
+        throw new Error('workspace.validate: invalid JSON in ' + path + ': ' + (err && err.message || err))
+      }
+    }
+    if (jsLike) {
+      if (mode === 'javascript' || isClassicScript(text)) {
+        try { ;(new Function(text)) } catch (err) {
+          throw new Error('workspace.validate: invalid JavaScript in ' + path + ': ' + (err && err.message || err))
+        }
+      }
+    }
+    return true
   }
 
   function applyLinePatches(text, baseHash, patches) {
@@ -174,9 +243,82 @@
     }
   }
 
+  function openHandleDb() {
+    if (typeof indexedDB === 'undefined') return Promise.resolve(null)
+    return new Promise(function (resolve, reject) {
+      const req = indexedDB.open(HANDLE_DB, 1)
+      req.onupgradeneeded = function () {
+        req.result.createObjectStore(HANDLE_STORE)
+      }
+      req.onsuccess = function () { resolve(req.result) }
+      req.onerror = function () { reject(req.error) }
+    })
+  }
+
+  async function withHandleStore(mode, task) {
+    const db = await openHandleDb()
+    if (!db) return null
+    return new Promise(function (resolve, reject) {
+      const tx = db.transaction(HANDLE_STORE, mode)
+      const store = tx.objectStore(HANDLE_STORE)
+      let done = false
+      tx.oncomplete = function () {
+        db.close()
+        if (!done) resolve(null)
+      }
+      tx.onerror = function () {
+        db.close()
+        reject(tx.error)
+      }
+      task(store, function (value) {
+        done = true
+        resolve(value)
+      }, reject)
+    })
+  }
+
+  async function saveDirectoryHandle(key, handle) {
+    if (!key || !handle) return false
+    await withHandleStore('readwrite', function (store, resolve, reject) {
+      const req = store.put(handle, String(key))
+      req.onsuccess = function () { resolve(true) }
+      req.onerror = function () { reject(req.error) }
+    })
+    return true
+  }
+
+  async function loadDirectoryHandle(key) {
+    if (!key) return null
+    return withHandleStore('readonly', function (store, resolve, reject) {
+      const req = store.get(String(key))
+      req.onsuccess = function () { resolve(req.result || null) }
+      req.onerror = function () { reject(req.error) }
+    })
+  }
+
+  async function permissionState(handle, mode) {
+    if (!handle || !handle.queryPermission) return 'granted'
+    return handle.queryPermission({ mode: mode || 'readwrite' })
+  }
+
   async function openDirectory(opts) {
     if (!window.showDirectoryPicker) throw new Error('aeditor.workspace.openDirectory: File System Access API is not available')
-    const handle = await window.showDirectoryPicker(opts || {})
+    opts = opts || {}
+    const pickerOpts = Object.assign({}, opts)
+    const rememberKey = pickerOpts.rememberKey || ''
+    delete pickerOpts.rememberKey
+    const handle = await window.showDirectoryPicker(pickerOpts)
+    if (rememberKey) await saveDirectoryHandle(rememberKey, handle)
+    return fromHandle(handle)
+  }
+
+  async function restoreDirectory(key, opts) {
+    opts = opts || {}
+    const handle = await loadDirectoryHandle(key)
+    if (!handle) return null
+    const mode = opts.mode || 'readwrite'
+    const permission = await permissionState(handle, mode)
+    if (permission !== 'granted') return null
     return fromHandle(handle)
   }
 
@@ -298,10 +440,15 @@
   }
 
   workspace.hashText = hashText
+  workspace.diffSummary = diffSummary
+  workspace.validateText = validateText
+  workspace.applyLinePatches = applyLinePatches
   workspace.normalizePath = normalizePath
   workspace.parentPath = parentPath
   workspace.memory = memory
   workspace.openDirectory = openDirectory
+  workspace.restoreDirectory = restoreDirectory
+  workspace.saveDirectoryHandle = saveDirectoryHandle
   workspace.fromHandle = fromHandle
   workspace.fromBridge = fromBridge
 

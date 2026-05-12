@@ -1,7 +1,7 @@
-// aeditor.ui.assetPicker — path text field + preview thumbnail, for images /
-// audio / any project-resource field. The whole frame is both a drop zone
-// (accepts OS files + URLs + other aeditor asset drags) and — via the
-// thumbnail — a drag source for carrying this asset elsewhere.
+// aeditor.ui.assetPicker - path text field + preview thumbnail, for images /
+// audio / any application asset field. The whole frame is both a drop zone
+// (accepts OS files + URLs + other aeditor asset drags) and, via the
+// thumbnail, a drag source for carrying this asset elsewhere.
 //
 // opts:
 //   value:        string | signal<string>       the asset path
@@ -9,7 +9,7 @@
 //   kind?:        'image' | 'audio' | 'file'    shape of the preview +
 //                                               the drop filter
 //   placeholder?: string | signal               path hint
-//   accept?:      string                        ".png,.jpg…" for the native
+//   accept?:      string                        ".png,.jpg" for the native
 //                                                picker (informational)
 //   onBrowse?:    (current) => Promise<string|null> | string | null
 //                                                custom "pick" action;
@@ -20,8 +20,8 @@
 //                                                custom file import path;
 //                                                used by drop + default browse.
 //   resolveSrc?:  (value) => string             preview URL resolver for
-//                                                project-relative paths.
-//   exists?:      (value) => boolean            marks missing project assets
+//                                                workspace-relative paths.
+//   exists?:      (value) => boolean            marks missing assets
 //
 // Layout: [thumb] [path input]. Clicking the thumb opens the picker
 // (same action the now-removed folder button used to do). Dragging the

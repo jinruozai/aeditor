@@ -1,12 +1,13 @@
 ;(function (aeditor) {
   'use strict'
 
+  const ai = aeditor.ai = aeditor.ai || {}
   const itemsSig = aeditor.signal([])
   const adapters = {}
   const renderers = {}
 
   function clone(value) {
-    return value == null ? value : JSON.parse(JSON.stringify(value))
+    return value == null ? value : (ai.serialize && ai.serialize.clone ? ai.serialize.clone(value) : JSON.parse(JSON.stringify(value)))
   }
 
   function now() {

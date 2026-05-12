@@ -7,6 +7,7 @@ global.window = { aeditor: {} }
 for (const file of [
   'src/core/signal.js',
   'src/core/log.js',
+  'src/core/names.js',
   'src/ai/name-generator.js',
   'src/ai/store.js',
   'src/ai/connection.js',
@@ -44,7 +45,7 @@ function previewApply(agentId, toolId, args, actor) {
   return applied.applyResult
 }
 
-const builtinTools = ai.listTools()
+const builtinTools = ai.tools.list()
 assert.deepEqual(builtinTools.filter(function (id) { return id.indexOf('group.') === 0 }), [])
 assert.equal(builtinTools.includes('agent.create'), true)
 assert.equal(builtinTools.includes('agent.delegate'), true)
@@ -55,7 +56,7 @@ assert.equal(builtinTools.includes('message.read'), true)
 assert.equal(builtinTools.includes('agent.stop'), true)
 assert.equal(builtinTools.includes('agent.delete'), true)
 assert.equal(builtinTools.includes('agent.reparent'), true)
-assert.equal(ai.getSkill('orchestration').rules.some(function (rule) {
+assert.equal(ai.skills.get('orchestration').rules.some(function (rule) {
   return rule.indexOf('Names are display labels') >= 0
 }), true)
 
@@ -104,7 +105,7 @@ ai.registerTransport('capture-send', {
   },
 })
 ai.registerConnection('capture-send', { auth: { type: 'none' }, transport: { type: 'capture-send' }, configDefaults: {} })
-ai.registerContextProvider('test.active-table', {
+ai.context.register('test.active-table', {
   capture: function () {
     return {
       resolver: 'test',

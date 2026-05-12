@@ -12,33 +12,29 @@
   ui.copyButton = function (opts) {
     const o = opts || {}
     const copied = aeditor.signal(false)
-    const iconSig = aeditor.derived(function () { return copied() ? 'check' : 'copy' })
-    const titleSig = aeditor.derived(function () {
-      return copied() ? (o.copiedTitle || 'Copied') : (readValue(o.title) || 'Copy')
-    })
+    const copyTitle = aeditor.derived(function () { return readValue(o.title) || 'Copy' })
     let timer = 0
 
-    const btn = ui.iconButton({
-      icon: iconSig,
-      title: titleSig,
+    const btn = ui.stateButton({
+      value: copied,
+      off: { icon: 'copy', title: copyTitle },
+      on: { icon: 'check', title: o.copiedTitle || 'Copied', pressed: false },
       size: o.size || 'sm',
       kind: 'ghost',
-      onClick: function () {
+      next: function () { return true },
+      onChange: function () {
         ui.copyText(readText(o.text)).then(function () {
           copied.set(true)
-          btn.classList.add('aeditor-ui-copy-btn-copied')
           if (timer) clearTimeout(timer)
           timer = setTimeout(function () {
             copied.set(false)
-            btn.classList.remove('aeditor-ui-copy-btn-copied')
             timer = 0
           }, 950)
         })
       },
     })
     btn.classList.add('aeditor-ui-copy-btn')
-    ui.collect(btn, iconSig.dispose)
-    ui.collect(btn, titleSig.dispose)
+    ui.collect(btn, copyTitle.dispose)
     ui.collect(btn, function () { if (timer) clearTimeout(timer) })
     return btn
   }

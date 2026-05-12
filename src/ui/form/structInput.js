@@ -2,7 +2,7 @@
 //
 // Renders one row per field; each row = [label · editor]. The editor for each
 // slot is produced by a caller-provided factory — this component does not
-// know about type_config or FieldDaeditor. Use it anywhere you need a schema-less
+// know about type_config or FieldDef. Use it anywhere you need a schema-less
 // "edit a record" UI.
 //
 // opts:

@@ -15,7 +15,15 @@
     if (_globalListenersInstalled) return
     _globalListenersInstalled = true
     window.addEventListener('error', function (e) {
-      aeditor.reportError({ scope: 'global' }, e.error || new Error(e.message))
+      const err = e.error || new Error(e.message || 'Script error')
+      if (!e.error && err && !err.stack) {
+        err.stack = [
+          e.filename || 'unknown source',
+          e.lineno != null ? String(e.lineno) : '',
+          e.colno != null ? String(e.colno) : '',
+        ].filter(Boolean).join(':')
+      }
+      aeditor.reportError({ scope: 'global', filename: e.filename || '', lineno: e.lineno || 0, colno: e.colno || 0 }, err)
     })
     window.addEventListener('unhandledrejection', function (e) {
       aeditor.reportError({ scope: 'global' }, e.reason || new Error('unhandledrejection'))

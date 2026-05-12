@@ -60,6 +60,7 @@
     const started = state.startedAt || null
     const ended = state.completedAt || null
     if (started) parts.push(formatDuration((ended || Date.now()) - started))
+    if (state.turn != null) parts.push('turn ' + String(state.turn || 0))
     if (state.firstTokenAt && started) parts.push('TTFT ' + formatDuration(state.firstTokenAt - started))
     const total = state.totalTokens || usageNumber(state.usage, ['total_tokens', 'totalTokens'])
     const out = state.outputTokens || usageNumber(state.usage, ['output_tokens', 'completion_tokens', 'outputTokens', 'completionTokens'])
@@ -75,7 +76,20 @@
     const root = ui.h('div', 'aeditor-ai-live-run')
     const plate = ui.h('div', 'aeditor-ai-live-run-plate')
     const dot = ui.h('span', 'aeditor-ai-live-run-dot')
-    const arrow = ui.h('button', 'aeditor-ai-live-run-arrow', { type: 'button', title: 'Toggle run preview' })
+    const expandedSig = aeditor.signal(false)
+    const arrow = ui.stateButton({
+      value: expandedSig,
+      off: { icon: 'chevron-right', title: 'Expand run preview', pressed: false },
+      on: { icon: 'chevron-down', title: 'Collapse run preview', pressed: false },
+      size: 'sm',
+      kind: 'ghost',
+      onChange: function (next) {
+        if ((lastState && lastState.state || 'idle') !== 'idle') return
+        idleExpanded = !!next
+        update(lastState)
+      },
+    })
+    arrow.classList.add('aeditor-ai-live-run-arrow')
     const label = ui.h('span', 'aeditor-ai-live-run-label')
     const preview = ui.h('span', 'aeditor-ai-live-run-preview')
     const metrics = ui.h('div', 'aeditor-ai-live-run-metrics')
@@ -89,17 +103,12 @@
     root.appendChild(plate)
     root.appendChild(metrics)
 
-    arrow.addEventListener('click', function () {
-      if ((lastState && lastState.state || 'idle') !== 'idle') return
-      idleExpanded = !idleExpanded
-      update(lastState)
-    })
-
     function update(state) {
       lastState = state || null
       const s = state && state.state || 'idle'
       if (s !== 'idle') idleExpanded = false
       const collapsed = s === 'idle' && !idleExpanded
+      expandedSig.set(!collapsed)
       root.setAttribute('data-state', s)
       root.setAttribute('data-collapsed', collapsed ? 'true' : 'false')
       arrow.setAttribute('aria-expanded', collapsed ? 'false' : 'true')

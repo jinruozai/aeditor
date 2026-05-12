@@ -50,15 +50,17 @@
   reg('textarea', {
     label: 'Textarea', icon: 'type', category: 'form',
     bindable: ['value'],
-    defaultProps: Object.assign({}, BOX_D, TEXT_D, { value: '', placeholder: '', rows: 4 }),
+    defaultProps: Object.assign({}, BOX_D, TEXT_D, { value: '', placeholder: '', rows: 4, submitMode: 'modifier' }),
     schema: Object.assign({}, BOX, TEXT, {
       value:       { type: 'string', desc: 'Current text value of the textarea.' },
       placeholder: { type: 'string', desc: 'Hint shown when the textarea is empty.' },
       rows:        { type: 'int',    desc: 'Visible height in rows of text.' },
+      submitMode:  { type: 'enum_string', type_agv: { options: ['none','modifier','enter'] },
+                     desc: 'Commit behavior: none 路 Ctrl/Cmd+Enter 路 Enter (Shift+Enter newline).' },
       disabled:    { type: 'bool',   desc: 'Disable interaction (greyed out, not focusable).' },
     }),
     factory: function (p) {
-      const el = ui.textarea(ro(lift(p, ['value','placeholder','rows','disabled'])))
+      const el = ui.textarea(ro(lift(p, ['value','placeholder','rows','disabled','submitMode'])))
       box(el, p); text(el, p)
       return el
     },
@@ -200,6 +202,55 @@
       })
       const el = ui.iconButton(opts)
       ui.collect(el, opts.title.dispose)
+      box(el, p)
+      return el
+    },
+  })
+
+  reg('stateButton', {
+    label: 'State Button', icon: 'toggle-right', category: 'base',
+    bindable: ['value'],
+    defaultProps: Object.assign({}, BOX_D, {
+      value: false,
+      size: 'md',
+      kind: 'ghost',
+      offIcon: 'eye-off',
+      offText: 'Hidden',
+      onIcon: 'eye',
+      onText: 'Visible',
+    }),
+    schema: Object.assign({}, BOX, {
+      value:   { type: 'bool', desc: 'Current button state.' },
+      offIcon: { type: 'string', desc: 'Registered icon name for the off state.' },
+      offText: { type: 'string', desc: 'Text shown for the off state.' },
+      onIcon:  { type: 'string', desc: 'Registered icon name for the on state.' },
+      onText:  { type: 'string', desc: 'Text shown for the on state.' },
+      size:    { type: 'enum_string', type_agv: { options: ['sm','md','lg'] },
+                 desc: 'Button size: sm · md · lg.' },
+      kind:    { type: 'enum_string', type_agv: { options: ['default','primary','ghost','danger'] },
+                 desc: 'Visual variant: default · primary · ghost · danger.' },
+      disabled: { type: 'bool', desc: 'Disable interaction (greyed out, not focusable).' },
+    }),
+    factory: function (p) {
+      const value = aeditor.signal(!!((p.peek ? p.peek() : p()) || {}).value)
+      const opts = lift(p, ['size','kind','disabled','offIcon','offText','onIcon','onText'])
+      const el = ui.stateButton({
+        value: value,
+        off: { icon: opts.offIcon, text: opts.offText, title: opts.offText },
+        on: { icon: opts.onIcon, text: opts.onText, title: opts.onText },
+        size: opts.size,
+        kind: opts.kind,
+        disabled: opts.disabled,
+        onChange: function (next) { value.set(!!next) },
+      })
+      ui.collect(el, aeditor.effect(function () { value.set(!!((p() || {}).value)) }))
+      ui.collect(el, opts.size.dispose)
+      ui.collect(el, opts.kind.dispose)
+      ui.collect(el, opts.disabled.dispose)
+      ui.collect(el, opts.offIcon.dispose)
+      ui.collect(el, opts.offText.dispose)
+      ui.collect(el, opts.onIcon.dispose)
+      ui.collect(el, opts.onText.dispose)
       box(el, p)
       return el
     },

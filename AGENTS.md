@@ -7,7 +7,15 @@
 
 ## 1. 项目是什么
 
-**aeditor** —— 一个纯前端、零依赖、Blender 风格的通用编辑器 UI 库。
+**aeditor** —— 一个纯前端、零依赖、Blender 风格的通用编辑器框架。
+
+当前产品边界分三层:
+
+1. **AEditor Core/UI**:稳定零依赖内核,提供 Dock/Panel/Component、UI 组件库、主题、signal/log/bus/settings/history/workspace contract。
+2. **AEditor AI Host**:可选上层模块,提供 agent runtime、provider、tools/context/operations、permissions、ChangeSet、compaction。它依赖 Core/UI,但 Core/UI 不依赖 AI。
+3. **Demo Project Runtime**:示例宿主应用,用于演示“打开 workspace、加载文件、注册组件、挂到 dock”。它不属于框架层概念,不得写进 `src/` 的通用设计。
+
+AEditor 仍坚持零依赖、零模块系统、单命名空间和 file:// 可运行。AI Host 和 Extension 是框架提供的可选能力,不是把 Core/UI 变成业务编辑器。
 
 - **零构建**:经典 `<script>` 标签,直接 `file://` 双击 `index.html` 就能跑
 - **零依赖**:不用 npm,不用打包工具,不用任何框架
@@ -41,7 +49,7 @@ Layout(Blender 风格的 N 叉分割树)
 6. **多 panel 的性能要求是真的"只有 active 存在"**:非 active panel 的 contentEl **直接从 DOM detach**(不是 display:none,不是 content-visibility:hidden),浏览器对它零 layout、零 paint、零事件开销。切回 active 时 re-append,DOM 状态和 JS 对象完全保留。这是 § 4.3 的唯一实现路径。
 7. **Panel / Dock 之间通讯走一条统一的解耦总线 `aeditor.bus`**:pub/sub,topic + payload,通过 `ctx.bus` 自动在 panel dispose 时取消订阅。没人直接持有别人的引用。
 
-本文件是**唯一**的设计权威。视觉调色板参考 `doc/editor_style.html`,除此之外无其他设计文档。
+本文件是**最高优先级的工作交接与硬规则权威**。当前架构细节以 `doc/*.md` 为准,但不得违反本文件里的产品边界、零依赖、零模块系统、设计先行和代码风格红线。`doc/old/**` 只作历史资料。
 
 ---
 
@@ -110,7 +118,7 @@ HTML 用 `<script src="...">` 按依赖顺序加载。用户必须能双击 `ind
 ```
 aeditor/
   index.html                       # demo 入口 — 引用 dist/aeditor.{css,js} + demo widgets
-  AGENTS.md                        # 本文件 — 唯一设计权威
+  AGENTS.md                        # 本文件 — 工作交接与硬规则权威
   doc/
     editor_style.html              # 视觉调色板参考(只读,不改)
 
@@ -153,7 +161,7 @@ aeditor/
       form/                        # input / textarea / number / vector / slider / rangeSlider / checkbox / switch / radio /
                                    # segmented / select / combobox / colorInput / enumInput / tagInput / tab
       editor/                      # gradientInput / curveInput / codeInput / pathInput / fileInput
-      container/                   # section / propRow / card / scrollArea / tabPanel
+      container/                   # section / propRow / card / view / scrollArea / tabPanel
       data/                        # list / tree / table / breadcrumbs / progressBar(全部虚拟化)
       overlay/                     # menu / modal / drawer / alert / toast
       panel/                       # 能被 registerComponent 注册的 "panel 级" 内置 component
@@ -790,7 +798,7 @@ aeditor.bus.emit(topic, payload)
 ```
 aeditor/
   index.html
-  AGENTS.md            # 本文件(唯一的设计权威)
+  AGENTS.md            # 本文件(工作交接与硬规则权威)
   doc/
     editor_style.html  # 视觉调色板参考
 

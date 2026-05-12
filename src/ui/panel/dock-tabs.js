@@ -70,21 +70,25 @@
   }
 
   aeditor.registerComponent('tab-standard', {
+    palette: false,
     defaults: function () { return { title: 'Tabs' } },
     factory:  preset({ variant: 'bar', closable: true, addable: true }),
   })
 
   aeditor.registerComponent('tab-compact', {
+    palette: false,
     defaults: function () { return { title: 'Tabs' } },
     factory:  preset({ variant: 'compact', closable: false, minShowCount: 2 }),
   })
 
   aeditor.registerComponent('tab-collapsible', {
+    palette: false,
     defaults: function () { return { title: 'Tabs' } },
     factory:  preset({ variant: 'bar', closable: true, collapsible: true }),
   })
 
   aeditor.registerComponent('tab-sidebar', {
+    palette: false,
     defaults: function () { return { title: 'Tabs' } },
     factory:  preset({
       variant:     'sidebar',

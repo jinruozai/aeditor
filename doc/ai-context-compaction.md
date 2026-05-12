@@ -269,7 +269,8 @@ Optional human-facing commands may wrap it:
 
 ```text
 ai.compactCurrentAgent
-ai.clearCompactions
+ai.clearCurrentAgentCompactions
+ai.listCurrentAgentCompactions
 ```
 
 If model-facing compaction tools are ever exposed, they should call the same
@@ -293,19 +294,27 @@ Current code already has useful pieces:
 
 - `src/ai/request.js` estimates model context and budgets recent messages.
 - `src/ai/request.js` truncates large strings, tool args, and context payloads.
-- `src/ai/store.js` persists agent memory and truncates oversized snapshots.
+- `src/ai/request.js` groups assistant tool-call messages with their matching
+  tool results so provider history is not split by budgeting.
+- `src/ai/store.js` persists agent memory, compaction records, and truncates
+  oversized snapshots.
 - `src/ai/store.js` keeps messages, queue, inbox, quests, and runtime status in
   the agent record.
+- `src/ai/compaction.js` provides deterministic semantic compaction records,
+  safe range planning, request filtering, memory messages, and compaction
+  context messages.
+- `src/ai/compaction.js` registers command wrappers for compacting, listing, and
+  clearing the current agent compactions.
+- `src/ai/runtime.js` triggers compaction at scheduler-safe points before
+  normal requests, tool continuations, and approval resumes.
 - `src/ai/panels/message-live-strip.js` exposes live run state independently
   from transcript rendering.
 
 What is still missing:
 
-- semantic compaction records;
-- safe compaction trigger points in the scheduler;
-- request assembly that includes compactions before recent raw transcript;
-- structured memory update policy;
-- UI/commands for inspecting and clearing compactions.
+- optional model-based compactor output;
+- structured memory update policy beyond preserving existing `agent.memory`;
+- visual UI for inspecting compactions.
 
-These gaps should be implemented inside the AI runtime. They should not add a
-project layer to the framework.
+These pieces live inside the AI runtime. They should not add a project concept
+to the framework.

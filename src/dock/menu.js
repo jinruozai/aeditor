@@ -14,6 +14,7 @@
     const active = activePanel(dock.node)
     const items = [
       { label: 'Add Panel', icon: 'plus', onSelect: function () { openAddPanelMenu(pos, dockId, layout) } },
+      focusItem(dock.node, dockId, layout),
       { type: 'divider' },
       {
         label: 'Panel',
@@ -66,6 +67,17 @@
       },
     ]
     aeditor.ui.contextMenu(pos, items)
+  }
+
+  function focusItem(dock, dockId, layout) {
+    const focused = !!dock.focused
+    return {
+      label: focused ? 'Restore Panel' : 'Focus Panel',
+      icon: focused ? 'minimize' : 'maximize',
+      onSelect: function () {
+        layout.setTree(aeditor.setFocused(layout.treeSig.peek(), dockId, !focused))
+      },
+    }
   }
 
   function activePanel(dock) {

@@ -73,14 +73,16 @@
 .aeditor-ui-modal {
   display: flex;
   flex-direction: column;
-  min-width: 320px;
-  max-width: min(560px, 92vw);
+  width: max-content;
+  min-width: min(320px, calc(100vw - 24px));
+  max-width: min(560px, calc(100vw - 24px));
   max-height: 86vh;
   background: var(--aeditor-bg-1);
   border: 1px solid var(--aeditor-border-strong);
   border-radius: var(--aeditor-r-3);
   box-shadow: var(--aeditor-shadow-4);
   overflow: hidden;
+  box-sizing: border-box;
   animation: aeditor-modal-in var(--aeditor-dur-slow) cubic-bezier(.18,.89,.32,1.18) both;
 }
 @keyframes aeditor-backdrop-in {
@@ -101,6 +103,10 @@
 }
 .aeditor-ui-modal-title {
   flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   font: 600 var(--aeditor-fs-md) var(--aeditor-font-ui);
   color: var(--aeditor-fg-0);
 }
@@ -122,15 +128,18 @@
   color: var(--aeditor-fg-1);
   font: var(--aeditor-fs-md) var(--aeditor-font-ui);
   flex: 1 1 auto;
+  min-width: 0;
 }
 .aeditor-ui-modal-foot {
   display: flex;
+  flex-wrap: wrap;
   justify-content: flex-end;
   gap: var(--aeditor-space-2);
   padding: var(--aeditor-space-2) var(--aeditor-space-3);
   border-top: 1px solid var(--aeditor-border);
   background: var(--aeditor-bg-2);
   flex-shrink: 0;
+  min-width: 0;
 }
 
 /* ── dialogs (alert / confirm / prompt) ─────────────────────────── */
@@ -227,6 +236,8 @@
   display: flex;
   align-items: flex-start;
   gap: var(--aeditor-space-2);
+  width: 100%;
+  min-width: 0;
   padding: var(--aeditor-space-2) var(--aeditor-space-3);
   border: 1px solid var(--aeditor-border);
   border-radius: var(--aeditor-r-2);
@@ -234,6 +245,7 @@
   color: var(--aeditor-fg-1);
   font: var(--aeditor-fs-sm) var(--aeditor-font-ui);
   animation: aeditor-banner-in var(--aeditor-dur-med) var(--aeditor-ease) both;
+  box-sizing: border-box;
 }
 @keyframes aeditor-banner-in {
   from { opacity: 0; transform: translateY(-4px); }
@@ -247,13 +259,13 @@
   line-height: 1.3;
   flex-shrink: 0;
 }
-.aeditor-ui-banner-body { flex: 1 1 auto; }
+.aeditor-ui-banner-body { flex: 1 1 auto; min-width: 0; }
 .aeditor-ui-banner-title {
   font-weight: 600;
   color: var(--aeditor-fg-0);
   margin-bottom: 2px;
 }
-.aeditor-ui-banner-msg { color: var(--aeditor-fg-1); white-space: pre-wrap; }
+.aeditor-ui-banner-msg { color: var(--aeditor-fg-1); white-space: pre-wrap; overflow-wrap: anywhere; }
 .aeditor-ui-banner-close {
   background: transparent;
   border: 0;

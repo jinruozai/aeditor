@@ -110,6 +110,7 @@ aeditor.resolveComponent(name)
 aeditor.componentDefaults(name)
 aeditor.listComponents(filter)
 aeditor.unregisterComponent(name, meta)
+aeditor.unregisterComponentPrefix(prefix)
 aeditor.componentRegistration(name)
 ```
 
@@ -128,7 +129,7 @@ Final naming should use dotted prefixes for grouping:
 ```text
 ui.buttonDemo
 gde.tablePanel
-inventory.panel
+sample.panel
 ```
 
 Current code also supports metadata for extension cleanup. This is a migration
@@ -175,7 +176,7 @@ Rules:
 - Components communicate through `ctx.bus`, references, operations, or domain
   APIs.
 - Components should use `aeditor.ui.*` widgets when available.
-- Scrollable content should prefer `aeditor.ui.scrollArea`.
+- View surfaces and scrollable panel content should prefer `aeditor.ui.view`; `aeditor.ui.scrollArea` is the lower-level scrollbar wrapper.
 - Floating UI should prefer framework overlay helpers.
 
 Registered component metadata may include palette and editor hints:
@@ -220,7 +221,7 @@ components live under `src/ui/` by category:
 src/ui/base/        buttons, icons, text, badges, tags, tooltip, popover
 src/ui/form/        input controls and schema-driven property editors
 src/ui/editor/      editor-specific inputs such as code, curve, path, file
-src/ui/container/   layout and containers such as vbox, hbox, scrollArea
+src/ui/container/   layout and containers such as vbox, hbox, view, scrollArea
 src/ui/data/        list, tree, table, asset browser, change review
 src/ui/overlay/     menu, modal, drawer, toast, dialogs
 src/ui/panel/       generic dock panel components such as log/settings/tabs
@@ -232,6 +233,11 @@ the AI module, even though they are registered through `aeditor.registerComponen
 and usually use `category: 'panel'`.
 
 Domain-specific components live outside `src/ui/`.
+
+The settings panel under `src/ui/panel/` is only the generic settings shell.
+Concrete settings are registered by the owning module, for example theme
+settings from `src/style/theme-settings.js` and AI settings from
+`src/ai/panels/settings-ai.js`.
 
 ## Schema Editors
 

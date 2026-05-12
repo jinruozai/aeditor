@@ -38,7 +38,7 @@
 //
 // No `highlight` → plain textarea, minimal library default.
 //
-// opts: { value, onChange?, language?, rows?, highlight? }
+// opts: { value, onChange?, language?, rows?, highlight?, submitMode?, onCommit?, onCancel? }
 ;(function (aeditor) {
   'use strict'
   const ui = aeditor.ui = aeditor.ui || {}
@@ -138,6 +138,22 @@
       doWrite(ta.value)
       refreshGutter()
       refreshHighlight()
+    })
+    function writeText(v) {
+      ta.value = v == null ? '' : String(v)
+      doWrite(ta.value)
+      refreshGutter()
+      refreshHighlight()
+    }
+    ui.editSession({
+      el: ta,
+      owner: el,
+      multiline: true,
+      submitMode: o.submitMode || 'modifier',
+      get: function () { return ta.value },
+      set: writeText,
+      onCommit: o.onCommit,
+      onCancel: o.onCancel,
     })
     ta.addEventListener('scroll', syncScroll)
     ta.addEventListener('keydown', function (e) {

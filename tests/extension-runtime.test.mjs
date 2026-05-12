@@ -32,22 +32,36 @@ global.document = {
 for (const file of [
   'src/core/signal.js',
   'src/core/log.js',
+  'src/core/names.js',
   'src/core/settings.js',
   'src/core/commands.js',
   'src/tree/tree.js',
   'src/core/registry.js',
+  'src/ai/name-generator.js',
+  'src/ai/store.js',
   'src/ai/context.js',
   'src/ai/reference.js',
   'src/core/extensions.js',
+  'src/ai/request.js',
 ]) {
   vm.runInThisContext(readFileSync(file, 'utf8'), { filename: file })
 }
 
 const aeditor = window.aeditor
 const ai = aeditor.ai
-assert.equal(typeof ai.getTool('aeditor.createPanel').preview, 'function')
-assert.equal(typeof ai.getTool('aeditor.installExtension').preview, 'function')
-assert.equal(typeof ai.getTool('aeditor.addPanelToDock').preview, 'function')
+assert.equal(ai.tools.get('aeditor.createPanel'), undefined)
+assert.equal(ai.operations.get('aeditor.createPanel'), null)
+assert.equal(typeof ai.tools.get('aeditor.installExtension').preview, 'function')
+assert.equal(typeof ai.tools.get('aeditor.addPanelToDock').preview, 'function')
+const extensionAgent = ai.createAgent({ name: 'Extension Agent' })
+const extensionRequest = ai.makeRequest(extensionAgent, null, 'run_extension_tools', 'user', 0)
+assert.equal(extensionRequest.tools.includes('aeditor.installExtension'), false)
+assert.equal(extensionRequest.tools.includes('aeditor.addPanelToDock'), false)
+assert.equal(extensionRequest.tools.includes('aeditor.previewOperation'), false)
+assert.equal(extensionRequest.tools.includes('aeditor.applyOperation'), false)
+assert.throws(function () {
+  ai.tools.get('aeditor.previewOperation').run({ op: 'aeditor.installExtension', input: { manifest: {} } }, { actor: 'user', agent: extensionAgent })
+}, /not available/)
 let tree = aeditor.dock({ name: 'main' })
 let panelTextSamples = {}
 const layout = {
@@ -72,64 +86,7 @@ const layout = {
 
 aeditor.extensions.registerLayout('default', layout)
 aeditor.extensions.configureStorage({ key: 'test.extensions', load: false })
-const createPanelTool = ai.getTool('aeditor.createPanel')
-const createPanelPreview = createPanelTool.preview({
-  id: 'ai.inventory',
-  title: 'Inventory',
-  dock: 'main',
-  source: 'function (propsSig, ctx) { const root = document.createElement("div"); root.textContent = "Inventory"; return root }',
-}, { actor: 'user', agent: { id: 'agent' } })
-assert.equal(createPanelPreview.ok, true)
-assert.equal(createPanelPreview.canApply, true)
-assert.equal(createPanelPreview.component, 'ai.inventory/panel')
-const createdPanel = createPanelTool.apply(createPanelPreview, { actor: 'user', agent: { id: 'agent' } })
-assert.equal(createdPanel.applied, true)
-assert.equal(createdPanel.component, 'ai.inventory/panel')
-assert.equal(aeditor.componentRegistration('ai.inventory/panel').owner, 'extension:ai.inventory')
-assert.equal(aeditor.findDock(tree, tree.id).node.panels[0].component, 'ai.inventory/panel')
-const factoryEl = aeditor.resolveComponent('ai.inventory/panel').factory(aeditor.signal({}), {})
-assert.equal(factoryEl.textContent, 'Inventory')
-const replacedPanel = createPanelTool.apply(createPanelTool.preview({
-  id: 'ai.inventory',
-  title: 'Inventory v2',
-  dock: 'main',
-  source: 'function () { const root = document.createElement("div"); root.textContent = "Inventory v2"; return root }',
-}, { actor: 'user', agent: { id: 'agent' } }), { actor: 'user', agent: { id: 'agent' } })
-assert.equal(replacedPanel.applied, true)
-assert.equal(aeditor.findDock(tree, tree.id).node.panels.filter(function (p) { return p.extensionId === 'ai.inventory' }).length, 1)
-assert.equal(createPanelTool.preview({
-  id: 'ai.bad.source',
-  title: 'Bad',
-  dock: 'main',
-  source: 'const root = document.createElement("div")',
-}, { actor: 'user', agent: { id: 'agent' } }).ok, false)
-const templatePreview = createPanelTool.preview({
-  id: 'ai.template',
-  title: 'Template',
-  dock: 'main',
-  source: 'function () { const root = document.createElement("div"); root.textContent = "{{icon}}"; return root }',
-}, { actor: 'user', agent: { id: 'agent' } })
-const originalInspect = layout.inspectPanel
-layout.inspectPanel = function (panelId) { return { panelId: panelId, status: 'ready', textSample: '{{icon}}' } }
-const templateApplied = createPanelTool.apply(templatePreview, { actor: 'user', agent: { id: 'agent' } })
-assert.equal(templateApplied.applied, false)
-assert.equal(templateApplied.rolledBack, true)
-assert.equal(aeditor.componentRegistration('ai.template/panel'), null)
-layout.inspectPanel = originalInspect
-aeditor.extensions.uninstall('ai.inventory', { save: false })
-assert.equal(aeditor.componentRegistration('ai.inventory/panel'), null)
-const createPanelOpPreview = ai.previewOperation('aeditor.createPanel', {
-  id: 'ai.operation.panel',
-  title: 'Operation Panel',
-  dock: 'main',
-  source: 'function () { const root = document.createElement("div"); root.textContent = "Operation Panel"; return root }',
-})
-assert.equal(createPanelOpPreview.ok, true)
-const createPanelOpApplied = ai.applyOperation(createPanelOpPreview)
-assert.equal(createPanelOpApplied.applied, true)
-assert.equal(aeditor.componentRegistration('ai.operation.panel/panel').owner, 'extension:ai.operation.panel')
-aeditor.extensions.uninstall('ai.operation.panel', { save: false })
-const installTool = ai.getTool('aeditor.installExtension')
+const installTool = ai.tools.get('aeditor.installExtension')
 const directInstallPreview = installTool.preview({
   manifest: {
     id: 'direct.tool',
@@ -142,7 +99,10 @@ const directInstallPreview = installTool.preview({
 assert.equal(directInstallPreview.canApply, true)
 const directInstalled = installTool.apply(directInstallPreview, { actor: 'user', agent: { id: 'agent' } })
 assert.equal(directInstalled.applied, true)
-assert.equal(aeditor.componentRegistration('direct.tool/panel').owner, 'extension:direct.tool')
+assert.equal(aeditor.componentRegistration('direct.tool.panel').owner, 'extension:direct.tool')
+assert.equal(ai.permissionAuditRecords().some(function (item) {
+  return item.scope === 'extension.install' && item.target === 'direct.tool' && item.decision === 'allow'
+}), true)
 aeditor.extensions.uninstall('direct.tool', { save: false })
 let applied = null
 aeditor.extensions.registerAdapter('case.adapter', {
@@ -155,7 +115,7 @@ aeditor.extensions.registerAdapter('case.adapter', {
 const manifest = {
   id: 'case',
   title: 'Case Tools',
-  layer: 'project',
+  layer: 'user',
   contributes: {
     components: [{
       id: 'roleBag',
@@ -177,7 +137,16 @@ const manifest = {
       id: 'data',
       adapter: 'case.adapter',
       schema: { type: 'object' },
-      capabilities: [{ op: 'case/setValue' }],
+      capabilities: [{ op: 'case.setValue' }],
+    }],
+    tools: [{
+      id: 'read',
+      title: 'Read Case',
+      adapter: 'case.adapter',
+    }],
+    context: [{
+      id: 'context',
+      adapter: 'case.adapter',
     }],
     operations: [{
       id: 'setValue',
@@ -203,7 +172,7 @@ const manifest = {
 
 const preview = aeditor.extensions.preview(manifest)
 assert.equal(preview.ok, true)
-assert.equal(preview.changes.some(function (item) { return item.id === 'case/roleBag' }), true)
+assert.equal(preview.changes.some(function (item) { return item.id === 'case.roleBag' }), true)
 assert.equal(aeditor.extensions.preview({
   id: 'bad.adapter',
   contributes: { operations: [{ id: 'op', adapter: 'missing.adapter' }] },
@@ -214,12 +183,12 @@ assert.match(aeditor.extensions.preview({
     components: [{ id: 'panel', ui: { component: 'missingWidget' } }],
   },
 }).errors[0].message, /UI component not registered/)
-const badUiPreview = ai.previewOperation('aeditor.installExtension', {
+const badUiPreview = ai.operations.preview('aeditor.installExtension', {
   id: 'bad.ui.operation',
   contributes: { components: [{ id: 'panel', ui: { component: 'missingWidget' } }] },
 })
 assert.equal(badUiPreview.ok, false)
-assert.equal(ai.applyOperation(badUiPreview).applied, false)
+assert.equal(ai.operations.apply(badUiPreview).applied, false)
 assert.match(aeditor.extensions.preview({
   id: 'bad.dock',
   contributes: {
@@ -230,92 +199,97 @@ assert.match(aeditor.extensions.preview({
 
 const installed = aeditor.extensions.install(manifest)
 assert.equal(installed.ok, true)
-assert.equal(aeditor.componentRegistration('case/roleBag').owner, 'extension:case')
-assert.equal(aeditor.componentRegistration('case/roleBag').layer, 'project')
-assert.equal(aeditor.componentDefaults('case/roleBag').extensionId, 'case')
-assert.deepEqual(aeditor.listComponents({ owner: 'extension:case' }).map(function (item) { return item.name }).sort(), ['case/roleBag', 'case/roleBagInner'])
+assert.equal(aeditor.componentRegistration('case.roleBag').owner, 'extension:case')
+assert.equal(aeditor.componentRegistration('case.roleBag').layer, 'user')
+assert.equal(aeditor.componentDefaults('case.roleBag').extensionId, 'case')
+assert.deepEqual(aeditor.listComponents({ owner: 'extension:case' }).map(function (item) { return item.name }).sort(), ['case.roleBag', 'case.roleBagInner'])
 assert.equal(aeditor.findDock(tree, tree.id).node.panels[0].owner, 'extension:case')
-assert.equal(aeditor.findDock(tree, tree.id).node.panels[0].component, 'case/roleBag')
-assert.equal(ai.references.list({ owner: 'extension:case' })[0], 'case/data')
-assert.equal(ai.operations.list({ owner: 'extension:case' })[0], 'case/setValue')
-assert.equal(aeditor.commands.list({ owner: 'extension:case' })[0], 'case/refresh')
-assert.equal(aeditor.commands.menuItems('dock.panel.context')[0].command, 'case/refresh')
+assert.equal(aeditor.findDock(tree, tree.id).node.panels[0].component, 'case.roleBag')
+assert.equal(ai.tools.get('case.read').title, 'Read Case')
+assert.equal(ai.context.get('case.context') != null, true)
+assert.equal(ai.references.list({ owner: 'extension:case' })[0], 'case.data')
+assert.equal(ai.operations.list({ owner: 'extension:case' })[0], 'case.setValue')
+assert.equal(aeditor.commands.list({ owner: 'extension:case' })[0], 'case.refresh')
+assert.equal(aeditor.commands.menuItems('dock.panel.context')[0].command, 'case.refresh')
 assert.equal(aeditor.settings.schemaMeta('case.enabled').owner, 'extension:case')
-assert.deepEqual(ai.readReference({ resolver: 'case/data', uri: 'case/data://row/1' }), { uri: 'case/data://row/1', value: 1 })
+assert.deepEqual(ai.references.read({ resolver: 'case.data', uri: 'case.data://row/1' }), { uri: 'case.data://row/1', value: 1 })
 assert.equal(JSON.parse(memory.data['test.extensions']).entries[0].enabled, true)
 
-const opPreview = ai.previewOperation('case/setValue', { next: 9 })
-const opApplied = ai.applyOperation(opPreview)
+const opPreview = ai.operations.preview('case.setValue', { next: 9 })
+const opApplied = ai.operations.apply(opPreview)
 assert.equal(opApplied.value, 9)
 assert.equal(applied, 9)
-aeditor.commands.run('case/refresh')
+aeditor.commands.run('case.refresh')
 assert.equal(applied, 'command')
 
-const external = layout.addPanel('main', { component: 'case/roleBag', title: 'External Bag' }).panelId
+const external = layout.addPanel('main', { component: 'case.roleBag', title: 'External Bag' }).panelId
 
 const disabled = aeditor.extensions.disable('case')
 assert.equal(disabled.disabled, true)
-assert.equal(aeditor.componentRegistration('case/roleBag'), null)
+assert.equal(aeditor.componentRegistration('case.roleBag'), null)
 assert.equal(aeditor.findPanel(tree, external).panel.component, 'extension-disabled')
 assert.equal(aeditor.findDock(tree, tree.id).node.panels.length, 1)
 assert.deepEqual(aeditor.commands.list({ owner: 'extension:case' }), [])
+assert.equal(ai.tools.get('case.read'), undefined)
+assert.equal(ai.context.get('case.context'), undefined)
 assert.equal(aeditor.settings.schemaMeta('case.enabled').owner, undefined)
 assert.equal(JSON.parse(memory.data['test.extensions']).entries[0].enabled, false)
 
 const enabled = aeditor.extensions.enable('case')
 assert.equal(enabled.enabled, true)
 assert.equal(enabled.active, true)
-assert.equal(aeditor.componentRegistration('case/roleBag').owner, 'extension:case')
+assert.equal(aeditor.componentRegistration('case.roleBag').owner, 'extension:case')
 assert.equal(aeditor.findDock(tree, tree.id).node.panels.length, 2)
-assert.equal(aeditor.findPanel(tree, external).panel.component, 'case/roleBag')
+assert.equal(aeditor.findPanel(tree, external).panel.component, 'case.roleBag')
 assert.equal(JSON.parse(memory.data['test.extensions']).entries[0].enabled, true)
 
 aeditor.extensions.safeMode(true)
-assert.equal(aeditor.componentRegistration('case/roleBag'), null)
+assert.equal(aeditor.componentRegistration('case.roleBag'), null)
 assert.equal(aeditor.extensions.get('case').enabled, true)
 assert.equal(aeditor.extensions.get('case').active, false)
 aeditor.extensions.safeMode(false)
-assert.equal(aeditor.componentRegistration('case/roleBag').owner, 'extension:case')
+assert.equal(aeditor.componentRegistration('case.roleBag').owner, 'extension:case')
 
 const appManifest = {
-  id: 'case.app',
+  id: 'app.case',
   layer: 'app',
   contributes: { components: [{ id: 'panel', ui: null }] },
 }
 aeditor.extensions.install(appManifest, { save: false })
 aeditor.extensions.safeMode(true, { allowApp: true })
-assert.equal(aeditor.componentRegistration('case.app/panel').owner, 'extension:case.app')
+assert.equal(aeditor.componentRegistration('app.case.panel').owner, 'extension:app.case')
 aeditor.extensions.safeMode(false)
-aeditor.extensions.uninstall('case.app', { save: false })
+aeditor.extensions.uninstall('app.case', { save: false })
 
 const maxApp = aeditor.extensions.setMaxLayer('app')
 assert.equal(maxApp.maxLayer, 'app')
-assert.equal(aeditor.componentRegistration('case/roleBag'), null)
+assert.equal(aeditor.componentRegistration('case.roleBag'), null)
 assert.equal(aeditor.extensions.get('case').filtered, true)
 const maxSession = aeditor.extensions.setMaxLayer('session')
 assert.equal(maxSession.maxLayer, 'session')
-assert.equal(aeditor.componentRegistration('case/roleBag').owner, 'extension:case')
+assert.equal(aeditor.componentRegistration('case.roleBag').owner, 'extension:case')
 
-aeditor.extensions.disableLayer('project')
-assert.equal(aeditor.componentRegistration('case/roleBag'), null)
+aeditor.extensions.disableLayer('user')
+assert.equal(aeditor.componentRegistration('case.roleBag'), null)
 assert.equal(aeditor.extensions.get('case').filtered, true)
-aeditor.extensions.enableLayer('project')
-assert.equal(aeditor.componentRegistration('case/roleBag').owner, 'extension:case')
+aeditor.extensions.enableLayer('user')
+assert.equal(aeditor.componentRegistration('case.roleBag').owner, 'extension:case')
 
-const promotedPreview = ai.previewOperation('aeditor.promoteExtensionLayer', { id: 'case', layer: 'session' })
-const promoted = ai.applyOperation(promotedPreview)
+const promotedPreview = ai.operations.preview('aeditor.promoteExtensionLayer', { id: 'case', layer: 'session' })
+const promoted = ai.operations.apply(promotedPreview)
 assert.equal(promoted.installed, true)
 assert.equal(aeditor.extensions.get('case').manifest.layer, 'session')
 
 const panelToRemove = aeditor.findDock(tree, tree.id).node.panels.find(function (p) { return p.owner === 'extension:case' }).id
-const removePanelPreview = ai.previewOperation('aeditor.removePanelFromDock', { panelId: panelToRemove })
-const panelRemoved = ai.applyOperation(removePanelPreview)
+const removePanelPreview = ai.operations.preview('aeditor.removePanelFromDock', { panelId: panelToRemove })
+const panelRemoved = ai.operations.apply(removePanelPreview)
 assert.deepEqual(panelRemoved.removed, [panelToRemove])
 assert.equal(aeditor.findPanel(tree, panelToRemove), null)
 
 assert.throws(function () {
   aeditor.extensions.install({
     id: 'code.bad',
+    trust: { code: 'trusted' },
     contributes: { components: [{ id: 'panel', kind: 'factory', source: 'function(){ return document.createElement("div") }' }] },
   })
 }, /allowCode/)
@@ -323,7 +297,8 @@ assert.throws(function () {
 const codeReview = aeditor.extensions.review({
   id: 'code.review',
   layer: 'user',
-  permissions: ['project.read'],
+  trust: { code: 'trusted' },
+  permissions: ['app.read'],
   contributes: { components: [{ id: 'panel', kind: 'factory', source: 'function(){ return document.createElement("div") }' }] },
 })
 assert.equal(codeReview.canApply, false)
@@ -332,10 +307,11 @@ assert.equal(codeReview.permissions.includes('extensions.code.install'), true)
 assert.equal(codeReview.permissions.includes('extensions.layer.user.write'), true)
 const reviewOnly = await aeditor.extensions.installWithReview({
   id: 'code.review.only',
+  trust: { code: 'trusted' },
   contributes: { components: [{ id: 'panel', kind: 'factory', source: 'function(){ return document.createElement("div") }' }] },
 })
 assert.equal(reviewOnly.canApply, false)
-assert.equal(aeditor.componentRegistration('code.review.only/panel'), null)
+assert.equal(aeditor.componentRegistration('code.review.only.panel'), null)
 
 aeditor.extensions.configurePermissions({
   install: function (details) { return details.manifest.id !== 'blocked.extension' },
@@ -348,39 +324,44 @@ aeditor.extensions.configurePermissions(null)
 
 const codeInstalled = aeditor.extensions.install({
   id: 'code.ok',
+  trust: { code: 'trusted' },
   contributes: { components: [{ id: 'panel', kind: 'factory', source: 'function(){ return document.createElement("div") }' }] },
 }, { allowCode: true, save: false })
 assert.equal(codeInstalled.installed, true)
-assert.equal(aeditor.componentRegistration('code.ok/panel').owner, 'extension:code.ok')
+assert.equal(aeditor.componentRegistration('code.ok.panel').owner, 'extension:code.ok')
 aeditor.extensions.uninstall('code.ok', { save: false })
 
 assert.throws(function () {
   aeditor.extensions.install({
     id: 'code.hash.bad',
+    trust: { code: 'sandbox' },
     contributes: { components: [{ id: 'panel', kind: 'iframe', srcdoc: '<p>x</p>', hash: 'bad' }] },
   }, { allowCode: true, save: false })
 }, /hash mismatch/)
 const srcdoc = '<p>isolated</p>'
 const iframeInstalled = aeditor.extensions.install({
   id: 'code.iframe',
+  trust: { code: 'sandbox' },
   contributes: { components: [{ id: 'panel', kind: 'iframe', srcdoc: srcdoc, hash: aeditor.extensions.hashSource(srcdoc) }] },
 }, { allowCode: true, save: false })
 assert.equal(iframeInstalled.installed, true)
-assert.equal(aeditor.componentRegistration('code.iframe/panel').owner, 'extension:code.iframe')
+assert.equal(aeditor.componentRegistration('code.iframe.panel').owner, 'extension:code.iframe')
 aeditor.extensions.uninstall('code.iframe', { save: false })
 
 aeditor.extensions.uninstall('case', { save: false })
-assert.equal(aeditor.componentRegistration('case/roleBag'), null)
+assert.equal(aeditor.componentRegistration('case.roleBag'), null)
 const booted = aeditor.extensions.boot()
 assert.equal(booted.count, 1)
-assert.equal(aeditor.componentRegistration('case/roleBag').owner, 'extension:case')
+assert.equal(aeditor.componentRegistration('case.roleBag').owner, 'extension:case')
 
-const removePreview = ai.previewOperation('aeditor.removeExtension', { id: 'case' })
-const removed = ai.applyOperation(removePreview)
+const removePreview = ai.operations.preview('aeditor.removeExtension', { id: 'case' })
+const removed = ai.operations.apply(removePreview)
 assert.equal(removed.removed, true)
-assert.equal(aeditor.componentRegistration('case/roleBag'), null)
+assert.equal(aeditor.componentRegistration('case.roleBag'), null)
 assert.deepEqual(ai.references.list({ owner: 'extension:case' }), [])
 assert.deepEqual(ai.operations.list({ owner: 'extension:case' }), [])
+assert.equal(ai.tools.get('case.read'), undefined)
+assert.equal(ai.context.get('case.context'), undefined)
 assert.equal(aeditor.findDock(tree, tree.id).node.panels.length, 0)
 
 const delayedMemory = storage()
@@ -407,6 +388,6 @@ aeditor.extensions.registerLayout('delayed', {
   removePanel: function (panelId) { delayedTree = aeditor.removePanel(delayedTree, panelId) },
   setTree: function (next) { delayedTree = next },
 })
-assert.equal(aeditor.findDock(delayedTree, delayedTree.id).node.panels[0].component, 'delayed/panel')
+assert.equal(aeditor.findDock(delayedTree, delayedTree.id).node.panels[0].component, 'delayed.panel')
 
 console.log('extension runtime tests ok')

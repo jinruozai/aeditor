@@ -50,14 +50,29 @@ for an agent.
 Implemented APIs:
 
 ```js
-aeditor.ai.registerSkill(name, skill)
-aeditor.ai.getSkill(name)
-aeditor.ai.listSkills()
+aeditor.ai.skills.register(name, skill)
+aeditor.ai.skills.unregister(name)
+aeditor.ai.skills.unregisterPrefix(prefix)
+aeditor.ai.skills.get(name)
+aeditor.ai.skills.list(prefix)
 ```
 
 Agents enable skills by listing skill ids in `agent.skillRefs`. During request
 construction, enabled skills contribute their `systemPrompt` and `rules` into
 the runtime guide.
+
+The framework ships one built-in authoring skill:
+
+```text
+aeditor.authoring
+```
+
+It teaches the model the AEditor component contract: plain `.js` files,
+registered components, `factory(propsSig, ctx) -> HTMLElement`, `aeditor.ui.*`
+controls, dock-responsive layout, and no React/TSX/import/export unless the
+workspace explicitly provides such a build system. The request builder enables
+this skill automatically for UI/panel/dock authoring requests and for
+workspace-backed editing sessions.
 
 Skills are not a fourth AI action registry:
 
@@ -147,6 +162,20 @@ If a run is waiting for user approval, the runtime state should say so and the
 next continuation should be scheduled only after the approval/reject result has
 been appended.
 
+The default tool continuation guard is `maxToolTurns: 32`. It is a safety stop
+for loops, not a normal completion path. Agents are instructed to exit earlier
+with one of four clear states:
+
+```text
+done        the requested work is complete
+waiting     user approval or confirmation is required
+blocked     required workspace/files/schema/API/permission is missing
+failed      the same operation shape has failed and retrying would be guessing
+```
+
+When the guard does trip, the runtime appends an explicit safety-stop assistant
+message instead of silently idling.
+
 ## Quests
 
 A quest is delegated work tracked across agents.
@@ -205,6 +234,8 @@ This state tracks:
 
 ```text
 state
+runId
+traceId
 previewTail
 modelTail
 activityText
@@ -230,6 +261,24 @@ Current implementation already estimates context size and keeps the newest
 messages inside the model budget. The final design is semantic compaction:
 closed older transcript ranges become auditable compaction records, while the
 raw transcript remains the source of truth.
+
+Implemented APIs:
+
+```js
+aeditor.ai.compaction.configure(options)
+aeditor.ai.compaction.plan(agentId, input)
+aeditor.ai.compaction.run(agentId, plan)
+aeditor.ai.compaction.records(agentId)
+aeditor.ai.compaction.clear(agentId, options)
+```
+
+Implemented command wrappers:
+
+```text
+ai.compactCurrentAgent
+ai.clearCurrentAgentCompactions
+ai.listCurrentAgentCompactions
+```
 
 See [ai-context-compaction.md](./ai-context-compaction.md).
 
@@ -264,6 +313,26 @@ The live strip is diagnostic UI. It should show the latest model/provider bytes
 as soon as the runtime receives them, then collapse back to idle when the run is
 done.
 
+## Trace And Audit
+
+Every run creates a `runId`. Provider requests, stream chunks, tool calls,
+operation previews/applies, workspace mutations, extension installs, and
+permission decisions also carry the same `runId` plus a `traceId` or span id.
+
+The runtime should be able to answer:
+
+```text
+which user message started this run
+which provider request produced this chunk
+which tool call mutated this resource
+which permission decision allowed or denied it
+which resource version was inspected and committed
+```
+
+This trace is diagnostic infrastructure, not a new model-facing concept. It
+connects `aeditor.log`, tool cards, ChangeSet review, provider usage, and the
+permission audit log.
+
 ## Tool Call Lifecycle
 
 Tool calls have a lifecycle:
@@ -296,6 +365,11 @@ aeditor.ai.setToolAlwaysAllowed(agentId, toolId, allowed)
 
 Failed calls should display failure and must not show apply controls.
 
+Tool execution, operation apply, ChangeSet apply, extension install, workspace
+mutation, and host-adapter calls all go through the resolver in
+[ai-permission-policy.md](./ai-permission-policy.md). "Always allowed" is a
+scoped cached decision, not a global bypass.
+
 ## Request Context Hooks
 
 The runtime can assemble request context from small registered contributors.
@@ -305,9 +379,9 @@ new model-facing registry beyond tools/context/operations.
 Implemented APIs:
 
 ```js
-aeditor.ai.registerContextProvider(name, provider)
-aeditor.ai.getContextProvider(name)
-aeditor.ai.listContextProviders()
+aeditor.ai.context.register(name, provider)
+aeditor.ai.context.get(name)
+aeditor.ai.context.list()
 ```
 
 Context providers may add compact state such as active selection, workspace
@@ -315,40 +389,41 @@ metadata, available UI affordances, or domain-specific guide text. Prefer
 registered context entries for information the model should be able to request by
 URI, search, or read on demand.
 
-Resource resolvers are the current low-level hook that turns a normalized
-reference into readable content:
+Reference providers turn normalized references into readable content:
 
 ```js
-aeditor.ai.registerResourceResolver(name, resolver)
-aeditor.ai.getResourceResolver(name)
-aeditor.ai.listResourceResolvers()
+aeditor.ai.references.register(name, provider)
+aeditor.ai.references.read(ref, options, ctx)
 ```
 
-Final architecture should keep the behavior but align naming with the context
-registry described in [ai-registries.md](./ai-registries.md).
+Use reference providers for URI/kind/meta pointers. Use `aeditor.ai.context`
+for compact run-level context that should be included with a model request.
 
-## Agent Templates And Registration Helpers
+## Agent Templates And Bundles
 
-The runtime also has small host-level registration helpers:
+The runtime also exposes small host-level registries:
 
 ```js
-aeditor.ai.registerAgentTemplate(name, template)
-aeditor.ai.getAgentTemplate(name)
-aeditor.ai.listAgentTemplates()
+aeditor.ai.agentTemplates.register(name, template)
+aeditor.ai.agentTemplates.unregister(name)
+aeditor.ai.agentTemplates.unregisterPrefix(prefix)
+aeditor.ai.agentTemplates.get(name)
+aeditor.ai.agentTemplates.list(prefix)
 
-aeditor.ai.registerPlugin(name, plugin)
-aeditor.ai.getPlugin(name)
-aeditor.ai.listPlugins()
+aeditor.ai.bundles.register(name, bundle)
+aeditor.ai.bundles.unregister(name)
+aeditor.ai.bundles.unregisterPrefix(prefix)
+aeditor.ai.bundles.get(name)
+aeditor.ai.bundles.list(prefix)
 ```
 
 Agent templates are presets for creating agents. They are not a separate agent
 type.
 
-`registerPlugin` is a current bundling shortcut for registering AI host entries
-such as connections, skills, tools, context providers, resource resolvers, and
-agent templates. It should not grow into a second extension model. Framework-wide
-packaging belongs to `aeditor.extensions`; this helper should remain a small
-runtime registration shortcut or be folded into Extension contributions.
+`aeditor.ai.bundles` is only a convenience registry for registering AI runtime
+entries together, such as connections, skills, tools, context providers, and
+agent templates. It is not an Extension replacement; framework-wide packaging
+belongs to `aeditor.extensions`.
 
 ## Persistence
 

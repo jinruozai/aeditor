@@ -2,46 +2,45 @@
 
 ## Purpose
 
-The AI layer lets agents talk to the user, read precise context, and ask the host
-to run controlled actions.
+The optional AI Host lets agents talk to the user, read precise context, and ask
+the host to run controlled actions. It is not part of the Core/UI kernel, and it
+does not own product data models.
 
-The AI layer owns:
-
-```text
-agents
-skills
-messages
-providers
-streaming
-permissions
-tools
-context
-operations
-targets
-```
-
-It does not own product data models.
-
-Any AEditor module can contribute to AI by registering tools, context, or
-operations. `workspace.*`, `theme.*`, `dock.*`, `ui.*`, and product prefixes all use
-the same registries.
+Any AEditor module can contribute to AI by registering tools, context
+references, or operations. `workspace.*`, `theme.*`, `dock.*`, `ui.*`, extension
+prefixes, and product prefixes all use the same registries.
 
 Skills are agent behavior profiles. They add prompt guidance and rules to an
-agent; they are not tools, context, or operations.
+agent; they are not tools, context references, or operations.
 
-## Minimal Mental Model
+## Public Concept Model
 
-AI uses one action space and one context flow:
+Expose only five concepts at the architecture level:
 
 ```text
-Action space: tools / context / operations
-Context flow: target -> reference -> context
+Agent             conversation, memory, runtime state
+Tool              model-callable action
+Context Reference stable pointer to bounded readable context
+Operation         previewable/applyable mutation
+ChangeSet         grouped review/apply container
 ```
 
-`target` is what the user points at. `reference` is the stable pointer placed in
-chat or prompt data. `context` is the bounded readable content the model can use.
-Attachments and rich prompt refs are runtime/UI storage for this same flow, not
-additional registries.
+Targets, attachments, rich prompt ranges, quests, inboxes, bundles, and
+templates are runtime or UX details. They may have APIs, but they should not
+become new architectural layers.
+
+## Context Flow
+
+AI uses one context flow:
+
+```text
+user points at thing -> Context Reference -> bounded Context
+```
+
+A reference is stable enough to put in chat or prompt data. Context providers
+resolve references into bounded readable content for the model. Large data must
+expose search, summaries, ranges, schemas, or projections instead of injecting
+everything into the prompt.
 
 ## Tools
 
@@ -53,9 +52,8 @@ Examples:
 workspace.searchFiles
 workspace.readFile
 workspace.patchFile
-ui.createPanel
-dock.addPanel
 theme.setMode
+ui.setProp
 gde.table.patchRows
 ```
 
@@ -71,9 +69,22 @@ aeditor.ai.tools.list(prefix)
 
 Tool names use dotted paths. Prefixes are enough for grouping and removal.
 
-## Context
+The request builder sends only model-visible and currently available tools to
+the provider:
 
-Context is bounded readable information for the model.
+```js
+aeditor.ai.tools.register('workspace.readFile', {
+  available: function () { return !!aeditor.ai.currentWorkspace() },
+  run: readFile,
+})
+```
+
+Low-level host escape hatches can stay registered for framework code while being
+kept out of normal model requests with `exposeToModel: false`.
+
+## Context References
+
+Context references are stable pointers plus provider-backed readers.
 
 Examples:
 
@@ -95,8 +106,8 @@ aeditor.ai.context.get(name)
 aeditor.ai.context.list(prefix)
 ```
 
-Context should be bounded. Large data should expose search, range reads, or
-schema summaries instead of injecting everything into the prompt.
+The API name is `context`; the public concept is "Context Reference" because
+what the model sees should be bounded content, not an unbounded resource dump.
 
 ## Operations
 
@@ -124,12 +135,16 @@ aeditor.ai.operations.preview(name, input)
 aeditor.ai.operations.apply(preview)
 ```
 
-Operations are for changes that need validation, preview, review UI, or undo
-integration.
+Operations are for changes that need validation, preview, review UI, undo
+integration, or resource-version checks.
+
+`aeditor.previewOperation` and `aeditor.applyOperation` are low-level bridge
+tools for internal code and explicitly scoped agents. They should be hidden from
+normal model requests unless a host has a specific reason to expose them.
 
 ## ChangeSet
 
-`ChangeSet` is review infrastructure, not a fourth AI registry.
+`ChangeSet` is review infrastructure, not a fourth registry.
 
 ```text
 Operation  one previewable action
@@ -137,39 +152,26 @@ ChangeSet  grouped review/apply container for many changes
 ```
 
 Use operations for the model-facing preview/apply contract. Use ChangeSet when
-the UI needs to review, apply, or reject several changes together.
-
-## Targets
-
-A target is something the user can attach to chat:
-
-```text
-selected component
-selected rows
-current panel
-current file
-image
-asset
-```
-
-Targets become references in the prompt. The AI host resolves those references
-through context providers and tools when building the model request.
+the UI needs to review, apply, reject, audit, or persist several changes
+together.
 
 ## Permissions
 
-Permissions apply at the AI tool and operation boundary.
-
-Recommended states:
+Permissions apply at every model-controlled boundary:
 
 ```text
-read only
-ask before write
-full access inside granted workspace
-custom policy
+tool run
+operation preview/apply
+ChangeSet apply
+workspace mutation
+extension install/update
+host-adapter call
 ```
 
-Full access means the host should not show approval UI for actions already
-allowed by policy. Failed actions should never show apply controls.
+All decisions go through the unified resolver described in
+[ai-permission-policy.md](./ai-permission-policy.md). Full access means the
+resolver has already allowed that action for that actor, target, phase, and
+scope; failed actions must never show apply controls.
 
 ## Streaming
 
@@ -184,35 +186,10 @@ The user should always be able to distinguish:
 ```text
 waiting for provider
 receiving text
+receiving reasoning
 receiving tool call arguments
 running tool
 waiting for user approval
 done
 failed
 ```
-
-## Commands Versus Tools
-
-Commands are for humans and UI surfaces:
-
-```text
-menus
-buttons
-command palette
-shortcuts
-context menus
-```
-
-Tools are for models:
-
-```text
-schema
-permission policy
-approval state
-tool-call transcript
-model-visible result
-```
-
-The same underlying action can be exposed as both a command and a tool, but the
-registries are intentionally separate because the caller, permissions, and
-result handling are different.

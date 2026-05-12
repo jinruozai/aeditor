@@ -11,7 +11,7 @@
   'use strict'
   const ui = aeditor.ui
 
-  const STORAGE_KEY = 'aeditor-theme-overrides-v2'
+  const STORAGE_KEY = 'aeditor-theme-overrides-v3'
   const THEME_KEY   = 'aeditor-theme-mode'
 
   // ── token catalog ─────────────────────────────────────────────────
@@ -220,6 +220,7 @@
         options: [
           { value: 'dark',    label: 'Dark' },
           { value: 'dracula', label: 'Dracula' },
+          { value: 'harbor',  label: 'Harbor' },
           { value: 'light',   label: 'Light' },
         ],
       })
@@ -356,9 +357,8 @@
         return el
       }
 
-      const paneHost = ui.h('div', 'demo-theme-host')
-      const scroll = ui.scrollArea({ children: paneHost })
-      root.appendChild(scroll)
+      const paneHost = ui.view({ className: 'demo-theme-host' })
+      root.appendChild(paneHost)
 
       const foot = ui.h('div', 'demo-theme-foot')
       foot.appendChild(tabBar)

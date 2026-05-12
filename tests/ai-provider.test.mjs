@@ -4,6 +4,7 @@ import vm from 'node:vm'
 
 global.window = { aeditor: {} }
 vm.runInThisContext(readFileSync('src/core/signal.js', 'utf8'), { filename: 'signal.js' })
+vm.runInThisContext(readFileSync('src/core/names.js', 'utf8'), { filename: 'names.js' })
 vm.runInThisContext(readFileSync('src/core/settings.js', 'utf8'), { filename: 'settings.js' })
 vm.runInThisContext(readFileSync('src/ai/connection.js', 'utf8'), { filename: 'ai/connection.js' })
 vm.runInThisContext(readFileSync('src/ai/adapter.js', 'utf8'), { filename: 'ai/adapter.js' })
@@ -193,8 +194,8 @@ await ai.sendViaConnection('openai-api', {
   model: '',
   stream: false,
   messages: [{ role: 'user', content: 'see image' }],
-  resourceRefs: [{ kind: 'file.image', title: 'icon.png', meta: { dataUrl: imageDataUrl } }],
-  resources: [{ dataUrl: imageDataUrl }],
+  attachmentRefs: [{ kind: 'file.image', title: 'icon.png', meta: { dataUrl: imageDataUrl } }],
+  attachments: [{ dataUrl: imageDataUrl }],
   toolSpecs: [],
 }, { signal: null })
 const openAiImageBody = JSON.parse(calls.at(-1).opts.body)
@@ -325,8 +326,8 @@ await ai.sendViaConnection('anthropic-api', {
   model: '',
   stream: false,
   messages: [{ role: 'user', content: 'see image' }],
-  resourceRefs: [{ kind: 'file.image', title: 'icon.png', meta: { dataUrl: imageDataUrl } }],
-  resources: [{ dataUrl: imageDataUrl }],
+  attachmentRefs: [{ kind: 'file.image', title: 'icon.png', meta: { dataUrl: imageDataUrl } }],
+  attachments: [{ dataUrl: imageDataUrl }],
 }, { signal: null })
 const anthropicImageBody = JSON.parse(calls.at(-1).opts.body)
 assert.deepEqual(anthropicImageBody.messages[0].content, [
@@ -340,12 +341,12 @@ const bridgeReply = await ai.sendViaConnection('local-bridge', {
   model: '',
   stream: false,
   messages: [{ role: 'user', content: 'hello' }],
-  resources: [{ uri: 'memory://one' }],
+  attachments: [{ uri: 'memory://one' }],
 }, { signal: null })
 assert.equal(bridgeReply.content, 'bridge reply')
 const bridgeBody = JSON.parse(calls.at(-1).opts.body)
 assert.equal(calls.at(-1).url, 'http://bridge.test/chat')
 assert.equal(bridgeBody.model, 'local-test')
-assert.deepEqual(bridgeBody.resources, [{ uri: 'memory://one' }])
+assert.deepEqual(bridgeBody.attachments, [{ uri: 'memory://one' }])
 
 console.log('ai provider tests ok')

@@ -5,6 +5,7 @@ import vm from 'node:vm'
 global.window = { aeditor: {} }
 vm.runInThisContext(readFileSync('src/core/signal.js', 'utf8'), { filename: 'signal.js' })
 vm.runInThisContext(readFileSync('src/core/log.js', 'utf8'), { filename: 'log.js' })
+vm.runInThisContext(readFileSync('src/core/names.js', 'utf8'), { filename: 'names.js' })
 vm.runInThisContext(readFileSync('src/ai/name-generator.js', 'utf8'), { filename: 'ai/name-generator.js' })
 vm.runInThisContext(readFileSync('src/ai/store.js', 'utf8'), { filename: 'ai/store.js' })
 vm.runInThisContext(readFileSync('src/ai/connection.js', 'utf8'), { filename: 'ai/connection.js' })
@@ -14,6 +15,7 @@ vm.runInThisContext(readFileSync('src/ai/provider-auth.js', 'utf8'), { filename:
 vm.runInThisContext(readFileSync('src/ai/provider-transports.js', 'utf8'), { filename: 'ai/provider-transports.js' })
 vm.runInThisContext(readFileSync('src/ai/provider-connections.js', 'utf8'), { filename: 'ai/provider-connections.js' })
 vm.runInThisContext(readFileSync('src/ai/context.js', 'utf8'), { filename: 'ai/context.js' })
+vm.runInThisContext(readFileSync('src/ai/reference.js', 'utf8'), { filename: 'ai/reference.js' })
 vm.runInThisContext(readFileSync('src/ai/change-set.js', 'utf8'), { filename: 'ai/change-set.js' })
 vm.runInThisContext(readFileSync('src/ai/request.js', 'utf8'), { filename: 'ai/request.js' })
 vm.runInThisContext(readFileSync('src/ai/runtime.js', 'utf8'), { filename: 'ai/runtime.js' })
@@ -44,7 +46,7 @@ function assertNoSessionSurface() {
   assert.equal('findAgentByPath' in ai, false)
   assert.equal('setAgentPath' in ai, false)
   assert.deepEqual(ai.agents(), [])
-  assert.deepEqual(ai.resources(), [])
+  assert.deepEqual(ai.attachments(), [])
   assert.equal(ai.activeAgentId(), null)
 }
 
@@ -159,18 +161,17 @@ function assertAgentRuntimeState(seedAgent) {
   ai.deleteAgent(child.id)
 }
 
-function assertResourceResolverContract(agentId) {
+function assertReferenceProviderContract(agentId) {
   let resolveCtxSeen = null
-  ai.registerResourceResolver('case', {
-    canResolve: function (ref) { return ref.resolver === 'case' },
-    summarize: function (ref) { return { title: ref.title, summary: 'summary:' + ref.uri } },
-    resolve: function (ref, ctx) {
+  ai.references.register('case', {
+    describe: function (ref) { return { title: ref.title, summary: 'summary:' + ref.uri } },
+    read: function (ref, options, ctx) {
       resolveCtxSeen = ctx
       return { uri: ref.uri, text: 'resolved:' + ref.uri }
     },
   })
 
-  const ref = ai.addResource({
+  const ref = ai.addAttachment({
     resolver: 'case',
     uri: 'case://selection/item-1',
     kind: 'selection',
@@ -180,9 +181,8 @@ function assertResourceResolverContract(agentId) {
   })
   ai.updateAgent(agentId, { contextRefs: [ref.id] })
 
-  assert.equal(ai.resources().length, 1)
-  assert.equal(ai.getResourceResolver('case').canResolve(ref, {}), true)
-  assert.deepEqual(ai.getResourceResolver('case').summarize(ref, {}), {
+  assert.equal(ai.attachments().length, 1)
+  assert.deepEqual(ai.references.describe(ref), {
     title: 'Item 1',
     summary: 'summary:case://selection/item-1',
   })
@@ -229,7 +229,7 @@ function assertPermissionContract(agentId) {
 }
 
 function assertRegistryContracts(agentId) {
-  ai.registerTool('diff-preview', {
+  ai.tools.register('diff-preview', {
     title: 'Diff Preview',
     description: 'Preview a change before applying it.',
     schema: { type: 'object' },
@@ -238,29 +238,29 @@ function assertRegistryContracts(agentId) {
     run: function (args) { return { ok: true, args: args } },
     apply: function (result) { return { applied: result.ok } },
   })
-  ai.registerSkill('review', { id: 'review', title: 'Review', tools: ['diff-preview'] })
-  ai.registerAgentTemplate('goal-reviewer', {
+  ai.skills.register('review', { id: 'review', title: 'Review', tools: ['diff-preview'] })
+  ai.agentTemplates.register('goal-reviewer', {
     id: 'goal-reviewer',
     defaults: { connection: 'mock', model: 'fast' },
     skills: ['review'],
   })
-  ai.registerContextProvider('selection', {
+  ai.context.register('selection', {
     capture: function () { return { text: 'selected' } },
   })
-  ai.registerPlugin('registry-test', {
+  ai.bundles.register('registry-test', {
     activate: function (ctx) {
-      ctx.ai.registerSkill('plugin-skill', { id: 'plugin-skill', title: 'Plugin Skill' })
+      ctx.ai.skills.register('plugin-skill', { id: 'plugin-skill', title: 'Plugin Skill' })
     },
   })
 
-  assert.deepEqual(ai.listTools(), ['diff-preview'])
-  assert.equal(ai.getTool('diff-preview').preview({ id: 1 }).kind, 'diff')
-  assert.equal(ai.getTool('diff-preview').apply({ ok: true }).applied, true)
-  assert.equal(ai.getSkill('review').title, 'Review')
-  assert.equal(ai.getSkill('plugin-skill').title, 'Plugin Skill')
-  assert.equal(ai.getAgentTemplate('goal-reviewer').defaults.model, 'fast')
-  assert.equal(ai.getContextProvider('selection').capture().text, 'selected')
-  assert.equal(ai.getPlugin('registry-test') != null, true)
+  assert.equal(ai.tools.list().includes('diff-preview'), true)
+  assert.equal(ai.tools.get('diff-preview').preview({ id: 1 }).kind, 'diff')
+  assert.equal(ai.tools.get('diff-preview').apply({ ok: true }).applied, true)
+  assert.equal(ai.skills.get('review').title, 'Review')
+  assert.equal(ai.skills.get('plugin-skill').title, 'Plugin Skill')
+  assert.equal(ai.agentTemplates.get('goal-reviewer').defaults.model, 'fast')
+  assert.equal(ai.context.get('selection').capture().text, 'selected')
+  assert.equal(ai.bundles.get('registry-test') != null, true)
 
   ai.updateAgent(agentId, {
     skillRefs: ['review'],
@@ -310,7 +310,7 @@ async function assertSendRunStatusAndRequest(agentId, resourceCheck) {
   assert.equal(requestSeen.agent.state.projectRule.maxRows, 3)
   assert.equal(requestSeen.connection, 'capture')
   assert.equal(requestSeen.model, 'reasoning')
-  assert.deepEqual(requestSeen.resources, [{ uri: 'case://selection/item-1', text: 'resolved:case://selection/item-1' }])
+  assert.deepEqual(requestSeen.attachments, [{ uri: 'case://selection/item-1', text: 'resolved:case://selection/item-1' }])
   assert.deepEqual(requestSeen.tools, ['diff-preview'])
   assert.deepEqual(requestSeen.skills, ['review'])
   assert.equal(ctxSeen.canRead(agentId), true)
@@ -339,7 +339,7 @@ assertNoSessionSurface()
 assertAgentNameGenerator()
 const seed = assertAgentsAreIdBasedTree()
 assertAgentRuntimeState(seed.agent)
-const resourceCheck = assertResourceResolverContract(seed.agent.id)
+const resourceCheck = assertReferenceProviderContract(seed.agent.id)
 const managed = assertPermissionContract(seed.agent.id)
 assertRegistryContracts(seed.agent.id)
 await assertSendRunStatusAndRequest(seed.agent.id, resourceCheck)
@@ -423,9 +423,17 @@ function assertGdePatchPreviewRendering() {
     dispose: function (el) { if (el && el.remove) el.remove() },
     collect: function () {},
     button: function (opts) { return this.h('button', 'aeditor-ui-btn', { text: opts.text || '' }) },
+    stateButton: function () { return this.h('button', 'aeditor-ui-state-btn') },
     'switch': function (opts) { return this.h('label', 'aeditor-ui-switch', { text: opts.label || '' }) },
     copyButton: function () { return this.h('button', 'aeditor-ui-copy-btn', { text: 'Copy' }) },
     scrollArea: function () { return this.h('div', 'aeditor-ui-scrollarea') },
+    view: function (opts) {
+      const el = this.h('div', 'aeditor-ui-view')
+      const children = opts && opts.children
+      const list = Array.isArray(children) ? children : (children ? [children] : [])
+      for (let i = 0; i < list.length; i++) el.appendChild(list[i])
+      return el
+    },
   }
   window.aeditor.registerComponent = function (name, spec) { components[name] = spec }
   vm.runInThisContext(readFileSync('src/ui/data/changeReview.js', 'utf8'), { filename: 'ui/data/changeReview.js' })

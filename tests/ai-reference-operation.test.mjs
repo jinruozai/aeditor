@@ -5,10 +5,12 @@ import vm from 'node:vm'
 global.window = { aeditor: {} }
 vm.runInThisContext(readFileSync('src/core/signal.js', 'utf8'), { filename: 'signal.js' })
 vm.runInThisContext(readFileSync('src/core/log.js', 'utf8'), { filename: 'log.js' })
+vm.runInThisContext(readFileSync('src/core/names.js', 'utf8'), { filename: 'names.js' })
 vm.runInThisContext(readFileSync('src/ai/name-generator.js', 'utf8'), { filename: 'ai/name-generator.js' })
 vm.runInThisContext(readFileSync('src/ai/store.js', 'utf8'), { filename: 'ai/store.js' })
 vm.runInThisContext(readFileSync('src/ai/context.js', 'utf8'), { filename: 'ai/context.js' })
 vm.runInThisContext(readFileSync('src/ai/reference.js', 'utf8'), { filename: 'ai/reference.js' })
+vm.runInThisContext(readFileSync('src/ai/request.js', 'utf8'), { filename: 'ai/request.js' })
 
 const ai = window.aeditor.ai
 let value = 1
@@ -31,6 +33,10 @@ ai.references.register('case', {
     return [{ uri: 'case://item/one', kind: 'case.item', title: 'One' }]
   },
 })
+ai.references.register('case.extra', {})
+assert.deepEqual(ai.references.list('case.extra'), ['case.extra'])
+assert.deepEqual(ai.references.unregisterPrefix('case.extra'), ['case.extra'])
+assert.equal(ai.references.get('case.extra'), null)
 
 ai.transactions.configure({
   run(label, fn, meta) {
@@ -57,30 +63,42 @@ ai.operations.register('case.setValue', {
     return { applied: true, value }
   },
 })
+ai.operations.register('case.extra', {})
+assert.deepEqual(ai.operations.list('case.extra'), ['case.extra'])
+assert.deepEqual(ai.operations.unregisterPrefix('case.extra'), ['case.extra'])
+assert.equal(ai.operations.get('case.extra'), null)
 
-const ref = ai.normalizeReference('case://item/one')
+const ref = ai.references.normalize('case://item/one')
 assert.equal(ref.resolver, 'case')
-assert.deepEqual(ai.readReference(ref), { uri: 'case://item/one', value: 1 })
-assert.equal(ai.referenceSchema(ref).properties.value.type, 'number')
-assert.deepEqual(ai.referenceCapabilities(ref), [{ op: 'case.setValue', risk: 'edit' }])
+assert.deepEqual(ai.references.read(ref), { uri: 'case://item/one', value: 1 })
+assert.equal(ai.references.schema(ref).properties.value.type, 'number')
+assert.deepEqual(ai.references.capabilities(ref), [{ op: 'case.setValue', risk: 'edit' }])
 assert.equal(ai.references.search({ kind: 'case.item' })[0].uri, 'case://item/one')
 assert.equal(ai.references.selection()[0].uri, 'case://item/one')
 
-const invalid = ai.previewOperation('case.setValue', { value: 'bad' })
+const invalid = ai.operations.preview('case.setValue', { value: 'bad' })
 assert.equal(invalid.ok, false)
 assert.equal(value, 1)
 
-const preview = ai.previewOperation('case.setValue', { value: 7 })
+const preview = ai.operations.preview('case.setValue', { value: 7 })
 assert.equal(preview.ok, true)
 assert.equal(preview.risk, 'edit')
 assert.equal(preview.changes[0].after, 7)
-const applied = ai.applyOperation(preview)
+const applied = ai.operations.apply(preview)
 assert.equal(applied.applied, true)
 assert.equal(value, 7)
 assert.equal(tx[0].label, 'Set value')
 assert.equal(tx[0].meta.op, 'case.setValue')
 
 const agent = ai.createAgent({ name: 'Reference Agent' })
+const defaultRequest = ai.makeRequest(agent, null, 'inspect', 'user', 0)
+assert.equal(defaultRequest.tools.includes('aeditor.previewOperation'), false)
+assert.equal(defaultRequest.tools.includes('aeditor.applyOperation'), false)
+const explicitRequest = ai.makeRequest(ai.createAgent({
+  name: 'Explicit Operation Agent',
+  toolRefs: ['aeditor.previewOperation', 'aeditor.applyOperation'],
+}), null, 'inspect_explicit', 'user', 0)
+assert.deepEqual(explicitRequest.tools, ['aeditor.previewOperation', 'aeditor.applyOperation'])
 const runTool = ai.createToolCall(agent.id, { toolId: 'aeditor.readReference', args: { uri: 'case://item/one' } }, 'user')
 ai.approveToolCall(agent.id, runTool.id, 'user')
 const run = ai.runToolCall(agent.id, runTool.id, 'user')

@@ -12,7 +12,7 @@
   let nextPreviewId = 1
 
   function clone(value) {
-    return value == null ? value : JSON.parse(JSON.stringify(value))
+    return value == null ? value : (ai.serialize && ai.serialize.clone ? ai.serialize.clone(value) : JSON.parse(JSON.stringify(value)))
   }
 
   function keys(obj) { return Object.keys(obj) }
@@ -71,13 +71,6 @@
     return fn.apply(provider, args.concat([withRefContext(ctx)]))
   }
 
-  function resourceResolverRead(ref, options, ctx) {
-    const r = normalizeReference(ref)
-    const resolver = r && ai.getResourceResolver && ai.getResourceResolver(r.resolver || r.kind)
-    if (!resolver || !resolver.resolve) return null
-    return resolver.resolve(r, Object.assign({ options: options || {} }, ctx || {}))
-  }
-
   function normalizeMeta(meta) {
     meta = meta || {}
     const out = {}
@@ -85,6 +78,8 @@
     if (meta.layer != null) out.layer = String(meta.layer)
     return out
   }
+
+  const matchesPrefix = aeditor.names.matchesPrefix
 
   function registerReferenceProvider(name, provider, meta) {
     referenceProviders[name] = Object.assign({ id: name }, provider || {})
@@ -118,6 +113,18 @@
     return removed
   }
 
+  function unregisterReferenceProviderPrefix(prefix) {
+    const removed = []
+    keys(referenceProviders).forEach(function (name) {
+      if (matchesPrefix(name, prefix)) {
+        delete referenceProviders[name]
+        delete referenceProviderMeta[name]
+        removed.push(name)
+      }
+    })
+    return removed
+  }
+
   function describeReference(ref, ctx) {
     const r = normalizeReference(ref)
     if (!r) return null
@@ -130,8 +137,7 @@
     if (!r) return null
     const providerRead = safeProviderCall(r, 'read', [r, options || {}], ctx)
     if (providerRead != null) return providerRead
-    const resolved = resourceResolverRead(r, options || {}, ctx)
-    return resolved != null ? resolved : r
+    return r
   }
 
   function referenceSchema(ref, ctx) {
@@ -211,6 +217,18 @@
     return removed
   }
 
+  function unregisterOperationPrefix(prefix) {
+    const removed = []
+    keys(operations).forEach(function (name) {
+      if (matchesPrefix(name, prefix)) {
+        delete operations[name]
+        delete operationMeta[name]
+        removed.push(name)
+      }
+    })
+    return removed
+  }
+
   function operationRisk(op, input, ctx) {
     const spec = getOperation(op)
     if (!spec) return 'edit'
@@ -273,6 +291,14 @@
     return normalizePreview(op, input, raw, ctx)
   }
 
+  function operationVisibleToModel(op, ctx) {
+    const spec = getOperation(op)
+    if (!spec) return false
+    if (spec.exposeToModel === false) return false
+    if (typeof spec.available === 'function' && spec.available(withOperationContext(op, ctx)) === false) return false
+    return true
+  }
+
   function resolvePreview(spec) {
     if (!spec) return null
     if (typeof spec === 'string') return previews[spec] || null
@@ -312,8 +338,7 @@
   }
 
   function registerEditorTools() {
-    if (!ai.registerTool) return
-    ai.registerTool('aeditor.readReference', {
+    ai.tools.register('aeditor.readReference', {
       title: 'Read Editor Reference',
       description: 'Read a referenced editor object. Use this before editing so schemas, values, and summaries are grounded in the host editor.',
       schema: {
@@ -330,7 +355,7 @@
         return readReference(args, args, ctx)
       },
     })
-    ai.registerTool('aeditor.searchReferences', {
+    ai.tools.register('aeditor.searchReferences', {
       title: 'Search Editor References',
       description: 'Search host-provided editor references by query and optional kind.',
       schema: {
@@ -345,7 +370,7 @@
         return searchReferences(args || {}, ctx)
       },
     })
-    ai.registerTool('aeditor.getSelection', {
+    ai.tools.register('aeditor.getSelection', {
       title: 'Get Editor Selection',
       description: 'Return current host editor selection as references.',
       schema: { type: 'object', properties: {} },
@@ -353,7 +378,7 @@
         return selectedReferences(ctx)
       },
     })
-    ai.registerTool('aeditor.getCapabilities', {
+    ai.tools.register('aeditor.getCapabilities', {
       title: 'Get Reference Capabilities',
       description: 'Return schemas and operations available for a reference.',
       schema: {
@@ -373,9 +398,10 @@
         }
       },
     })
-    ai.registerTool('aeditor.previewOperation', {
+    ai.tools.register('aeditor.previewOperation', {
       title: 'Preview Editor Operation',
       description: 'Preview a registered editor operation. Never apply invalid previews; repair input from returned validation errors.',
+      exposeToModel: false,
       schema: {
         type: 'object',
         required: ['op', 'input'],
@@ -386,15 +412,17 @@
       },
       run: function (args, ctx) {
         const op = args && (args.op || args.operation)
+        if (!operationVisibleToModel(op, ctx)) throw new Error('Operation is not available to the model: ' + op)
         if (!canUseOperation(ctx && ctx.actor || 'user', ctx && ctx.agent && ctx.agent.id, op, 'preview', { input: args && args.input })) {
-          return { ok: false, error: 'Operation preview not allowed: ' + op }
+          throw new Error('Operation preview not allowed: ' + op)
         }
         return previewOperation(args, null, ctx)
       },
     })
-    ai.registerTool('aeditor.applyOperation', {
+    ai.tools.register('aeditor.applyOperation', {
       title: 'Apply Editor Operation',
       description: 'Preview and apply a registered editor operation through the host transaction bridge.',
+      exposeToModel: false,
       schema: {
         type: 'object',
         required: ['op', 'input'],
@@ -407,6 +435,7 @@
       preview: function (args, ctx) {
         const op = args && (args.op || args.operation)
         if (args && args.previewId && previews[args.previewId]) return previews[args.previewId]
+        if (!operationVisibleToModel(op, ctx)) return { ok: false, op: op, error: 'Operation is not available to the model: ' + op }
         if (!canUseOperation(ctx && ctx.actor || 'user', ctx && ctx.agent && ctx.agent.id, op, 'preview', { input: args && args.input })) {
           return { ok: false, op: op, error: 'Operation preview not allowed: ' + op }
         }
@@ -426,9 +455,11 @@
     register: registerReferenceProvider,
     unregister: unregisterReferenceProvider,
     unregisterOwner: unregisterReferenceProviderOwner,
+    unregisterPrefix: unregisterReferenceProviderPrefix,
     get: getReferenceProvider,
     list: function (filter) {
       const names = keys(referenceProviders)
+      if (typeof filter === 'string') return names.filter(function (name) { return matchesPrefix(name, filter) })
       if (!filter) return names
       return names.filter(function (name) {
         const meta = referenceProviderMeta[name] || {}
@@ -452,9 +483,11 @@
     register: registerOperation,
     unregister: unregisterOperation,
     unregisterOwner: unregisterOperationOwner,
+    unregisterPrefix: unregisterOperationPrefix,
     get: getOperation,
     list: function (filter) {
       const names = keys(operations)
+      if (typeof filter === 'string') return names.filter(function (name) { return matchesPrefix(name, filter) })
       if (!filter) return names
       return names.filter(function (name) {
         const meta = operationMeta[name] || {}
@@ -473,23 +506,6 @@
     configure: configureTransactions,
     run: runTransaction,
   }
-
-  ai.normalizeReference = normalizeReference
-  ai.normalizeReferences = normalizeReferences
-  ai.registerReferenceProvider = registerReferenceProvider
-  ai.unregisterReferenceProvider = unregisterReferenceProvider
-  ai.unregisterReferenceProviderOwner = unregisterReferenceProviderOwner
-  ai.getReferenceProvider = getReferenceProvider
-  ai.readReference = readReference
-  ai.referenceSchema = referenceSchema
-  ai.referenceCapabilities = referenceCapabilities
-  ai.registerOperation = registerOperation
-  ai.unregisterOperation = unregisterOperation
-  ai.unregisterOperationOwner = unregisterOperationOwner
-  ai.getOperation = getOperation
-  ai.previewOperation = previewOperation
-  ai.applyOperation = applyOperation
-  ai.configureTransactions = configureTransactions
 
   registerEditorTools()
 })(window.aeditor = window.aeditor || {})

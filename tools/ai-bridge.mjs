@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 import http from 'node:http'
 import { spawn } from 'node:child_process'
-import { existsSync } from 'node:fs'
-import { join } from 'node:path'
+import { existsSync, readFileSync } from 'node:fs'
+import { delimiter, join, relative, resolve, sep } from 'node:path'
 
 const HOST = process.env.AEDITOR_AI_BRIDGE_HOST || '127.0.0.1'
 const PORT = Number(process.env.AEDITOR_AI_BRIDGE_PORT || 8787)
@@ -11,7 +11,15 @@ const CODEX_COMMAND = process.env.AEDITOR_CODEX_COMMAND || resolveCodexCommand()
 const CODEX_ARGS = (process.env.AEDITOR_CODEX_ARGS || 'app-server --listen stdio://').split(/\s+/).filter(Boolean)
 const CODEX_CHAT_COMMAND = process.env.AEDITOR_CODEX_CHAT_COMMAND || ''
 const CODEX_CHAT_ARGS = (process.env.AEDITOR_CODEX_CHAT_ARGS || '').split(/\s+/).filter(Boolean)
+const VERIFY_CWD = resolve(process.env.AEDITOR_VERIFY_CWD || process.cwd())
+const VERIFY_ROOTS = (process.env.AEDITOR_VERIFY_ROOTS || VERIFY_CWD)
+  .split(delimiter)
+  .filter(Boolean)
+  .map(item => resolve(item))
+const VERIFY_TIMEOUT_MS = Number(process.env.AEDITOR_VERIFY_TIMEOUT_MS || 120000)
+const VERIFY_MAX_OUTPUT = Number(process.env.AEDITOR_VERIFY_MAX_OUTPUT || 24000)
 let lastDebugRequest = null
+let lastVerifyResult = null
 
 function resolveCodexCommand() {
   if (!WINDOWS_SHELL) return 'codex'
@@ -64,6 +72,184 @@ function runJsonCommand(command, args, payload) {
     })
     child.stdin.end(JSON.stringify(payload || {}) + '\n')
   })
+}
+
+function clip(text, maxChars) {
+  const value = String(text == null ? '' : text)
+  const max = Number(maxChars || VERIFY_MAX_OUTPUT)
+  return max > 0 && value.length > max
+    ? value.slice(0, max) + '\n...[truncated]'
+    : value
+}
+
+function isInside(parent, child) {
+  const rel = relative(parent, child)
+  return rel === '' || (!!rel && !rel.startsWith('..') && !rel.includes('..' + sep))
+}
+
+function verifyCwd(input) {
+  const cwd = resolve(input || VERIFY_CWD)
+  for (const root of VERIFY_ROOTS) if (isInside(root, cwd)) return cwd
+  throw new Error('Verify cwd is outside allowed roots: ' + cwd)
+}
+
+function npmCommand() {
+  return WINDOWS_SHELL ? 'npm.cmd' : 'npm'
+}
+
+function configuredVerifyChecks(cwd) {
+  if (!process.env.AEDITOR_VERIFY_CHECKS) return null
+  const raw = JSON.parse(process.env.AEDITOR_VERIFY_CHECKS)
+  const list = Array.isArray(raw) ? raw : Object.keys(raw || {}).map(id => Object.assign({ id }, raw[id]))
+  return list.map(item => normalizeVerifyCheck(item, cwd))
+}
+
+function normalizeVerifyCheck(item, cwd) {
+  const id = String(item.id || item.name || item.script || '').trim()
+  if (!id) throw new Error('Verify check requires id')
+  const command = item.command || (item.script ? npmCommand() : null)
+  const args = item.args || (item.script ? ['run', item.script] : [])
+  if (!command) throw new Error('Verify check requires command or script: ' + id)
+  return {
+    id,
+    title: item.title || id,
+    description: item.description || '',
+    command,
+    args,
+    cwd: verifyCwd(item.cwd || cwd),
+    timeoutMs: item.timeoutMs || VERIFY_TIMEOUT_MS,
+  }
+}
+
+function packageVerifyChecks(cwd) {
+  const pkgPath = join(cwd, 'package.json')
+  if (!existsSync(pkgPath)) return []
+  const pkg = JSON.parse(readFileSync(pkgPath, 'utf8'))
+  const scripts = pkg.scripts || {}
+  const preferred = ['check', 'check:dist', 'test', 'lint', 'typecheck']
+  const out = []
+  for (const name of preferred) {
+    if (!scripts[name]) continue
+    out.push(normalizeVerifyCheck({
+      id: name,
+      title: 'npm run ' + name,
+      script: name,
+    }, cwd))
+  }
+  return out
+}
+
+function verifyChecks(inputCwd) {
+  const cwd = verifyCwd(inputCwd)
+  return configuredVerifyChecks(cwd) || packageVerifyChecks(cwd)
+}
+
+function publicVerifyCheck(check) {
+  return {
+    id: check.id,
+    title: check.title,
+    description: check.description,
+    cwd: check.cwd,
+    command: check.command,
+    args: check.args,
+    timeoutMs: check.timeoutMs,
+  }
+}
+
+function runProcess(command, args, opts) {
+  const cwd = verifyCwd(opts && opts.cwd)
+  const timeoutMs = Number(opts && opts.timeoutMs || VERIFY_TIMEOUT_MS)
+  return new Promise((resolveDone, reject) => {
+    const started = Date.now()
+    const child = spawn(command, args || [], {
+      cwd,
+      stdio: ['ignore', 'pipe', 'pipe'],
+      windowsHide: true,
+      shell: false,
+    })
+    let stdout = ''
+    let stderr = ''
+    let timedOut = false
+    const timer = setTimeout(() => {
+      timedOut = true
+      child.kill()
+    }, timeoutMs)
+    child.stdout.setEncoding('utf8')
+    child.stderr.setEncoding('utf8')
+    child.stdout.on('data', chunk => { stdout += chunk })
+    child.stderr.on('data', chunk => { stderr += chunk })
+    child.on('error', err => {
+      clearTimeout(timer)
+      reject(err)
+    })
+    child.on('exit', code => {
+      clearTimeout(timer)
+      resolveDone({
+        cwd,
+        exitCode: timedOut ? null : code,
+        timedOut,
+        durationMs: Date.now() - started,
+        stdout,
+        stderr,
+      })
+    })
+  })
+}
+
+function extractDiagnostics(output, maxItems = 100) {
+  const lines = String(output || '').split(/\r?\n/)
+  const out = []
+  for (const line of lines) {
+    if (out.length >= maxItems) break
+    let m = line.match(/^(.+?):(\d+):(\d+)[:\s]+(.+)$/)
+    if (m) {
+      out.push({ path: m[1], line: Number(m[2]), column: Number(m[3]), message: m[4] })
+      continue
+    }
+    m = line.match(/^(.+?)\((\d+),(\d+)\):\s*(.+)$/)
+    if (m) {
+      out.push({ path: m[1], line: Number(m[2]), column: Number(m[3]), message: m[4] })
+      continue
+    }
+    if (/\b(error|failed|exception)\b/i.test(line)) out.push({ message: line })
+  }
+  return out
+}
+
+async function verifyList(args = {}) {
+  return verifyChecks(args.cwd).map(publicVerifyCheck)
+}
+
+async function verifyRun(args = {}) {
+  const checks = verifyChecks(args.cwd)
+  const id = args.check || args.id || (Array.isArray(args.checks) && args.checks[0]) || (checks[0] && checks[0].id)
+  const check = checks.find(item => item.id === id)
+  if (!check) throw new Error('Unknown verify check: ' + id)
+  const result = await runProcess(check.command, check.args, {
+    cwd: args.cwd || check.cwd,
+    timeoutMs: args.timeoutMs || check.timeoutMs,
+  })
+  const output = result.stdout + (result.stderr ? (result.stdout ? '\n' : '') + result.stderr : '')
+  lastVerifyResult = {
+    ok: result.exitCode === 0 && !result.timedOut,
+    check: check.id,
+    title: check.title,
+    cwd: result.cwd,
+    exitCode: result.exitCode,
+    timedOut: result.timedOut,
+    durationMs: result.durationMs,
+    stdout: clip(result.stdout, args.maxChars),
+    stderr: clip(result.stderr, args.maxChars),
+    output: clip(output, args.maxChars),
+    diagnostics: extractDiagnostics(output, args.maxItems),
+  }
+  return lastVerifyResult
+}
+
+async function verifyDiagnostics(args = {}) {
+  const last = lastVerifyResult || null
+  if (!last) return []
+  return (last.diagnostics || []).slice(0, args.maxItems || 100)
 }
 
 class JsonRpcProcess {
@@ -322,6 +508,11 @@ async function route(req, res) {
   const url = new URL(req.url, 'http://localhost')
   if (url.pathname === '/health' || url.pathname === '/healthz') return json(res, 200, { ok: true, id: 'aeditor-ai-bridge' })
   if (url.pathname === '/debug/last-request' && req.method === 'GET') return json(res, 200, lastDebugRequest || {})
+  if (url.pathname === '/verify/list' && req.method === 'GET') return json(res, 200, { checks: await verifyList({ cwd: url.searchParams.get('cwd') || '' }) })
+  if (url.pathname === '/verify/list' && req.method === 'POST') return json(res, 200, { checks: await verifyList(await readBody(req)) })
+  if (url.pathname === '/verify/run' && req.method === 'POST') return json(res, 200, await verifyRun(await readBody(req)))
+  if (url.pathname === '/verify/diagnostics' && req.method === 'GET') return json(res, 200, { diagnostics: await verifyDiagnostics({ maxItems: Number(url.searchParams.get('maxItems') || 100) }) })
+  if (url.pathname === '/verify/diagnostics' && req.method === 'POST') return json(res, 200, { diagnostics: await verifyDiagnostics(await readBody(req)) })
   if (url.pathname === '/connections') {
     return json(res, 200, {
       data: [

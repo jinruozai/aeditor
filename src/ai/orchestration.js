@@ -5,7 +5,7 @@
   const ai = aeditor.ai = aeditor.ai || {}
 
   function clone(value) {
-    return value == null ? value : structuredClone(value)
+    return value == null ? value : (ai.serialize && ai.serialize.clone ? ai.serialize.clone(value) : structuredClone(value))
   }
 
   function actor(ctx) {
@@ -252,7 +252,7 @@
     return { stopped: ai.stopAgent(args.agentId) }
   }
 
-  ai.registerTool('agent.read', {
+  ai.tools.register('agent.read', {
     title: 'Read Agents',
     description: 'Read one agent or list readable agent summaries.',
     schema: { type: 'object', properties: { agentId: { type: 'string' } } },
@@ -260,7 +260,7 @@
     run: readAgent,
   })
 
-  ai.registerTool('agent.create', {
+  ai.tools.register('agent.create', {
     title: 'Create Agent',
     description: 'Create an AI agent after preview approval. Creation only creates the agent; if the user asked this agent to do work, continue with agent.send unless the request only asked for creation.',
     schema: {
@@ -285,7 +285,7 @@
     apply: createAgentApply,
   })
 
-  ai.registerTool('agent.delegate', {
+  ai.tools.register('agent.delegate', {
     title: 'Delegate Agent Task',
     description: 'Create or reuse an agent and send it a delegated task in one workflow. Returns agentId and questId. Delegation does not force the parent to wait.',
     schema: {
@@ -308,7 +308,7 @@
     apply: delegateAgentApply,
   })
 
-  ai.registerTool('agent.reparent', {
+  ai.tools.register('agent.reparent', {
     title: 'Reparent Agent',
     description: 'Move an agent under another agent, or to the root when parentAgentId is empty.',
     schema: { type: 'object', required: ['agentId'] },
@@ -317,7 +317,7 @@
     apply: reparentAgentApply,
   })
 
-  ai.registerTool('agent.delete', {
+  ai.tools.register('agent.delete', {
     title: 'Delete Agent',
     description: 'Delete an agent and its descendants after preview approval.',
     schema: { type: 'object', required: ['agentId'] },
@@ -326,7 +326,7 @@
     apply: deleteAgentApply,
   })
 
-  ai.registerTool('agent.send', {
+  ai.tools.register('agent.send', {
     title: 'Send Agent Message',
     description: 'Send a message to another agent. Returns a questId for this exact delegated task; prefer quest.result after the runtime reports completion.',
     schema: { type: 'object', required: ['agentId', 'content'] },
@@ -334,7 +334,7 @@
     run: sendAgent,
   })
 
-  ai.registerTool('quest.read', {
+  ai.tools.register('quest.read', {
     title: 'Read Quest',
     description: 'Read the status and result message id for a cross-agent quest.',
     schema: { type: 'object', required: ['agentId', 'questId'] },
@@ -342,7 +342,7 @@
     run: readQuest,
   })
 
-  ai.registerTool('quest.result', {
+  ai.tools.register('quest.result', {
     title: 'Read Quest Result',
     description: 'Read a quest and, when completed, return its result message content in one call.',
     schema: { type: 'object', required: ['agentId', 'questId'] },
@@ -350,7 +350,7 @@
     run: readQuestResult,
   })
 
-  ai.registerTool('message.read', {
+  ai.tools.register('message.read', {
     title: 'Read Message',
     description: 'Read one exact message by agent id and message id.',
     schema: { type: 'object', required: ['agentId', 'messageId'] },
@@ -358,7 +358,7 @@
     run: readMessage,
   })
 
-  ai.registerTool('agent.stop', {
+  ai.tools.register('agent.stop', {
     title: 'Stop Agent',
     description: 'Stop a running agent.',
     schema: { type: 'object', required: ['agentId'] },
@@ -366,7 +366,7 @@
     run: stopAgent,
   })
 
-  ai.registerSkill('orchestration', {
+  ai.skills.register('orchestration', {
     id: 'orchestration',
     title: 'Agent Orchestration',
     version: '2.0.0',

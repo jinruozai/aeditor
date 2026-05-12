@@ -4,42 +4,72 @@
 .aeditor-ui-section {
   display: flex;
   flex-direction: column;
+  flex: 0 0 auto;
   min-width: 0;
-  border-bottom: 1px solid var(--aeditor-border);
+  min-height: 0;
+  border: 1px solid var(--aeditor-border);
+  border-radius: var(--aeditor-r-2);
+  overflow: hidden;
+  background: var(--aeditor-view-bg);
 }
 .aeditor-ui-section-head {
   display: flex;
   align-items: center;
-  gap: 2px;
+  flex: 0 0 var(--aeditor-size-h-md);
+  gap: var(--aeditor-space-1);
   width: 100%;
   height: var(--aeditor-size-h-md);
-  padding: 0 var(--aeditor-space-1);
-  background: var(--aeditor-bg-raised);
+  min-height: var(--aeditor-size-h-md);
+  padding: 0 var(--aeditor-space-2);
+  background: var(--aeditor-bg-1);
   border: 0;
   color: var(--aeditor-fg-0);
   font: 600 var(--aeditor-fs-sm) var(--aeditor-font-ui);
-  text-transform: uppercase;
-  letter-spacing: .04em;
+  letter-spacing: 0;
   cursor: pointer;
   text-align: left;
 }
-.aeditor-ui-section-head:hover { background: var(--aeditor-bg-3); }
+.aeditor-ui-section-head:hover {
+  background: color-mix(in srgb, var(--aeditor-bg-1) 82%, var(--aeditor-hover));
+}
 .aeditor-ui-section-arrow {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   width: 16px;
+  height: 16px;
   color: var(--aeditor-fg-2);
-  font-size: var(--aeditor-fs-md);
   line-height: 1;
+  transition: transform var(--aeditor-dur-1) var(--aeditor-ease-standard);
 }
-.aeditor-ui-section-title { flex: 1 1 auto; }
+.aeditor-ui-section-leading,
+.aeditor-ui-section-trailing {
+  display: inline-flex;
+  align-items: center;
+  flex: 0 0 auto;
+  min-width: 0;
+}
+.aeditor-ui-section-title {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.aeditor-ui-section-meta {
+  flex: 0 0 auto;
+  color: var(--aeditor-fg-3);
+  font: var(--aeditor-fs-xs) var(--aeditor-font-mono);
+}
 .aeditor-ui-section-body {
   display: flex;
   flex-direction: column;
+  flex: 0 0 auto;
   min-width: 0;
+  min-height: 0;
   padding: var(--aeditor-space-2);
   gap: var(--aeditor-space-1);
+  background: var(--aeditor-view-bg);
 }
 .aeditor-ui-section-collapsed .aeditor-ui-section-body { display: none; }
 
@@ -120,6 +150,28 @@
 }
 
 /* ── scrollArea ─────────────────────────────────────────────────── */
+/* view */
+div.aeditor-ui-view {
+  min-width: 0;
+  min-height: 0;
+  box-sizing: border-box;
+  background: var(--aeditor-view-bg);
+  border-radius: var(--aeditor-view-radius);
+}
+.aeditor-ui-view-padded { padding: var(--aeditor-space-2); }
+.aeditor-ui-view-scroll-auto,
+.aeditor-ui-view-scroll-y {
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+.aeditor-ui-view-scroll-x {
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+.aeditor-ui-view-scroll-both { overflow: auto; }
+.aeditor-ui-view-scroll-hidden { overflow: hidden; }
+.aeditor-ui-view-scroll-none { overflow: visible; }
+
 .aeditor-ui-scrollarea {
   overflow-y: auto;
   overflow-x: hidden;
@@ -134,8 +186,6 @@
   border-radius: var(--aeditor-r-pill);
 }
 .aeditor-ui-scrollarea::-webkit-scrollbar-thumb:hover { background: var(--aeditor-fg-3); }
-
-
 /* ── absolute container ─────────────────────────────────────────
    The container clips children by default — this is the runtime
    behavior cards depend on. Editor surfaces (e.g. .gde-cs-canvas)

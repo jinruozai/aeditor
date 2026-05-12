@@ -36,11 +36,11 @@ Everything is built from the same tree:
 
 ```text
 Layout
-└─ Dock
-   ├─ Toolbar
-   │  └─ toolbar component
-   └─ Panel
-      └─ component
+`- Dock
+   |- Toolbar
+   |  `- toolbar component
+   `- Panel
+      `- component
 ```
 
 - **Dock** is a split, mergeable, resizable rectangular area.
@@ -77,7 +77,7 @@ aeditor does not impose a business data model. Your application registers its ow
 - **Small reactive core**: signal, effect, batch, onCleanup.
 - **Panel communication bus**: decoupled pub/sub with automatic cleanup.
 - **Theme system**: dark, dracula, light, plus semantic CSS tokens.
-- **AI integration layer**: agents, tools, resources, context providers, rich prompts, change sets, permissions, and multiple model providers.
+- **AI integration layer**: agents, tools, attachments, context providers, rich prompts, change sets, permissions, and multiple model providers.
 
 ---
 
@@ -90,7 +90,7 @@ The AI layer includes:
 - **Agent runtime**: create agents, send messages, stop runs, inspect transcripts.
 - **Provider connections**: OpenAI-compatible APIs, Anthropic, DeepSeek, Ollama, OpenRouter, Groq, Mistral, xAI, and local bridge transports.
 - **Tool registry**: applications can expose tools such as `project.getSummary`, `table.updateRows`, or `asset.rename`.
-- **Resources and targets**: selected objects, files, images, rows, nodes, or editor fragments can be attached to prompts as structured references.
+- **Attachments and targets**: selected objects, files, images, rows, nodes, or editor fragments can be attached to prompts as structured references.
 - **Context providers**: capture the current panel, selection, or document state when an agent runs.
 - **ChangeSet workflow**: AI-generated edits can be previewed, reviewed, applied, or rejected.
 - **Permission model**: read, write, manage, and send operations can be controlled per agent and resource.
@@ -98,7 +98,7 @@ The AI layer includes:
 Example:
 
 ```js
-aeditor.ai.registerTool('game.table.createEntity', {
+aeditor.ai.tools.register('game.table.createEntity', {
   title: 'Create Entity',
   description: 'Create one entity in a game data table.',
   schema: {
@@ -113,7 +113,7 @@ aeditor.ai.registerTool('game.table.createEntity', {
   },
 })
 
-aeditor.ai.registerContextProvider('current-selection', {
+aeditor.ai.context.register('current-selection', {
   capture: function (target, event, ctx) {
     return {
       panel: 'inspector',
@@ -319,7 +319,7 @@ var button = aeditor.ui.button({
 - **Data**: list / tree / table / breadcrumbs / progressBar
 - **Overlay**: menu / modal / drawer / alert / toast
 - **Schema-driven**: propertyEditor / propertyPanel / TypeConfig / renderer registry
-- **AI**: chat, agents, transcript, changeReview, rich prompt resources
+- **AI**: chat, agents, transcript, changeReview, rich prompt attachments
 
 ---
 
@@ -404,12 +404,12 @@ npm run check:dist
 
 ## License
 
-[MIT](./LICENSE) © gooooo
+[MIT](./LICENSE) (c) gooooo
 
 ---
 
 ## More
 
-- [`AGENTS.md`](./AGENTS.md) — architecture, data model, and project constraints
-- [`doc/editor_style.html`](https://gitee.com/lazygoo/aeditor/blob/master/doc/editor_style.html) — visual palette reference
-- [`index.html`](https://gitee.com/lazygoo/aeditor/blob/master/index.html) — component browser demo
+- [`AGENTS.md`](./AGENTS.md) - architecture, data model, and project constraints
+- [`doc/editor_style.html`](https://gitee.com/lazygoo/aeditor/blob/master/doc/editor_style.html) - visual palette reference
+- [`index.html`](https://gitee.com/lazygoo/aeditor/blob/master/index.html) - component browser demo

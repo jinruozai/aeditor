@@ -1,4 +1,4 @@
-﻿// UI library 鈥?overlay controller.
+// UI library - overlay controller.
 //
 // Single authority for all aeditor.ui overlay widgets (popover, menu, modal,
 // drawer). Owns the things that caused cross-component bugs when they were
@@ -23,12 +23,12 @@
 //                            correctly on top of earlier ones.
 //
 // Non-goals: toast stacking (those are non-modal, non-focus-stealing, auto-
-// dismiss 鈥?handled inside toast.js). Inline alert/status (handled inline).
+// dismiss - handled inside toast.js). Inline alert/status (handled inline).
 //
 // API
 //
 //   const handle = ui._overlay.open(el, {
-//     anchor?,             // HTMLElement 鈥?if set, treated as an anchored
+//     anchor?,             // HTMLElement - if set, treated as an anchored
 //                          // overlay (popover/menu). Outside-click is still
 //                          // active, but clicks on the anchor itself are
 //                          // NOT treated as "outside".
@@ -37,7 +37,7 @@
 //                          // the component owns its own visual backdrop.
 //     dismissOnOutside?,   // default: true for anchored, false for modal.
 //                          // Modal overlays still listen, but "outside"
-//                          // means "on the backdrop element" 鈥?opt in via
+//                          // means "on the backdrop element" - opt in via
 //                          // { target: backdropEl } instead.
 //     dismissOnEscape?,    // default: true.
 //     outsideTarget?,      // HTMLElement. When set, a mousedown on this
@@ -56,7 +56,7 @@
 // Notes on ordering
 //
 //   - The component is responsible for mounting its own DOM (usually via
-//     ui.portal). This controller does NOT mount or unmount DOM 鈥?it just
+//     ui.portal). This controller does NOT mount or unmount DOM - it just
 //     wires dismissal, focus, and ARIA onto an already-mounted element.
 //   - Components call open() right after mounting and should forward
 //     { onDismiss } through to their own `close()` function so external
@@ -65,7 +65,7 @@
   'use strict'
   const ui = aeditor.ui = aeditor.ui || {}
 
-  // 鈹€鈹€鈹€ the stack 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
+  // the stack
   // Each frame: { el, opts, prevFocus, onAnyDown, onKey, zBase }
   const stack = []
   let globalBound = false
@@ -91,9 +91,9 @@
     // the higher one, preserving LIFO semantics).
     for (let i = stack.length - 1; i >= 0; i--) {
       const f = stack[i]
-      if (!f.armed) return            // opened by the very event we're handling 鈥?skip this tick
-      if (f.el.contains(e.target)) return // click inside this overlay 鈥?keep it open
-      if (f.opts.anchor && f.opts.anchor.contains(e.target)) return // on its anchor 鈥?component handles toggle
+      if (!f.armed) return            // opened by the very event we're handling - skip this tick
+      if (f.el.contains(e.target)) return // click inside this overlay - keep it open
+      if (f.opts.anchor && f.opts.anchor.contains(e.target)) return // on its anchor - component handles toggle
       if (f.opts.outsideTarget && !f.opts.outsideTarget.contains(e.target)) {
         // Modal path: only the explicitly-declared backdrop element counts.
         return
@@ -112,7 +112,7 @@
     // listeners that might also close something.
     document.addEventListener('keydown', onGlobalKey, true)
     // mousedown (not click) so the dismissal happens before any click
-    // handler the user installed 鈥?important for "click outside to close,
+    // handler the user installed - important for "click outside to close,
     // but also reopen if you click a different anchor" flows.
     document.addEventListener('pointerdown', onGlobalDown, true)
     document.addEventListener('mousedown', onGlobalDown, true)
@@ -126,7 +126,7 @@
     document.removeEventListener('mousedown', onGlobalDown, true)
   }
 
-  // 鈹€鈹€鈹€ focus trap 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
+  // focus trap
   // Returns first + last tabbable descendant of root. Excludes disabled /
   // hidden / negative-tabindex items. Cheap because overlays are small.
   const FOCUSABLE_SEL =
@@ -162,7 +162,7 @@
     else { frame.el.tabIndex = -1; frame.el.focus() }
   }
 
-  // 鈹€鈹€鈹€ dismiss + close 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
+  // dismiss + close
   function dismiss(frame, cause) {
     if (frame.closed) return
     frame.closed = true
@@ -179,7 +179,7 @@
     if (frame.opts.onDismiss) frame.opts.onDismiss(cause)
   }
 
-  // 鈹€鈹€鈹€ public API 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
+  // public API
   ui._overlay = {
     open: function (el, opts) {
       const o = opts || {}
@@ -226,7 +226,7 @@
       }
     },
 
-    // Test / advanced helper 鈥?snapshot of current stack depth.
+    // Test / advanced helper - snapshot of current stack depth.
     depth: function () { return stack.length },
   }
 })(window.aeditor = window.aeditor || {})

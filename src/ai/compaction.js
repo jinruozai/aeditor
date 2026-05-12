@@ -1,0 +1,437 @@
+// aeditor.ai semantic context compaction runtime service.
+;(function (aeditor) {
+  'use strict'
+
+  const ai = aeditor.ai = aeditor.ai || {}
+
+  const config = {
+    enabled: true,
+    softLimitRatio: 0.75,
+    hardLimitRatio: 0.9,
+    tailMessages: 12,
+    minMessages: 8,
+    maxMessages: 80,
+    maxRecordsInRequest: 12,
+    summaryChars: 900,
+  }
+  let nextCompactionId = 1
+
+  function now() { return Date.now() }
+
+  function textOf(value) {
+    if (value == null) return ''
+    if (typeof value === 'string') return value
+    return safeJson(value)
+  }
+
+  function safeJson(value) {
+    try { return ai.serialize && ai.serialize.stringify ? ai.serialize.stringify(value) : JSON.stringify(value) } catch (_) { return String(value) }
+  }
+
+  function clip(value, max) {
+    const text = textOf(value).replace(/\s+/g, ' ').trim()
+    return text.length > max ? text.slice(0, max) + '...' : text
+  }
+
+  function estimateTokens(text) {
+    const s = String(text || '')
+    let ascii = 0
+    let wide = 0
+    for (let i = 0; i < s.length; i++) {
+      if (s.charCodeAt(i) < 128) ascii++
+      else wide++
+    }
+    return Math.ceil(ascii / 4 + wide * 0.8)
+  }
+
+  function stableHash(text) {
+    const s = String(text || '')
+    let h = 2166136261
+    for (let i = 0; i < s.length; i++) {
+      h ^= s.charCodeAt(i)
+      h += (h << 1) + (h << 4) + (h << 7) + (h << 8) + (h << 24)
+    }
+    return 'fnv1a:' + (h >>> 0).toString(16)
+  }
+
+  function modelContextLimit(agent) {
+    const explicit = Number(agent && (agent.contextBudgetTokens || (agent.meta && agent.meta.contextBudgetTokens)))
+    if (explicit > 0) return explicit
+    const id = String(agent && agent.model || '').toLowerCase()
+    if (id.indexOf('gpt-5') >= 0) return 400000
+    if (id.indexOf('claude') >= 0) return 200000
+    if (id.indexOf('gemini') >= 0) return 1000000
+    if (id.indexOf('deepseek') >= 0) return 64000
+    return 128000
+  }
+
+  function messageCost(message) {
+    let cost = estimateTokens((message.role || '') + '\n' + textOf(message.content)) + 8
+    if (message.reasoning_content) cost += estimateTokens(message.reasoning_content)
+    const calls = message.toolCalls || []
+    for (let i = 0; i < calls.length; i++) cost += estimateTokens(safeJson(calls[i])) + 16
+    return cost
+  }
+
+  function messagesCost(messages) {
+    let total = 0
+    for (let i = 0; i < (messages || []).length; i++) total += messageCost(messages[i])
+    return total
+  }
+
+  function compactedIdSet(agent) {
+    const set = {}
+    const records = agent && agent.compactions || []
+    for (let i = 0; i < records.length; i++) {
+      const ids = records[i].messageIds || []
+      for (let j = 0; j < ids.length; j++) set[ids[j]] = true
+    }
+    return set
+  }
+
+  function messageIndexById(messages) {
+    const out = {}
+    for (let i = 0; i < (messages || []).length; i++) out[messages[i].id] = i
+    return out
+  }
+
+  function latestCompactedIndex(agent, messages) {
+    const byId = messageIndexById(messages)
+    const records = agent && agent.compactions || []
+    let latest = -1
+    for (let i = 0; i < records.length; i++) {
+      const ids = records[i].messageIds || []
+      for (let j = 0; j < ids.length; j++) {
+        if (byId[ids[j]] != null && byId[ids[j]] > latest) latest = byId[ids[j]]
+      }
+    }
+    return latest
+  }
+
+  function finalToolStatus(call) {
+    return !!call && (call.status === 'applied' || call.status === 'completed' || call.status === 'rejected' || call.status === 'failed')
+  }
+
+  function hasToolResult(messages, callId, endExclusive) {
+    for (let i = 0; i < endExclusive; i++) {
+      const message = messages[i]
+      if (message.role === 'tool' && message.meta && message.meta.toolCallId === callId) return true
+    }
+    return false
+  }
+
+  function safeRangeEnd(messages, endExclusive) {
+    let end = endExclusive
+    while (end > 0) {
+      let safe = true
+      for (let i = 0; i < end; i++) {
+        const calls = messages[i].toolCalls || []
+        for (let j = 0; j < calls.length; j++) {
+          const call = calls[j]
+          if (!finalToolStatus(call) || !hasToolResult(messages, call.id, end)) {
+            safe = false
+            end = i
+            break
+          }
+        }
+        if (!safe) break
+      }
+      if (safe) return end
+    }
+    return 0
+  }
+
+  function compactableMessages(agent, input, opts) {
+    const options = Object.assign({}, config, opts || {})
+    const messages = agent && agent.messages || []
+    const start = latestCompactedIndex(agent, messages) + 1
+    let end = messages.length - Math.max(0, options.tailMessages)
+    if (input && input.id) {
+      for (let i = 0; i < messages.length; i++) {
+        if (messages[i].id === input.id) {
+          end = Math.min(end, i)
+          break
+        }
+      }
+    }
+    end = Math.max(start, safeRangeEnd(messages, Math.max(0, end)))
+    const out = []
+    for (let i = start; i < end && out.length < options.maxMessages; i++) {
+      const message = messages[i]
+      if (message.status === 'queued' || message.status === 'running' || message.status === 'waiting_approval') break
+      out.push(message)
+    }
+    return out
+  }
+
+  function plan(agentId, input, opts) {
+    const agent = ai.findAgent && ai.findAgent(agentId)
+    const options = Object.assign({}, config, opts || {})
+    if (!agent || options.enabled === false) return null
+    const messages = agent.messages || []
+    const limit = modelContextLimit(agent)
+    const used = messagesCost(messages)
+    const softLimit = Math.floor(limit * options.softLimitRatio)
+    const hardLimit = Math.floor(limit * options.hardLimitRatio)
+    const force = !!options.force
+    if (!force && used < softLimit) return null
+    const selected = compactableMessages(agent, input, options)
+    if (selected.length < options.minMessages) return null
+    const before = messagesCost(selected)
+    return {
+      agentId: agent.id,
+      inputMessageId: input && input.id || null,
+      messageIds: selected.map(function (message) { return message.id }),
+      tokenEstimateBefore: before,
+      tokenEstimateAfter: Math.min(before, Math.max(128, Math.floor(before * 0.18))),
+      limit: limit,
+      used: used,
+      softLimit: softLimit,
+      hardLimit: hardLimit,
+      forced: force,
+      createdAt: now(),
+    }
+  }
+
+  function collectRefs(messages) {
+    const seen = {}
+    const out = []
+    function add(ref) {
+      const id = typeof ref === 'string' ? ref : (ref && (ref.uri || ref.id || ref.resourceId))
+      if (!id || seen[id]) return
+      seen[id] = true
+      out.push(typeof ref === 'string' ? { id: ref } : {
+        id: ref.id || ref.resourceId || null,
+        uri: ref.uri || '',
+        kind: ref.kind || ref.resolver || '',
+        title: ref.title || '',
+        summary: ref.summary || '',
+      })
+    }
+    for (let i = 0; i < messages.length; i++) {
+      const refs = (messages[i].contextRefs || []).concat(messages[i].attachments || [])
+      for (let j = 0; j < refs.length; j++) add(refs[j])
+    }
+    return out
+  }
+
+  function collectToolObservations(messages) {
+    const out = []
+    for (let i = 0; i < messages.length; i++) {
+      const message = messages[i]
+      const calls = message.toolCalls || []
+      for (let j = 0; j < calls.length; j++) {
+        out.push({
+          messageId: message.id,
+          toolId: calls[j].toolId || calls[j].name || '',
+          status: calls[j].status || '',
+          error: calls[j].error ? clip(calls[j].error, 240) : null,
+        })
+      }
+      if (message.role === 'tool') {
+        out.push({
+          messageId: message.id,
+          toolId: message.meta && message.meta.toolId || (message.from || '').replace(/^tool:/, ''),
+          status: message.status || 'done',
+          summary: clip(message.content, 300),
+        })
+      }
+    }
+    return out
+  }
+
+  function meaningfulLines(messages, role, max) {
+    const out = []
+    for (let i = 0; i < messages.length && out.length < max; i++) {
+      if (messages[i].role !== role) continue
+      const text = clip(messages[i].content, 220)
+      if (text) out.push(text)
+    }
+    return out
+  }
+
+  function buildRecord(agent, planValue) {
+    const byId = {}
+    const messages = agent.messages || []
+    for (let i = 0; i < messages.length; i++) byId[messages[i].id] = messages[i]
+    const selected = []
+    for (let j = 0; j < planValue.messageIds.length; j++) if (byId[planValue.messageIds[j]]) selected.push(byId[planValue.messageIds[j]])
+    const users = meaningfulLines(selected, 'user', 4)
+    const assistants = meaningfulLines(selected, 'assistant', 4)
+    const tools = collectToolObservations(selected)
+    const refs = collectRefs(selected)
+    const source = selected.map(function (message) {
+      return [message.id, message.role, message.status, textOf(message.content), safeJson(message.toolCalls || [])].join('\n')
+    }).join('\n---\n')
+    const summaryParts = [
+      'Compacted ' + selected.length + ' older messages for agent ' + (agent.name || agent.id) + '.',
+    ]
+    if (users.length) summaryParts.push('User goals/requests: ' + users.join(' | '))
+    if (assistants.length) summaryParts.push('Assistant progress: ' + assistants.join(' | '))
+    if (tools.length) summaryParts.push('Tool observations: ' + tools.map(function (item) {
+      return (item.toolId || 'tool') + ':' + (item.status || 'done') + (item.error ? ':' + item.error : '')
+    }).slice(0, 8).join(' | '))
+    return {
+      id: 'cmp_' + Date.now().toString(36) + '_' + nextCompactionId++,
+      agentId: agent.id,
+      range: {
+        fromMessageId: selected[0] && selected[0].id || null,
+        toMessageId: selected[selected.length - 1] && selected[selected.length - 1].id || null,
+      },
+      messageIds: planValue.messageIds.slice(),
+      createdAt: now(),
+      model: 'deterministic',
+      sourceHash: stableHash(source),
+      summary: clip(summaryParts.join('\n'), config.summaryChars),
+      facts: [],
+      decisions: [],
+      openItems: [],
+      changedRefs: refs,
+      toolObservations: tools,
+      omittedDetails: selected.length > 0 ? ['Full raw messages remain in the transcript and are omitted from provider requests by this compaction record.'] : [],
+      tokenEstimateBefore: planValue.tokenEstimateBefore || messagesCost(selected),
+      tokenEstimateAfter: planValue.tokenEstimateAfter || estimateTokens(summaryParts.join('\n')),
+    }
+  }
+
+  function run(agentId, planValue) {
+    const agent = ai.findAgent && ai.findAgent(agentId)
+    const nextPlan = planValue || plan(agentId, null, { force: true })
+    if (!agent || !nextPlan || !nextPlan.messageIds || !nextPlan.messageIds.length) return null
+    const record = buildRecord(agent, nextPlan)
+    const records = (agent.compactions || []).concat([record])
+    ai.updateAgent(agent.id, { compactions: records })
+    return record
+  }
+
+  function maybeCompact(agentId, input, opts) {
+    const nextPlan = plan(agentId, input, opts)
+    return nextPlan ? run(agentId, nextPlan) : null
+  }
+
+  function records(agentId) {
+    const agent = ai.findAgent && ai.findAgent(agentId)
+    return agent && agent.compactions ? agent.compactions.slice() : []
+  }
+
+  function clear(agentId, opts) {
+    const agent = ai.findAgent && ai.findAgent(agentId)
+    if (!agent) return []
+    const removed = agent.compactions || []
+    if (opts && opts.before) {
+      const keep = removed.filter(function (record) { return (record.createdAt || 0) >= opts.before })
+      ai.updateAgent(agent.id, { compactions: keep })
+      return removed.filter(function (record) { return (record.createdAt || 0) < opts.before })
+    }
+    ai.updateAgent(agent.id, { compactions: [] })
+    return removed.slice()
+  }
+
+  function configure(options) {
+    Object.assign(config, options || {})
+    return Object.assign({}, config)
+  }
+
+  function memoryMessage(agent) {
+    const memory = agent && agent.memory || {}
+    if (!memory || !Object.keys(memory).length) return null
+    return {
+      id: 'system-memory-' + Date.now().toString(36),
+      from: 'system',
+      role: 'system',
+      status: 'done',
+      content: 'Compact durable agent memory. Treat it as stable guidance, not as a replacement for exact tool reads.\n' + clip(safeJson(memory), 4000),
+    }
+  }
+
+  function compactionMessage(agent) {
+    const records = (agent && agent.compactions || []).slice(-config.maxRecordsInRequest)
+    if (!records.length) return null
+    const items = records.map(function (record) {
+      return {
+        id: record.id,
+        range: record.range,
+        summary: record.summary,
+        facts: record.facts || [],
+        decisions: record.decisions || [],
+        openItems: record.openItems || [],
+        changedRefs: record.changedRefs || [],
+        toolObservations: (record.toolObservations || []).slice(0, 12),
+        omittedDetails: record.omittedDetails || [],
+      }
+    })
+    return {
+      id: 'system-compactions-' + Date.now().toString(36),
+      from: 'system',
+      role: 'system',
+      status: 'done',
+      content: 'Compacted older transcript ranges. The raw transcript remains the source of truth; reread exact workspace files, references, or messages when precision matters.\n' + clip(safeJson(items), 12000),
+    }
+  }
+
+  function contextMessages(agent) {
+    const out = []
+    const memory = memoryMessage(agent)
+    const compacted = compactionMessage(agent)
+    if (memory) out.push(memory)
+    if (compacted) out.push(compacted)
+    return out
+  }
+
+  function requestMessages(agent, input) {
+    const compacted = compactedIdSet(agent)
+    return (agent.messages || []).filter(function (message) {
+      if (input && input.id === message.id) return true
+      return !compacted[message.id]
+    })
+  }
+
+  function commandAgent(input, ctx) {
+    const id = input && input.agentId || ctx && ctx.agentId
+    return id ? ai.findAgent(id) : ai.getActiveAgent && ai.getActiveAgent()
+  }
+
+  function registerCommands() {
+    if (!aeditor.commands || aeditor.commands.get && aeditor.commands.get('ai.compactCurrentAgent')) return
+    aeditor.commands.register('ai.compactCurrentAgent', {
+      title: 'Compact Current Agent Context',
+      run: function (input, ctx) {
+        const agent = commandAgent(input, ctx)
+        if (!agent) return { compacted: false, reason: 'No active agent' }
+        const nextPlan = plan(agent.id, null, Object.assign({ force: true }, input || {}))
+        const record = nextPlan ? run(agent.id, nextPlan) : null
+        return record
+          ? { compacted: true, record: record, records: records(agent.id) }
+          : { compacted: false, reason: 'No compactable closed range', records: records(agent.id) }
+      },
+    }, { owner: 'aeditor.ai', layer: 'builtin' })
+    aeditor.commands.register('ai.clearCurrentAgentCompactions', {
+      title: 'Clear Current Agent Compactions',
+      danger: true,
+      run: function (input, ctx) {
+        const agent = commandAgent(input, ctx)
+        return agent ? clear(agent.id, input || {}) : []
+      },
+    }, { owner: 'aeditor.ai', layer: 'builtin' })
+    aeditor.commands.register('ai.listCurrentAgentCompactions', {
+      title: 'List Current Agent Compactions',
+      run: function (input, ctx) {
+        const agent = commandAgent(input, ctx)
+        return agent ? records(agent.id) : []
+      },
+    }, { owner: 'aeditor.ai', layer: 'builtin' })
+  }
+
+  ai.compaction = {
+    configure: configure,
+    plan: plan,
+    run: run,
+    maybeCompact: maybeCompact,
+    records: records,
+    clear: clear,
+    contextMessages: contextMessages,
+    requestMessages: requestMessages,
+    estimateTokens: estimateTokens,
+  }
+  registerCommands()
+})(window.aeditor = window.aeditor || {})

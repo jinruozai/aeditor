@@ -1,4 +1,4 @@
-// aeditor.extensions — owner-aware extension runtime.
+// aeditor.extensions owner-aware extension runtime.
 ;(function (aeditor) {
   'use strict'
 
@@ -22,18 +22,24 @@
 
   function ownerFor(id) { return 'extension:' + id }
 
+  const matchesPrefix = aeditor.names.matchesPrefix
+
   function defaultStorage() {
     try { return window.localStorage || null } catch (_) { return null }
   }
 
   function publicId(manifestId, localId, explicit) {
     if (explicit) return String(explicit)
-    return String(manifestId) + '/' + String(localId)
+    manifestId = String(manifestId)
+    localId = String(localId)
+    return localId === manifestId || localId.indexOf(manifestId + '.') === 0
+      ? localId
+      : manifestId + '.' + localId
   }
 
   function normalizeLayer(layer) {
     layer = layer || 'session'
-    if (layer !== 'core' && layer !== 'builtin' && layer !== 'app' && layer !== 'project' && layer !== 'user' && layer !== 'session') {
+    if (layer !== 'core' && layer !== 'builtin' && layer !== 'app' && layer !== 'user' && layer !== 'session') {
       throw new Error('Invalid extension layer: ' + layer)
     }
     return layer
@@ -43,9 +49,8 @@
     layer = normalizeLayer(layer)
     if (layer === 'builtin' || layer === 'core') return 0
     if (layer === 'app') return 1
-    if (layer === 'project') return 2
-    if (layer === 'user') return 3
-    return 4
+    if (layer === 'user') return 2
+    return 3
   }
 
   function canActivateLayer(layer) {
@@ -72,16 +77,26 @@
     m.title = m.title || m.id
     m.layer = normalizeLayer(m.layer)
     m.version = m.version || '0.0.0'
+    m.trust = normalizeTrust(m.trust)
     m.permissions = clone(m.permissions || {})
     m.contributes = m.contributes || {}
     m.contributes.components = normalizeComponents(m)
     m.contributes.dockPanels = normalizeDockPanels(m)
+    m.contributes.tools = normalizePublicEntries(m, m.contributes.tools)
+    m.contributes.context = normalizePublicEntries(m, m.contributes.context)
     m.contributes.references = normalizePublicEntries(m, m.contributes.references)
     m.contributes.operations = normalizePublicEntries(m, m.contributes.operations)
     m.contributes.commands = normalizePublicEntries(m, m.contributes.commands)
     m.contributes.menus = normalizeMenus(m)
     m.contributes.settings = clone(m.contributes.settings || [])
     return m
+  }
+
+  function normalizeTrust(trust) {
+    const t = clone(trust || {})
+    const code = t.code || 'none'
+    if (code !== 'none' && code !== 'trusted' && code !== 'sandbox') throw new Error('Invalid extension trust.code: ' + code)
+    return { code: code }
   }
 
   function normalizePublicEntries(manifest, list) {
@@ -174,6 +189,16 @@
     return false
   }
 
+  function codeTrustError(manifest, contribution) {
+    if (contribution.kind === 'factory' && manifest.trust.code !== 'trusted') {
+      return 'Factory component requires trust.code="trusted": ' + contribution.publicId
+    }
+    if (contribution.kind === 'iframe' && manifest.trust.code !== 'sandbox' && manifest.trust.code !== 'trusted') {
+      return 'Iframe component requires trust.code="sandbox" or "trusted": ' + contribution.publicId
+    }
+    return null
+  }
+
   function extensionPermissions(manifest) {
     const out = []
     out.push('extensions.layer.' + manifest.layer + '.write')
@@ -206,11 +231,21 @@
       allowCode: !!opts.allowCode,
       actor: opts.actor || 'user',
       agentId: opts.agentId || null,
+      origin: 'extension:' + manifest.id,
+      risk: hasCodeContribution(manifest) ? 'install' : 'write',
     }
     if (permissionPolicy && permissionPolicy[action]) return permissionPolicy[action](details) === true
     if (permissionPolicy && permissionPolicy.can) return permissionPolicy.can(details) === true
-    if (aeditor.ai && aeditor.ai.canUseOperation && opts.agentId) {
-      return aeditor.ai.canUseOperation(details.actor, details.agentId, 'editor.' + action + 'Extension', action === 'preview' ? 'preview' : 'apply', details)
+    if (aeditor.ai && aeditor.ai.decidePermission) {
+      return aeditor.ai.decidePermission(details.actor, details.agentId, 'extension.' + action, {
+        extensionId: manifest.id,
+        entry: 'extension.' + action,
+        phase: action === 'preview' ? 'preview' : action,
+        origin: details.origin,
+        risk: details.risk,
+        target: manifest.id,
+        permissions: details.permissions,
+      }).allowed === true
     }
     return true
   }
@@ -246,6 +281,8 @@
     const owner = ownerFor(manifest.id)
     const list = manifest.contributes.components
     for (let i = 0; i < list.length; i++) {
+      const trustError = codeTrustError(manifest, list[i])
+      if (trustError) errors.push({ path: 'contributes.components[' + i + '].kind', message: trustError })
       if (list[i].kind === 'factory' && !list[i].source) {
         errors.push({ path: 'contributes.components[' + i + '].source', message: 'Factory component requires source: ' + list[i].publicId })
       }
@@ -257,10 +294,45 @@
         errors.push({ path: 'contributes.components[' + i + '].id', message: 'Component already registered: ' + list[i].publicId })
       }
     }
+    validateAiRegistryConflicts(manifest, owner, errors)
+    validatePublicNames(manifest, errors)
     validateComponentUi(manifest, errors)
     validateAdapters(manifest, errors)
     if (!opts.deferLayout) validateDockTargets(manifest, errors)
     return errors
+  }
+
+  function validateAiRegistryConflicts(manifest, owner, errors) {
+    const ai = aeditor.ai
+    if (!ai) return
+    const tools = manifest.contributes.tools || []
+    for (let i = 0; i < tools.length; i++) {
+      const existingTool = ai.tools && ai.tools.get && ai.tools.get(tools[i].publicId)
+      const meta = ai.tools && ai.tools.meta && ai.tools.meta(tools[i].publicId) || {}
+      if (existingTool && meta.owner !== owner) {
+        errors.push({ path: 'contributes.tools[' + i + '].id', message: 'Tool already registered: ' + tools[i].publicId })
+      }
+    }
+    const context = manifest.contributes.context || []
+    for (let j = 0; j < context.length; j++) {
+      if (ai.context && ai.context.get && ai.context.get(context[j].publicId)) {
+        errors.push({ path: 'contributes.context[' + j + '].id', message: 'Context provider already registered: ' + context[j].publicId })
+      }
+    }
+  }
+
+  function validatePublicNames(manifest, errors) {
+    const groups = ['components', 'tools', 'context', 'references', 'operations', 'commands', 'menus']
+    for (let i = 0; i < groups.length; i++) {
+      const name = groups[i]
+      const list = manifest.contributes[name] || []
+      for (let j = 0; j < list.length; j++) {
+        const id = list[j].publicId
+        if (id && !(id === manifest.id || id.indexOf(manifest.id + '.') === 0)) {
+          errors.push({ path: 'contributes.' + name + '[' + j + '].id', message: 'Extension contribution must use dotted prefix "' + manifest.id + '.": ' + id })
+        }
+      }
+    }
   }
 
   function validateComponentUi(manifest, errors) {
@@ -288,6 +360,20 @@
   }
 
   function validateAdapters(manifest, errors) {
+    const tools = manifest.contributes.tools || []
+    for (let t = 0; t < tools.length; t++) {
+      const toolAdapterId = tools[t].adapter || tools[t].run && tools[t].run.adapter
+      if (toolAdapterId && !adapters[toolAdapterId]) {
+        errors.push({ path: 'contributes.tools[' + t + '].adapter', message: 'Adapter not registered: ' + toolAdapterId })
+      }
+    }
+    const context = manifest.contributes.context || []
+    for (let c = 0; c < context.length; c++) {
+      const contextAdapterId = context[c].adapter || context[c].provider && context[c].provider.adapter
+      if (contextAdapterId && !adapters[contextAdapterId]) {
+        errors.push({ path: 'contributes.context[' + c + '].adapter', message: 'Adapter not registered: ' + contextAdapterId })
+      }
+    }
     const refs = manifest.contributes.references || []
     for (let i = 0; i < refs.length; i++) {
       if (refs[i].adapter && !adapters[refs[i].adapter]) {
@@ -416,6 +502,64 @@
     }
   }
 
+  function makeContextAdapterCall(adapterId, method) {
+    return function (target, event, ctx) {
+      const adapter = adapters[adapterId]
+      if (!adapter || !adapter[method]) return method === 'match' ? true : null
+      return adapter[method](target, event, ctx || {})
+    }
+  }
+
+  function registerTools(manifest, rollback) {
+    const ai = aeditor.ai
+    if (!ai || !ai.tools) return
+    const owner = ownerFor(manifest.id)
+    const list = manifest.contributes.tools
+    for (let i = 0; i < list.length; i++) {
+      const t = list[i]
+      const adapterId = t.adapter || t.run && t.run.adapter
+      const spec = {
+        title: t.title || t.label || t.id,
+        description: t.description || '',
+        schema: clone(t.schema || null),
+        permissions: clone(t.permissions || ['tool.call']),
+        risk: t.risk || (t.permission && t.permission.risk) || null,
+        origin: 'extension:' + manifest.id,
+        exposeToModel: t.visibleToModel === true || t.exposeToModel === true,
+        available: t.available,
+        preview: t.preview || (adapterId ? makeAdapterCall(adapterId, 'preview') : null),
+        run: t.run && typeof t.run === 'function'
+          ? t.run
+          : (adapterId ? makeAdapterCall(adapterId, 'run') : null),
+        apply: t.apply || (adapterId ? makeAdapterCall(adapterId, 'apply') : null),
+      }
+      ai.tools.register(t.publicId, spec, { owner: owner, layer: manifest.layer })
+      rollback.push(function (name) {
+        return function () { ai.tools.unregister(name, { owner: owner }) }
+      }(t.publicId))
+    }
+  }
+
+  function registerContextProviders(manifest, rollback) {
+    const ai = aeditor.ai
+    if (!ai || !ai.context) return
+    const owner = ownerFor(manifest.id)
+    const list = manifest.contributes.context
+    for (let i = 0; i < list.length; i++) {
+      const c = list[i]
+      const adapterId = c.adapter || c.provider && c.provider.adapter
+      const provider = Object.assign({}, c.provider || {})
+      if (adapterId) {
+        provider.match = provider.match || makeContextAdapterCall(adapterId, 'match')
+        provider.capture = provider.capture || makeContextAdapterCall(adapterId, 'capture')
+      }
+      ai.context.register(c.publicId, provider)
+      rollback.push(function (name) {
+        return function () { ai.context.unregister(name) }
+      }(c.publicId))
+    }
+  }
+
   function registerReferences(manifest, rollback) {
     const ai = aeditor.ai
     if (!ai || !ai.references) return
@@ -539,6 +683,44 @@
     return layouts.default || firstLayout()
   }
 
+  function panelDockTarget(input) {
+    return input.dock || input.dockId || input.target || 'main'
+  }
+
+  function placePanel(input, opts) {
+    opts = opts || {}
+    input = input || {}
+    const layout = resolveLayout(input.layout)
+    if (!layout) {
+      if (opts.deferLayout) return { pendingLayout: true }
+      throw new Error('Layout not registered: ' + (input.layout || 'default'))
+    }
+    const component = resolveComponentRef(opts.componentMap || {}, input.component)
+    const result = layout.addPanel(panelDockTarget(input), {
+      component: component,
+      title: input.title,
+      icon: input.icon,
+      props: clone(input.props || {}),
+      owner: input.owner || opts.owner || null,
+      extensionId: input.extensionId || opts.extensionId || null,
+    }, { transient: !!input.transient })
+    if (!result || !result.panelId) {
+      if (opts.deferLayout) return { pendingLayout: true }
+      throw new Error('Dock not found: ' + panelDockTarget(input))
+    }
+    if (opts.rollback) {
+      opts.rollback.push(function (handle, panelId) {
+        return function () { handle.removePanel(panelId) }
+      }(layout, result.panelId))
+    }
+    const failure = panelHealthError(layout, result.panelId)
+    if (failure) {
+      layout.removePanel(result.panelId)
+      throw new Error(failure)
+    }
+    return Object.assign({ component: component }, result)
+  }
+
   function addDockPanels(manifest, rollback, opts) {
     opts = opts || {}
     const owner = ownerFor(manifest.id)
@@ -548,30 +730,15 @@
     for (let i = 0; i < list.length; i++) {
       const p = list[i]
       if (p.mode === 'manual') continue
-      const layout = resolveLayout(p.layout)
-      if (!layout) {
-        if (opts.deferLayout) { added.pendingLayout = true; continue }
-        throw new Error('Layout not registered: ' + p.layout)
-      }
-      const component = resolveComponentRef(map, p.component)
-      const result = layout.addPanel(p.dock || p.dockId || p.target || 'main', {
-        component: component,
-        title: p.title,
-        icon: p.icon,
-        props: clone(p.props || {}),
+      const placed = placePanel(p, {
+        componentMap: map,
         owner: owner,
         extensionId: manifest.id,
-      }, { transient: !!p.transient })
-      if (!result || !result.panelId) {
-        if (opts.deferLayout) { added.pendingLayout = true; continue }
-        throw new Error('Dock not found: ' + (p.dock || p.dockId || p.target || 'main'))
-      }
-      added.push(result.panelId)
-      rollback.push(function (handle, panelId) {
-        return function () { handle.removePanel(panelId) }
-      }(layout, result.panelId))
-      const failure = panelHealthError(layout, result.panelId)
-      if (failure) throw new Error(failure)
+        rollback: rollback,
+        deferLayout: opts.deferLayout,
+      })
+      if (placed.pendingLayout) { added.pendingLayout = true; continue }
+      added.push(placed.panelId)
     }
     return added
   }
@@ -609,12 +776,12 @@
     }
   }
 
-  function removeOwnedPanels(owner) {
+  function removeExtensionPanels(entry) {
     const removed = []
     const names = keys(layouts)
     for (let i = 0; i < names.length; i++) {
       const layout = layouts[names[i]]
-      const ids = panelsByOwner(layout.tree(), owner)
+      const ids = panelsByExtension(layout.tree(), entry)
       for (let j = 0; j < ids.length; j++) {
         layout.removePanel(ids[j])
         removed.push(ids[j])
@@ -655,14 +822,20 @@
     return out
   }
 
-  function panelsByOwner(tree, owner) {
+  function panelsByExtension(tree, entry) {
     const out = []
+    const owner = entry.owner
+    const id = entry.manifest.id
     function walk(n) {
       if (!n) return
       if (n.type === 'dock') {
         const panels = n.panels || []
         for (let i = 0; i < panels.length; i++) {
-          if (panels[i].owner === owner || panels[i].extensionId && owner === ownerFor(panels[i].extensionId)) out.push(panels[i].id)
+          if (
+            panels[i].owner === owner ||
+            panels[i].extensionId === id ||
+            matchesPrefix(panels[i].component || '', id + '/')
+          ) out.push(panels[i].id)
         }
       } else if (n.children) {
         for (let i = 0; i < n.children.length; i++) walk(n.children[i])
@@ -748,6 +921,10 @@
     for (let i = 0; i < c.length; i++) changes.push({ type: 'component', id: c[i].publicId, owner: owner })
     const d = manifest.contributes.dockPanels
     for (let j = 0; j < d.length; j++) changes.push({ type: 'dockPanel', dock: d[j].dock || d[j].dockId || d[j].target || 'main', component: d[j].component })
+    const tools = manifest.contributes.tools
+    for (let t = 0; t < tools.length; t++) changes.push({ type: 'tool', id: tools[t].publicId, owner: owner })
+    const context = manifest.contributes.context
+    for (let q = 0; q < context.length; q++) changes.push({ type: 'context', id: context[q].publicId, owner: owner })
     const r = manifest.contributes.references
     for (let k = 0; k < r.length; k++) changes.push({ type: 'reference', id: r[k].publicId, owner: owner })
     const o = manifest.contributes.operations
@@ -810,6 +987,8 @@
     try {
       validateInstall(entry.manifest, { action: entry.action || 'install', allowCode: !!entry.allowCode, actor: entry.actor, agentId: entry.agentId, deferLayout: !!entry.deferLayout || keys(layouts).length === 0 })
       registerComponents(entry.manifest, rollback)
+      registerTools(entry.manifest, rollback)
+      registerContextProviders(entry.manifest, rollback)
       registerReferences(entry.manifest, rollback)
       registerOperations(entry.manifest, rollback)
       registerCommands(entry.manifest, rollback)
@@ -834,13 +1013,16 @@
   function deactivateEntry(entry, opts) {
     opts = opts || {}
     const owner = entry.owner
+    const prefix = entry.manifest.id
     if (opts.replaceExternal !== false) replaceExternalPanels(entry)
-    const removedPanels = removeOwnedPanels(owner)
-    if (aeditor.ai && aeditor.ai.references && aeditor.ai.references.unregisterOwner) aeditor.ai.references.unregisterOwner(owner)
-    if (aeditor.ai && aeditor.ai.operations && aeditor.ai.operations.unregisterOwner) aeditor.ai.operations.unregisterOwner(owner)
-    if (aeditor.commands && aeditor.commands.unregisterOwner) aeditor.commands.unregisterOwner(owner)
-    if (aeditor.settings && aeditor.settings.unregisterOwner) aeditor.settings.unregisterOwner(owner)
-    if (aeditor.unregisterComponentOwner) aeditor.unregisterComponentOwner(owner)
+    const removedPanels = removeExtensionPanels(entry)
+    if (aeditor.ai && aeditor.ai.tools && aeditor.ai.tools.unregisterPrefix) aeditor.ai.tools.unregisterPrefix(prefix)
+    if (aeditor.ai && aeditor.ai.context && aeditor.ai.context.unregisterPrefix) aeditor.ai.context.unregisterPrefix(prefix)
+    if (aeditor.ai && aeditor.ai.references && aeditor.ai.references.unregisterPrefix) aeditor.ai.references.unregisterPrefix(prefix)
+    if (aeditor.ai && aeditor.ai.operations && aeditor.ai.operations.unregisterPrefix) aeditor.ai.operations.unregisterPrefix(prefix)
+    if (aeditor.commands && aeditor.commands.unregisterPrefix) aeditor.commands.unregisterPrefix(prefix)
+    if (aeditor.settings && aeditor.settings.unregisterPrefix) aeditor.settings.unregisterPrefix(prefix)
+    if (aeditor.unregisterComponentPrefix) aeditor.unregisterComponentPrefix(prefix)
     entry.active = false
     entry.panels = []
     return removedPanels
@@ -944,7 +1126,9 @@
     const entry = extensions[id]
     const owner = entry ? entry.owner : ownerFor(id)
     if (entry && !checkExtensionPermission('uninstall', entry.manifest, opts)) throw new Error('Extension uninstall permission denied: ' + id)
-    const removedPanels = entry ? deactivateEntry(entry) : removeOwnedPanels(owner)
+    const removedPanels = entry
+      ? deactivateEntry(entry)
+      : removeExtensionPanels({ owner: owner, manifest: { id: id } })
     const removedRecovery = removeRecoveryPanels(id)
     delete extensions[id]
     if (opts.save !== false) saveExtensions()
@@ -1142,6 +1326,7 @@
   function registerRecoveryComponent() {
     if (aeditor.componentRegistration && aeditor.componentRegistration('extension-disabled')) return
     aeditor.registerComponent('extension-disabled', {
+      palette: false,
       title: 'Extension Disabled',
       icon: 'alert-triangle',
       defaults: function () {
@@ -1198,154 +1383,19 @@
     }
   }
 
-  function makePanelManifest(input) {
-    input = input || {}
-    const id = String(input.id || '').trim()
-    if (!id) throw new Error('Panel id is required')
-    const title = input.title || id
-    const dock = input.dock || input.dockId || input.target || 'main'
-    return {
-      id: id,
-      title: title,
-      layer: normalizeLayer(input.layer || 'session'),
-      contributes: {
-        components: [{
-          id: 'panel',
-          title: title,
-          icon: input.icon || '',
-          kind: 'factory',
-          isolation: 'same-page',
-          props: clone(input.props || {}),
-          source: String(input.source || ''),
-          hash: sourceHash(input.source || ''),
-        }],
-        dockPanels: [{
-          layout: input.layout || 'default',
-          dock: dock,
-          component: 'panel',
-          title: title,
-          icon: input.icon || '',
-          props: clone(input.props || {}),
-          transient: !!input.transient,
-        }],
-      },
-    }
-  }
-
-  function previewCreatePanel(input, ctx) {
-    input = input || {}
-    const errors = []
-    let manifest = null
-    try {
-      manifest = normalizeManifest(makePanelManifest(input))
-    } catch (err) {
-      errors.push({ path: 'input', message: String(err && err.message || err) })
-    }
-    const source = validateFactorySource(input.source)
-    if (!source.ok) errors.push({ path: 'source', message: source.error })
-    if (manifest) {
-      const installErrors = collectValidationErrors(manifest, { allowCode: true })
-      for (let i = 0; i < installErrors.length; i++) errors.push(installErrors[i])
-    }
-    const canInstall = manifest && errors.length === 0 && checkExtensionPermission('install', manifest, {
-      actor: ctx && ctx.actor,
-      agentId: ctx && ctx.agent && ctx.agent.id,
-      allowCode: true,
-    })
-    if (manifest && errors.length === 0 && !canInstall) errors.push({ path: 'permission', message: 'Create panel permission denied: ' + manifest.id })
-    return {
-      ok: errors.length === 0,
-      risk: 'code',
-      title: 'Create code panel: ' + (input.title || input.id || ''),
-      summary: 'Register a same-page factory panel and add it to dock ' + (input.dock || input.dockId || input.target || 'main') + '.',
-      input: clone(input),
-      manifest: manifest,
-      extensionId: manifest && manifest.id || input.id || null,
-      component: manifest ? manifest.id + '/panel' : null,
-      dock: input.dock || input.dockId || input.target || 'main',
-      permissions: manifest ? extensionPermissions(manifest) : [],
-      canApply: errors.length === 0 && !!canInstall,
-      errors: errors,
-      changes: manifest ? [
-        { type: 'component', id: manifest.id + '/panel', owner: ownerFor(manifest.id) },
-        { type: 'dockPanel', dock: input.dock || input.dockId || input.target || 'main', component: 'panel' },
-      ] : [],
-    }
-  }
-
-  function createPanelHealth(manifest, installResult) {
-    const panels = installResult && installResult.panels || []
-    const dockPanel = manifest.contributes.dockPanels[0] || {}
-    const layout = resolveLayout(dockPanel.layout)
-    const panelId = panels[0] || null
-    const info = layout && panelId && layout.inspectPanel ? layout.inspectPanel(panelId) : null
-    return {
-      ok: !info || info.status !== 'error',
-      status: info && info.status || '',
-      error: info && info.error || null,
-      textSample: info && info.textSample || '',
-    }
-  }
-
-  function applyCreatePanel(preview, ctx) {
-    if (preview && preview.ok === false) return { applied: false, ok: false, errors: preview.errors || [], preview: preview }
-    const input = preview.input || {}
-    const manifest = preview.manifest || normalizeManifest(makePanelManifest(input))
-    let installed = null
-    try {
-      installed = installExtension(manifest, {
-        allowCode: true,
-        actor: ctx && ctx.actor,
-        agentId: ctx && ctx.agent && ctx.agent.id,
-      })
-      const panelId = installed.panels && installed.panels[0] || null
-      const dockPanel = manifest.contributes.dockPanels[0] || {}
-      const layout = resolveLayout(dockPanel.layout)
-      const smoke = layout && panelId ? panelSmokeError(layout, panelId) : ''
-      if (smoke) {
-        uninstallExtension(manifest.id, { force: true, save: false, actor: ctx && ctx.actor, agentId: ctx && ctx.agent && ctx.agent.id })
-        return { applied: false, ok: false, phase: 'smoke', error: smoke, extensionId: manifest.id, component: manifest.id + '/panel', panelId: panelId, rolledBack: true }
-      }
-      return {
-        applied: true,
-        ok: true,
-        extensionId: manifest.id,
-        component: manifest.id + '/panel',
-        panelId: panelId,
-        dock: dockPanel.dock || dockPanel.dockId || dockPanel.target || 'main',
-        panels: installed.panels,
-        health: createPanelHealth(manifest, installed),
-      }
-    } catch (err) {
-      return {
-        applied: false,
-        ok: false,
-        phase: 'install',
-        error: String(err && err.message || err),
-        extensionId: manifest.id,
-        component: manifest.id + '/panel',
-        rolledBack: !extensions[manifest.id],
-      }
-    }
-  }
-
   function registerAiOperations() {
     if (!aeditor.ai || !aeditor.ai.operations) return
-    aeditor.ai.operations.register('aeditor.createPanel', {
-      title: 'Create Code Panel',
-      risk: 'code',
-      preview: previewCreatePanel,
-      apply: applyCreatePanel,
-    }, { owner: 'aeditor.extensions', layer: 'builtin' })
     aeditor.ai.operations.register('aeditor.installExtension', {
       title: 'Install Editor Extension',
       risk: 'edit',
-      preview: function (input, ctx) { return reviewInstall(input, { actor: ctx && ctx.actor, agentId: ctx && ctx.agent && ctx.agent.id, allowCode: !!(input && input.allowCode) }) },
-      apply: function (preview, ctx) { return installExtension(preview.manifest || preview.input, { allowCode: !!(preview.input && preview.input.allowCode), actor: ctx && ctx.actor, agentId: ctx && ctx.agent && ctx.agent.id }) },
+      exposeToModel: false,
+      preview: function (input, ctx) { return reviewInstall(input, { actor: ctx && ctx.actor, agentId: ctx && ctx.agent && ctx.agent.id, allowCode: false }) },
+      apply: function (preview, ctx) { return installExtension(preview.manifest || preview.input, { allowCode: false, actor: ctx && ctx.actor, agentId: ctx && ctx.agent && ctx.agent.id }) },
     }, { owner: 'aeditor.extensions', layer: 'builtin' })
     aeditor.ai.operations.register('aeditor.removeExtension', {
       title: 'Remove Editor Extension',
       risk: 'edit',
+      exposeToModel: false,
       preview: function (input) {
         return {
           ok: true,
@@ -1360,15 +1410,17 @@
     aeditor.ai.operations.register('aeditor.updateExtension', {
       title: 'Update Editor Extension',
       risk: 'edit',
-      preview: function (input, ctx) { return reviewInstall(input, { actor: ctx && ctx.actor, agentId: ctx && ctx.agent && ctx.agent.id, allowCode: !!(input && input.allowCode) }) },
+      exposeToModel: false,
+      preview: function (input, ctx) { return reviewInstall(input, { actor: ctx && ctx.actor, agentId: ctx && ctx.agent && ctx.agent.id, allowCode: false }) },
       apply: function (preview, ctx) {
         const manifest = preview.manifest || preview.input && preview.input.manifest
-        return updateExtension(manifest.id, manifest, { allowCode: !!(preview.input && preview.input.allowCode), actor: ctx && ctx.actor, agentId: ctx && ctx.agent && ctx.agent.id })
+        return updateExtension(manifest.id, manifest, { allowCode: false, actor: ctx && ctx.actor, agentId: ctx && ctx.agent && ctx.agent.id })
       },
     }, { owner: 'aeditor.extensions', layer: 'builtin' })
     aeditor.ai.operations.register('aeditor.promoteExtensionLayer', {
       title: 'Promote Extension Layer',
       risk: 'edit',
+      exposeToModel: false,
       preview: function (input) {
         return {
           ok: true,
@@ -1383,6 +1435,7 @@
     aeditor.ai.operations.register('aeditor.enableExtension', {
       title: 'Enable Editor Extension',
       risk: 'edit',
+      exposeToModel: false,
       preview: function (input) {
         return {
           ok: true,
@@ -1397,6 +1450,7 @@
     aeditor.ai.operations.register('aeditor.disableExtension', {
       title: 'Disable Editor Extension',
       risk: 'edit',
+      exposeToModel: false,
       preview: function (input) {
         return {
           ok: true,
@@ -1411,12 +1465,14 @@
     aeditor.ai.operations.register('aeditor.addPanelToDock', {
       title: 'Add Panel To Dock',
       risk: 'edit',
+      exposeToModel: false,
       preview: previewAddPanelToDock,
       apply: applyAddPanelToDock,
     }, { owner: 'aeditor.extensions', layer: 'builtin' })
     aeditor.ai.operations.register('aeditor.removePanelFromDock', {
       title: 'Remove Panel From Dock',
       risk: 'edit',
+      exposeToModel: false,
       preview: function (input) {
         return {
           ok: true,
@@ -1456,87 +1512,48 @@
   function applyAddPanelToDock(preview) {
     if (preview && preview.ok === false) return { applied: false, ok: false, errors: preview.errors || [], preview: preview }
     const input = preview.input || {}
-    const layout = resolveLayout(input.layout)
-    if (!layout) throw new Error('Layout not registered: ' + (input.layout || 'default'))
-    const result = layout.addPanel(input.dock || 'main', {
-      component: input.component,
-      title: input.title,
-      icon: input.icon,
-      props: clone(input.props || {}),
-      owner: input.owner || null,
-      extensionId: input.extensionId || null,
-    }, { transient: !!input.transient })
-    const failure = result && result.panelId ? panelHealthError(layout, result.panelId) : ''
-    if (failure) {
-      layout.removePanel(result.panelId)
-      return { applied: false, ok: false, error: failure, panelId: result.panelId }
+    try {
+      const placed = placePanel(input)
+      return Object.assign({ applied: true }, placed)
+    } catch (err) {
+      return { applied: false, ok: false, error: String(err && err.message || err) }
     }
-    return Object.assign({ applied: true }, result)
   }
 
   function registerAiTools() {
-    if (!aeditor.ai || !aeditor.ai.registerTool) return
-    aeditor.ai.registerTool('aeditor.createPanel', {
-      title: 'Create Code Panel',
-      description: [
-        'Create or replace a same-page AEditor panel from JavaScript factory source.',
-        'Use this for brand-new visible UI panels.',
-        'The source must be a function expression: function (propsSig, ctx) { return HTMLElement }.',
-        'Do not call aeditor.registerComponent; the runtime registers and places the panel.',
-        'Use normal JavaScript for loops, conditions, local state, events, canvas, and animation.',
-        'Prefer aeditor.ui.* components when available, especially aeditor.ui.scrollArea for scrollable regions.',
-        'Prefer aeditor.ui.tooltip/popover/menu for floating UI; scoped aeditor.ui overlays close automatically when the panel is no longer active. If you manually append floating DOM outside the root, register it with aeditor.ui.registerScopedOverlay(anchor, close).',
-        'Make the root responsive inside a resizable dock: height 100%, minHeight 0, boxSizing border-box, no viewport-sized or fixed-width layout.',
-      ].join(' '),
-      schema: {
-        type: 'object',
-        required: ['id', 'title', 'dock', 'source'],
-        properties: {
-          id: { type: 'string', description: 'Stable extension id. Reusing the same id replaces the prior generated panel.' },
-          title: { type: 'string', description: 'Panel title shown in the dock tab.' },
-          icon: { type: 'string', description: 'Optional icon name or emoji.' },
-          layout: { type: 'string', description: 'Registered layout name; omit for the default layout.' },
-          dock: { type: 'string', description: 'Dock name or id, for example editor, sidebar, properties, or bottom.' },
-          layer: { type: 'string', enum: ['session', 'user', 'project'], description: 'Storage layer. Use session for AI-generated panels.' },
-          props: { type: 'object', description: 'Initial JSON-serializable props passed to propsSig.' },
-          transient: { type: 'boolean' },
-          source: { type: 'string', description: 'JavaScript function expression. Return a responsive dock-filling HTMLElement. Prefer aeditor.ui.* and aeditor.ui.scrollArea for framework-styled controls/scrolling.' },
-        },
-      },
-      preview: previewCreatePanel,
-      apply: applyCreatePanel,
-    })
-    aeditor.ai.registerTool('aeditor.installExtension', {
+    const ai = aeditor.ai
+    if (!ai || !ai.tools) return
+    ai.tools.register('aeditor.installExtension', {
       title: 'Install Editor Extension',
-      description: 'Install a low-level AEditor extension manifest. Do not use this for ordinary visible UI panels; use aeditor.createPanel instead. This is only for full extension manifests with commands, references, operations, settings, or advanced contributions.',
+      description: 'Install a low-level AEditor extension manifest for commands, references, operations, settings, styles, or pre-registered component contributions. Agent-authored panels must be written as workspace files and added by registered component name.',
       schema: {
         type: 'object',
         required: ['manifest'],
         properties: {
           manifest: { type: 'object' },
-          allowCode: { type: 'boolean', description: 'Required only for factory or iframe code panels.' },
         },
       },
+      exposeToModel: false,
       preview: function (input, ctx) {
         return reviewInstall(input, {
           actor: ctx && ctx.actor,
           agentId: ctx && ctx.agent && ctx.agent.id,
-          allowCode: !!(input && input.allowCode),
+          allowCode: false,
         })
       },
       apply: function (preview, ctx) {
         if (preview && preview.ok === false) return { applied: false, ok: false, errors: preview.errors || [], preview: preview }
         if (preview && preview.canApply === false) return { applied: false, ok: false, error: 'Extension install is not approved', preview: preview }
         return Object.assign({ applied: true }, installExtension(preview.manifest, {
-          allowCode: !!(preview.input && preview.input.allowCode),
+          allowCode: false,
           actor: ctx && ctx.actor,
           agentId: ctx && ctx.agent && ctx.agent.id,
         }))
       },
     })
-    aeditor.ai.registerTool('aeditor.addPanelToDock', {
+    ai.tools.register('aeditor.addPanelToDock', {
       title: 'Add Panel To Dock',
-      description: 'Add an already registered component as a panel in a dock. Do not use this to create new UI; use aeditor.createPanel instead.',
+      description: 'Add an already registered component as a panel in a dock. This tool never accepts source code; create durable UI by registering a component from files, then add it here by component name.',
       schema: {
         type: 'object',
         required: ['dock', 'component'],
@@ -1550,6 +1567,7 @@
           transient: { type: 'boolean' },
         },
       },
+      exposeToModel: false,
       preview: previewAddPanelToDock,
       apply: applyAddPanelToDock,
     })
@@ -1560,12 +1578,6 @@
     review: reviewInstall,
     installWithReview: installWithReview,
     install: installExtension,
-    createPanelPreview: previewCreatePanel,
-    createPanel: function (input, opts) {
-      opts = opts || {}
-      const preview = previewCreatePanel(input, { actor: opts.actor || 'user', agent: { id: opts.agentId || null } })
-      return applyCreatePanel(preview, { actor: opts.actor || 'user', agent: { id: opts.agentId || null } })
-    },
     update: updateExtension,
     uninstall: uninstallExtension,
     enable: enableExtension,

@@ -1,10 +1,10 @@
-﻿// aeditor �?single-file bundler.
+// aeditor single-file bundler.
 //
-// § 2.2 says zero-build, so this is *not* a build tool in the webpack sense:
-// it's `cat` with banners. Source files are IIFEs already; we concatenate them
-// in dependency order into a single dist/aeditor.js (and dist/aeditor.css). The output
-// is committed so consumers �?including our own demo �?can double-click
-// index.html and have it work without ever running node.
+// The framework stays zero-build for consumers, so this is not a build tool in
+// the webpack sense: it is `cat` with banners. Source files are IIFEs already;
+// we concatenate them in dependency order into dist/aeditor.js and
+// dist/aeditor.css. The output is committed so consumers, including our own
+// demo, can double-click index.html and have it work without ever running node.
 //
 // Usage:
 //   node tools/build.mjs            one-shot build
@@ -18,14 +18,15 @@ const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const SRC  = join(ROOT, 'src')
 const DIST = join(ROOT, 'dist')
 
-// ─── load order ────────────────────────────────────────────────────────────
-// Must match index.html's old <script> order, plus the new ui/ tree appended
-// at the end (UI widgets only depend on core/registry, never on each other).
+// load order
+// Must match the legacy script order, plus newer ui/ai trees in dependency
+// order. This array is the source of truth for dist/aeditor.js.
 
 const JS_ORDER = [
-  // Layer 0 �?reactivity & log
+  // Layer 0 - reactivity & log
   'core/signal.js',
   'core/log.js',
+  'core/names.js',
   'core/theme.js',
   'core/bus.js',
   'core/shortcuts.js',
@@ -35,16 +36,18 @@ const JS_ORDER = [
   'core/commands.js',
   'core/workspace.js',
 
-  // Layer 1 �?tree (pure data)
+  // Layer 1 - tree (pure data)
   'tree/tree.js',
 
-  // Layer 2 �?registry & component context
+  // Layer 2 - registry & component context
   'core/registry.js',
   'core/context.js',
 
   // Layer 2.5 - AI session/agent runtime (no UI dependency)
   'ai/name-generator.js',
+  'ai/serialize.js',
   'ai/store.js',
+  'ai/compaction.js',
   'ai/connection.js',
   'ai/adapter.js',
   'ai/provider.js',
@@ -52,7 +55,11 @@ const JS_ORDER = [
   'ai/provider-transports.js',
   'ai/provider-connections.js',
   'ai/context.js',
+  'ai/skills.js',
   'ai/workdir.js',
+  'ai/code.js',
+  'ai/git.js',
+  'ai/verify.js',
   'ai/reference.js',
   'core/extensions.js',
   'ai/change-set.js',
@@ -62,7 +69,7 @@ const JS_ORDER = [
   'ai/request.js',
   'ai/runtime.js',
 
-  // Layer 3 �?dock runtime
+  // Layer 3 - dock runtime
   'dock/runtime.js',
   'dock/menu.js',
   'dock/render.js',
@@ -71,12 +78,13 @@ const JS_ORDER = [
   'dock/migrate.js',
   'dock/layout.js',
 
-  // Layer 5 �?UI library internals
+  // Layer 5 - UI library internals
   'ui/_internal/_css.js',
   'ui/_internal/_portal.js',
   'ui/_internal/_floating.js',
   'ui/_internal/_drag.js',
   'ui/_internal/_signal.js',
+  'ui/_internal/_edit-session.js',
   'ui/_internal/_scope.js',
   'ui/_internal/_box-style.js',
   'ui/_internal/_text-style.js',
@@ -84,12 +92,13 @@ const JS_ORDER = [
   'ui/_internal/_overlay.js',
   'ui/_internal/_dnd.js',
 
-  // Layer 6 �?UI library: base
-  'ui/base/icon-set.js',   // default icon registry (Lucide subset)
+  // Layer 6 - UI library: base
+  'ui/base/icon-set.js',
   'ui/base/icon.js',
   'ui/base/image.js',
   'ui/base/button.js',
   'ui/base/iconButton.js',
+  'ui/base/stateButton.js',
   'ui/base/copyButton.js',
   'ui/base/tooltip.js',
   'ui/base/popover.js',
@@ -100,7 +109,7 @@ const JS_ORDER = [
   'ui/base/divider.js',
   'ui/base/text.js',
 
-  // Layer 7 �?UI library: form
+  // Layer 7 - UI library: form
   'ui/form/input.js',
   'ui/form/searchInput.js',
   'ui/form/textarea.js',
@@ -119,36 +128,35 @@ const JS_ORDER = [
   'ui/form/enumInput.js',
   'ui/form/tagInput.js',
   'ui/form/tab.js',
-  // TypeConfig + schema-driven property editing (depends on all form widgets
-  // above �?it dispatches to them). Keep at the end of the form layer.
+  // TypeConfig + schema-driven property editing depends on the form widgets
+  // above; it dispatches to them. Keep at the end of the form layer.
   'ui/form/typeconfig.js',
   'ui/form/structInput.js',
   'ui/form/arrayInput.js',
   'ui/form/editorFor.js',
   'ui/form/propertyPanel.js',
 
-  // Layer 8 �?UI library: editor specials
+  // Layer 8 - UI library: editor specials
   'ui/editor/gradientInput.js',
   'ui/editor/curveInput.js',
   'ui/editor/codeInput.js',
   'ui/editor/pathInput.js',
   'ui/editor/fileInput.js',
-  'ui/editor/richPromptInput.js',
   'ui/editor/assetPicker.js',
 
-  // Layer 9 �?UI library: containers
+  // Layer 9 - UI library: containers
   'ui/container/section.js',
   'ui/container/propRow.js',
   'ui/container/card.js',
+  'ui/container/view.js',
   'ui/container/scrollArea.js',
   'ui/container/tabPanel.js',
-  'ui/container/_layout-rect.js',  // LayoutRect data + math; required by absolute.js + anchorPicker
+  'ui/container/_layout-rect.js',
   'ui/container/absolute.js',
   'ui/container/vbox.js',
-  'ui/editor/anchorPicker.js',     // depends on ui.layoutRect from above
+  'ui/editor/anchorPicker.js',
 
-
-  // Layer 10 �?UI library: data
+  // Layer 10 - UI library: data
   'ui/data/list.js',
   'ui/data/gridSelection.js',
   'ui/data/tree.js',
@@ -159,35 +167,35 @@ const JS_ORDER = [
   'ui/data/assetBrowser.js',
   'ui/data/changeReview.js',
 
-  // Layer 11 �?UI library: overlays
+  // Layer 11 - UI library: overlays
   'ui/overlay/menu.js',
   'ui/overlay/searchMenu.js',
   'ui/overlay/modal.js',
   'ui/overlay/drawer.js',
   'ui/overlay/banner.js',
   'ui/overlay/toast.js',
-  'ui/overlay/dialogs.js',  // ui.alert / ui.confirm / ui.prompt / ui.contextMenu �?depend on modal + menu
+  'ui/overlay/dialogs.js',
 
-  // Layer 12 �?built-in panel components (compose aeditor.ui.* + register via aeditor.registerComponent)
+  // Layer 12 - built-in panel components
   'ai/panels/agents.js',
+  'ai/panels/rich-prompt-input.js',
   'ai/panels/chat.js',
   'ai/panels/message-live-strip.js',
   'ai/panels/message-virtualizer.js',
   'ai/panels/transcript.js',
   'ai/panels/chat-combined.js',
   'ui/panel/settings.js',
-  'ui/panel/settings-builtins.js',
+  'ai/panels/settings-ai.js',
+  'style/theme-settings.js',
   'ui/panel/dock-tabs.js',
   'ui/panel/log.js',
 
-  // Layer 13 �?palette metadata for built-in ui.* components. Must come last:
-  // it touches every ui.* function via aeditor.registerComponent and only the new
-  // aeditor.ui.text + container/{absolute,vbox,hbox} files self-register.
+  // Layer 13 - palette metadata for built-in ui.* components. Must come last.
   'ui/_internal/_register-builtins.js',
 ]
 
 const CSS_ORDER = [
-  'style/theme.css',     // tokens first �?everything else uses var(--aeditor-*)
+  'style/theme.css',
   'style/dock.css',
   'style/component.css',
   'style/ui-base.css',
@@ -199,8 +207,6 @@ const CSS_ORDER = [
   'style/ui-ai.css',
   'style/ui-settings.css',
 ]
-
-// ─── concat ────────────────────────────────────────────────────────────────
 
 function readOptional(path) {
   try { return readFileSync(path, 'utf8') }
@@ -214,10 +220,10 @@ function bundle(order, kind) {
     const abs = join(SRC, rel)
     const txt = readOptional(abs)
     if (txt == null) { missing.push(rel); continue }
-    parts.push('/* ════ ' + rel + ' ════ */\n' + txt.replace(/\s+$/, '') + '\n')
+    parts.push('/* ---- ' + rel + ' ---- */\n' + txt.replace(/\s+$/, '') + '\n')
   }
   const banner =
-    '/* aeditor — bundled ' + kind + '\n' +
+    '/* aeditor bundled ' + kind + '\n' +
     ' * Generated by tools/build.mjs from src/. Do not edit by hand.\n' +
     ' * Sources: ' + (order.length - missing.length) + ' files concatenated in dependency order.\n' +
     ' */\n\n'
@@ -237,11 +243,9 @@ function buildOnce() {
               (CSS_ORDER.length - css.missing.length) + '/' + CSS_ORDER.length + ' files)')
   if (js.missing.length || css.missing.length) {
     const all = js.missing.concat(css.missing)
-    console.log('  · skipped (not yet created): ' + all.join(', '))
+    console.log('  - skipped (not yet created): ' + all.join(', '))
   }
 }
-
-// ─── watch ─────────────────────────────────────────────────────────────────
 
 function watchMode() {
   buildOnce()
@@ -250,7 +254,7 @@ function watchMode() {
   watch(SRC, { recursive: true }, (event, file) => {
     if (!file) return
     if (file.endsWith('.js') || file.endsWith('.css')) {
-      console.log('  · changed: ' + relative(ROOT, join(SRC, file)))
+      console.log('  - changed: ' + relative(ROOT, join(SRC, file)))
       debounced()
     }
   })

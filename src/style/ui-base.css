@@ -66,10 +66,12 @@
   align-items: center;
   justify-content: center;
   gap: var(--aeditor-space-1);
+  min-width: 0;
+  max-width: 100%;
   padding: 0 var(--aeditor-space-3);
-  background: var(--aeditor-bg-2);
+  background: var(--aeditor-button-bg);
   color: var(--aeditor-fg-1);
-  border: 1px solid var(--aeditor-border-strong);
+  border: 1px solid var(--aeditor-button-border);
   border-radius: var(--aeditor-r-2);
   font: var(--aeditor-fs-md) var(--aeditor-font-ui);
   cursor: pointer;
@@ -85,6 +87,17 @@
     border      var(--aeditor-dur-fast) var(--aeditor-ease),
     box-shadow  var(--aeditor-dur-med)  var(--aeditor-ease),
     transform   var(--aeditor-dur-fast) var(--aeditor-ease);
+}
+.aeditor-ui-btn-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.aeditor-ui-btn-text-empty .aeditor-ui-btn-text {
+  display: none;
+}
+.aeditor-ui-state-btn-icon-empty > .aeditor-ui-icon {
+  display: none;
 }
 /* Click-flash overlay (pure CSS, no JS). Expands a soft radial highlight on press. */
 .aeditor-ui-btn::before {
@@ -104,14 +117,15 @@
 .aeditor-ui-btn-md { height: var(--aeditor-size-h-md); }
 .aeditor-ui-btn-lg { height: var(--aeditor-size-h-lg); padding: 0 var(--aeditor-space-4); font-size: var(--aeditor-fs-lg); }
 .aeditor-ui-btn:hover {
-  background: var(--aeditor-bg-3);
+  background: var(--aeditor-button-hover-bg);
   color: var(--aeditor-fg-0);
-  border-color: var(--aeditor-border-hover);
+  border-color: var(--aeditor-button-hover-border);
   transform: translateY(-1px);
   box-shadow: var(--aeditor-shadow-1), inset 0 1px 0 var(--aeditor-highlight-subtle);
 }
 .aeditor-ui-btn:active {
-  background: var(--aeditor-bg-4);
+  background: var(--aeditor-button-active-bg);
+  border-color: var(--aeditor-button-active-border);
   transform: translateY(0) scale(0.985);
   box-shadow: inset 0 1px 2px rgba(0,0,0,.35);
   transition-duration: 40ms;
@@ -218,6 +232,17 @@
   box-shadow: 0 0 0 2px color-mix(in srgb, var(--aeditor-accent) 36%, transparent);
 }
 .aeditor-ui-icon-btn[disabled] { opacity: .38; pointer-events: none; }
+.aeditor-ui-state-btn[aria-pressed="true"],
+.aeditor-ui-state-btn-on {
+  color: var(--aeditor-accent);
+  background: var(--aeditor-accent-bg);
+  border-color: color-mix(in srgb, var(--aeditor-accent) 36%, transparent);
+}
+.aeditor-ui-state-btn[aria-pressed="true"]:hover,
+.aeditor-ui-state-btn-on:hover {
+  color: var(--aeditor-accent-soft);
+  background: var(--aeditor-accent-bg-strong);
+}
 .aeditor-ui-copy-btn {
   transition: color var(--aeditor-dur-fast) var(--aeditor-ease),
               background var(--aeditor-dur-fast) var(--aeditor-ease),

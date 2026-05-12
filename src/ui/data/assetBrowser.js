@@ -1,4 +1,4 @@
-// aeditor.ui.assetBrowser 鈥?generic file-manager style asset browser.
+// aeditor.ui.assetBrowser - generic file-manager style asset browser.
 //
 // The component is intentionally storage-agnostic. It renders entries and
 // interactions; callers provide an adapter for listing, importing, moving,

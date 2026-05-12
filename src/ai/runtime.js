@@ -8,7 +8,7 @@
   const runtimeConfig = {
     maxConcurrentAgents: 8,
     maxConcurrentMessagesPerAgent: 1,
-    maxToolTurns: 8,
+    maxToolTurns: 32,
   }
   const STREAM_UI_UPDATE_MS = 200
   const RUN_PREVIEW_UPDATE_MS = 80
@@ -67,25 +67,50 @@
     return ''
   }
 
+  function deltaFinishReason(delta) {
+    if (!delta) return ''
+    if (delta.finishReason != null) return String(delta.finishReason)
+    if (delta.finish_reason != null) return String(delta.finish_reason)
+    if (delta.stopReason != null) return String(delta.stopReason)
+    if (delta.stop_reason != null) return String(delta.stop_reason)
+    if (delta.delta != null) return deltaFinishReason(delta.delta)
+    if (delta.choices && delta.choices[0]) return String(delta.choices[0].finish_reason || delta.choices[0].finishReason || '')
+    return ''
+  }
+
   function normalizeToolCalls(calls, actor) {
     const request = actor && actor.toolSpecs ? actor : null
     const who = request ? request.actor : actor
+    const allowed = requestToolMap(request)
     return (calls || []).map(function (call) {
       if (!call.toolId && !call.tool && (call.function || call.arguments != null) && ai.normalizeOpenAiToolCalls) {
         call = ai.normalizeOpenAiToolCalls([call], request || {})[0]
       }
       const id = call.id || call.providerCallId || ('tc_provider_' + Date.now().toString(36) + '_' + nextProviderToolCallId++)
+      const toolId = call.toolId || call.name || call.tool || ''
+      const denied = allowed && !allowed[toolId]
       return Object.assign({}, call, {
         id: id,
-        toolId: call.toolId || call.name || call.tool || '',
+        toolId: toolId,
         name: call.name || call.toolId || call.tool || '',
         args: call.args || {},
-        status: call.status || 'proposed',
+        status: denied ? 'failed' : (call.status || 'proposed'),
+        error: denied ? ('Tool was not available in this request: ' + toolId) : call.error,
         actor: call.actor || who || 'user',
         createdAt: call.createdAt || Date.now(),
         updatedAt: call.updatedAt || Date.now(),
       })
     })
+  }
+
+  function requestToolMap(request) {
+    if (!request) return null
+    const map = {}
+    const specs = request.toolSpecs || []
+    const refs = request.tools || []
+    for (let i = 0; i < specs.length; i++) map[specs[i].id] = true
+    for (let j = 0; j < refs.length; j++) map[refs[j]] = true
+    return map
   }
 
   function mergeToolCallDeltas(existing, deltas) {
@@ -135,6 +160,10 @@
     return String(text || '').replace(/\s+/g, ' ')
   }
 
+  function safeJson(value) {
+    try { return ai.serialize && ai.serialize.stringify ? ai.serialize.stringify(value) : JSON.stringify(value) } catch (_) { return String(value) }
+  }
+
   function pushPreviewTail(state, text) {
     const clean = normalizePreviewText(text)
     if (!clean) return
@@ -163,7 +192,7 @@
       if (call.function && call.function.name) out += String(call.function.name)
       if (call.arguments != null) out += String(call.arguments)
       if (call.function && call.function.arguments != null) out += String(call.function.arguments)
-      if (call.args && Object.keys(call.args).length) out += JSON.stringify(call.args)
+      if (call.args && Object.keys(call.args).length) out += safeJson(call.args)
     }
     return out
   }
@@ -182,7 +211,7 @@
     if (!call) return ''
     if (call.function && call.function.arguments != null) return String(call.function.arguments)
     if (call.arguments != null) return String(call.arguments)
-    if (call.args && Object.keys(call.args).length) return JSON.stringify(call.args)
+    if (call.args && Object.keys(call.args).length) return safeJson(call.args)
     return ''
   }
 
@@ -241,6 +270,7 @@
       runId: request.runId,
       messageId: state.messageId || null,
       state: runState || state.runState || 'connecting',
+      turn: request.turn || 0,
       startedAt: state.startTime || null,
       firstTokenAt: state.firstTokenAt || null,
       completedAt: state.completedAt || null,
@@ -279,6 +309,7 @@
     const text = deltaContent(delta)
     const reasoning = deltaReasoningContent(delta)
     const calls = deltaToolCalls(delta)
+    const finishReason = deltaFinishReason(delta)
     if (reasoning) {
       appendCapped(state, 'reasoning_content', reasoning, MAX_REASONING_CHARS, 'reasoning')
       pushModelTail(state, reasoning)
@@ -301,6 +332,7 @@
     if (delta && delta.connection) state.connection = delta.connection
     if (delta && delta.model) state.model = delta.model
     if (delta && delta.usage) state.usage = delta.usage
+    if (finishReason) state.finishReason = finishReason
     publishRunState(agentId, state, request, state.runState || 'connecting', (!!text && !state.publishedFirstPreview) || (!!calls.length && !state.publishedFirstTool))
     if (text) state.publishedFirstPreview = true
     if (calls.length) state.publishedFirstTool = true
@@ -351,6 +383,26 @@
     return updated
   }
 
+  function resultFinishReason(result) {
+    const message = result && result.message || result
+    return String(
+      (message && (message.finishReason || message.finish_reason || message.stopReason || message.stop_reason)) ||
+      (result && (result.finishReason || result.finish_reason || result.stopReason || result.stop_reason)) ||
+      ''
+    )
+  }
+
+  function isOutputLimitReason(reason) {
+    const r = String(reason || '').toLowerCase()
+    return r === 'length' || r === 'max_tokens' || r === 'max_output_tokens' || r === 'content_filter_length'
+  }
+
+  function assertProviderCompleted(state, result) {
+    const reason = resultFinishReason(result) || state.finishReason || ''
+    if (!isOutputLimitReason(reason)) return
+    throw new Error('Provider stopped because the output token limit was reached. The partial response was not executed; retry with a smaller change or patch the file in smaller pieces.')
+  }
+
   function consumeDeltas(agentId, messageId, state, source, request, controller) {
     return (async function () {
       for await (const delta of toAsyncIterable(source)) {
@@ -365,7 +417,7 @@
   function toolResultContent(value) {
     if (value == null) return ''
     if (typeof value === 'string') return value
-    return JSON.stringify(value)
+    return safeJson(value)
   }
 
   function appendToolResult(agentId, call, result, status) {
@@ -384,6 +436,16 @@
     }
     const after = sourceMessageId ? toolResultInsertAfter(agentId, sourceMessageId) : null
     return after && ai.insertMessageAfter ? ai.insertMessageAfter(agentId, after, message) : ai.appendMessage(agentId, message)
+  }
+
+  function failedToolPayload(call) {
+    if (!call) return { ok: false, error: 'Tool failed' }
+    if (call.errorDetails && typeof call.errorDetails === 'object') return call.errorDetails
+    if (call.applyResult && typeof call.applyResult === 'object') return call.applyResult
+    if (call.result && typeof call.result === 'object') return call.result
+    if (call.preview && typeof call.preview === 'object') return call.preview
+    const message = String(call.error || 'Tool failed')
+    return { ok: false, error: message, message: message, toolId: call.toolId || call.name || '' }
   }
 
   function toolResultInsertAfter(agentId, sourceMessageId) {
@@ -433,11 +495,22 @@
         appendToolResult(agentId, call, { rejected: true, reason: call.error || 'Rejected' }, 'error')
         state.appended++
       } else if (call.status === 'failed') {
-        appendToolResult(agentId, call, call.error || { error: 'Tool failed' }, 'error')
+        appendToolResult(agentId, call, failedToolPayload(call), 'error')
         state.appended++
       }
     }
     return state
+  }
+
+  function isTerminalToolStatus(status) {
+    return status === 'applied' || status === 'completed' || status === 'rejected' || status === 'failed'
+  }
+
+  function terminalToolResult(call) {
+    if (call.status === 'applied') return call.applyResult || { applied: true }
+    if (call.status === 'completed') return call.result
+    if (call.status === 'rejected') return { rejected: true, reason: call.error || 'Rejected' }
+    return failedToolPayload(call)
   }
 
   function flushToolResults(agentId, messageId) {
@@ -485,7 +558,24 @@
     const jobs = []
     let waiting = false
     for (let i = 0; i < calls.length; i++) {
-      jobs.push(executeOneToolCall(agentId, calls[i], actor).then(function (state) {
+      const call = calls[i]
+      if (isTerminalToolStatus(call.status)) {
+        if (!hasToolResult(ai.findAgent(agentId), call.id)) {
+          appendToolResult(agentId, call, terminalToolResult(call), call.status === 'failed' ? 'error' : 'done')
+        }
+        continue
+      }
+      let job = null
+      try {
+        job = Promise.resolve(executeOneToolCall(agentId, call, actor))
+      } catch (err) {
+        job = Promise.reject(err)
+      }
+      jobs.push(job.catch(function (err) {
+        appendToolResult(agentId, call, { error: String(err && err.message || err) }, 'error')
+        if (aeditor.reportError) aeditor.reportError({ scope: 'ai', tool: call.toolId || call.name || 'tool' }, err)
+        return { waiting: false, error: err }
+      }).then(function (state) {
         if (state && state.waiting) waiting = true
         return state
       }))
@@ -526,7 +616,8 @@
   function prepareApprovalTool(agentId, call, actor, tool) {
     let state = ai.getToolCallActionState ? ai.getToolCallActionState(agentId, call.id, actor) : null
     if (state && state.canPreview) {
-      ai.previewToolCall(agentId, call.id, actor)
+      const preview = ai.previewToolCall(agentId, call.id, actor)
+      if (preview && preview.promise) return preview.promise.then(function () { return { done: true } })
       return Promise.resolve({ done: true })
     }
     if (state && state.canApprove) {
@@ -544,11 +635,11 @@
     const applied = ai.applyToolCall(agentId, call.id, actor)
     if (applied && applied.promise) {
       return applied.promise.then(function (done) {
-        appendToolResult(agentId, call, done && (done.applyResult || done.error || done), done && done.status === 'failed' ? 'error' : 'done')
+        appendToolResult(agentId, call, done && done.status === 'failed' ? failedToolPayload(done) : done && (done.applyResult || done), done && done.status === 'failed' ? 'error' : 'done')
         return { waiting: false }
       })
     }
-    appendToolResult(agentId, call, applied && (applied.applyResult || applied.error || applied), applied && applied.status === 'failed' ? 'error' : 'done')
+    appendToolResult(agentId, call, applied && applied.status === 'failed' ? failedToolPayload(applied) : applied && (applied.applyResult || applied), applied && applied.status === 'failed' ? 'error' : 'done')
     return Promise.resolve({ waiting: false })
   }
 
@@ -557,7 +648,7 @@
   }
 
   function executeOneToolCall(agentId, call, actor) {
-    const tool = ai.getTool(call.toolId)
+    const tool = ai.tools.get(call.toolId)
     if (!tool) {
       appendToolResult(agentId, call, { error: 'Tool not found: ' + call.toolId }, 'error')
       return Promise.resolve({ waiting: false })
@@ -570,7 +661,7 @@
         const prepared = current && current.toolCall || call
         const state = ai.getToolCallActionState ? ai.getToolCallActionState(agentId, call.id, actor) : null
         if (prepared.status === 'failed' || prepared.status === 'rejected') {
-          appendToolResult(agentId, call, prepared.error || prepared.preview || prepared.result || prepared, prepared.status === 'failed' ? 'error' : 'done')
+          appendToolResult(agentId, call, prepared.status === 'failed' ? failedToolPayload(prepared) : { rejected: true, reason: prepared.error || 'Rejected' }, prepared.status === 'failed' ? 'error' : 'done')
           return { waiting: false }
         }
         if (shouldAutoApplyTool(ai.findAgent(agentId), prepared, state)) {
@@ -590,7 +681,7 @@
       return Promise.resolve({ waiting: false })
     }
     return run.promise.then(function (done) {
-      appendToolResult(agentId, call, done && (done.result || done.error || done), done && done.status === 'failed' ? 'error' : 'done')
+      appendToolResult(agentId, call, done && done.status === 'failed' ? failedToolPayload(done) : done && (done.result || done), done && done.status === 'failed' ? 'error' : 'done')
       return { waiting: false }
     })
   }
@@ -622,29 +713,7 @@
       runState: 'connecting',
     }
     publishRunState(agentId, state, request, 'connecting', true)
-    return Promise.resolve().then(function () {
-      request.stream = request.stream || !!provider.stream
-      const sendRequest = ai.requestWithRuntimeContext ? ai.requestWithRuntimeContext(request, ctx) : request
-      return provider.stream ? provider.stream(sendRequest, ctx) : provider.send(sendRequest, ctx)
-    }).then(function (result) {
-      if (controller.signal.aborted) return null
-      if (isIterable(result)) {
-        return consumeDeltas(agentId, assistant.id, state, result, request, controller).then(function () {
-          if (controller.signal.aborted) return null
-          const done = finishStreamingMessage(agentId, assistant.id, state, { content: state.content, toolCalls: state.toolCalls }, request)
-          return continueAfterTools(agentId, provider, done, done, request, controller, actor)
-        })
-      }
-      if (result && result.deltas && isIterable(result.deltas)) {
-        return consumeDeltas(agentId, assistant.id, state, result.deltas, request, controller).then(function () {
-          if (controller.signal.aborted) return null
-          const done = finishStreamingMessage(agentId, assistant.id, state, result.message || result, request)
-          return continueAfterTools(agentId, provider, done, result, request, controller, actor)
-        })
-      }
-      const done = finishStreamingMessage(agentId, assistant.id, state, result, request)
-      return continueAfterTools(agentId, provider, done, result, request, controller, actor)
-    }, function (err) {
+    function failTurn(err) {
       if (controller.signal.aborted) return null
       const completedAt = Date.now()
       ai.updateMessage(agentId, assistant.id, {
@@ -663,11 +732,37 @@
       state.error = String(err && err.message ? err.message : err)
       publishRunState(agentId, state, request, 'error', true)
       throw err
-    })
+    }
+    return Promise.resolve().then(function () {
+      request.stream = request.stream || !!provider.stream
+      const sendRequest = ai.requestWithRuntimeContext ? ai.requestWithRuntimeContext(request, ctx) : request
+      return provider.stream ? provider.stream(sendRequest, ctx) : provider.send(sendRequest, ctx)
+    }).then(function (result) {
+      if (controller.signal.aborted) return null
+      if (isIterable(result)) {
+        return consumeDeltas(agentId, assistant.id, state, result, request, controller).then(function () {
+          if (controller.signal.aborted) return null
+          assertProviderCompleted(state, { content: state.content, toolCalls: state.toolCalls })
+          const done = finishStreamingMessage(agentId, assistant.id, state, { content: state.content, toolCalls: state.toolCalls }, request)
+          return continueAfterTools(agentId, provider, done, done, request, controller, actor)
+        })
+      }
+      if (result && result.deltas && isIterable(result.deltas)) {
+        return consumeDeltas(agentId, assistant.id, state, result.deltas, request, controller).then(function () {
+          if (controller.signal.aborted) return null
+          assertProviderCompleted(state, result.message || result)
+          const done = finishStreamingMessage(agentId, assistant.id, state, result.message || result, request)
+          return continueAfterTools(agentId, provider, done, result, request, controller, actor)
+        })
+      }
+      assertProviderCompleted(state, result)
+      const done = finishStreamingMessage(agentId, assistant.id, state, result, request)
+      return continueAfterTools(agentId, provider, done, result, request, controller, actor)
+    }).catch(failTurn)
   }
 
   function continueAfterTools(agentId, provider, message, result, request, controller, actor) {
-    const calls = (result && result.toolCalls) || message.toolCalls || []
+    const calls = message.toolCalls || []
     if (!calls.length) return message
     return executeToolCalls(agentId, message, actor).then(function (state) {
       if (controller.signal.aborted || !state.count) return message
@@ -698,15 +793,46 @@
       }
       if ((request.turn || 0) >= runtimeConfig.maxToolTurns) {
         flushToolResults(agentId, message.id)
-        return message
+        return appendToolTurnLimitMessage(agentId, request, message)
       }
       if (hasDelegationBoundary(calls)) {
         enqueuePostDelegationContinuation(agentId, request, ai.readMessage(agentId, message.id) || message)
         return message
       }
-      const nextRequest = makeRequest(current, null, request.runId, actor, (request.turn || 0) + 1)
+      if (ai.compaction && ai.compaction.maybeCompact) ai.compaction.maybeCompact(agentId, null, { phase: 'before_tool_continuation' })
+      const nextRequest = makeRequest(ai.findAgent(agentId) || current, null, request.runId, actor, (request.turn || 0) + 1)
       const nextCtx = ai.createRunContext(nextRequest, controller)
       return runChatTurn(agentId, provider, nextRequest, nextCtx, controller, actor)
+    })
+  }
+
+  function appendToolTurnLimitMessage(agentId, request, sourceMessage) {
+    const content = [
+      'Safety stop: the run reached the maximum number of tool continuation turns.',
+      'The agent did not reach a confident final answer, approval wait, or clear blocker before the guard tripped.',
+      'Review the last tool results, narrow the request, or increase maxToolTurns if this was expected.',
+    ].join(' ')
+    const completedAt = Date.now()
+    return ai.appendMessage(agentId, {
+      from: 'agent:' + agentId,
+      role: 'assistant',
+      content: content,
+      connection: request.connectionName,
+      model: request.agent.model || null,
+      status: 'error',
+      meta: {
+        runId: request.runId,
+        error: 'Tool turn limit reached',
+        sourceMessageId: sourceMessage && sourceMessage.id || null,
+        turn: request.turn || 0,
+        maxToolTurns: runtimeConfig.maxToolTurns,
+      },
+      stats: {
+        runId: request.runId,
+        startTime: sourceMessage && sourceMessage.stats && sourceMessage.stats.startTime || completedAt,
+        completedAt: completedAt,
+        durationMs: 0,
+      },
     })
   }
 
@@ -874,6 +1000,7 @@
     const runId = 'run_' + Date.now().toString(36) + '_' + nextRunId++
     const actor = (input && input.actor) || agent.id
     closeStaleToolCalls(agent.id)
+    if (ai.compaction && ai.compaction.maybeCompact) ai.compaction.maybeCompact(agent.id, input, { phase: 'before_request' })
     agent = ai.findAgent(agent.id)
     const request = makeRequest(agent, input, runId, actor, 0)
     const ctx = ai.createRunContext(request, controller)
@@ -965,6 +1092,7 @@
     const toolState = appendResolvedToolResults(agent.id, message)
     if (toolState.pending) return null
     delete waitingRuns[agent.id]
+    if (ai.compaction && ai.compaction.maybeCompact) ai.compaction.maybeCompact(agent.id, waiting.request.input, { phase: 'before_resume' })
 
     const controller = new AbortController()
     const runner = {

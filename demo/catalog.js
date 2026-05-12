@@ -260,9 +260,9 @@
     {
       id: 'vectorInput', name: 'Vector Input', category: 'form',
       description: 'XYZ vector of linked number inputs.',
-      signals: function () { return { value: aeditor.signal([0, 0, 0]) } },
-      mount: function (s) { return ui.vectorInput({ value: s.value, step: 0.1, precision: 2 }) },
-      editFor: function () { return {} },
+      signals: function () { return { value: aeditor.signal([0, 0, 0]), layout: aeditor.signal('column') } },
+      mount: function (s) { return ui.vectorInput({ value: s.value, layout: s.layout, step: 0.1, precision: 2 }) },
+      editFor: function (s) { return { layout: { signal: s.layout, options: [{ value: 'row', label: 'Row' }, { value: 'column', label: 'Column' }] } } },
     },
 
     {
@@ -502,7 +502,7 @@
       description: 'Cubic bezier easing curve editor.',
       signals: function () { return { value: aeditor.signal([0.42, 0, 0.58, 1]) } },
       mount: function (s) {
-        const wrap = ui.h('div', null, { style: 'height:200px' })
+        const wrap = ui.h('div', null, { style: 'width:100%;height:100%;min-width:0;min-height:0;display:grid;place-items:center' })
         wrap.appendChild(ui.curveInput({ value: s.value }))
         return wrap
       },
@@ -618,9 +618,7 @@
         collapsed: aeditor.signal(false),
       }},
       mount: function (s) {
-        const content = ui.h('div', null, { style: 'padding:8px 0' })
-        content.appendChild(ui.h('div', null, { text: 'Section body — anything goes here.' }))
-        content.appendChild(ui.button({ text: 'Inside section' }))
+        const content = ui.h('div', null, { text: 'Section body - anything goes here.' })
         return ui.section({ title: s.title, collapsed: s.collapsed, children: content })
       },
       editFor: function (s) { return { title: s.title, collapsed: s.collapsed } },
@@ -654,8 +652,25 @@
     },
 
     {
+      id: 'view', name: 'View', category: 'container',
+      description: 'Themed view surface. Scrolls only when content overflows.',
+      signals: function () { return {
+        padded: aeditor.signal(true),
+        scroll: aeditor.signal('auto'),
+      }},
+      mount: function (s) {
+        const content = ui.h('div')
+        for (let i = 0; i < 18; i++) {
+          content.appendChild(ui.h('div', null, { text: 'View item ' + (i + 1), style: 'padding:4px 0;border-bottom:1px solid var(--aeditor-border)' }))
+        }
+        return ui.view({ children: content, maxHeight: 140, padded: s.padded, scroll: s.scroll })
+      },
+      editFor: function (s) { return { padded: s.padded, scroll: s.scroll } },
+    },
+
+    {
       id: 'scrollArea', name: 'Scroll Area', category: 'container',
-      description: 'Themed scroll container (tall content).',
+      description: 'Low-level styled scrollbar container.',
       signals: function () { return {} },
       mount: function () {
         const content = ui.h('div', null, { style: 'padding:8px' })
@@ -789,7 +804,7 @@
         kind:          aeditor.signal('default'),
       }},
       mount: function (s) {
-        const wrap = ui.h('div', null, { style: 'width:220px;display:flex;align-items:center;justify-content:center;min-height:64px' })
+        const wrap = ui.h('div', null, { style: 'width:100%;display:flex;align-items:center;justify-content:center;min-height:0' })
         // Shape is picked once per instance (see component note); remount on swap.
         aeditor.effect(function () {
           const sh = s.shape()
@@ -894,7 +909,7 @@
         message: aeditor.signal('This is an inline status banner.'),
       }},
       mount: function (s) {
-        const wrap = ui.h('div', null, { style: 'width:300px' })
+        const wrap = ui.h('div', null, { style: 'width:100%;min-width:0' })
         wrap.appendChild(ui.banner({ kind: s.kind, title: s.title, message: s.message }))
         return wrap
       },

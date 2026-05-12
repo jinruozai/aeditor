@@ -33,6 +33,11 @@
     return -1
   }
 
+  function configuredMaxTokens(config, fallback) {
+    const n = Number(config.maxTokens || config.maxOutputTokens || config.max_tokens || config.max_completion_tokens || 0)
+    return n > 0 ? n : fallback
+  }
+
   ai.registerTransport('mock', {
     send: function (connection, request, ctx) {
       const config = ai.getConnectionConfig(connection.id)
@@ -65,6 +70,7 @@
         messages: ai.openAiMessages(request.messages, request),
         stream: stream,
         stream_options: stream ? { include_usage: true } : undefined,
+        max_tokens: configuredMaxTokens(config, 8192),
       }
       if (tools.length) {
         body.tools = tools
@@ -85,6 +91,7 @@
           reasoning_content: delta.reasoning_content || delta.reasoningContent || '',
           toolCalls: delta.tool_calls || delta.toolCalls || [],
           usage: data.usage || null,
+          finishReason: choice.finish_reason || choice.finishReason || null,
         }
         if (!hasDelta && delta.content != null) {
           out.snapshot = ai.messageText(delta.content)
@@ -96,11 +103,12 @@
         if (data.streamed) {
           return {
             role: 'assistant',
-            content: data.content,
-            reasoning_content: data.reasoning_content || null,
-            toolCalls: ai.normalizeOpenAiToolCalls(mergeToolCallDeltas(data.toolCalls || []), request),
-            usage: data.usage || null,
-          }
+          content: data.content,
+          reasoning_content: data.reasoning_content || null,
+          toolCalls: ai.normalizeOpenAiToolCalls(mergeToolCallDeltas(data.toolCalls || []), request),
+          usage: data.usage || null,
+          finishReason: data.finishReason || null,
+        }
         }
         data = data.data
         const choice = data.choices && data.choices[0]
@@ -111,6 +119,7 @@
           reasoning_content: message.reasoning_content || message.reasoningContent || null,
           toolCalls: ai.normalizeOpenAiToolCalls(message.tool_calls || message.toolCalls || [], request),
           usage: data.usage || null,
+          finishReason: choice && (choice.finish_reason || choice.finishReason) || null,
         }
       })
     },
@@ -133,7 +142,7 @@
       const body = {
         model: request.model || config.defaultModel,
         messages: ai.anthropicPayloadMessages(request.messages, request),
-        max_tokens: 4096,
+        max_tokens: configuredMaxTokens(config, 8192),
         stream: !!(request.stream && config.stream),
       }
       headers['anthropic-version'] = '2023-06-01'
@@ -147,6 +156,7 @@
       }, function (data) {
         if (data.type === 'content_block_delta' && data.delta) return data.delta.text || ''
         if (data.type === 'content_block_start' && data.content_block) return data.content_block.text || ''
+        if (data.type === 'message_delta' && data.delta) return { finishReason: data.delta.stop_reason || data.delta.stopReason || '', usage: data.usage || null }
         return ''
       }).then(function (data) {
         if (data.streamed && data.deltas) return { deltas: data.deltas }
@@ -158,6 +168,7 @@
           content: chunks.map(function (item) { return item.text || '' }).join(''),
           toolCalls: data.tool_calls || data.toolCalls || [],
           usage: data.usage || null,
+          finishReason: data.stop_reason || data.stopReason || null,
         }
       })
     },

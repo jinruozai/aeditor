@@ -20,8 +20,8 @@
   }
 
   function imageResources(request) {
-    const refs = request.resourceRefs || []
-    const resolved = request.resources || request.resolvedResources || []
+    const refs = request.attachmentRefs || []
+    const resolved = request.attachments || request.resolvedAttachments || []
     const out = []
     for (let i = 0; i < refs.length; i++) {
       const ref = refs[i] || {}
@@ -54,7 +54,7 @@
 
   function compactJson(value, max) {
     let text = ''
-    try { text = JSON.stringify(value) } catch (_) { text = String(value) }
+    try { text = ai.serialize && ai.serialize.stringify ? ai.serialize.stringify(value) : JSON.stringify(value) } catch (_) { text = String(value) }
     max = max || 6000
     return text.length > max ? text.slice(0, max) + '...' : text
   }
@@ -220,7 +220,7 @@
             type: 'function',
             function: {
               name: toolName(call.toolId || call.name),
-              arguments: JSON.stringify(call.args || {}),
+              arguments: ai.serialize && ai.serialize.stringify ? ai.serialize.stringify(call.args || {}) : JSON.stringify(call.args || {}),
             },
           }
         })
@@ -342,8 +342,8 @@
   }
 
   function imageInputItems(request) {
-    const refs = request.resourceRefs || []
-    const payloads = request.resources || request.resolvedResources || []
+    const refs = request.attachmentRefs || []
+    const payloads = request.attachments || request.resolvedAttachments || []
     const out = []
     for (let i = 0; i < refs.length; i++) {
       const ref = refs[i] || {}

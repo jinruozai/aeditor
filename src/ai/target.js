@@ -8,7 +8,7 @@
   const TARGET_LIST_MIME = 'application/x-aeditor-ai-target-list'
 
   function clone(v) {
-    return v == null ? v : JSON.parse(JSON.stringify(v))
+    return v == null ? v : (ai.serialize && ai.serialize.clone ? ai.serialize.clone(v) : JSON.parse(JSON.stringify(v)))
   }
 
   function inferResolver(uri, kind) {
@@ -20,7 +20,7 @@
   }
 
   function normalizeTarget(target) {
-    if (ai.normalizeReference) return ai.normalizeReference(target)
+    if (ai.references && ai.references.normalize) return ai.references.normalize(target)
     if (!target) return null
     if (typeof target === 'string') target = { uri: target }
     const uri = String(target.uri || target.id || '')
@@ -78,7 +78,7 @@
   }
 
   function findResource(target) {
-    const list = ai.resources && ai.resources.peek ? ai.resources.peek() : []
+    const list = ai.attachments && ai.attachments.peek ? ai.attachments.peek() : []
     for (let i = 0; i < list.length; i++) {
       if (list[i].resolver === target.resolver && list[i].uri === target.uri) return list[i]
     }
@@ -89,7 +89,7 @@
     const normalized = normalizeTarget(target)
     if (!normalized) return null
     const existing = findResource(normalized)
-    return existing || ai.addResource(normalized)
+    return existing || ai.addAttachment(normalized)
   }
 
   function attachTargetToAgent(agentId, target) {
@@ -291,9 +291,9 @@
     return out
   }
 
-  if (ai.registerResourceResolver) {
-    ai.registerResourceResolver('file', {
-      resolve: function (ref) {
+  if (ai.references && ai.references.register) {
+    ai.references.register('file', {
+      read: function (ref) {
         return {
           name: ref.meta && ref.meta.name || ref.title || '',
           size: ref.meta && ref.meta.size || 0,
@@ -311,16 +311,72 @@
     el.__aeditorCleanups.push(fn)
   }
 
+  function resolveDragHandle(el, opts) {
+    const handle = opts.dragHandle || opts.dragSelector || null
+    if (!handle) return el
+    if (typeof handle === 'string') return el.querySelector(handle)
+    if (typeof handle === 'function') return handle(el)
+    return handle
+  }
+
+  function closestMatch(node, root, selector) {
+    while (node && node !== root) {
+      if (node.matches && node.matches(selector)) return node
+      node = node.parentElement
+    }
+    return null
+  }
+
+  function shouldIgnoreDragStart(ev, root, dragEl, opts) {
+    if (opts.ignoreInteractive === false) return false
+    const target = ev.target
+    if (!target || target === dragEl) return false
+    if (closestMatch(target, dragEl, '[data-aeditor-ai-drag-handle]')) return false
+    return !!closestMatch(target, root, [
+      '[data-aeditor-ai-drag-ignore]',
+      'input',
+      'textarea',
+      'select',
+      'option',
+      'button',
+      'a[href]',
+      '[contenteditable="true"]',
+      '[role="button"]',
+      '[role="slider"]',
+      '[role="spinbutton"]',
+      '[role="textbox"]',
+      '[role="combobox"]',
+      '[role="listbox"]',
+      '[role="tree"]',
+      '[role="grid"]',
+    ].join(','))
+  }
+
   function attach(el, targetOrFn, opts) {
     opts = opts || {}
-    if (opts.draggable !== false) el.draggable = true
     el.dataset.efAiTarget = '1'
-    const onDragStart = function (ev) {
-      const targets = resolveTarget(targetOrFn, ev)
-      if (!writeDragData(ev, targets)) ev.preventDefault()
+    const dragEl = opts.draggable === false ? null : resolveDragHandle(el, opts)
+    if (dragEl) {
+      const hadDraggable = dragEl.hasAttribute && dragEl.hasAttribute('draggable')
+      const prevDraggable = hadDraggable ? dragEl.getAttribute('draggable') : null
+      dragEl.draggable = true
+      if (dragEl !== el) dragEl.setAttribute('data-aeditor-ai-drag-handle', '1')
+      const onDragStart = function (ev) {
+        if (shouldIgnoreDragStart(ev, el, dragEl, opts)) {
+          ev.preventDefault()
+          return
+        }
+        const targets = resolveTarget(targetOrFn, ev)
+        if (!writeDragData(ev, targets)) ev.preventDefault()
+      }
+      dragEl.addEventListener('dragstart', onDragStart)
+      addCleanup(el, function () {
+        dragEl.removeEventListener('dragstart', onDragStart)
+        if (hadDraggable) dragEl.setAttribute('draggable', prevDraggable)
+        else dragEl.removeAttribute('draggable')
+        if (dragEl !== el) dragEl.removeAttribute('data-aeditor-ai-drag-handle')
+      })
     }
-    el.addEventListener('dragstart', onDragStart)
-    addCleanup(el, function () { el.removeEventListener('dragstart', onDragStart) })
 
     if (opts.contextMenu) {
       const onContext = function (ev) {

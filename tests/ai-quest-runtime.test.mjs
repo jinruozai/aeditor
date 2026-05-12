@@ -7,6 +7,7 @@ global.window = { aeditor: {} }
 for (const file of [
   'src/core/signal.js',
   'src/core/log.js',
+  'src/core/names.js',
   'src/ai/name-generator.js',
   'src/ai/store.js',
   'src/ai/connection.js',
@@ -129,7 +130,7 @@ assert.notEqual(parentAfterDelegate.status, 'waiting_quest')
 await flush()
 
 let approvalRequests = 0
-ai.registerTool('approval-edit', {
+ai.tools.register('approval-edit', {
   preview: function (args) { return { before: args.before, after: args.after } },
   apply: function (preview) { return { applied: true, preview: preview } },
 })
@@ -164,7 +165,7 @@ assert.equal(ai.findAgent(approvalAgent.id).messages.some(function (message) {
 }), true)
 
 let approvalRunRequests = 0
-ai.registerTool('approval-run-edit', {
+ai.tools.register('approval-run-edit', {
   run: function (args) { return { before: args.before, after: args.after } },
   apply: function (preview) { return { applied: true, preview: preview } },
 })
@@ -200,7 +201,7 @@ assert.equal(ai.findAgent(approvalRunAgent.id).messages.some(function (message) 
 }), true)
 
 let fullAccessRequests = 0
-ai.registerTool('full-access-edit', {
+ai.tools.register('full-access-edit', {
   preview: function (args) { return { before: args.before, after: args.after } },
   apply: function (preview) { return { applied: true, preview: preview } },
 })
@@ -232,7 +233,7 @@ assert.equal(ai.findAgent(fullAccessAgent.id).messages.some(function (message) {
 }), true)
 
 let cappedRequests = 0
-ai.registerTool('capped-read', {
+ai.tools.register('capped-read', {
   run: function (args) { return { ok: true, id: args.id } },
 })
 ai.registerTransport('capped-tool-flow', {
@@ -255,6 +256,9 @@ const cappedAgent = ai.createAgent({ name: 'Capped Tools', parentAgentId: parent
 const cappedRun = ai.message.send(cappedAgent.id, { content: 'run capped read' })
 await cappedRun.promise
 assert.equal(cappedRequests, 1)
+assert.equal(ai.findAgent(cappedAgent.id).messages.some(function (message) {
+  return message.status === 'error' && /maximum number of tool continuation turns/i.test(message.content || '')
+}), true)
 const cappedToolMessage = ai.findAgent(cappedAgent.id).messages.find(function (message) {
   return message.toolCalls && message.toolCalls.length
 })
@@ -268,7 +272,7 @@ assert.equal(cappedRequests, 2)
 assert.equal(ai.findAgent(cappedAgent.id).messages.some(function (message) {
   return message.content === 'continued after capped tool'
 }), true)
-ai.configureRuntime({ maxToolTurns: 8 })
+ai.configureRuntime({ maxToolTurns: 32 })
 
 let releaseInterrupt
 const interruptedHold = new Promise(function (resolve) { releaseInterrupt = resolve })
@@ -310,16 +314,18 @@ const hugeSource = 'function (propsSig, ctx) {\n' + 'x'.repeat(120000) + '\n}'
 ai.appendMessage(hugeToolAgent.id, {
   role: 'assistant',
   content: '',
-  toolCalls: [{ id: 'call_huge', toolId: 'aeditor.createPanel', args: { id: 'huge', source: hugeSource }, status: 'applied', applyResult: { source: hugeSource } }],
+  toolCalls: [{ id: 'call_huge', toolId: 'demo.project.writeFile', args: { path: 'src/huge.panel.js', text: hugeSource }, status: 'applied', applyResult: { text: hugeSource } }],
 })
-ai.appendMessage(hugeToolAgent.id, { role: 'tool', content: { applied: true, source: hugeSource }, meta: { toolCallId: 'call_huge' } })
+ai.appendMessage(hugeToolAgent.id, { role: 'tool', content: { applied: true, text: hugeSource }, meta: { toolCallId: 'call_huge' } })
 const hugeInput = ai.appendMessage(hugeToolAgent.id, { role: 'user', content: 'next' })
 const hugeRequest = ai.makeRequest(ai.findAgent(hugeToolAgent.id), hugeInput, 'run_huge', hugeToolAgent.id, 0)
 const hugeAssistant = hugeRequest.messages.find(function (message) { return message.toolCalls && message.toolCalls.length })
-assert.equal(hugeAssistant.toolCalls[0].args.source.length < 5000, true)
+assert.equal(hugeAssistant.toolCalls[0].args.text.omitted, true)
+assert.equal(hugeAssistant.toolCalls[0].args.text.originalLength, hugeSource.length)
 const hugeOpenAi = ai.openAiMessages(hugeRequest.messages, hugeRequest)
 const hugeArgs = JSON.parse(hugeOpenAi.find(function (message) { return message.tool_calls }).tool_calls[0].function.arguments)
-assert.equal(hugeArgs.source.length < 5000, true)
+assert.equal(hugeArgs.text.omitted, true)
+assert.equal(hugeArgs.text.originalLength, hugeSource.length)
 
 let releaseLimitedA
 let releaseLimitedB

@@ -4,6 +4,8 @@
 //   value: string|signal, onChange?,
 //   placeholder?: string|signal, rows?: number,
 //   disabled?: boolean|signal, mono?: boolean|signal,
+//   submitMode?: 'none'|'modifier'|'enter',
+//   onCommit?: (v) => void, onCancel?: (base) => void,
 // }
 ;(function (aeditor) {
   'use strict'
@@ -25,6 +27,18 @@
       if (document.activeElement !== el) el.value = v == null ? '' : String(v)
     })
     el.addEventListener('input', function () { doWrite(el.value) })
+    ui.editSession({
+      el: el,
+      multiline: true,
+      submitMode: o.submitMode || 'modifier',
+      get: function () { return el.value },
+      set: function (v) {
+        el.value = v == null ? '' : String(v)
+        doWrite(el.value)
+      },
+      onCommit: o.onCommit,
+      onCancel: o.onCancel,
+    })
     return el
   }
 })(window.aeditor = window.aeditor || {})

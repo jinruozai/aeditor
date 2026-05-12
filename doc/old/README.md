@@ -7,7 +7,6 @@ Current authority is:
 ```text
 AGENTS.md
 doc/*.md outside doc/old
-doc/current-gaps.md
 ```
 
 Do not implement from files in this directory unless a current document

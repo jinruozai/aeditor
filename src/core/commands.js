@@ -28,6 +28,8 @@
     return true
   }
 
+  const matchesPrefix = aeditor.names.matchesPrefix
+
   function register(id, spec, meta) {
     if (!id) throw new Error('commands.register: id is required')
     if (commands[id]) throw new Error('commands.register: duplicate id "' + id + '"')
@@ -58,6 +60,25 @@
     })
     keys(menuMeta).forEach(function (id) {
       if (menuMeta[id].owner === owner) {
+        delete menus[id]
+        delete menuMeta[id]
+        removed.push(id)
+      }
+    })
+    return removed
+  }
+
+  function unregisterPrefix(prefix) {
+    const removed = []
+    keys(commands).forEach(function (id) {
+      if (matchesPrefix(id, prefix)) {
+        delete commands[id]
+        delete commandMeta[id]
+        removed.push(id)
+      }
+    })
+    keys(menus).forEach(function (id) {
+      if (matchesPrefix(id, prefix)) {
         delete menus[id]
         delete menuMeta[id]
         removed.push(id)
@@ -147,6 +168,7 @@
     register: register,
     unregister: unregister,
     unregisterOwner: unregisterOwner,
+    unregisterPrefix: unregisterPrefix,
     get: get,
     list: list,
     run: run,

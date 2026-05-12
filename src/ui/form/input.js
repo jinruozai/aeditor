@@ -10,6 +10,7 @@
 //   suffix      : string | HTMLElement
 //   type        : input type                  default "text"
 //   onCommit    : (v) => void                 fired on Enter / blur
+//   onCancel    : (base) => void              fired after Escape restores base
 ;(function (aeditor) {
   'use strict'
   const ui = aeditor.ui = aeditor.ui || {}
@@ -39,10 +40,17 @@
     })
 
     el.addEventListener('input', function () { doWrite(el.value) })
-    el.addEventListener('keydown', function (e) {
-      if (e.key === 'Enter' && o.onCommit) o.onCommit(el.value)
+    ui.editSession({
+      el: el,
+      owner: wrap,
+      get: function () { return el.value },
+      set: function (v) {
+        el.value = v == null ? '' : String(v)
+        doWrite(el.value)
+      },
+      onCommit: o.onCommit,
+      onCancel: o.onCancel,
     })
-    el.addEventListener('blur', function () { o.onCommit && o.onCommit(el.value) })
 
     return wrap
   }

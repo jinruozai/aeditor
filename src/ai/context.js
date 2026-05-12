@@ -7,9 +7,9 @@
   const toolMeta = {}
   const skills = {}
   const contextProviders = {}
-  const resourceResolvers = {}
   const agentTemplates = {}
-  const plugins = {}
+  const bundles = {}
+  const bundleRecords = {}
   let nextToolCallId = 1
 
   function keys(obj) { return Object.keys(obj) }
@@ -40,6 +40,7 @@
 
   function canTransition(from, to) {
     const status = normalizeToolStatus(from)
+    if (to === 'previewing') return status === 'proposed'
     if (to === 'previewed') return status === 'proposed'
     if (to === 'approved') return status === 'proposed' || status === 'previewed'
     if (to === 'rejected') return status === 'proposed' || status === 'previewed' || status === 'approved'
@@ -131,13 +132,75 @@
     return fn(input, ctx)
   }
 
-  function failToolCall(agentId, callId, found, err) {
+  function errorMessage(value, fallback) {
+    if (!value) return fallback || 'Tool failed'
+    if (typeof value === 'string') return value
+    if (value.message) return String(value.message)
+    if (value.error) return String(value.error)
+    return serialize(value)
+  }
+
+  function errorCode(message) {
+    const text = String(message || '')
+    if (/baseHash mismatch/i.test(text)) return 'BASE_HASH_MISMATCH'
+    if (/permission denied/i.test(text)) return 'PERMISSION_DENIED'
+    if (/workspace.*not available|workspace.*required|No AI workspace/i.test(text)) return 'WORKSPACE_REQUIRED'
+    if (/file not found|path not found/i.test(text)) return 'FILE_NOT_FOUND'
+    if (/invalid JSON/i.test(text)) return 'INVALID_JSON'
+    if (/invalid JavaScript|syntax error/i.test(text)) return 'INVALID_JAVASCRIPT'
+    if (/not found/i.test(text)) return 'NOT_FOUND'
+    if (/not allowed|not available/i.test(text)) return 'NOT_ALLOWED'
+    return 'TOOL_FAILED'
+  }
+
+  function recoverHint(code) {
+    if (code === 'BASE_HASH_MISMATCH') return 'Read the current resource again, then retry with the new hash.'
+    if (code === 'WORKSPACE_REQUIRED') return 'Ask the user to open or select a workspace before writing files.'
+    if (code === 'FILE_NOT_FOUND') return 'Check the path with list/search tools, then retry with an existing path or create the file first.'
+    if (code === 'INVALID_JSON') return 'Fix the JSON syntax and retry.'
+    if (code === 'INVALID_JAVASCRIPT') return 'Fix the JavaScript syntax and retry.'
+    if (code === 'PERMISSION_DENIED') return 'Stop or ask the user for permission instead of trying alternate write paths.'
+    return ''
+  }
+
+  function failureEnvelope(toolId, phase, value) {
+    const message = errorMessage(value, 'Tool failed')
+    const code = value && value.code ? String(value.code) : errorCode(message)
+    const out = {
+      ok: false,
+      code: code,
+      message: message,
+      error: message,
+      toolId: toolId || '',
+      phase: phase || 'run',
+      recoverable: code !== 'PERMISSION_DENIED',
+    }
+    const hint = value && value.hint ? String(value.hint) : recoverHint(code)
+    if (hint) out.hint = hint
+    if (value && typeof value === 'object') out.details = value
+    return out
+  }
+
+  function resultFailed(result) {
+    return !!(result && typeof result === 'object' && (result.ok === false || result.status === 'failed'))
+  }
+
+  function failToolCall(agentId, callId, found, err, phase) {
     if (aeditor.reportError) aeditor.reportError({ scope: 'ai', tool: found.toolCall.toolId }, err)
-    return updateToolCall(agentId, callId, { status: 'failed', error: String(err && err.message ? err.message : err) })
+    const envelope = failureEnvelope(found.toolCall.toolId, phase || 'run', err)
+    const patch = { status: 'failed', error: envelope.message, errorDetails: envelope }
+    if (phase === 'preview') patch.preview = envelope
+    else if (phase === 'apply') patch.applyResult = envelope
+    else patch.result = envelope
+    return updateToolCall(agentId, callId, patch)
   }
 
   function isPromiseLike(value) {
     return value && typeof value.then === 'function'
+  }
+
+  function serialize(value) {
+    try { return ai.serialize && ai.serialize.stringify ? ai.serialize.stringify(value) : JSON.stringify(value) } catch (_) { return String(value) }
   }
 
   function applySucceeded(result) {
@@ -153,7 +216,7 @@
     if (errors.length) {
       return errors.map(function (item) {
         return item && typeof item === 'object'
-          ? ((item.path ? item.path + ': ' : '') + (item.message || JSON.stringify(item)))
+          ? ((item.path ? item.path + ': ' : '') + (item.message || serialize(item)))
           : String(item)
       }).join('\n')
     }
@@ -169,7 +232,7 @@
     if (errors.length) {
       return errors.map(function (item) {
         return item && typeof item === 'object'
-          ? ((item.path ? item.path + ': ' : '') + (item.message || JSON.stringify(item)))
+          ? ((item.path ? item.path + ': ' : '') + (item.message || serialize(item)))
           : String(item)
       }).join('\n')
     }
@@ -180,7 +243,7 @@
     if (applySucceeded(result)) {
       return updateToolCall(agentId, callId, { status: 'applied', applyResult: result, error: null })
     }
-    return updateToolCall(agentId, callId, { status: 'failed', applyResult: result, error: applyFailureMessage(result) })
+    return updateToolCall(agentId, callId, { status: 'failed', applyResult: result, error: applyFailureMessage(result), errorDetails: failureEnvelope(found.toolCall.toolId, 'apply', result) })
   }
 
   function getToolCallActionState(agentId, callId, actor) {
@@ -230,13 +293,25 @@
     if (!state || !state.canPreview) return null
     const found = findToolCall(agentId, callId)
     try {
+      updateToolCall(agentId, callId, { status: 'previewing' })
       const result = callToolPhase(agentId, callId, actor || state.toolCall.actor || 'user', 'preview')
-      if (result && typeof result === 'object' && result.ok === false) {
-        return updateToolCall(agentId, callId, { status: 'failed', preview: result, error: previewFailureMessage(result) })
+      if (isPromiseLike(result)) {
+        const promise = Promise.resolve(result).then(function (done) {
+          if (resultFailed(done)) {
+            return updateToolCall(agentId, callId, { status: 'failed', preview: done, error: previewFailureMessage(done), errorDetails: failureEnvelope(found.toolCall.toolId, 'preview', done) })
+          }
+          return updateToolCall(agentId, callId, { status: 'previewed', preview: done, error: null })
+        }, function (err) {
+          return failToolCall(agentId, callId, found, err, 'preview')
+        })
+        return { toolCall: findToolCall(agentId, callId).toolCall, promise: promise }
+      }
+      if (resultFailed(result)) {
+        return updateToolCall(agentId, callId, { status: 'failed', preview: result, error: previewFailureMessage(result), errorDetails: failureEnvelope(found.toolCall.toolId, 'preview', result) })
       }
       return updateToolCall(agentId, callId, { status: 'previewed', preview: result, error: null })
     } catch (err) {
-      return failToolCall(agentId, callId, found, err)
+      return failToolCall(agentId, callId, found, err, 'preview')
     }
   }
 
@@ -262,9 +337,12 @@
     const promise = Promise.resolve().then(function () {
       return callToolPhase(agentId, callId, actor || found.toolCall.actor || 'user', 'run')
     }).then(function (result) {
+      if (resultFailed(result)) {
+        return updateToolCall(agentId, callId, { status: 'failed', result: result, error: errorMessage(result), errorDetails: failureEnvelope(found.toolCall.toolId, 'run', result) })
+      }
       return updateToolCall(agentId, callId, { status: 'completed', result: result, error: null })
     }, function (err) {
-      return failToolCall(agentId, callId, found, err)
+      return failToolCall(agentId, callId, found, err, 'run')
     })
     return { toolCall: findToolCall(agentId, callId).toolCall, promise: promise }
   }
@@ -280,11 +358,11 @@
       const promise = Promise.resolve(result).then(function (done) {
         return finishApplyToolCall(agentId, callId, found, done)
       }, function (err) {
-        return failToolCall(agentId, callId, found, err)
+        return failToolCall(agentId, callId, found, err, 'apply')
       })
       return { toolCall: findToolCall(agentId, callId).toolCall, promise: promise }
     } catch (err) {
-      return failToolCall(agentId, callId, found, err)
+      return failToolCall(agentId, callId, found, err, 'apply')
     }
   }
 
@@ -296,6 +374,8 @@
     return out
   }
 
+  const matchesPrefix = aeditor.names.matchesPrefix
+
   function registerTool(name, tool, meta) {
     tools[name] = tool
     toolMeta[name] = normalizeMeta(meta)
@@ -306,11 +386,29 @@
     return tools[name]
   }
 
+  function isToolVisibleToModel(name, ctx, explicit) {
+    const tool = getTool(name)
+    if (!tool) return false
+    if (ctx && ctx.uiAuthoringBlocked) return false
+    if (tool.exposeToModel === false && !explicit) return false
+    if (typeof tool.available === 'function' && tool.available(ctx || {}) === false) return false
+    return true
+  }
+
+  function visibleToolNames(refs, ctx, explicit) {
+    const list = refs && refs.length ? refs : keys(tools)
+    const out = []
+    for (let i = 0; i < list.length; i++) {
+      if (isToolVisibleToModel(list[i], ctx, !!explicit)) out.push(list[i])
+    }
+    return out
+  }
+
   function unregisterTool(name, meta) {
     if (!tools[name]) return false
     const existing = toolMeta[name] || {}
     if (meta && meta.owner != null && existing.owner !== meta.owner)
-      throw new Error('ai.unregisterTool: owner mismatch for "' + name + '"')
+      throw new Error('ai.tools.unregister: owner mismatch for "' + name + '"')
     delete tools[name]
     delete toolMeta[name]
     return true
@@ -328,6 +426,18 @@
     return removed
   }
 
+  function unregisterToolPrefix(prefix) {
+    const removed = []
+    keys(tools).forEach(function (name) {
+      if (matchesPrefix(name, prefix)) {
+        delete tools[name]
+        delete toolMeta[name]
+        removed.push(name)
+      }
+    })
+    return removed
+  }
+
   function registerSkill(name, skill) {
     skills[name] = skill
     return skill
@@ -337,22 +447,47 @@
     return skills[name]
   }
 
+  function unregisterSkill(name) {
+    if (!skills[name]) return false
+    delete skills[name]
+    return true
+  }
+
+  function unregisterSkillPrefix(prefix) {
+    const removed = []
+    keys(skills).forEach(function (name) {
+      if (matchesPrefix(name, prefix)) {
+        delete skills[name]
+        removed.push(name)
+      }
+    })
+    return removed
+  }
+
   function registerContextProvider(name, provider) {
     contextProviders[name] = provider
     return provider
   }
 
+  function unregisterContextProvider(name) {
+    if (!contextProviders[name]) return false
+    delete contextProviders[name]
+    return true
+  }
+
+  function unregisterContextProviderPrefix(prefix) {
+    const removed = []
+    keys(contextProviders).forEach(function (name) {
+      if (matchesPrefix(name, prefix)) {
+        delete contextProviders[name]
+        removed.push(name)
+      }
+    })
+    return removed
+  }
+
   function getContextProvider(name) {
     return contextProviders[name]
-  }
-
-  function registerResourceResolver(name, resolver) {
-    resourceResolvers[name] = resolver
-    return resolver
-  }
-
-  function getResourceResolver(name) {
-    return resourceResolvers[name]
   }
 
   function registerAgentTemplate(name, template) {
@@ -364,28 +499,84 @@
     return agentTemplates[name]
   }
 
-  function registerPlugin(name, plugin) {
-    plugins[name] = plugin
-    registerPluginList(plugin && plugin.connections, ai.registerConnection)
-    registerPluginList(plugin && plugin.skills, registerSkill)
-    registerPluginList(plugin && plugin.tools, registerTool)
-    registerPluginList(plugin && plugin.contextProviders, registerContextProvider)
-    registerPluginList(plugin && plugin.resourceResolvers, registerResourceResolver)
-    registerPluginList(plugin && plugin.agentTemplates, registerAgentTemplate)
-    if (plugin && typeof plugin.activate === 'function') {
-      plugin.activate({ ai: ai })
+  function unregisterAgentTemplate(name) {
+    if (!agentTemplates[name]) return false
+    delete agentTemplates[name]
+    return true
+  }
+
+  function unregisterAgentTemplatePrefix(prefix) {
+    const removed = []
+    keys(agentTemplates).forEach(function (name) {
+      if (matchesPrefix(name, prefix)) {
+        delete agentTemplates[name]
+        removed.push(name)
+      }
+    })
+    return removed
+  }
+
+  function registerBundle(name, bundle) {
+    if (bundles[name]) unregisterBundle(name)
+    bundles[name] = bundle
+    bundleRecords[name] = {
+      connections: registerBundleList(bundle && bundle.connections, ai.registerConnection),
+      skills: registerBundleList(bundle && bundle.skills, registerSkill),
+      tools: registerBundleList(bundle && bundle.tools, registerTool),
+      contextProviders: registerBundleList(bundle && bundle.contextProviders, registerContextProvider),
+      agentTemplates: registerBundleList(bundle && bundle.agentTemplates, registerAgentTemplate),
     }
-    return plugin
+    if (bundle && typeof bundle.activate === 'function') {
+      bundle.activate({ ai: ai })
+    }
+    return bundle
   }
 
-  function getPlugin(name) {
-    return plugins[name]
+  function getBundle(name) {
+    return bundles[name]
   }
 
-  function registerPluginList(items, register) {
+  function unregisterBundle(name) {
+    if (!bundles[name]) return false
+    unregisterBundleRecord(bundleRecords[name])
+    delete bundles[name]
+    delete bundleRecords[name]
+    return true
+  }
+
+  function unregisterBundlePrefix(prefix) {
+    const removed = []
+    keys(bundles).forEach(function (name) {
+      if (matchesPrefix(name, prefix)) {
+        unregisterBundle(name)
+        removed.push(name)
+      }
+    })
+    return removed
+  }
+
+  function registerBundleList(items, register) {
+    const names = []
     for (let i = 0; items && i < items.length; i++) {
-      register(items[i].id || items[i].name, items[i])
+      const name = items[i].id || items[i].name
+      register(name, items[i])
+      names.push(name)
     }
+    return names
+  }
+
+  function unregisterBundleRecord(record) {
+    record = record || {}
+    unregisterNames(record.connections, ai.unregisterConnection)
+    unregisterNames(record.skills, unregisterSkill)
+    unregisterNames(record.tools, unregisterTool)
+    unregisterNames(record.contextProviders, unregisterContextProvider)
+    unregisterNames(record.agentTemplates, unregisterAgentTemplate)
+  }
+
+  function unregisterNames(names, unregister) {
+    if (!unregister) return
+    for (let i = 0; names && i < names.length; i++) unregister(names[i])
   }
 
   function collectContext(request, ctx) {
@@ -416,7 +607,6 @@
       signal: controller.signal,
       tools: tools,
       skills: skills,
-      resourceResolvers: resourceResolvers,
       context: {},
       canReadPath: function (path) { return ai.canReadPath(request.agent, path) },
       canWritePath: function (path) { return ai.canWritePath(request.agent, path) },
@@ -428,11 +618,20 @@
     return ctx
   }
 
-  ai.registerTool = registerTool
-  ai.getTool = getTool
-  ai.listTools = function () { return keys(tools) }
-  ai.unregisterTool = unregisterTool
-  ai.unregisterToolOwner = unregisterToolOwner
+  ai.tools = {
+    register: registerTool,
+    unregister: unregisterTool,
+    unregisterOwner: unregisterToolOwner,
+    unregisterPrefix: unregisterToolPrefix,
+    get: getTool,
+    visible: isToolVisibleToModel,
+    visibleList: visibleToolNames,
+    list: function (prefix) {
+      const names = keys(tools)
+      return prefix ? names.filter(function (name) { return matchesPrefix(name, prefix) }) : names
+    },
+    meta: function (name) { return Object.assign({}, toolMeta[name] || {}) },
+  }
   ai.toolMeta = function (name) { return Object.assign({}, toolMeta[name] || {}) }
   ai.createToolCall = createToolCall
   ai.attachToolCalls = attachToolCalls
@@ -445,20 +644,45 @@
   ai.getToolCallActionState = getToolCallActionState
   ai.isToolAlwaysAllowed = isToolAlwaysAllowed
   ai.setToolAlwaysAllowed = setToolAlwaysAllowed
-  ai.registerSkill = registerSkill
-  ai.getSkill = getSkill
-  ai.listSkills = function () { return keys(skills) }
-  ai.registerContextProvider = registerContextProvider
-  ai.getContextProvider = getContextProvider
-  ai.listContextProviders = function () { return keys(contextProviders) }
-  ai.registerResourceResolver = registerResourceResolver
-  ai.getResourceResolver = getResourceResolver
-  ai.listResourceResolvers = function () { return keys(resourceResolvers) }
-  ai.registerAgentTemplate = registerAgentTemplate
-  ai.getAgentTemplate = getAgentTemplate
-  ai.listAgentTemplates = function () { return keys(agentTemplates) }
-  ai.registerPlugin = registerPlugin
-  ai.getPlugin = getPlugin
-  ai.listPlugins = function () { return keys(plugins) }
+  ai.skills = {
+    register: registerSkill,
+    unregister: unregisterSkill,
+    unregisterPrefix: unregisterSkillPrefix,
+    get: getSkill,
+    list: function (prefix) {
+      const names = keys(skills)
+      return prefix ? names.filter(function (name) { return matchesPrefix(name, prefix) }) : names
+    },
+  }
+  ai.context = {
+    register: registerContextProvider,
+    unregister: unregisterContextProvider,
+    unregisterPrefix: unregisterContextProviderPrefix,
+    get: getContextProvider,
+    list: function (prefix) {
+      const names = keys(contextProviders)
+      return prefix ? names.filter(function (name) { return matchesPrefix(name, prefix) }) : names
+    },
+  }
+  ai.agentTemplates = {
+    register: registerAgentTemplate,
+    unregister: unregisterAgentTemplate,
+    unregisterPrefix: unregisterAgentTemplatePrefix,
+    get: getAgentTemplate,
+    list: function (prefix) {
+      const names = keys(agentTemplates)
+      return prefix ? names.filter(function (name) { return matchesPrefix(name, prefix) }) : names
+    },
+  }
+  ai.bundles = {
+    register: registerBundle,
+    unregister: unregisterBundle,
+    unregisterPrefix: unregisterBundlePrefix,
+    get: getBundle,
+    list: function (prefix) {
+      const names = keys(bundles)
+      return prefix ? names.filter(function (name) { return matchesPrefix(name, prefix) }) : names
+    },
+  }
   ai.createRunContext = createRunContext
 })(window.aeditor = window.aeditor || {})
