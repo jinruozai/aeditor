@@ -4820,7 +4820,7 @@ div.aeditor-ui-view {
 .aeditor-settings-page {
   flex: 1 1 auto;
   min-width: 0;
-  min-height: 100%;
+  min-height: 0;
   max-width: 1080px;
   width: 100%;
   padding: var(--aeditor-space-5);
@@ -4847,6 +4847,184 @@ div.aeditor-ui-view {
 
 .aeditor-settings-ai-page {
   max-width: 1180px;
+}
+
+.aeditor-settings-ai-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--aeditor-space-3);
+  margin-bottom: var(--aeditor-space-4);
+}
+
+.aeditor-settings-ai-toolbar .aeditor-settings-field {
+  flex: 1 1 auto;
+  max-width: 560px;
+}
+
+.aeditor-settings-field-compact {
+  grid-template-columns: minmax(132px, 32%) minmax(0, 1fr);
+}
+
+.aeditor-settings-connection-shell {
+  display: grid;
+  grid-template-columns: minmax(220px, 280px) minmax(0, 1fr);
+  gap: var(--aeditor-space-4);
+  min-width: 0;
+  align-items: start;
+}
+
+.aeditor-settings-connection-list {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid var(--aeditor-border);
+  border-radius: var(--aeditor-r-3);
+  background: var(--aeditor-view-bg);
+}
+
+.aeditor-settings-connection-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 2px var(--aeditor-space-2);
+  width: 100%;
+  min-height: 54px;
+  padding: var(--aeditor-space-2) var(--aeditor-space-3);
+  border: 0;
+  border-bottom: 1px solid var(--aeditor-border);
+  background: transparent;
+  color: var(--aeditor-fg-1);
+  text-align: left;
+  cursor: pointer;
+  box-sizing: border-box;
+}
+
+.aeditor-settings-connection-item:last-child {
+  border-bottom: 0;
+}
+
+.aeditor-settings-connection-item:hover {
+  background: var(--aeditor-hover);
+}
+
+.aeditor-settings-connection-item[data-active="true"] {
+  background: var(--aeditor-selected);
+  color: var(--aeditor-fg-0);
+}
+
+.aeditor-settings-connection-item-title {
+  grid-column: 1;
+  min-width: 0;
+  overflow: hidden;
+  color: inherit;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.aeditor-settings-connection-item-meta {
+  grid-column: 1;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--aeditor-fg-3);
+  font: var(--aeditor-fs-xs) var(--aeditor-font-ui);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.aeditor-settings-connection-item[data-active="true"] .aeditor-settings-connection-item-meta {
+  color: var(--aeditor-fg-2);
+}
+
+.aeditor-settings-connection-item-status {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  align-self: center;
+  max-width: 92px;
+  overflow: hidden;
+  padding: 2px 7px;
+  border: 1px solid var(--aeditor-border);
+  border-radius: 999px;
+  background: var(--aeditor-bg-2);
+  color: var(--aeditor-fg-2);
+  font: var(--aeditor-fs-xs) var(--aeditor-font-ui);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.aeditor-settings-connection-detail {
+  min-width: 0;
+}
+
+.aeditor-settings-connection-card {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  margin-bottom: var(--aeditor-space-3);
+  border: 1px solid var(--aeditor-border);
+  border-radius: var(--aeditor-r-3);
+  background: var(--aeditor-view-bg);
+  overflow: hidden;
+}
+
+.aeditor-settings-connection-card.aeditor-settings-provider-loading {
+  border-color: color-mix(in srgb, var(--aeditor-warn) 38%, var(--aeditor-border));
+}
+
+.aeditor-settings-connection-card.aeditor-settings-provider-ok {
+  border-color: color-mix(in srgb, var(--aeditor-success) 44%, var(--aeditor-border));
+}
+
+.aeditor-settings-connection-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--aeditor-space-3);
+  min-width: 0;
+  padding: var(--aeditor-space-3);
+  border-bottom: 1px solid var(--aeditor-border);
+  background: var(--aeditor-toolbar-bg);
+}
+
+.aeditor-settings-connection-copy {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  gap: 2px;
+}
+
+.aeditor-settings-connection-title {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--aeditor-fg-0);
+  font: 700 var(--aeditor-fs-lg) var(--aeditor-font-ui);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.aeditor-settings-connection-subtitle {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--aeditor-fg-3);
+  font: var(--aeditor-fs-xs) var(--aeditor-font-ui);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.aeditor-settings-connection-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--aeditor-space-2);
+  flex: 0 0 auto;
+}
+
+.aeditor-settings-connection-fields {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--aeditor-space-3);
+  padding: var(--aeditor-space-3);
 }
 
 .aeditor-settings-theme-page {
@@ -5077,7 +5255,20 @@ div.aeditor-ui-view {
   .aeditor-settings-page {
     padding: var(--aeditor-space-3);
   }
+  .aeditor-settings-ai-toolbar,
+  .aeditor-settings-connection-head {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .aeditor-settings-ai-toolbar .aeditor-settings-field {
+    max-width: none;
+    width: 100%;
+  }
+  .aeditor-settings-connection-shell {
+    grid-template-columns: minmax(0, 1fr);
+  }
   .aeditor-settings-ai-overview,
+  .aeditor-settings-field-compact,
   .aeditor-settings-provider-row,
   .aeditor-settings-provider-fields {
     grid-template-columns: minmax(0, 1fr);

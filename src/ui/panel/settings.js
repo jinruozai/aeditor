@@ -104,7 +104,7 @@
   }
 
   function renderSchemaPage(sectionId) {
-    const root = ui.view({ scroll: 'hidden', className: 'aeditor-settings-page' })
+    const root = ui.view({ scroll: 'auto', className: 'aeditor-settings-page' })
     const section = findSection(sectionId)
     root.appendChild(pageHeader(section ? section.title : 'Settings', section ? section.description : ''))
     const schemaSig = aeditor.signal(schemaFor(sectionId))
