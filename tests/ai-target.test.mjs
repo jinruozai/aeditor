@@ -6,7 +6,9 @@ global.window = { aeditor: {} }
 vm.runInThisContext(readFileSync('src/core/signal.js', 'utf8'), { filename: 'signal.js' })
 vm.runInThisContext(readFileSync('src/core/names.js', 'utf8'), { filename: 'names.js' })
 vm.runInThisContext(readFileSync('src/ai/name-generator.js', 'utf8'), { filename: 'ai/name-generator.js' })
+vm.runInThisContext(readFileSync('src/ai/permission.js', 'utf8'), { filename: 'ai/permission.js' })
 vm.runInThisContext(readFileSync('src/ai/store.js', 'utf8'), { filename: 'ai/store.js' })
+vm.runInThisContext(readFileSync('src/ai/registries.js', 'utf8'), { filename: 'ai/registries.js' })
 vm.runInThisContext(readFileSync('src/ai/context.js', 'utf8'), { filename: 'ai/context.js' })
 vm.runInThisContext(readFileSync('src/ai/reference.js', 'utf8'), { filename: 'ai/reference.js' })
 vm.runInThisContext(readFileSync('src/ai/request.js', 'utf8'), { filename: 'ai/request.js' })
@@ -57,11 +59,11 @@ const dragEvent = {
     effectAllowed: '',
     setData: function (type, value) { dragPayload[type] = value },
     getData: function (type) { return dragPayload[type] || '' },
-    types: ['application/x-aeditor-ai-target-list'],
+    types: ['application/x-aeditor-target-list'],
   },
 }
 ai.writeTargetDragData(dragEvent, [captured])
-assert.equal(JSON.parse(dragPayload['application/x-aeditor-ai-target']).uri, captured.uri)
+assert.equal(JSON.parse(dragPayload['application/x-aeditor-target']).uri, captured.uri)
 assert.equal(ai.readTargetFromDragEvent(dragEvent)[0].uri, captured.uri)
 
 function mockElement(tag) {
@@ -109,7 +111,7 @@ handleEl.listeners.dragstart({
   },
   preventDefault: function () { this.prevented = true },
 })
-assert.equal(JSON.parse(handleDragPayload['application/x-aeditor-ai-target']).uri, captured.uri)
+assert.equal(JSON.parse(handleDragPayload['application/x-aeditor-target']).uri, captured.uri)
 
 const rootEl = mockElement('div')
 const sliderEl = mockElement('div')

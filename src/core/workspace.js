@@ -44,6 +44,13 @@
     return { path: path, text: text, hash: hashText(text), size: text.length }
   }
 
+  function workspaceError(code, message, extra) {
+    const err = new Error(message)
+    err.code = code
+    if (extra) Object.keys(extra).forEach(function (key) { err[key] = extra[key] })
+    return err
+  }
+
   function diffSummary(before, after) {
     before = String(before == null ? '' : before)
     after = String(after == null ? '' : after)
@@ -128,23 +135,126 @@
     return lines.join('\n')
   }
 
+  function countText(text, needle) {
+    if (!needle) return 0
+    let count = 0
+    let at = 0
+    while (true) {
+      const index = text.indexOf(needle, at)
+      if (index < 0) return count
+      count++
+      at = index + needle.length
+    }
+  }
+
+  function applyTextEdits(text, baseHash, edits) {
+    text = String(text == null ? '' : text)
+    if (!baseHash) throw workspaceError('MISSING_BASE_HASH', 'workspace.edit: baseHash is required')
+    const currentHash = hashText(text)
+    if (currentHash !== baseHash) {
+      throw workspaceError('STALE_FILE', 'workspace.edit: baseHash mismatch', {
+        expectedHash: baseHash,
+        currentHash: currentHash,
+      })
+    }
+    const list = edits || []
+    if (!list.length) throw workspaceError('NO_EDITS', 'workspace.edit: edits is required')
+    let next = text
+    for (let i = 0; i < list.length; i++) {
+      const edit = list[i] || {}
+      const oldText = String(edit.oldText == null ? '' : edit.oldText)
+      const newText = String(edit.newText == null ? '' : edit.newText)
+      if (!oldText) throw workspaceError('EMPTY_OLD_TEXT', 'workspace.edit: oldText is required', { editIndex: i })
+      const count = countText(next, oldText)
+      if (count === 0) {
+        throw workspaceError('OLD_TEXT_NOT_FOUND', 'workspace.edit: oldText was not found', {
+          editIndex: i,
+          hint: 'Read the current range and copy the exact oldText from the latest file content.',
+        })
+      }
+      if (!edit.replaceAll && count > 1) {
+        throw workspaceError('AMBIGUOUS_MATCH', 'workspace.edit: oldText matched more than once', {
+          editIndex: i,
+          matchCount: count,
+          hint: 'Include more surrounding context in oldText so it matches exactly once.',
+        })
+      }
+      next = edit.replaceAll ? next.split(oldText).join(newText) : next.replace(oldText, newText)
+    }
+    if (next === text) throw workspaceError('NO_CHANGE', 'workspace.edit: edits did not change the file')
+    return next
+  }
+
+  function wildcardToRegExp(pattern) {
+    pattern = String(pattern || '')
+    const escaped = pattern.replace(/[.+^${}()|[\]\\]/g, '\\$&')
+      .replace(/\*\*/g, '\u0000')
+      .replace(/\*/g, '[^/]*')
+      .replace(/\?/g, '[^/]')
+      .replace(/\u0000/g, '.*')
+    return new RegExp('^' + escaped + '$')
+  }
+
+  function patternList(value) {
+    if (!value) return []
+    return Array.isArray(value) ? value : [value]
+  }
+
+  function pathAllowed(path, opts) {
+    const o = opts || {}
+    const include = patternList(o.include)
+    const exclude = patternList(o.exclude)
+    if (include.length) {
+      let ok = false
+      for (let i = 0; i < include.length; i++) if (wildcardToRegExp(include[i]).test(path)) ok = true
+      if (!ok) return false
+    }
+    for (let i = 0; i < exclude.length; i++) if (wildcardToRegExp(exclude[i]).test(path)) return false
+    return true
+  }
+
   function searchText(path, text, query, opts) {
     const o = opts || {}
     const max = o.maxPerFile || 20
     const before = o.before != null ? o.before : 2
     const after = o.after != null ? o.after : 2
-    const needle = String(query || '').toLowerCase()
+    const sourceQuery = String(query || '')
+    const caseSensitive = !!o.caseSensitive
+    const needle = caseSensitive ? sourceQuery : sourceQuery.toLowerCase()
+    const regex = o.mode === 'regex'
+      ? new RegExp(sourceQuery, caseSensitive ? 'g' : 'gi')
+      : null
     const lines = String(text || '').split(/\r?\n/)
     const out = []
+    const fileHash = hashText(text)
     for (let i = 0; i < lines.length && out.length < max; i++) {
-      if (!needle || lines[i].toLowerCase().indexOf(needle) >= 0) {
+      const line = lines[i]
+      const haystack = caseSensitive ? line : line.toLowerCase()
+      let index = -1
+      let matchText = ''
+      if (regex) {
+        regex.lastIndex = 0
+        const m = regex.exec(line)
+        if (m) {
+          index = m.index
+          matchText = m[0]
+        }
+      } else {
+        index = needle ? haystack.indexOf(needle) : 0
+        if (index >= 0) matchText = needle ? line.slice(index, index + sourceQuery.length) : ''
+      }
+      if (index >= 0) {
         const s = Math.max(0, i - before)
         const e = Math.min(lines.length - 1, i + after)
         out.push({
           path: path,
+          fileHash: fileHash,
           line: i + 1,
-          text: lines[i],
+          column: index + 1,
+          matchText: matchText,
+          text: line,
           previewStartLine: s + 1,
+          previewEndLine: e + 1,
           preview: lines.slice(s, e + 1).join('\n'),
         })
       }
@@ -222,6 +332,7 @@
         const out = []
         const paths = allPaths(root)
         for (let i = 0; i < paths.length && out.length < limit; i++) {
+          if (!pathAllowed(paths[i], o)) continue
           const matches = searchText(paths[i], data[paths[i]], query, o)
           for (let j = 0; j < matches.length && out.length < limit; j++) out.push(matches[j])
         }
@@ -407,7 +518,7 @@
       patch: async function (path, baseHash, patches) {
         const current = await this.read(path)
         const next = applyLinePatches(current.text, baseHash, patches || [])
-        return this.write(path, next)
+        return this.write(path, next, { baseHash: baseHash })
       },
       search: async function (query, opts) {
         const out = []
@@ -415,7 +526,7 @@
         await walkAt(opts && opts.path || '', entries)
         const limit = opts && opts.limit || 50
         for (let i = 0; i < entries.length && out.length < limit; i++) {
-          if (entries[i].kind !== 'file') continue
+          if (entries[i].kind !== 'file' || !pathAllowed(entries[i].path, opts || {})) continue
           const read = await this.read(entries[i].path)
           const matches = searchText(entries[i].path, read.text, query, opts || {})
           for (let j = 0; j < matches.length && out.length < limit; j++) out.push(matches[j])
@@ -443,6 +554,7 @@
   workspace.diffSummary = diffSummary
   workspace.validateText = validateText
   workspace.applyLinePatches = applyLinePatches
+  workspace.applyTextEdits = applyTextEdits
   workspace.normalizePath = normalizePath
   workspace.parentPath = parentPath
   workspace.memory = memory

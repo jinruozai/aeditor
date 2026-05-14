@@ -249,9 +249,7 @@
   --aeditor-icon-warn:    "⚠";
   --aeditor-icon-error:   "⨯";
 
-  /* Legacy aliases — kept until Phase 2 grep-replace finishes.
-   * dock.css / component.css will be migrated to use the new role names directly,
-   * then these can be removed. */
+  /* Compatibility aliases for existing theme consumers. */
   --aeditor-color-bg-0:        var(--aeditor-bg-0);
   --aeditor-color-bg-1:        var(--aeditor-bg-1);
   --aeditor-color-border:      var(--aeditor-border);
@@ -526,8 +524,8 @@
   --aeditor-shadow-3: 0 4px 16px rgba(20,20,40,.12);
   --aeditor-shadow-4: 0 8px 32px rgba(20,20,40,.16);
 
-  /* Restore historical "white panel + slightly grey inset field" role
-   * mapping — :root uses Godot's "inset-in-dark" convention which, when
+  /* Light mode locks the "white panel + slightly grey inset field" role
+   * mapping. :root uses Godot's "inset-in-dark" convention which, when
    * inherited with light primitives, would invert into "raised-in-light".
    * Light mode reads more naturally with white panels and inset fields. */
   --aeditor-bg-1: var(--aeditor-surface-panel);   /* dock body = white */

@@ -137,14 +137,50 @@
     }
   }
 
+  function editFailurePreview(args, before, err) {
+    return Object.assign(basePreview('edit', args, before, before && before.text || ''), {
+      ok: false,
+      code: err && err.code || 'EDIT_FAILED',
+      error: String(err && err.message || err),
+      hint: err && err.hint || recoveryHint(err && err.code),
+      expectedHash: err && err.expectedHash || args && args.baseHash || null,
+      currentHash: err && err.currentHash || before && before.hash || null,
+      editIndex: err && err.editIndex != null ? err.editIndex : null,
+      matchCount: err && err.matchCount != null ? err.matchCount : null,
+    })
+  }
+
+  function recoveryHint(code) {
+    if (code === 'STALE_FILE') return 'The file changed after it was read. Search or read the current range again and retry with the new hash.'
+    if (code === 'OLD_TEXT_NOT_FOUND') return 'Read the current range and copy the exact oldText from the latest file content.'
+    if (code === 'AMBIGUOUS_MATCH') return 'Include more surrounding context in oldText so it matches exactly once.'
+    if (code === 'VALIDATION_FAILED') return 'Inspect the edited range and repair the syntax or data shape before retrying.'
+    return null
+  }
+
   function previewFileChange(action, args) {
     args = args || {}
     return readExistingFileState(args.path).then(function (before) {
       let after = args.text || ''
+      if (action === 'edit') {
+        if (!before.exists) {
+          return Object.assign(basePreview(action, args, before, ''), {
+            ok: false,
+            code: 'FILE_NOT_FOUND',
+            error: 'workspace.edit: file not found: ' + args.path,
+          })
+        }
+        try {
+          after = aeditor.workspace.applyTextEdits(before.text, args.baseHash, args.edits || [])
+        } catch (err) {
+          return editFailurePreview(args, before, err)
+        }
+      }
       if (action === 'patch') {
         if (!before.exists) {
           return Object.assign(basePreview(action, args, before, ''), {
             ok: false,
+            code: 'FILE_NOT_FOUND',
             error: 'workspace.patch: file not found: ' + args.path,
           })
         }
@@ -153,6 +189,7 @@
         } catch (err) {
           return Object.assign(basePreview(action, args, before, before.text), {
             ok: false,
+            code: err && err.code || 'PATCH_FAILED',
             error: String(err && err.message || err),
           })
         }
@@ -161,21 +198,24 @@
       if (action === 'delete' && !before.exists) {
         return Object.assign(basePreview(action, args, before, after), {
           ok: false,
+          code: 'FILE_NOT_FOUND',
           error: 'workspace.delete: file not found: ' + args.path,
         })
       }
       if (args.baseHash && before.exists && before.hash !== args.baseHash && action !== 'patch') {
         return Object.assign(basePreview(action, args, before, after), {
           ok: false,
+          code: 'STALE_FILE',
           error: 'workspace.' + action + ': baseHash mismatch',
         })
       }
-      if (action === 'write' || action === 'patch') {
+      if (action === 'write' || action === 'patch' || action === 'edit') {
         try {
           aeditor.workspace.validateText(args.path, after, args || {})
         } catch (err) {
           return Object.assign(basePreview(action, args, before, after), {
             ok: false,
+            code: 'VALIDATION_FAILED',
             error: String(err && err.message || err),
           })
         }
@@ -199,6 +239,7 @@
         baseHash: baseHash,
         baseVersion: baseHash,
         patchCount: args.patches ? args.patches.length : null,
+        editCount: args.edits ? args.edits.length : null,
         diff: aeditor.workspace.diffSummary(before && before.text || '', after),
       }],
       diff: aeditor.workspace.diffSummary(before && before.text || '', after),
@@ -258,6 +299,25 @@
     })
   }
 
+  function editFile(args) {
+    const ws = requireWorkspace()
+    return readExistingFileState(args.path).then(function (file) {
+      if (!file.exists) throw new Error('workspace.edit: file not found: ' + args.path)
+      const before = file.text
+      let text
+      try {
+        text = aeditor.workspace.applyTextEdits(before, args.baseHash, args.edits || [])
+      } catch (err) {
+        if (!err.hint) err.hint = recoveryHint(err.code)
+        throw err
+      }
+      aeditor.workspace.validateText(args.path, text, args || {})
+      return ws.write(args.path, text, { baseHash: args.baseHash }).then(function (result) {
+        return omitWrittenText(attachDiff(result, before, result.text))
+      })
+    })
+  }
+
   function deleteFile(args) {
     const ws = requireWorkspace()
     return readExistingFileState(args.path).then(function (file) {
@@ -293,6 +353,12 @@
     })
   }
 
+  function applyEditFile(preview) {
+    return Promise.resolve(editFile(inputWithPreviewBase(preview))).then(function (result) {
+      return Object.assign({ applied: true, resultVersion: result.hash || null }, result)
+    })
+  }
+
   function applyDeleteFile(preview) {
     return Promise.resolve(deleteFile(inputWithPreviewBase(preview))).then(function (result) {
       return Object.assign({ applied: true, resultVersion: null }, result)
@@ -319,8 +385,8 @@
     }, { owner: owner, layer: 'builtin' })
     ai.tools.register('workspace.searchFiles', {
       title: 'Search Workspace Files',
-      description: 'Search text in the current AI workspace. Prefer this before reading whole files.',
-      schema: { type: 'object', required: ['query'], properties: { query: { type: 'string' }, path: { type: 'string' }, limit: { type: 'number' } } },
+      description: 'Search text in the current AI workspace. Results include fileHash, line, column, and preview ranges for precise follow-up reads.',
+      schema: { type: 'object', required: ['query'], properties: { query: { type: 'string' }, path: { type: 'string' }, include: { type: 'array' }, exclude: { type: 'array' }, mode: { type: 'string', enum: ['literal', 'regex'] }, caseSensitive: { type: 'boolean' }, before: { type: 'number' }, after: { type: 'number' }, limit: { type: 'number' } } },
       permissions: ['tool.call'],
       available: workspaceAvailable,
       run: function (args) { return requireWorkspace().search(args.query || '', args || {}) },
@@ -341,9 +407,39 @@
       available: workspaceAvailable,
       run: readFileRange,
     }, { owner: owner, layer: 'builtin' })
+    ai.tools.register('workspace.editFile', {
+      title: 'Edit Workspace File',
+      description: 'Precisely edit an existing workspace file with baseHash and exact oldText/newText replacements. Prefer this for existing source files.',
+      schema: {
+        type: 'object',
+        required: ['path', 'baseHash', 'edits'],
+        properties: {
+          path: { type: 'string' },
+          baseHash: { type: 'string' },
+          edits: {
+            type: 'array',
+            items: {
+              type: 'object',
+              required: ['oldText', 'newText'],
+              properties: {
+                oldText: { type: 'string' },
+                newText: { type: 'string' },
+                replaceAll: { type: 'boolean' },
+              },
+            },
+          },
+          validate: { type: 'string', enum: ['auto', 'none', 'javascript', 'json'] },
+        },
+      },
+      permissions: ['tool.call', 'tool.apply'],
+      available: workspaceAvailable,
+      preview: function (args) { return previewFileChange('edit', args) },
+      apply: applyEditFile,
+      run: editFile,
+    }, { owner: owner, layer: 'builtin' })
     ai.tools.register('workspace.writeFile', {
       title: 'Write Workspace File',
-      description: 'Write one complete file inside the current AI workspace. JS/JSON writes are validated before commit; prefer patchFile for existing files and large files.',
+      description: 'Write one complete file inside the current AI workspace. JS/JSON writes are validated before commit; prefer editFile for existing source files.',
       schema: { type: 'object', required: ['path', 'text'], properties: { path: { type: 'string' }, text: { type: 'string' }, baseHash: { type: 'string' }, validate: { type: 'string', enum: ['auto', 'none', 'javascript', 'json'] } } },
       permissions: ['tool.call', 'tool.apply'],
       available: workspaceAvailable,

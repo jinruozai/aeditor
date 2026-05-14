@@ -29,7 +29,7 @@
   }
 
   function labelOf(token) {
-    return token.label || token.title || token.resourceId || 'Resource'
+    return token.label || token.title || token.refId || 'Reference'
   }
 
   function tokenEl(tokenChar, token, renderToken) {
@@ -40,10 +40,10 @@
     const el = ui.h('span', 'aeditor-richprompt-token', {
       contenteditable: 'false',
       role: 'button',
-      title: token.uri || token.resourceId || labelOf(token),
+      title: token.uri || token.refId || labelOf(token),
     })
     el.dataset.efToken = tokenChar
-    el.dataset.efResourceId = token.resourceId || ''
+    el.dataset.efRefId = token.refId || ''
     el.setAttribute('aria-label', 'Reference ' + labelOf(token))
     if (token.kind && String(token.kind).indexOf('image') >= 0 && token.meta && token.meta.dataUrl) {
       el.appendChild(ui.h('img', 'aeditor-richprompt-token-thumb', { src: token.meta.dataUrl, alt: '' }))
@@ -490,9 +490,9 @@
     })
 
     root.__aeditorRichPromptEditor = editor
-    root.__aeditorRichPromptInsertRefs = function (resources) {
+    root.__aeditorRichPromptInsertRefs = function (references) {
       const d = isBlankDraft(value.peek()) ? aeditor.ai.richPrompt.empty() : value.peek()
-      const list = resources || []
+      const list = references || []
       const r = selectionRange(editor, d)
       const base = r.collapsed ? d : aeditor.ai.richPrompt.deleteRange(d, r.start, r.end)
       const next = aeditor.ai.richPrompt.insertRefs(base, r.start, list)

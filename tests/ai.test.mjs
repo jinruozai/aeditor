@@ -7,6 +7,7 @@ vm.runInThisContext(readFileSync('src/core/signal.js', 'utf8'), { filename: 'sig
 vm.runInThisContext(readFileSync('src/core/log.js', 'utf8'), { filename: 'log.js' })
 vm.runInThisContext(readFileSync('src/core/names.js', 'utf8'), { filename: 'names.js' })
 vm.runInThisContext(readFileSync('src/ai/name-generator.js', 'utf8'), { filename: 'ai/name-generator.js' })
+vm.runInThisContext(readFileSync('src/ai/permission.js', 'utf8'), { filename: 'ai/permission.js' })
 vm.runInThisContext(readFileSync('src/ai/store.js', 'utf8'), { filename: 'ai/store.js' })
 vm.runInThisContext(readFileSync('src/ai/connection.js', 'utf8'), { filename: 'ai/connection.js' })
 vm.runInThisContext(readFileSync('src/ai/adapter.js', 'utf8'), { filename: 'ai/adapter.js' })
@@ -14,6 +15,7 @@ vm.runInThisContext(readFileSync('src/ai/provider.js', 'utf8'), { filename: 'ai/
 vm.runInThisContext(readFileSync('src/ai/provider-auth.js', 'utf8'), { filename: 'ai/provider-auth.js' })
 vm.runInThisContext(readFileSync('src/ai/provider-transports.js', 'utf8'), { filename: 'ai/provider-transports.js' })
 vm.runInThisContext(readFileSync('src/ai/provider-connections.js', 'utf8'), { filename: 'ai/provider-connections.js' })
+vm.runInThisContext(readFileSync('src/ai/registries.js', 'utf8'), { filename: 'ai/registries.js' })
 vm.runInThisContext(readFileSync('src/ai/context.js', 'utf8'), { filename: 'ai/context.js' })
 vm.runInThisContext(readFileSync('src/ai/reference.js', 'utf8'), { filename: 'ai/reference.js' })
 vm.runInThisContext(readFileSync('src/ai/change-set.js', 'utf8'), { filename: 'ai/change-set.js' })
@@ -171,6 +173,11 @@ function assertReferenceProviderContract(agentId) {
     },
   })
 
+  const temp = ai.addAttachment({ resolver: 'case', uri: 'case://selection/temp', title: 'Temp' })
+  ai.updateAgent(agentId, { contextRefs: [temp.id] })
+  ai.removeAttachment(temp.id)
+  assert.deepEqual(byId(ai.agents(), agentId).contextRefs, [])
+
   const ref = ai.addAttachment({
     resolver: 'case',
     uri: 'case://selection/item-1',
@@ -213,6 +220,17 @@ function assertPermissionContract(agentId) {
   assert.equal(ai.canRead(agentId, managed.id, 'agent.summary'), true)
   assert.equal(ai.canRead(agentId, sibling.id, 'agent.summary'), false)
 
+  const runCtx = ai.createRunContext({
+    agent: byId(ai.agents(), agentId),
+    actor: managed.id,
+    runId: 'permission_ctx',
+    runtimeContext: [],
+  }, { signal: null })
+  assert.equal(runCtx.canRead(agentId, 'agent.full'), false)
+  assert.equal(runCtx.canSend(agentId), false)
+  assert.equal(runCtx.canManage(agentId), false)
+  assert.equal(runCtx.canRead(managed.id, 'agent.full'), true)
+
   if (typeof ai.setPermissionResolver === 'function') {
     const calls = []
     ai.setPermissionResolver(function (ctx, next) {
@@ -226,6 +244,36 @@ function assertPermissionContract(agentId) {
 
   ai.deleteAgent(sibling.id)
   return managed
+}
+
+async function assertChangeSetPermission(parentId, childId) {
+  let applyCount = 0
+  aeditor.changeSet.registerAdapter('permission.patch', {
+    apply: function () {
+      applyCount += 1
+      return { applied: true }
+    },
+  })
+  const parentSet = aeditor.changeSet.create({
+    title: 'Parent owned change',
+    source: { agentId: parentId },
+    resources: [],
+    apply: { mode: 'atomic', adapter: 'permission.patch', payload: {} },
+  })
+  const denied = await aeditor.changeSet.apply(parentSet.id, { type: 'all' }, childId)
+  assert.equal(denied.status, 'failed')
+  assert.match(denied.meta.error, /ChangeSet apply not allowed/)
+  assert.equal(applyCount, 0)
+
+  const childSet = aeditor.changeSet.create({
+    title: 'Child owned change',
+    source: { agentId: childId },
+    resources: [],
+    apply: { mode: 'atomic', adapter: 'permission.patch', payload: {} },
+  })
+  const allowed = await aeditor.changeSet.apply(childSet.id, { type: 'all' }, parentId)
+  assert.equal(allowed.status, 'applied')
+  assert.equal(applyCount, 1)
 }
 
 function assertRegistryContracts(agentId) {
@@ -341,6 +389,7 @@ const seed = assertAgentsAreIdBasedTree()
 assertAgentRuntimeState(seed.agent)
 const resourceCheck = assertReferenceProviderContract(seed.agent.id)
 const managed = assertPermissionContract(seed.agent.id)
+await assertChangeSetPermission(seed.agent.id, managed.id)
 assertRegistryContracts(seed.agent.id)
 await assertSendRunStatusAndRequest(seed.agent.id, resourceCheck)
 await assertStopAgent(seed.agent.id)

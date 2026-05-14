@@ -1,9 +1,8 @@
 # AEditor Design
 
 AEditor is a zero-dependency frontend editor framework with optional upper
-layers. The design goal is not to become a large IDE platform by default; it is
-to keep a small framework core that can host powerful editor and AI workflows
-when a host application opts in.
+layers. Its goal is simple: keep the framework core small, then let host apps
+build powerful editors and AI workflows on top of that small core.
 
 ```text
 AEditor Core/UI             stable framework kernel
@@ -24,7 +23,7 @@ Use documents in this order:
 AGENTS.md          current repo state, operating rules, and hard constraints
 doc/README.md      current architecture index and boundary contract
 doc/*.md           current architecture, excluding doc/old
-doc/old/**         historical material only
+doc/old/**         archived reference only
 ```
 
 Do not implement from files under `doc/old/` unless a current document
@@ -43,6 +42,35 @@ explicitly references one.
 Domain-specific editors, demos, project loaders, app menus, app shortcuts, and
 workflow decisions are host code. They use AEditor; they are not AEditor layers.
 
+## Distribution Contract
+
+The repository may contain source, tests, demos, internal handoff files, and
+archived notes. The published runtime package should stay small and public:
+
+```text
+dist/aeditor-core.js
+dist/aeditor-core.css
+dist/aeditor-full.js
+dist/aeditor-full.css
+README.md
+LICENSE
+```
+
+Internal coordination files such as `AGENTS.md` and `CLAUDE.md`, source tests,
+screenshots, tools, demos, and `doc/old/**` are repository material, not npm
+runtime package contents.
+
+Optional layers must be optional in distribution as well as in architecture. The
+runtime distribution should provide:
+
+```text
+aeditor-core      Core/UI/Dock only
+aeditor-full      Core/UI/Dock + AI Host + Extension Runtime
+```
+
+Host apps that only need dock layout and UI should be able to load the core
+bundle without AI, extension runtime, AI panels, or AI-specific styles.
+
 ## Core Principles
 
 1. Keep the concept budget small.
@@ -51,29 +79,32 @@ workflow decisions are host code. They use AEditor; they are not AEditor layers.
 
 2. Names are structure.
    Dotted names such as `workspace.readFile`, `ui.setProp`, and
-   `gde.table.patchRows` are the grouping and lifecycle boundary for registries.
+   `gde.table.patchRows` are the public grouping shape for registries. Owner
+   metadata is used when an installed extension needs exact lifecycle cleanup.
 
 3. Modules contribute to the same AI registries.
    `workspace`, `theme`, `dock`, `ui`, extensions, and domain modules expose
    model-facing behavior by registering tools, context references, or
    operations. There is no per-module AI path.
 
-4. AI exposes five public concepts.
+4. AI exposes five action/context concepts.
    Agent, Tool, Context Reference, Operation, and ChangeSet are the model
-   developers need. Targets, attachments, rich prompt ranges, quests, inboxes,
-   bundles, and templates are runtime or UX details.
+   developers need for work. Skills are behavior profiles. Targets,
+   attachments, rich prompt ranges, quests, inboxes, bundles, and templates are
+   runtime or UX details.
 
 5. The framework has no built-in project model.
    `workspace` is bounded file access. Project descriptors, file loaders, and
    domain schemas belong to host apps.
 
 6. Extensions package existing extension points.
-   An extension installs contributions into normal registries and removes them
-   by prefix. It does not create a parallel runtime.
+   An extension installs contributions into normal registries and removes its
+   owner from those registries. It does not create a parallel runtime.
 
-7. Permission is a single resolver.
+7. Permission is one resolver.
    Tools, operations, ChangeSet apply, workspace writes, extension install, and
-   host-adapter calls all pass through the same permission decision model.
+   host-adapter calls all pass through the same actor/target/scope decision
+   model. Context and reference reads are not a bypass.
 
 8. Versioned apply is mandatory for mutable resources.
    Previews bind to resource versions. Apply uses compare-and-set; stale
@@ -91,12 +122,15 @@ workflow decisions are host code. They use AEditor; they are not AEditor layers.
 - [ai.md](./ai.md): optional AI Host and the public AI concept model.
 - [ai-runtime.md](./ai-runtime.md): agents, skills, messages, queues, live run state, compaction, and persistence.
 - [ai-permission-policy.md](./ai-permission-policy.md): unified permission resolver, audit, and always-allow policy.
+- [ai-context-assembly.md](./ai-context-assembly.md): budgeted request context layers and model-facing context order.
 - [ai-context-compaction.md](./ai-context-compaction.md): context budgeting, semantic compaction, memory, and long-session request assembly.
 - [ai-registries.md](./ai-registries.md): concrete registry APIs and current implementation notes.
 - [provider.md](./provider.md): connection, auth, transport, model, streaming, and reliability contract.
 - [workspace.md](./workspace.md): bounded file access and workspace tool contribution.
-- [resource-versioning.md](./resource-versioning.md): resource versions, CAS apply, and conflict handling.
+- [workspace-precise-editing.md](./workspace-precise-editing.md): search/read/exact-edit workflow for safe code mutation.
+- [resource-versioning.md](./resource-versioning.md): versioned mutation contract, CAS apply, and conflict handling.
 - [agent-workspace-editing.md](./agent-workspace-editing.md): recommended file-first agent workflow for demo workspace code edits.
 - [extensions.md](./extensions.md): extension packaging, trust tiers, and lifecycle.
+- [skill/aeditor-authoring/SKILL.md](./skill/aeditor-authoring/SKILL.md): copyable AI skill for authoring AEditor components, panels, dock layouts, AI contributions, and extensions.
 - [implementation-map.md](./implementation-map.md): source-file coverage map for current implementation.
 - [architecture-notes.md](./architecture-notes.md): intentional implementation notes for review-sensitive areas.

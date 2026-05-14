@@ -81,7 +81,17 @@
 
   const matchesPrefix = aeditor.names.matchesPrefix
 
+  function canReplace(meta) {
+    return !!(meta && meta.replace === true)
+  }
+
+  function assertFree(kind, records, name, meta) {
+    if (records[name] && !canReplace(meta))
+      throw new Error(kind + '.register: duplicate name "' + name + '"')
+  }
+
   function registerReferenceProvider(name, provider, meta) {
+    assertFree('ai.references', referenceProviders, name, meta)
     referenceProviders[name] = Object.assign({ id: name }, provider || {})
     referenceProviderMeta[name] = normalizeMeta(meta)
     return referenceProviders[name]
@@ -186,6 +196,7 @@
   }
 
   function registerOperation(name, spec, meta) {
+    assertFree('ai.operations', operations, name, meta)
     operations[name] = Object.assign({ id: name }, spec || {})
     operationMeta[name] = normalizeMeta(meta)
     return operations[name]
@@ -333,7 +344,7 @@
 
   function canUseOperation(actor, agentId, op, phase, details) {
     if (ai.canUseOperation) return ai.canUseOperation(actor, agentId, op, phase, details || {})
-    if (ai.canUseTool) return ai.canUseTool(actor, agentId, 'editor.' + (phase === 'apply' ? 'applyOperation' : 'previewOperation'), phase === 'apply' ? 'apply' : 'call')
+    if (ai.canUseTool) return ai.canUseTool(actor, agentId, 'aeditor.' + (phase === 'apply' ? 'applyOperation' : 'previewOperation'), phase === 'apply' ? 'apply' : 'call')
     return true
   }
 

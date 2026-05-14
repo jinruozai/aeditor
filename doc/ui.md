@@ -54,16 +54,16 @@ aeditor.replaceAt(tree, path, node)
 aeditor.removeAt(tree, path)
 aeditor.resizeAt(tree, path, sizes)
 aeditor.updateDock(tree, dockId, patch)
-aeditor.addPanel(tree, dockId, panel, options)
+aeditor.addPanel(tree, dockId, partial, opts)
 aeditor.removePanel(tree, panelId)
 aeditor.updatePanel(tree, panelId, patch)
-aeditor.activatePanel(tree, dockId, panelId)
+aeditor.activatePanel(tree, panelId)
 aeditor.promotePanel(tree, panelId)
-aeditor.movePanel(tree, panelId, targetDockId, options)
-aeditor.movePanelToSplit(tree, panelId, targetDockId, direction, options)
-aeditor.reorderPanel(tree, dockId, fromIndex, toIndex)
-aeditor.splitDock(tree, dockId, direction, options)
-aeditor.mergeDocks(tree, dockId, direction)
+aeditor.movePanel(tree, panelId, targetDockId, targetIndex)
+aeditor.movePanelToSplit(tree, panelId, targetDockId, direction, side, ratio)
+aeditor.reorderPanel(tree, panelId, newIndex)
+aeditor.splitDock(tree, dockId, direction, side, ratio, opts)
+aeditor.mergeDocks(tree, winnerDockId, loserDockId)
 aeditor.swapDocks(tree, leftDockId, rightDockId)
 aeditor.setCollapsed(tree, dockId, value)
 aeditor.canCollapseDock(tree, dockId)
@@ -87,9 +87,15 @@ Implemented runtime abilities:
 - pop-out windows
 - cross-window migration
 - panel health inspection for generated panels
+- optional dock context menu, enabled by `config.dockMenu === true`
 
 Inactive panels should be detached from DOM, not hidden with CSS, so heavy
 panels do not keep layout and paint cost.
+
+The framework does not force an application menu model. `dockMenu: true` installs
+the built-in dock command/menu contribution and lets right-clicking the dock
+corner open it. The default is off; hosts may use the same command/menu registry
+to provide their own menus.
 
 When a panel becomes active, the runtime does:
 
@@ -111,7 +117,9 @@ aeditor.componentDefaults(name)
 aeditor.listComponents(filter)
 aeditor.unregisterComponent(name, meta)
 aeditor.unregisterComponentPrefix(prefix)
+aeditor.unregisterComponentOwner(owner)
 aeditor.componentRegistration(name)
+aeditor.componentRegistryVersion
 ```
 
 A registered component may be used as:
@@ -221,7 +229,7 @@ components live under `src/ui/` by category:
 src/ui/base/        buttons, icons, text, badges, tags, tooltip, popover
 src/ui/form/        input controls and schema-driven property editors
 src/ui/editor/      editor-specific inputs such as code, curve, path, file
-src/ui/container/   layout and containers such as vbox, hbox, view, scrollArea
+src/ui/container/   layout and containers such as vbox, hbox, absolute, view, scrollArea
 src/ui/data/        list, tree, table, asset browser, change review
 src/ui/overlay/     menu, modal, drawer, toast, dialogs
 src/ui/panel/       generic dock panel components such as log/settings/tabs

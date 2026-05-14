@@ -98,7 +98,7 @@ Implemented abilities:
 
 ```js
 aeditor.settings.registerSection(id, spec, meta)
-aeditor.settings.registerSchema(key, schema, meta)
+aeditor.settings.registerSchema(sectionId, schemaOrArray, meta)
 aeditor.settings.registerPage(id, spec, meta)
 aeditor.settings.unregisterPrefix(prefix)
 aeditor.settings.unregisterOwner(owner)
@@ -141,14 +141,18 @@ aeditor.commands.run(id, input, context)
 aeditor.commands.registerMenu(id, spec, meta)
 aeditor.commands.unregisterMenu(id, meta)
 aeditor.commands.listMenus(filter)
-aeditor.commands.menuItems(target)
-aeditor.commands.menuUiItems(target)
+aeditor.commands.menuItems(target, filter, context)
+aeditor.commands.menuUiItems(target, context)
 aeditor.commands.meta(id)
 aeditor.commands.menuMeta(id)
 ```
 
 Commands are named with dotted paths. Domain-specific commands should use domain
 prefixes.
+
+Menu contributions are data records. `label`, `icon`, `kbd`, `danger`,
+`disabled`, `when`, and `input` may be literal values or functions of the menu
+context. `childrenTarget` creates a nested menu by pointing at another target.
 
 Commands are for humans and UI. Tools are for AI/model calls. If one action must
 serve both callers, expose it through both registries and keep the caller-facing

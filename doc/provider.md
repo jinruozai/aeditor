@@ -126,19 +126,25 @@ records can be correlated.
 
 ## Request Adapter
 
-The adapter layer converts AEditor messages, rich prompts, images, tools, and
-runtime context into provider request payloads.
+Request assembly belongs to `src/ai/request.js`: it builds the runtime,
+workspace, task, context, attachment, memory, compaction, queue, and transcript
+messages before a provider sees the request.
+
+The adapter layer formats that assembled request for a provider. It converts
+AEditor messages, images, tools, and text-tool fallbacks into provider payload
+shapes without owning context selection policy.
 
 Implemented helpers include:
 
 ```js
-aeditor.ai.openAiMessages(request)
+aeditor.ai.messageText(content)
+aeditor.ai.openAiMessages(messages, request)
 aeditor.ai.openAiTools(request)
-aeditor.ai.anthropicPayloadMessages(request)
+aeditor.ai.normalizeOpenAiToolCalls(calls, request)
+aeditor.ai.anthropicPayloadMessages(messages, request)
 aeditor.ai.anthropicSystem(messages)
 aeditor.ai.encodeTextToolRequest(request)
 aeditor.ai.decodeTextToolResponse(result)
-aeditor.ai.requestWithRuntimeContext(request, context)
 ```
 
 The text tool protocol is a fallback for models or transports that do not expose

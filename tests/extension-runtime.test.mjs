@@ -38,10 +38,15 @@ for (const file of [
   'src/tree/tree.js',
   'src/core/registry.js',
   'src/ai/name-generator.js',
+  'src/ai/permission.js',
   'src/ai/store.js',
+  'src/ai/registries.js',
   'src/ai/context.js',
   'src/ai/reference.js',
-  'src/core/extensions.js',
+  'src/extensions/manifest.js',
+  'src/extensions/install.js',
+  'src/extensions/runtime.js',
+  'src/extensions/ai.js',
   'src/ai/request.js',
 ]) {
   vm.runInThisContext(readFileSync(file, 'utf8'), { filename: file })
@@ -104,6 +109,53 @@ assert.equal(ai.permissionAuditRecords().some(function (item) {
   return item.scope === 'extension.install' && item.target === 'direct.tool' && item.decision === 'allow'
 }), true)
 aeditor.extensions.uninstall('direct.tool', { save: false })
+
+aeditor.extensions.install({
+  id: 'nested',
+  contributes: {
+    components: [{ id: 'panel', title: 'Nested Panel', ui: null }],
+    references: [{ id: 'data', provider: {} }],
+    operations: [{ id: 'patch', risk: 'edit' }],
+    tools: [{ id: 'read', title: 'Nested Read', run: function () { return 'parent' } }],
+    context: [{ id: 'ctx', provider: { capture: function () { return 'parent' } } }],
+    commands: [{ id: 'refresh', title: 'Nested Refresh' }],
+    menus: [{ target: 'dock.panel.context', command: 'refresh', label: 'Nested Refresh' }],
+    settings: [{ section: { id: 'nested', title: 'Nested' }, schema: { key: 'nested.enabled', type: 'boolean' } }],
+  },
+}, { save: false })
+aeditor.extensions.install({
+  id: 'nested.child',
+  contributes: {
+    components: [{ id: 'panel', title: 'Nested Child Panel', ui: null }],
+    references: [{ id: 'data', provider: {} }],
+    operations: [{ id: 'patch', risk: 'edit' }],
+    tools: [{ id: 'read', title: 'Nested Child Read', run: function () { return 'child' } }],
+    context: [{ id: 'ctx', provider: { capture: function () { return 'child' } } }],
+    commands: [{ id: 'refresh', title: 'Nested Child Refresh' }],
+    menus: [{ target: 'dock.panel.context', command: 'refresh', label: 'Nested Child Refresh' }],
+    settings: [{ section: { id: 'nested.child', title: 'Nested Child' }, schema: { key: 'nested.child.enabled', type: 'boolean' } }],
+  },
+}, { save: false })
+aeditor.extensions.uninstall('nested', { save: false })
+assert.equal(aeditor.componentRegistration('nested.panel'), null)
+assert.equal(ai.references.get('nested.data'), null)
+assert.equal(ai.operations.get('nested.patch'), null)
+assert.equal(ai.tools.get('nested.read'), undefined)
+assert.equal(ai.context.get('nested.ctx'), undefined)
+assert.equal(aeditor.commands.get('nested.refresh'), null)
+assert.equal(aeditor.commands.menuMeta('nested.dock.panel.context:refresh').owner, undefined)
+assert.equal(aeditor.settings.schemaMeta('nested.enabled').owner, undefined)
+assert.notEqual(aeditor.componentRegistration('nested.child.panel'), null)
+assert.notEqual(ai.references.get('nested.child.data'), null)
+assert.notEqual(ai.operations.get('nested.child.patch'), null)
+assert.notEqual(ai.tools.get('nested.child.read'), undefined)
+assert.notEqual(ai.context.get('nested.child.ctx'), null)
+assert.notEqual(aeditor.commands.get('nested.child.refresh'), null)
+assert.equal(aeditor.commands.menuMeta('nested.child.dock.panel.context:refresh').owner, 'extension:nested.child')
+assert.equal(aeditor.settings.schemaMeta('nested.child.enabled').owner, 'extension:nested.child')
+assert.equal(ai.context.meta('nested.child.ctx').owner, 'extension:nested.child')
+aeditor.extensions.uninstall('nested.child', { save: false })
+
 let applied = null
 aeditor.extensions.registerAdapter('case.adapter', {
   preview: function (input) { return { ok: true, next: input.next } },
@@ -196,6 +248,41 @@ assert.match(aeditor.extensions.preview({
     dockPanels: [{ dock: 'missing', component: 'panel' }],
   },
 }).errors[0].message, /Dock not found/)
+
+aeditor.registerComponent('conflict.panel', { factory: function () { return document.createElement('div') } }, { owner: 'host' })
+ai.tools.register('conflict.read', {}, { owner: 'host' })
+ai.context.register('conflict.context', {})
+ai.references.register('conflict.data', {}, { owner: 'host' })
+ai.operations.register('conflict.setValue', {}, { owner: 'host' })
+aeditor.commands.register('conflict.refresh', {}, { owner: 'host' })
+aeditor.commands.registerMenu('conflict.menu', { target: 'global' }, { owner: 'host' })
+const conflictPreview = aeditor.extensions.preview({
+  id: 'conflict',
+  contributes: {
+    components: [{ id: 'panel', ui: null }],
+    tools: [{ id: 'read' }],
+    context: [{ id: 'context' }],
+    references: [{ id: 'data' }],
+    operations: [{ id: 'setValue' }],
+    commands: [{ id: 'refresh' }],
+    menus: [{ id: 'menu', target: 'global' }],
+  },
+})
+assert.equal(conflictPreview.ok, false)
+assert.equal(conflictPreview.errors.some(function (item) { return /Component already registered: conflict\.panel/.test(item.message) }), true)
+assert.equal(conflictPreview.errors.some(function (item) { return /Tool already registered: conflict\.read/.test(item.message) }), true)
+assert.equal(conflictPreview.errors.some(function (item) { return /Context provider already registered: conflict\.context/.test(item.message) }), true)
+assert.equal(conflictPreview.errors.some(function (item) { return /Reference provider already registered: conflict\.data/.test(item.message) }), true)
+assert.equal(conflictPreview.errors.some(function (item) { return /Operation already registered: conflict\.setValue/.test(item.message) }), true)
+assert.equal(conflictPreview.errors.some(function (item) { return /Command already registered: conflict\.refresh/.test(item.message) }), true)
+assert.equal(conflictPreview.errors.some(function (item) { return /Menu already registered: conflict\.menu/.test(item.message) }), true)
+aeditor.unregisterComponent('conflict.panel', { owner: 'host' })
+ai.tools.unregister('conflict.read', { owner: 'host' })
+ai.context.unregister('conflict.context')
+ai.references.unregister('conflict.data', { owner: 'host' })
+ai.operations.unregister('conflict.setValue', { owner: 'host' })
+aeditor.commands.unregister('conflict.refresh', { owner: 'host' })
+aeditor.commands.unregisterMenu('conflict.menu', { owner: 'host' })
 
 const installed = aeditor.extensions.install(manifest)
 assert.equal(installed.ok, true)

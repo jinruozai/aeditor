@@ -10,7 +10,7 @@
 //                            through to the per-overlay dismissal check, so
 //                            anchored overlays (popover/menu) can ignore
 //                            clicks that land back on their own anchor
-//                            without relying on the legacy `window.event`.
+    //                            without relying on global `window.event`.
 //   3. Focus trap + restore  Modal-class overlays capture Tab/Shift-Tab into
 //                            themselves and restore the caller's focused
 //                            element when they close. This is the a11y

@@ -21,26 +21,44 @@ rules, but they do not execute actions, read context, or apply changes.
 Public API:
 
 ```js
-aeditor.ai.tools.register(name, spec)
+aeditor.ai.tools.register(name, spec, meta)
 aeditor.ai.tools.unregister(name)
+aeditor.ai.tools.unregisterOwner(owner)
 aeditor.ai.tools.unregisterPrefix(prefix)
 aeditor.ai.tools.get(name)
 aeditor.ai.tools.list(prefix)
+aeditor.ai.tools.visible(name, requestContext, explicit)
+aeditor.ai.tools.visibleList(names, requestContext, explicit)
+aeditor.ai.tools.meta(name)
 
-aeditor.ai.context.register(name, spec)
-aeditor.ai.context.unregister(name)
+aeditor.ai.context.register(name, spec, meta)
+aeditor.ai.context.unregister(name, meta)
+aeditor.ai.context.unregisterOwner(owner)
 aeditor.ai.context.unregisterPrefix(prefix)
 aeditor.ai.context.get(name)
 aeditor.ai.context.list(prefix)
+aeditor.ai.context.meta(name)
 
-aeditor.ai.operations.register(name, spec)
-aeditor.ai.operations.unregister(name)
+aeditor.ai.operations.register(name, spec, meta)
+aeditor.ai.operations.unregister(name, meta)
+aeditor.ai.operations.unregisterOwner(owner)
 aeditor.ai.operations.unregisterPrefix(prefix)
 aeditor.ai.operations.get(name)
-aeditor.ai.operations.list(prefix)
+aeditor.ai.operations.list(prefixOrFilter)
+aeditor.ai.operations.meta(name)
+aeditor.ai.operations.risk(name, input, ctx)
+aeditor.ai.operations.preview(name, input, ctx)
+aeditor.ai.operations.apply(preview, ctx)
+aeditor.ai.operations.getPreview(id)
 ```
 
-Dotted names are the only grouping mechanism.
+Dotted names are the public grouping mechanism. Owner metadata is the exact
+lifecycle key for installed extension contributions.
+
+Registry registration is conservative: registering an existing name throws.
+Callers must pass `meta.replace === true` to intentionally replace an entry.
+That keeps host code from silently shadowing built-in tools, context providers,
+reference providers, operations, skills, templates, or bundles.
 
 Modules do not get separate AI channels. A module exposes model-facing behavior
 by contributing named registry entries:
@@ -60,16 +78,23 @@ There is one tool facade:
 ```js
 aeditor.ai.tools.register(name, spec, meta)
 aeditor.ai.tools.unregister(name, meta)
+aeditor.ai.tools.unregisterOwner(owner)
 aeditor.ai.tools.unregisterPrefix(prefix)
 aeditor.ai.tools.get(name)
+aeditor.ai.tools.visible(name, requestContext, explicit)
+aeditor.ai.tools.visibleList(names, requestContext, explicit)
 aeditor.ai.tools.list(prefix)
+aeditor.ai.tools.meta(name)
 ```
 
 Do not create a second tool registry. New framework code should use
 `aeditor.ai.tools.*`.
 
-`meta.owner` may exist for diagnostics and safety checks. Lifecycle cleanup uses
-dotted prefixes through `unregisterPrefix(prefix)`.
+`meta.owner` and `meta.layer` may exist for diagnostics and safety checks.
+`meta.replace === true` is the only overwrite path.
+Extension lifecycle cleanup uses `unregisterOwner(owner)` so nested extension
+ids such as `sample` and `sample.child` can coexist safely. Prefix cleanup
+remains a low-level helper for plain dotted registries.
 
 Built-in tool prefixes:
 
@@ -163,14 +188,25 @@ Reference APIs:
 ```js
 aeditor.ai.references.register(name, provider, meta)
 aeditor.ai.references.unregister(name, meta)
+aeditor.ai.references.unregisterOwner(owner)
+aeditor.ai.references.unregisterPrefix(prefix)
 aeditor.ai.references.get(name)
 aeditor.ai.references.list(filter)
+aeditor.ai.references.meta(name)
+aeditor.ai.references.normalize(ref)
+aeditor.ai.references.normalizeAll(refs)
 aeditor.ai.references.describe(ref)
 aeditor.ai.references.read(ref, options, ctx)
 aeditor.ai.references.schema(ref, ctx)
+aeditor.ai.references.capabilities(ref, ctx)
+aeditor.ai.references.snapshot(ref, ctx)
 aeditor.ai.references.search(query, ctx)
 aeditor.ai.references.selection(ctx)
 ```
+
+Reference providers receive the current request/tool context, including actor
+and permission helpers. Providers should use that context when they expose
+non-public editor or workspace state.
 
 The reference protocol is valuable and should not be lost. It should remain a
 small pointer/helper protocol under the context flow, not a competing registry
@@ -193,11 +229,15 @@ Public operation API:
 ```js
 aeditor.ai.operations.register(name, spec, meta)
 aeditor.ai.operations.unregister(name, meta)
+aeditor.ai.operations.unregisterOwner(owner)
 aeditor.ai.operations.unregisterPrefix(prefix)
 aeditor.ai.operations.get(name)
 aeditor.ai.operations.list(prefixOrFilter)
+aeditor.ai.operations.meta(name)
+aeditor.ai.operations.risk(name, input, ctx)
 aeditor.ai.operations.preview(name, input, ctx)
 aeditor.ai.operations.apply(preview, ctx)
+aeditor.ai.operations.getPreview(id)
 ```
 
 Operations support validation, risk, preview storage, apply, and transaction
@@ -237,6 +277,9 @@ Reference UX flow, not to the public five-concept model in [ai.md](./ai.md).
 
 `aeditor.ai.richPrompt` stores inline references inside text.
 
+Inline reference tokens store `refId`; `resourceId` is not part of the final
+schema.
+
 Implemented APIs:
 
 ```js
@@ -264,15 +307,20 @@ AI registry category.
 Implemented APIs:
 
 ```js
+aeditor.changeSet.items
 aeditor.changeSet.create(input)
 aeditor.changeSet.update(id, patch)
 aeditor.changeSet.find(id)
 aeditor.changeSet.list()
 aeditor.changeSet.normalize(input)
+aeditor.changeSet.isChangeSet(value)
 aeditor.changeSet.apply(idOrSet, scope, actor)
 aeditor.changeSet.reject(idOrSet, scope, actor)
 aeditor.changeSet.registerAdapter(name, adapter)
+aeditor.changeSet.getAdapter(name)
 aeditor.changeSet.registerRenderer(name, renderer)
+aeditor.changeSet.getRenderer(name)
+aeditor.changeSet.rendererFor(change, resource, set)
 ```
 
 Design relationship:
@@ -281,3 +329,7 @@ Design relationship:
 - ChangeSet: review UI and grouped application for many changes/targets.
 
 ChangeSet should remain because it solves grouped review and partial apply.
+When `aeditor.ai.canUseChangeSet` is available, applying a ChangeSet goes
+through the unified permission resolver before the adapter runs. The permission
+target is `source.agentId`, `meta.agentId`, or the actor when no owner agent is
+recorded.

@@ -39,7 +39,7 @@
     // Inner icon tracks both name (registered SVG) and size via the same
     // signals. `icon` is forwarded as `name` — ui.icon resolves it to a
     // registered SVG first; otherwise falls back to rendering the value as
-    // a text glyph, so legacy single-char values like '＋' still work.
+    // a text glyph, so single-char text values still work.
     el.appendChild(ui.icon({ name: icon, size: size }))
 
     if (o.onClick) el.addEventListener('click', function (e) { if (!el.disabled) o.onClick(e) })

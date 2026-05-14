@@ -7,12 +7,14 @@ An extension packages things AEditor already knows how to register.
 ```text
 extension
 +-- components
++-- dock panels
 +-- tools
-+-- context references
++-- context providers
++-- reference providers
 +-- operations
 +-- settings
 +-- commands
-`-- styles
+`-- menus
 ```
 
 Extension Runtime is not a separate programming model. It is a delivery,
@@ -21,11 +23,15 @@ review, trust, and lifecycle layer around existing registries.
 The main model is only:
 
 ```text
-manifest -> contributes -> register by dotted prefix -> unregister by prefix
+manifest -> contributes -> publish dotted names -> unregister by owner
 ```
 
 Everything else in the extension runtime is a safeguard around that model, not a
 new extension kind.
+
+Preview and review validate the same names install would register. Component,
+tool, context, reference, operation, command, and menu conflicts should be
+reported before any registry is mutated.
 
 ## Manifest Shape
 
@@ -40,16 +46,23 @@ new extension kind.
     components: [
       { id: 'panel', /* component spec or adapter reference */ }
     ],
+    dockPanels: [
+      { dock: 'main', component: 'panel', title: 'Sample' }
+    ],
     tools: [
       {
         id: 'makeThing',
         adapter: 'sample.adapter',
-        permission: { phase: 'apply', risk: 'write' },
+        permissions: ['tool.call', 'tool.apply'],
+        risk: 'write',
         visibleToModel: true
       }
     ],
     context: [
       { id: 'schema', adapter: 'sample.adapter' }
+    ],
+    references: [
+      { id: 'data', adapter: 'sample.adapter' }
     ],
     operations: [
       { id: 'patchThing', adapter: 'sample.adapter' }
@@ -60,8 +73,8 @@ new extension kind.
     commands: [
       { id: 'refresh', adapter: 'sample.adapter' }
     ],
-    styles: [
-      { id: 'theme', href: 'sample.css' }
+    menus: [
+      { id: 'refreshMenu', target: 'global', command: 'refresh' }
     ]
   }
 }
@@ -78,18 +91,28 @@ makeThing -> sample.makeThing
 An id may already include the prefix, but public names must stay under that
 dotted prefix.
 
+The dotted name is the public namespace. The lifecycle owner is separate:
+every installed contribution is tagged with `owner: "extension:<id>"`. This
+keeps uninstall exact even when extension ids share prefixes, such as `sample`
+and `sample.child`.
+
 ## Install
 
 Install registers each contribution with the normal registry:
 
 ```js
 aeditor.registerComponent('sample.panel', spec)
+aeditor.ai.references.register('sample.data', spec)
 aeditor.ai.tools.register('sample.makeThing', spec)
 aeditor.ai.context.register('sample.schema', spec)
 aeditor.ai.operations.register('sample.patchThing', spec)
-aeditor.settings.registerSchema('sample.display', spec)
+aeditor.settings.registerSchema('sample', spec)
 aeditor.commands.register('sample.refresh', spec)
+aeditor.commands.registerMenu('sample.refreshMenu', spec)
 ```
+
+Dock panel contributions are not a new registry. They add panel records that
+reference already registered component names.
 
 Commands are UI/human actions for menus, buttons, command palettes, shortcuts,
 and context menus. Tools are AI/model actions with schemas, permissions,
@@ -100,6 +123,7 @@ Implemented extension APIs currently include:
 
 ```js
 aeditor.extensions.preview(input)
+aeditor.extensions.review(input)
 aeditor.extensions.install(manifest, options)
 aeditor.extensions.installWithReview(input, options)
 aeditor.extensions.update(id, manifest, options)
@@ -108,23 +132,28 @@ aeditor.extensions.enable(id)
 aeditor.extensions.disable(id)
 aeditor.extensions.list()
 aeditor.extensions.get(id)
+aeditor.extensions.ownerFor(name)
+aeditor.extensions.hashSource(source)
+aeditor.extensions.permissions(manifest)
 ```
 
 ## Uninstall
 
-Uninstall removes by name prefix:
+Uninstall removes by owner:
 
 ```js
-aeditor.ai.tools.unregisterPrefix('sample')
-aeditor.ai.context.unregisterPrefix('sample')
-aeditor.ai.operations.unregisterPrefix('sample')
-aeditor.settings.unregisterPrefix('sample')
-aeditor.commands.unregisterPrefix('sample')
-aeditor.unregisterComponentPrefix('sample')
+aeditor.ai.tools.unregisterOwner('extension:sample')
+aeditor.ai.context.unregisterOwner('extension:sample')
+aeditor.ai.references.unregisterOwner('extension:sample')
+aeditor.ai.operations.unregisterOwner('extension:sample')
+aeditor.settings.unregisterOwner('extension:sample')
+aeditor.commands.unregisterOwner('extension:sample')
+aeditor.unregisterComponentOwner('extension:sample')
 ```
 
-The same dotted path model is used everywhere. Metadata may exist for
-diagnostics and safety policy, but prefix cleanup is the lifecycle model.
+The same dotted path model is still used everywhere for public names,
+diagnostics, recovery UI, and permission targets. Owner metadata is the
+lifecycle model; prefix cleanup exists only as a low-level registry helper.
 
 ## Trust Tiers
 
@@ -132,7 +161,7 @@ Extension contributions are reviewed by trust tier:
 
 | Tier | Meaning | Default |
 | --- | --- | --- |
-| data-only | Manifest data, settings schema, declarative component references, styles allowed by host policy. | Allowed after manifest validation. |
+| data-only | Manifest data, settings schema, menu records, dock panel records, and declarative component references allowed by host policy. | Allowed after manifest validation. |
 | trusted same-window code | Component/tool/context/operation code runs in the host page. | Requires explicit trusted install. |
 | sandbox iframe | UI runs in an iframe and talks through postMessage capability tokens. | Requires host iframe adapter. |
 | host-adapter tool | Calls privileged local/remote adapter code. | Requires adapter contract and permission policy. |
@@ -164,6 +193,9 @@ aeditor.extensions.safeMode(enabled, options)
 aeditor.extensions.setLayer(id, layer)
 aeditor.extensions.setMaxLayer(layer)
 aeditor.extensions.enableLayer(layer)
+aeditor.extensions.removePanelFromDock(panelId)
+aeditor.extensions.previewAddPanelToDock(input)
+aeditor.extensions.applyAddPanelToDock(preview)
 aeditor.extensions.disableLayer(layer)
 aeditor.extensions.configurePermissions(policy)
 aeditor.extensions.configureStorage(options)
@@ -188,11 +220,12 @@ to a dock.
 
 ## Recovery
 
-Extensions may be disabled by prefix. This keeps recovery simple:
+Extensions may be disabled by id. This keeps recovery simple:
 
 ```js
 aeditor.extensions.disable('sample')
 ```
 
-Internally that means the runtime stops loading names under `sample.` and
-unregisters the same prefix from every contributed registry.
+Internally that means the runtime deactivates the `extension:sample` owner,
+replaces open contributed panels with recovery placeholders, and removes only
+that owner's registry entries.

@@ -49,7 +49,7 @@
 .aeditor-toolbar-right > .aeditor-toolbar-end { flex-direction: column; }
 .aeditor-toolbar-item { display: inline-flex; align-items: center; }
 
-/* ── panel drag visuals (Phase 5) ─────────────── */
+/* ── panel drag visuals ─────────────── */
 .aeditor-drag-ghost {
   position: fixed;
   pointer-events: none;

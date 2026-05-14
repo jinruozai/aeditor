@@ -1,4 +1,4 @@
-// aeditor.ui.vbox / hbox — flex containers. Children stack vertically (vbox)
+// aeditor.ui.vbox / hbox - flex containers. Children stack vertically (vbox)
 // or horizontally (hbox). Visual chrome (background / border / radius /
 // padding) flows from the shared BOX_STYLE fragment so the same vocabulary
 // applies to every component. Layout-y props (gap / align / justify /
@@ -32,7 +32,7 @@
   const FLEX_SCHEMA = {
     gap:     { type: 'int', desc: 'Pixel gap between children.' },
     align:   { type: 'enum_string', type_agv: { options: ['stretch','flex-start','center','flex-end'] },
-               desc: 'Cross-axis alignment of children: stretch · flex-start · center · flex-end.' },
+               desc: 'Cross-axis alignment of children: stretch, flex-start, center, flex-end.' },
     justify: { type: 'enum_string', type_agv: { options: ['flex-start','center','flex-end','space-between','space-around'] },
                desc: 'Main-axis distribution of children.' },
     width:   { type: 'int', desc: 'Fixed width in pixels (empty = auto).' },

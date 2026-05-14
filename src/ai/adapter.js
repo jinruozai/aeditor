@@ -19,7 +19,7 @@
     return match ? { mediaType: match[1], base64: match[2], url: dataUrl } : null
   }
 
-  function imageResources(request) {
+  function imageAttachments(request) {
     const refs = request.attachmentRefs || []
     const resolved = request.attachments || request.resolvedAttachments || []
     const out = []
@@ -50,69 +50,6 @@
       else props[key] = value || {}
     })
     return { type: 'object', properties: props }
-  }
-
-  function compactJson(value, max) {
-    let text = ''
-    try { text = ai.serialize && ai.serialize.stringify ? ai.serialize.stringify(value) : JSON.stringify(value) } catch (_) { text = String(value) }
-    max = max || 6000
-    return text.length > max ? text.slice(0, max) + '...' : text
-  }
-
-  function compactContextRef(ref) {
-    if (!ref || typeof ref !== 'object') return ref
-    const out = {}
-    const keys = ['resolver', 'uri', 'kind', 'title', 'summary', 'meta', 'capabilities', 'tools']
-    for (let i = 0; i < keys.length; i++) {
-      if (ref[keys[i]] != null) out[keys[i]] = ref[keys[i]]
-    }
-    return out
-  }
-
-  function compactRuntimeContextValue(value) {
-    if (value == null) return null
-    if (Array.isArray(value)) return value.map(compactRuntimeContextValue)
-    if (typeof value !== 'object') return value
-    const out = compactContextRef(value)
-    if (value.selection != null) out.selection = value.selection
-    if (value.refs != null) out.refs = value.refs.map(compactContextRef)
-    if (Object.keys(out).length) return out
-    return { value: compactJson(value, 1200) }
-  }
-
-  function runtimeContextMessage(ctx) {
-    const context = ctx && ctx.context || []
-    const items = []
-    for (let i = 0; i < context.length; i++) {
-      const item = context[i] || {}
-      const value = compactRuntimeContextValue(item.value)
-      if (value == null) continue
-      items.push({ id: item.id || '', value: value })
-    }
-    if (!items.length) return null
-    return {
-      id: 'system-runtime-context-' + Date.now().toString(36),
-      from: 'system',
-      role: 'system',
-      status: 'done',
-      content: [
-        'Current editor runtime context.',
-        'Use this to resolve phrases like "current table", "selected rows", "selected nodes", or "active editor".',
-        'This is a navigation summary, not full data. Before modifying data, call the relevant tools to read schemas/entities.',
-        compactJson(items, 6000),
-      ].join('\n'),
-    }
-  }
-
-  function requestWithRuntimeContext(request, ctx) {
-    const message = runtimeContextMessage(ctx)
-    if (!message) return request
-    const messages = request.messages || []
-    let insertAt = 0
-    while (insertAt < messages.length && messages[insertAt] && messages[insertAt].role === 'system') insertAt++
-    return Object.assign({}, request, {
-      messages: messages.slice(0, insertAt).concat([message], messages.slice(insertAt)),
-    })
   }
 
   function toolName(id) {
@@ -227,7 +164,7 @@
       }
       return out
     })
-    const images = imageResources(request || {})
+    const images = imageAttachments(request || {})
     if (!images.length) return outMessages
     for (let i = outMessages.length - 1; i >= 0; i--) {
       if (outMessages[i].role !== 'user') continue
@@ -250,7 +187,7 @@
 
   function anthropicPayloadMessages(messages, request) {
     const out = []
-    const images = imageResources(request || {})
+    const images = imageAttachments(request || {})
     let imagesAttached = false
     for (let i = 0; i < (messages || []).length; i++) {
       const m = messages[i]
@@ -303,7 +240,7 @@
     })
     return [
       'SYSTEM: You are running inside AEditor. Some user requests require changing editor state.',
-      'If a user asks you to create, delete, rename, move, reparent, send to, or inspect an AEditor agent/group/resource, you MUST request the matching AEditor tool.',
+      'If a user asks you to create, delete, rename, move, reparent, send to, or inspect an AEditor agent, quest, message, or attachment, you MUST request the matching AEditor tool.',
       'Do not merely say you will do it. The host cannot act unless you emit an aeditor_tool_calls JSON block.',
       'Complete the user request end-to-end. For delegated work, prefer toolId "agent.delegate" because it creates/reuses an agent and sends the task in one workflow.',
       'If you use agent.create separately for a delegated task, do not stop after agent.create; continue with agent.send, then quest.read/message.read when the quest completes.',
@@ -423,7 +360,6 @@
   }
 
   ai.messageText = ai.messageText || messageText
-  ai.requestWithRuntimeContext = requestWithRuntimeContext
   ai.openAiTools = openAiTools
   ai.openAiMessages = openAiMessages
   ai.normalizeOpenAiToolCalls = normalizeOpenAiToolCalls

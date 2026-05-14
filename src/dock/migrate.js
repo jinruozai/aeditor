@@ -1,4 +1,4 @@
-// Cross-window panel migration (Phase 6).
+// Cross-window panel migration.
 //
 // Protocol — direct window.postMessage between source and target:
 //

@@ -22,6 +22,8 @@ function walk(dir) {
 
 for (const dir of TARGETS) walk(join(ROOT, dir))
 files.push(join(ROOT, 'dist', 'aeditor.js'))
+files.push(join(ROOT, 'dist', 'aeditor-core.js'))
+files.push(join(ROOT, 'dist', 'aeditor-full.js'))
 
 let failed = false
 for (const file of files) {

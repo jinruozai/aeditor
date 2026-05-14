@@ -10,7 +10,9 @@ for (const file of [
   'src/core/workspace.js',
   'src/core/names.js',
   'src/ai/name-generator.js',
+  'src/ai/permission.js',
   'src/ai/store.js',
+  'src/ai/registries.js',
   'src/ai/context.js',
   'src/ai/skills.js',
   'src/ai/workdir.js',
@@ -46,6 +48,12 @@ assert.equal(workspaceRequest.tools.includes('workspace.fileSummary'), true)
 assert.equal(workspaceRequest.tools.includes('code.map'), true)
 assert.equal(workspaceRequest.skills.includes('aeditor.authoring'), true)
 assert.match(workspaceRequest.messages[0].content, /Host applications may provide/)
+assert.equal(workspaceRequest.messages[0].meta.contextLayer, 'runtime')
+assert.equal(workspaceRequest.messages[1].meta.contextLayer, 'workspace')
+assert.equal(workspaceRequest.messages[2].meta.contextLayer, 'task')
+assert.match(workspaceRequest.messages[1].content, /Current workspace context/)
+assert.match(workspaceRequest.messages[1].content, /workspace\.editFile/)
+assert.match(workspaceRequest.messages[2].content, /visibleToolPrefixes/)
 
 assert.deepEqual(dir, { id: 'memory:test', label: 'Test Workspace', kind: 'memory' })
 assert.equal(ai.workspaceLabel(), 'Test Workspace')
@@ -82,9 +90,37 @@ const patchedRead = await ai.tools.get('workspace.readFile').run({ path: 'src/ap
 assert.equal(patched.hash, patchedRead.hash)
 assert.match(patchedRead.text, /value = 2/)
 
+const edited = await ai.tools.get('workspace.editFile').run({
+  path: 'src/app.js',
+  baseHash: patchedRead.hash,
+  edits: [{ oldText: 'console.log(value)', newText: 'console.info(value)' }],
+}, ctx)
+assert.equal(edited.text, undefined)
+assert.equal(edited.textOmitted, true)
+const editedRead = await ai.tools.get('workspace.readFile').run({ path: 'src/app.js' }, ctx)
+assert.equal(edited.hash, editedRead.hash)
+assert.match(editedRead.text, /console\.info/)
+
+const ambiguousPreview = await ai.tools.get('workspace.editFile').preview({
+  path: 'src/app.js',
+  baseHash: editedRead.hash,
+  edits: [{ oldText: 'value', newText: 'count' }],
+}, ctx)
+assert.equal(ambiguousPreview.ok, false)
+assert.equal(ambiguousPreview.code, 'AMBIGUOUS_MATCH')
+
+const staleEditPreview = await ai.tools.get('workspace.editFile').preview({
+  path: 'src/app.js',
+  baseHash: patchedRead.hash,
+  edits: [{ oldText: 'console.info(value)', newText: 'console.warn(value)' }],
+}, ctx)
+assert.equal(staleEditPreview.ok, false)
+assert.equal(staleEditPreview.code, 'STALE_FILE')
+
 await ai.tools.get('workspace.writeFile').run({ path: 'src/extra.js', text: 'export const ok = true\n' }, ctx)
 const matches = await ai.tools.get('workspace.searchFiles').run({ query: 'ok', path: 'src' }, ctx)
 assert.equal(matches[0].path, 'src/extra.js')
+assert.equal(typeof matches[0].fileHash, 'string')
 await ai.tools.get('workspace.writeFile').run({ path: 'src/long.txt', text: 'a'.repeat(64) }, ctx)
 const compactRead = await ai.tools.get('workspace.readFile').run({ path: 'src/long.txt', maxChars: 12 }, ctx)
 assert.equal(compactRead.text, 'aaaaaaaaaaaa')

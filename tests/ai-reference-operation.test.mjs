@@ -7,7 +7,9 @@ vm.runInThisContext(readFileSync('src/core/signal.js', 'utf8'), { filename: 'sig
 vm.runInThisContext(readFileSync('src/core/log.js', 'utf8'), { filename: 'log.js' })
 vm.runInThisContext(readFileSync('src/core/names.js', 'utf8'), { filename: 'names.js' })
 vm.runInThisContext(readFileSync('src/ai/name-generator.js', 'utf8'), { filename: 'ai/name-generator.js' })
+vm.runInThisContext(readFileSync('src/ai/permission.js', 'utf8'), { filename: 'ai/permission.js' })
 vm.runInThisContext(readFileSync('src/ai/store.js', 'utf8'), { filename: 'ai/store.js' })
+vm.runInThisContext(readFileSync('src/ai/registries.js', 'utf8'), { filename: 'ai/registries.js' })
 vm.runInThisContext(readFileSync('src/ai/context.js', 'utf8'), { filename: 'ai/context.js' })
 vm.runInThisContext(readFileSync('src/ai/reference.js', 'utf8'), { filename: 'ai/reference.js' })
 vm.runInThisContext(readFileSync('src/ai/request.js', 'utf8'), { filename: 'ai/request.js' })
@@ -37,6 +39,13 @@ ai.references.register('case.extra', {})
 assert.deepEqual(ai.references.list('case.extra'), ['case.extra'])
 assert.deepEqual(ai.references.unregisterPrefix('case.extra'), ['case.extra'])
 assert.equal(ai.references.get('case.extra'), null)
+ai.references.register('case.replace', { read: function () { return 'one' } })
+assert.throws(function () {
+  ai.references.register('case.replace', { read: function () { return 'hidden overwrite' } })
+}, /duplicate name "case.replace"/)
+ai.references.register('case.replace', { read: function () { return 'two' } }, { replace: true })
+assert.equal(ai.references.get('case.replace').read(), 'two')
+ai.references.unregister('case.replace')
 
 ai.transactions.configure({
   run(label, fn, meta) {
@@ -67,6 +76,13 @@ ai.operations.register('case.extra', {})
 assert.deepEqual(ai.operations.list('case.extra'), ['case.extra'])
 assert.deepEqual(ai.operations.unregisterPrefix('case.extra'), ['case.extra'])
 assert.equal(ai.operations.get('case.extra'), null)
+ai.operations.register('case.replace', { preview: function () { return 'one' } })
+assert.throws(function () {
+  ai.operations.register('case.replace', { preview: function () { return 'hidden overwrite' } })
+}, /duplicate name "case.replace"/)
+ai.operations.register('case.replace', { preview: function () { return 'two' } }, { replace: true })
+assert.equal(ai.operations.get('case.replace').preview(), 'two')
+ai.operations.unregister('case.replace')
 
 const ref = ai.references.normalize('case://item/one')
 assert.equal(ref.resolver, 'case')
@@ -99,6 +115,28 @@ const explicitRequest = ai.makeRequest(ai.createAgent({
   toolRefs: ['aeditor.previewOperation', 'aeditor.applyOperation'],
 }), null, 'inspect_explicit', 'user', 0)
 assert.deepEqual(explicitRequest.tools, ['aeditor.previewOperation', 'aeditor.applyOperation'])
+
+const savedCanUseOperation = ai.canUseOperation
+const savedCanUseTool = ai.canUseTool
+const fallbackPermissionCalls = []
+ai.canUseOperation = null
+ai.canUseTool = function (actor, target, toolId, phase) {
+  fallbackPermissionCalls.push({ actor, target, toolId, phase })
+  return phase !== 'apply'
+}
+try {
+  ai.tools.get('aeditor.previewOperation').run({ op: 'case.setValue', input: { value: 8 } }, { actor: 'user', agent: agent })
+  const deniedApply = ai.tools.get('aeditor.applyOperation').apply({ op: 'case.setValue', ok: true, risk: 'edit', next: 8 }, { actor: 'user', agent: agent })
+  assert.equal(deniedApply.applied, false)
+} finally {
+  ai.canUseOperation = savedCanUseOperation
+  ai.canUseTool = savedCanUseTool
+}
+assert.equal(fallbackPermissionCalls[0].toolId, 'aeditor.previewOperation')
+assert.equal(fallbackPermissionCalls[0].phase, 'call')
+assert.equal(fallbackPermissionCalls[1].toolId, 'aeditor.applyOperation')
+assert.equal(fallbackPermissionCalls[1].phase, 'apply')
+
 const runTool = ai.createToolCall(agent.id, { toolId: 'aeditor.readReference', args: { uri: 'case://item/one' } }, 'user')
 ai.approveToolCall(agent.id, runTool.id, 'user')
 const run = ai.runToolCall(agent.id, runTool.id, 'user')

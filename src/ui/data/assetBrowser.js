@@ -167,11 +167,11 @@
             data['application/aeditor.asset+json'] = JSON.stringify({ kind: item.kind, value: item.url })
             data['application/aeditor.asset.' + (item.kind || 'file') + '+json'] = JSON.stringify({ kind: item.kind, value: item.url })
           }
-          if (typeof o.aiTargets === 'function') {
-            const targets = o.aiTargets(payload, item) || []
+          if (typeof o.targets === 'function') {
+            const targets = o.targets(payload, item) || []
             if (targets.length) {
-              data['application/x-aeditor-ai-target-list'] = JSON.stringify(targets)
-              data['application/x-aeditor-ai-target'] = JSON.stringify(targets[0])
+              data['application/x-aeditor-target-list'] = JSON.stringify(targets)
+              data['application/x-aeditor-target'] = JSON.stringify(targets[0])
             }
           }
           return data

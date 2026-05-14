@@ -1,6 +1,6 @@
 // aeditor.ui.kbd — keyboard shortcut hint chip (e.g. ⌘K, Ctrl+S).
 //
-// Signature accepts either a plain string (legacy short form) or an opts
+// Signature accepts either a plain string short form or an opts
 // object with a signal-aware `text` field. Both map to the same DOM.
 //   aeditor.ui.kbd('Ctrl+S')
 //   aeditor.ui.kbd({ text: sig })

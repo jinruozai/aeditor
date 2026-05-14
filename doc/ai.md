@@ -6,6 +6,11 @@ The optional AI Host lets agents talk to the user, read precise context, and ask
 the host to run controlled actions. It is not part of the Core/UI kernel, and it
 does not own product data models.
 
+The design target is strong agentic editor behavior without a large editor
+platform inside Core. Host apps teach the model through references, tools,
+operations, skills, and normal registered UI components. They do not get a
+private AI path.
+
 Any AEditor module can contribute to AI by registering tools, context
 references, or operations. `workspace.*`, `theme.*`, `dock.*`, `ui.*`, extension
 prefixes, and product prefixes all use the same registries.
@@ -42,6 +47,10 @@ resolve references into bounded readable content for the model. Large data must
 expose search, summaries, ranges, schemas, or projections instead of injecting
 everything into the prompt.
 
+Reference reads use the same request actor and permission context as tools. A
+context provider may describe where to look, but exact mutable state should be
+read through a bounded reference or tool before the model edits it.
+
 ## Tools
 
 A tool is an action the model can call.
@@ -51,6 +60,7 @@ Examples:
 ```text
 workspace.searchFiles
 workspace.readFile
+workspace.editFile
 workspace.patchFile
 theme.setMode
 ui.setProp
@@ -60,14 +70,16 @@ gde.table.patchRows
 Target API:
 
 ```js
-aeditor.ai.tools.register(name, spec)
+aeditor.ai.tools.register(name, spec, meta)
 aeditor.ai.tools.unregister(name)
+aeditor.ai.tools.unregisterOwner(owner)
 aeditor.ai.tools.unregisterPrefix(prefix)
 aeditor.ai.tools.get(name)
 aeditor.ai.tools.list(prefix)
 ```
 
-Tool names use dotted paths. Prefixes are enough for grouping and removal.
+Tool names use dotted paths. Prefixes are public grouping. Extension lifecycle
+cleanup uses owner metadata for exact removal.
 
 The request builder sends only model-visible and currently available tools to
 the provider:
@@ -99,8 +111,9 @@ gde.tableSchema
 Target API:
 
 ```js
-aeditor.ai.context.register(name, spec)
-aeditor.ai.context.unregister(name)
+aeditor.ai.context.register(name, spec, meta)
+aeditor.ai.context.unregister(name, meta)
+aeditor.ai.context.unregisterOwner(owner)
 aeditor.ai.context.unregisterPrefix(prefix)
 aeditor.ai.context.get(name)
 aeditor.ai.context.list(prefix)
@@ -126,8 +139,9 @@ ani.timeline.moveKeys
 Target API:
 
 ```js
-aeditor.ai.operations.register(name, spec)
+aeditor.ai.operations.register(name, spec, meta)
 aeditor.ai.operations.unregister(name)
+aeditor.ai.operations.unregisterOwner(owner)
 aeditor.ai.operations.unregisterPrefix(prefix)
 aeditor.ai.operations.get(name)
 aeditor.ai.operations.list(prefix)
@@ -137,6 +151,9 @@ aeditor.ai.operations.apply(preview)
 
 Operations are for changes that need validation, preview, review UI, undo
 integration, or resource-version checks.
+
+AI registries reject duplicate names by default. Use `{ replace: true }` in the
+registration metadata only when replacing an existing contribution is deliberate.
 
 `aeditor.previewOperation` and `aeditor.applyOperation` are low-level bridge
 tools for internal code and explicitly scoped agents. They should be hidden from

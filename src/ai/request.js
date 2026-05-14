@@ -4,7 +4,7 @@
 
   const ai = aeditor.ai = aeditor.ai || {}
 
-  function resolveResourceRef(ref, all) {
+  function resolveAttachmentRef(ref, all) {
     if (typeof ref === 'string') return all.find(function (item) { return item.id === ref }) || { id: ref }
     return ref
   }
@@ -13,7 +13,7 @@
     const refs = []
     const seen = {}
     function add(ref) {
-      const id = typeof ref === 'string' ? ref : (ref && (ref.resourceId || ref.id || ref.uri))
+      const id = typeof ref === 'string' ? ref : (ref && (ref.refId || ref.id || ref.uri))
       if (!id || seen[id]) return
       seen[id] = true
       refs.push(ref)
@@ -25,12 +25,12 @@
     return refs
   }
 
-  function resolveResources(refs, baseCtx) {
+  function resolveAttachments(refs, baseCtx) {
     const out = []
     const store = ai.attachments
     const all = store ? store.peek() : []
     for (let i = 0; i < refs.length; i++) {
-      const ref = resolveResourceRef(refs[i], all)
+      const ref = resolveAttachmentRef(refs[i], all)
       if (ai.references && ai.references.read) {
         out.push(ai.references.read(ref, {}, baseCtx))
         continue
@@ -40,21 +40,21 @@
     return out
   }
 
-  function describeResources(refs) {
+  function describeAttachments(refs, ctx) {
     const store = ai.attachments
     const all = store ? store.peek() : []
     return refs.map(function (ref) {
-      const item = resolveResourceRef(ref, all)
+      const item = resolveAttachmentRef(ref, all)
       return {
         id: item.id || null,
         resolver: item.resolver || item.kind || '',
         uri: item.uri || '',
         title: item.title || '',
-        kind: item.kind || 'resource',
+        kind: item.kind || 'attachment',
         summary: item.summary || '',
         meta: item.meta || {},
-        schema: ai.references && ai.references.schema ? ai.references.schema(item) : (item.schema || null),
-        capabilities: ai.references && ai.references.capabilities ? ai.references.capabilities(item) : (item.capabilities || []),
+        schema: ai.references && ai.references.schema ? ai.references.schema(item, ctx) : (item.schema || null),
+        capabilities: ai.references && ai.references.capabilities ? ai.references.capabilities(item, ctx) : (item.capabilities || []),
       }
     })
   }
@@ -113,7 +113,10 @@
   }
 
   function resolveSkills(agent, input, ctx) {
-    const refs = effectiveSkillRefs(agent, input, ctx)
+    return resolveSkillSpecs(effectiveSkillRefs(agent, input, ctx))
+  }
+
+  function resolveSkillSpecs(refs) {
     const out = []
     for (let i = 0; i < refs.length; i++) {
       const skill = ai.skills.get(refs[i])
@@ -127,6 +130,27 @@
     try { text = ai.serialize && ai.serialize.stringify ? ai.serialize.stringify(value) : JSON.stringify(value) } catch (_) { text = String(value) }
     max = max || 1200
     return text.length > max ? text.slice(0, max) + '...' : text
+  }
+
+  function compactContextRef(ref) {
+    if (!ref || typeof ref !== 'object') return ref
+    const out = {}
+    const keys = ['resolver', 'uri', 'kind', 'title', 'summary', 'meta', 'capabilities', 'tools']
+    for (let i = 0; i < keys.length; i++) {
+      if (ref[keys[i]] != null) out[keys[i]] = ref[keys[i]]
+    }
+    return out
+  }
+
+  function compactRuntimeContextValue(value) {
+    if (value == null) return null
+    if (Array.isArray(value)) return value.map(compactRuntimeContextValue)
+    if (typeof value !== 'object') return value
+    const out = compactContextRef(value)
+    if (value.selection != null) out.selection = value.selection
+    if (value.refs != null) out.refs = value.refs.map(compactContextRef)
+    if (Object.keys(out).length) return out
+    return { value: compactJson(value, 1200) }
   }
 
   function compactString(value, max) {
@@ -195,7 +219,52 @@
     }
   }
 
-  function sanitizeResourceMeta(meta) {
+  function contextCardMessage(layer, id, priority, content, maxChars) {
+    const text = compactString(content, maxChars || 4000)
+    return {
+      id: 'system-' + id + '-' + Date.now().toString(36),
+      from: 'system',
+      role: 'system',
+      status: 'done',
+      content: text,
+      meta: {
+        contextLayer: layer,
+        contextCardId: id,
+        contextPriority: priority || 0,
+      },
+    }
+  }
+
+  function normalizeContextMessage(message, layer, id, priority, maxChars) {
+    if (!message) return null
+    const out = Object.assign({}, message)
+    out.content = compactString(out.content, maxChars || 6000)
+    out.meta = Object.assign({}, out.meta || {}, {
+      contextLayer: layer,
+      contextCardId: id || out.id || layer,
+      contextPriority: priority || 0,
+    })
+    return out
+  }
+
+  function toolPrefix(name) {
+    const i = String(name || '').indexOf('.')
+    return i < 0 ? String(name || '') : String(name).slice(0, i)
+  }
+
+  function toolPrefixSummary(toolRefs) {
+    const seen = {}
+    const out = []
+    for (let i = 0; i < (toolRefs || []).length; i++) {
+      const prefix = toolPrefix(toolRefs[i])
+      if (!prefix || seen[prefix]) continue
+      seen[prefix] = true
+      out.push(prefix)
+    }
+    return out.sort()
+  }
+
+  function sanitizeAttachmentMeta(meta) {
     const out = Object.assign({}, meta || {})
     if (out.dataUrl) {
       out.hasImageData = true
@@ -211,7 +280,7 @@
       out.hasImageData = true
       delete out.dataUrl
     }
-    if (out.meta) out.meta = sanitizeResourceMeta(out.meta)
+    if (out.meta) out.meta = sanitizeAttachmentMeta(out.meta)
     return out
   }
 
@@ -238,10 +307,7 @@
     if (!text) return false
     const normalizedAction = /(create|make|build|write|add|modify|change|design|generate|implement|put|mount|\u5199|\u505a|\u521b\u5efa|\u65b0\u5efa|\u8bbe\u8ba1|\u751f\u6210|\u6dfb\u52a0|\u653e\u5230|\u653e\u5728|\u6302\u5230|\u4fee\u6539|\u5b9e\u73b0|\u6784\u5efa)/.test(text)
     const normalizedTarget = /(ui|panel|dock|interface|screen|view|component|\u754c\u9762|\u9762\u677f|\u4e3b\s*dock|\u7ec4\u4ef6|\u89c6\u56fe|\u7a97\u53e3)/.test(text)
-    if (normalizedAction && normalizedTarget) return true
-    const action = /(create|make|build|write|add|modify|change|design|generate|implement|put|mount|创建|新建|写|设计|生成|添加|放到|放在|挂到|修改|实现)/.test(text)
-    const target = /(ui|panel|dock|interface|screen|view|component|界面|面板|主dock|主\s*dock|组件|视图|窗口)/.test(text)
-    return action && target
+    return normalizedAction && normalizedTarget
   }
 
   function estimateTokens(text) {
@@ -354,20 +420,37 @@
       items.push({
         id: ref.id || null,
         uri: ref.uri || '',
-        kind: ref.kind || ref.resolver || 'resource',
+        kind: ref.kind || ref.resolver || 'attachment',
         title: ref.title || '',
         summary: ref.summary || '',
-        meta: sanitizeResourceMeta(ref.meta || {}),
+        meta: sanitizeAttachmentMeta(ref.meta || {}),
         payload: resolved == null ? null : compactJson(resolved, 1400),
       })
     }
-    return {
-      id: 'system-context-' + Date.now().toString(36),
-      from: 'system',
-      role: 'system',
-      status: 'done',
-      content: 'Attached editor context. Use attachment uri/kind/meta to choose precise tools. Large payloads are summarized; call tools for full data.\n' + compactJson(items, 6000),
+    return contextCardMessage(
+      'attachments',
+      'attachments',
+      40,
+      'Attached editor context. Use attachment uri/kind/meta to choose precise tools. Large payloads are summarized; call tools for full data.\n' + compactJson(items, 6000),
+      7000
+    )
+  }
+
+  function runtimeContextMessage(runtimeContext) {
+    const items = []
+    for (let i = 0; runtimeContext && i < runtimeContext.length; i++) {
+      const item = runtimeContext[i] || {}
+      const value = compactRuntimeContextValue(item.value)
+      if (value == null) continue
+      items.push({ id: item.id || '', value: value })
     }
+    if (!items.length) return null
+    return contextCardMessage('context', 'runtime-context', 60, [
+      'Current editor runtime context.',
+      'Use this to resolve phrases like "current table", "selected rows", "selected nodes", or "active editor".',
+      'This is a navigation summary, not full data. Before modifying data, call the relevant tools to read schemas/entities.',
+      compactJson(items, 6000),
+    ].join('\n'), 7000)
   }
 
   function eventSummary(event) {
@@ -385,12 +468,7 @@
     if (meta && meta.runtimeEvent === 'inbox.continuation') {
       const events = meta.events || []
       const pending = meta.pendingQuests || []
-      return {
-        id: 'system-inbox-' + Date.now().toString(36),
-        from: 'system',
-        role: 'system',
-        status: 'done',
-        content: [
+      return contextCardMessage('inbox', 'inbox', 20, [
           'Current completed agent runtime event batch.',
           'Process every completed/failed event in this batch.',
           'Use quest.result only for quest ids listed in completedEvents unless the user explicitly asks for broader reads.',
@@ -399,8 +477,7 @@
           compactJson(events.map(eventSummary), 4000),
           'pendingQuests:',
           compactJson(pending, 2000),
-        ].join('\n'),
-      }
+        ].join('\n'), 7000)
     }
     return null
   }
@@ -424,17 +501,17 @@
       })
     }
     if (!items.length) return null
-    return {
-      id: 'system-queue-' + Date.now().toString(36),
-      from: 'system',
-      role: 'system',
-      status: 'done',
-      content: 'Queued user messages are waiting behind the current work. Do not process them as the current request unless they are marked interrupt/guidance; use them only to avoid conflicting work and to decide whether to finish cleanly.\n' + compactJson(items, 4000),
-    }
+    return contextCardMessage(
+      'queue',
+      'queue',
+      10,
+      'Queued user messages are waiting behind the current work. Do not process them as the current request unless they are marked interrupt/guidance; use them only to avoid conflicting work and to decide whether to finish cleanly.\n' + compactJson(items, 4000),
+      5000
+    )
   }
 
   function skillLines(agent, input, requestCtx) {
-    const specs = resolveSkills(agent, input, requestCtx)
+    const specs = requestCtx && requestCtx.skillSpecs || resolveSkills(agent, input, requestCtx)
     const lines = []
     for (let i = 0; i < specs.length; i++) {
       const skill = specs[i]
@@ -485,23 +562,86 @@
       role: 'system',
       status: 'done',
       content: lines.join('\n'),
+      meta: {
+        contextLayer: 'runtime',
+        contextCardId: 'runtime',
+        contextPriority: 100,
+      },
     }
   }
 
-  function requestMessages(agent, input, attachmentRefs, resolvedAttachments, requestCtx) {
+  function workspaceContextMessage(requestCtx, toolRefs) {
+    const meta = requestCtx && requestCtx.workspaceMeta
+    if (!meta) return null
+    const tools = {}
+    for (let i = 0; i < (toolRefs || []).length; i++) tools[toolRefs[i]] = true
+    const flow = [
+      tools['workspace.fileSummary'] || tools['code.map'] ? '1. Inspect structure with workspace.fileSummary or code.map.' : null,
+      tools['workspace.searchFiles'] ? '2. Locate candidates with workspace.searchFiles.' : null,
+      tools['workspace.readFileRange'] ? '3. Read exact current ranges with workspace.readFileRange.' : null,
+      tools['workspace.editFile'] ? '4. Edit existing files with workspace.editFile using baseHash and exact oldText/newText.' : null,
+      tools['workspace.writeFile'] ? '5. Use workspace.writeFile for new files or deliberate whole-file replacement.' : null,
+      tools['verify.run'] ? '6. Run the narrowest relevant verify.run check after edits.' : null,
+    ].filter(Boolean)
+    return contextCardMessage('workspace', 'workspace', 80, [
+      'Current workspace context.',
+      'workspace: ' + compactJson(meta, 600),
+      'Use workspace files as the source of truth. Transcript code snippets may be stale.',
+      'Recommended file workflow:',
+      flow.length ? flow.join('\n') : 'Use the exposed workspace tools in this request.',
+    ].join('\n'), 2400)
+  }
+
+  function taskStateContextMessage(agent, input, requestCtx, toolRefs) {
+    const prefixes = toolPrefixSummary(toolRefs || [])
+    const queue = agent.queue || []
+    return contextCardMessage('task', 'task', 70, [
+      'Current task state.',
+      'permissionMode: ' + (agent.permissionMode || 'default'),
+      'turn: ' + (requestCtx && requestCtx.turn || 0),
+      'inputMessageId: ' + (input && input.id || ''),
+      'queuedMessages: ' + queue.length,
+      'visibleToolCount: ' + (toolRefs || []).length,
+      'visibleToolPrefixes: ' + prefixes.join(', '),
+      requestCtx && requestCtx.uiAuthoringBlocked ? 'blocked: workspace-backed UI authoring is unavailable until the user opens or selects a workspace.' : '',
+    ].filter(Boolean).join('\n'), 1800)
+  }
+
+  function compactionContextMessages(agent) {
+    const messages = ai.compaction && ai.compaction.contextMessages ? ai.compaction.contextMessages(agent) : []
+    const out = []
+    for (let i = 0; i < messages.length; i++) {
+      const layer = messages[i] && String(messages[i].id || '').indexOf('system-memory-') === 0 ? 'memory' : 'compaction'
+      out.push(normalizeContextMessage(messages[i], layer, layer, layer === 'memory' ? 35 : 30, layer === 'memory' ? 5000 : 12000))
+    }
+    return out
+  }
+
+  function prefixMessages(agent, input, attachmentRefs, resolvedAttachments, requestCtx, toolRefs) {
+    const out = [runtimeGuideMessage(agent, requestCtx)]
+    const workspace = workspaceContextMessage(requestCtx, toolRefs)
+    const task = taskStateContextMessage(agent, input, requestCtx, toolRefs)
+    const runtimeContext = runtimeContextMessage(requestCtx && requestCtx.runtimeContext)
+    const attachments = attachmentContextMessage(attachmentRefs, resolvedAttachments)
+    const inbox = inboxContextMessage(agent, input)
+    const queued = queuedContextMessage(agent, input)
+    if (workspace) out.push(workspace)
+    if (task) out.push(task)
+    if (runtimeContext) out.push(runtimeContext)
+    if (attachments) out.push(attachments)
+    const compacted = compactionContextMessages(agent)
+    for (let i = 0; i < compacted.length; i++) out.push(compacted[i])
+    if (inbox) out.push(inbox)
+    if (queued) out.push(queued)
+    return out
+  }
+
+  function requestMessages(agent, input, attachmentRefs, resolvedAttachments, requestCtx, toolRefs) {
     const baseMessages = ai.compaction && ai.compaction.requestMessages ? ai.compaction.requestMessages(agent, input) : (agent.messages || [])
     const messages = baseMessages.filter(function (message) {
       return message.status !== 'queued' || (input && message.id === input.id)
     })
-    const context = attachmentContextMessage(attachmentRefs, resolvedAttachments)
-    const inbox = inboxContextMessage(agent, input)
-    const queued = queuedContextMessage(agent, input)
-    const prefix = [runtimeGuideMessage(agent, requestCtx)]
-    const compacted = ai.compaction && ai.compaction.contextMessages ? ai.compaction.contextMessages(agent) : []
-    for (let i = 0; i < compacted.length; i++) prefix.push(compacted[i])
-    if (context) prefix.push(context)
-    if (inbox) prefix.push(inbox)
-    if (queued) prefix.push(queued)
+    const prefix = prefixMessages(agent, input, attachmentRefs, resolvedAttachments, requestCtx, toolRefs)
     return prefix.concat(budgetMessages(agent, prefix, messages, input))
   }
 
@@ -515,14 +655,40 @@
       input: input || null,
       workspace: ai.currentWorkspace ? ai.currentWorkspace() : null,
       workspaceMeta: ai.workspaceMeta ? ai.workspaceMeta() : null,
+      turn: turn || 0,
     }
     baseCtx.uiAuthoringIntent = uiAuthoringIntent(input)
     baseCtx.uiAuthoringBlocked = !baseCtx.workspace && uiAuthoringIntent(input)
+    baseCtx.tools = ai.tools
+    baseCtx.skills = ai.skills
+    baseCtx.signal = null
+    baseCtx.canReadPath = function (path) { return ai.canReadPath ? ai.canReadPath(agent, path) : false }
+    baseCtx.canWritePath = function (path) { return ai.canWritePath ? ai.canWritePath(agent, path) : false }
+    baseCtx.canRead = function (targetId, scope) { return ai.canRead ? ai.canRead(who, targetId || agent.id, scope || 'agent.full') : false }
+    baseCtx.canSend = function (targetId) { return ai.canSend ? ai.canSend(who, targetId) : false }
+    baseCtx.canManage = function (targetId) { return ai.canManage ? ai.canManage(who, targetId) : false }
     const allowedAttachments = ai.canRead(who, agent.id, 'attachments.read')
     const contextRefs = effectiveContextRefs(agent, input)
-    const resolvedAttachments = allowedAttachments ? resolveResources(contextRefs, baseCtx) : []
-    const attachmentRefs = allowedAttachments ? describeResources(contextRefs) : []
+    const resolvedAttachments = allowedAttachments ? resolveAttachments(contextRefs, baseCtx) : []
+    const attachmentRefs = allowedAttachments ? describeAttachments(contextRefs, baseCtx) : []
     const tools = resolveToolRefs(agent, baseCtx)
+    baseCtx.toolRefs = tools
+    const toolSpecs = resolveTools(agent, baseCtx, tools)
+    const requestShell = {
+      runId: runId,
+      agent: agent,
+      actor: who,
+      input: input || null,
+      target: agent,
+      event: input && input.event ? input.event : null,
+      tools: tools,
+      toolSpecs: toolSpecs,
+    }
+    baseCtx.runtimeContext = ai.collectContext ? ai.collectContext(requestShell, baseCtx) : []
+    const skillRefs = effectiveSkillRefs(agent, input, baseCtx)
+    const skillSpecs = resolveSkillSpecs(skillRefs)
+    baseCtx.skillRefs = skillRefs
+    baseCtx.skillSpecs = skillSpecs
     return {
       runId: runId,
       agent: agent,
@@ -531,15 +697,16 @@
       connection: agent.connection || ai.defaultConnection || 'mock',
       model: agent.model || '',
       input: input || null,
-      messages: requestMessages(agent, input, attachmentRefs, resolvedAttachments, baseCtx),
+      messages: requestMessages(agent, input, attachmentRefs, resolvedAttachments, baseCtx, tools),
       contextRefs: contextRefs.slice(),
       attachmentRefs: attachmentRefs,
       attachments: resolvedAttachments,
       resolvedAttachments: resolvedAttachments,
+      runtimeContext: baseCtx.runtimeContext,
       tools: tools,
-      toolSpecs: resolveTools(agent, baseCtx, tools),
-      skills: effectiveSkillRefs(agent, input, baseCtx),
-      skillSpecs: resolveSkills(agent, input, baseCtx),
+      toolSpecs: toolSpecs,
+      skills: skillRefs,
+      skillSpecs: skillSpecs,
       responseFormat: agent.responseFormat || null,
       stream: !!agent.stream,
       target: agent,

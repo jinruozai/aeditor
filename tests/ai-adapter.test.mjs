@@ -28,6 +28,7 @@ assert.match(encoded.inputItems[0].text, /AVAILABLE_TOOLS/)
 assert.match(encoded.inputItems[0].text, /CURRENT_AGENT_ID: a_main/)
 assert.match(encoded.inputItems[0].text, /"parentAgentId":"a_main"/)
 assert.match(encoded.inputItems[0].text, /MUST request the matching AEditor tool/)
+assert.doesNotMatch(encoded.inputItems[0].text, /agent\/group\/resource/)
 assert.match(encoded.inputItems[0].text, /For "create an agent".*agent\.create/s)
 assert.match(encoded.inputItems[0].text, /USER: Create a helper\./)
 

@@ -265,16 +265,16 @@
   }
 
   function refTitle(item) {
-    return item.title || item.label || item.name || item.uri || item.id || 'Resource'
+    return item.title || item.label || item.name || item.uri || item.id || 'Attachment'
   }
 
-  function openResourceMenu(anchor, insertResources) {
+  function openAttachmentMenu(anchor, insertAttachments) {
     const all = attachments()
-    const items = all.length ? all.map(function (res) {
+    const items = all.length ? all.map(function (attachment) {
       return {
-        label: refTitle(res),
+        label: refTitle(attachment),
         icon: 'plus',
-        onSelect: function () { insertResources([res]) },
+        onSelect: function () { insertAttachments([attachment]) },
       }
     }) : [{ type: 'header', label: 'No attachments available' }]
     ui.menu({ anchor: anchor, items: items, side: 'top', align: 'start' })
@@ -354,7 +354,7 @@
       title: 'Add context',
       kind: 'ghost',
       disabled: controlDisabled,
-      onClick: function (ev) { openResourceMenu(ev.currentTarget, insertResources) },
+      onClick: function (ev) { openAttachmentMenu(ev.currentTarget, insertAttachments) },
     })
     const permissionText = aeditor.derived(function () { return permissionLabel(permissionMode()) })
     ui.collect(root, permissionText.dispose)
@@ -480,7 +480,7 @@
 
     return root
 
-    function insertResources(list) {
+    function insertAttachments(list) {
       if (!list || !list.length) return
       if (editor.__aeditorRichPromptInsertRefs) editor.__aeditorRichPromptInsertRefs(list)
       if (editor.__aeditorRichPromptFocus) editor.__aeditorRichPromptFocus()
@@ -489,10 +489,10 @@
     function insertTargets(targets) {
       const stored = []
       for (let i = 0; i < (targets || []).length; i++) {
-        const res = aeditor.ai.addTarget ? aeditor.ai.addTarget(targets[i]) : null
-        if (res) stored.push(res)
+        const attachment = aeditor.ai.addTarget ? aeditor.ai.addTarget(targets[i]) : null
+        if (attachment) stored.push(attachment)
       }
-      insertResources(stored)
+      insertAttachments(stored)
     }
 
     function sendClick() {

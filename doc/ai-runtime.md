@@ -74,6 +74,9 @@ workspace explicitly provides such a build system. The request builder enables
 this skill automatically for UI/panel/dock authoring requests and for
 workspace-backed editing sessions.
 
+The copyable documentation form for external agents is
+[skill/aeditor-authoring/SKILL.md](./skill/aeditor-authoring/SKILL.md).
+
 Skills are not a fourth AI action registry:
 
 ```text

@@ -1,18 +1,9 @@
-// aeditor.ai runtime context registries.
+// aeditor.ai tool-call lifecycle and run context.
 ;(function (aeditor) {
   'use strict'
 
   const ai = aeditor.ai = aeditor.ai || {}
-  const tools = {}
-  const toolMeta = {}
-  const skills = {}
-  const contextProviders = {}
-  const agentTemplates = {}
-  const bundles = {}
-  const bundleRecords = {}
   let nextToolCallId = 1
-
-  function keys(obj) { return Object.keys(obj) }
 
   function makeToolCall(spec, actor) {
     spec = spec || {}
@@ -124,7 +115,7 @@
 
   function callToolPhase(agentId, callId, actor, phase) {
     const found = findToolCall(agentId, callId)
-    const tool = found && getTool(found.toolCall.toolId)
+    const tool = found && ai.tools.get(found.toolCall.toolId)
     const fn = tool && tool[phase]
     if (!fn) return null
     const ctx = createToolContext(found, actor)
@@ -250,7 +241,7 @@
     const found = findToolCall(agentId, callId)
     if (!found) return null
     const call = found.toolCall
-    const tool = getTool(call.toolId)
+    const tool = ai.tools.get(call.toolId)
     const who = actor || call.actor || 'user'
     const canCall = ai.canUseTool(who, agentId, call.toolId, 'call')
     const canApply = ai.canUseTool(who, agentId, call.toolId, 'apply')
@@ -366,273 +357,27 @@
     }
   }
 
-  function normalizeMeta(meta) {
-    meta = meta || {}
-    const out = {}
-    if (meta.owner != null) out.owner = String(meta.owner)
-    if (meta.layer != null) out.layer = String(meta.layer)
-    return out
-  }
-
-  const matchesPrefix = aeditor.names.matchesPrefix
-
-  function registerTool(name, tool, meta) {
-    tools[name] = tool
-    toolMeta[name] = normalizeMeta(meta)
-    return tool
-  }
-
-  function getTool(name) {
-    return tools[name]
-  }
-
-  function isToolVisibleToModel(name, ctx, explicit) {
-    const tool = getTool(name)
-    if (!tool) return false
-    if (ctx && ctx.uiAuthoringBlocked) return false
-    if (tool.exposeToModel === false && !explicit) return false
-    if (typeof tool.available === 'function' && tool.available(ctx || {}) === false) return false
-    return true
-  }
-
-  function visibleToolNames(refs, ctx, explicit) {
-    const list = refs && refs.length ? refs : keys(tools)
-    const out = []
-    for (let i = 0; i < list.length; i++) {
-      if (isToolVisibleToModel(list[i], ctx, !!explicit)) out.push(list[i])
-    }
-    return out
-  }
-
-  function unregisterTool(name, meta) {
-    if (!tools[name]) return false
-    const existing = toolMeta[name] || {}
-    if (meta && meta.owner != null && existing.owner !== meta.owner)
-      throw new Error('ai.tools.unregister: owner mismatch for "' + name + '"')
-    delete tools[name]
-    delete toolMeta[name]
-    return true
-  }
-
-  function unregisterToolOwner(owner) {
-    const removed = []
-    keys(toolMeta).forEach(function (name) {
-      if (toolMeta[name].owner === owner) {
-        delete tools[name]
-        delete toolMeta[name]
-        removed.push(name)
-      }
-    })
-    return removed
-  }
-
-  function unregisterToolPrefix(prefix) {
-    const removed = []
-    keys(tools).forEach(function (name) {
-      if (matchesPrefix(name, prefix)) {
-        delete tools[name]
-        delete toolMeta[name]
-        removed.push(name)
-      }
-    })
-    return removed
-  }
-
-  function registerSkill(name, skill) {
-    skills[name] = skill
-    return skill
-  }
-
-  function getSkill(name) {
-    return skills[name]
-  }
-
-  function unregisterSkill(name) {
-    if (!skills[name]) return false
-    delete skills[name]
-    return true
-  }
-
-  function unregisterSkillPrefix(prefix) {
-    const removed = []
-    keys(skills).forEach(function (name) {
-      if (matchesPrefix(name, prefix)) {
-        delete skills[name]
-        removed.push(name)
-      }
-    })
-    return removed
-  }
-
-  function registerContextProvider(name, provider) {
-    contextProviders[name] = provider
-    return provider
-  }
-
-  function unregisterContextProvider(name) {
-    if (!contextProviders[name]) return false
-    delete contextProviders[name]
-    return true
-  }
-
-  function unregisterContextProviderPrefix(prefix) {
-    const removed = []
-    keys(contextProviders).forEach(function (name) {
-      if (matchesPrefix(name, prefix)) {
-        delete contextProviders[name]
-        removed.push(name)
-      }
-    })
-    return removed
-  }
-
-  function getContextProvider(name) {
-    return contextProviders[name]
-  }
-
-  function registerAgentTemplate(name, template) {
-    agentTemplates[name] = template
-    return template
-  }
-
-  function getAgentTemplate(name) {
-    return agentTemplates[name]
-  }
-
-  function unregisterAgentTemplate(name) {
-    if (!agentTemplates[name]) return false
-    delete agentTemplates[name]
-    return true
-  }
-
-  function unregisterAgentTemplatePrefix(prefix) {
-    const removed = []
-    keys(agentTemplates).forEach(function (name) {
-      if (matchesPrefix(name, prefix)) {
-        delete agentTemplates[name]
-        removed.push(name)
-      }
-    })
-    return removed
-  }
-
-  function registerBundle(name, bundle) {
-    if (bundles[name]) unregisterBundle(name)
-    bundles[name] = bundle
-    bundleRecords[name] = {
-      connections: registerBundleList(bundle && bundle.connections, ai.registerConnection),
-      skills: registerBundleList(bundle && bundle.skills, registerSkill),
-      tools: registerBundleList(bundle && bundle.tools, registerTool),
-      contextProviders: registerBundleList(bundle && bundle.contextProviders, registerContextProvider),
-      agentTemplates: registerBundleList(bundle && bundle.agentTemplates, registerAgentTemplate),
-    }
-    if (bundle && typeof bundle.activate === 'function') {
-      bundle.activate({ ai: ai })
-    }
-    return bundle
-  }
-
-  function getBundle(name) {
-    return bundles[name]
-  }
-
-  function unregisterBundle(name) {
-    if (!bundles[name]) return false
-    unregisterBundleRecord(bundleRecords[name])
-    delete bundles[name]
-    delete bundleRecords[name]
-    return true
-  }
-
-  function unregisterBundlePrefix(prefix) {
-    const removed = []
-    keys(bundles).forEach(function (name) {
-      if (matchesPrefix(name, prefix)) {
-        unregisterBundle(name)
-        removed.push(name)
-      }
-    })
-    return removed
-  }
-
-  function registerBundleList(items, register) {
-    const names = []
-    for (let i = 0; items && i < items.length; i++) {
-      const name = items[i].id || items[i].name
-      register(name, items[i])
-      names.push(name)
-    }
-    return names
-  }
-
-  function unregisterBundleRecord(record) {
-    record = record || {}
-    unregisterNames(record.connections, ai.unregisterConnection)
-    unregisterNames(record.skills, unregisterSkill)
-    unregisterNames(record.tools, unregisterTool)
-    unregisterNames(record.contextProviders, unregisterContextProvider)
-    unregisterNames(record.agentTemplates, unregisterAgentTemplate)
-  }
-
-  function unregisterNames(names, unregister) {
-    if (!unregister) return
-    for (let i = 0; names && i < names.length; i++) unregister(names[i])
-  }
-
-  function collectContext(request, ctx) {
-    const out = []
-    const names = keys(contextProviders)
-    for (let i = 0; i < names.length; i++) {
-      const name = names[i]
-      const provider = contextProviders[name]
-      const matched = !provider.match || provider.match(request.target || request.agent, request.event || null, ctx)
-      if (matched) {
-        const captured = aeditor.safeCall
-          ? aeditor.safeCall({ scope: 'ai', provider: name }, function () {
-            return provider.capture ? provider.capture(request.target || request.agent, request.event || null, ctx) : provider(request, ctx)
-          })
-          : (provider.capture ? provider.capture(request.target || request.agent, request.event || null, ctx) : provider(request, ctx))
-        out.push({ id: name, value: captured })
-      }
-    }
-    return out
-  }
-
   function createRunContext(request, controller) {
+    const actor = request.actor || 'user'
     const ctx = {
       ai: ai,
       agent: request.agent,
-      actor: request.actor || 'user',
+      actor: actor,
       runId: request.runId,
       signal: controller.signal,
-      tools: tools,
-      skills: skills,
+      tools: ai.tools,
+      skills: ai.skills,
       context: {},
       canReadPath: function (path) { return ai.canReadPath(request.agent, path) },
       canWritePath: function (path) { return ai.canWritePath(request.agent, path) },
-      canRead: function (targetId) { return ai.canRead(request.agent.id, targetId) },
-      canSend: function (targetId) { return ai.canSend(request.agent.id, targetId) },
-      canManage: function (targetId) { return ai.canManage(request.agent.id, targetId) },
+      canRead: function (targetId, scope) { return ai.canRead(actor, targetId || request.agent.id, scope || 'agent.full') },
+      canSend: function (targetId) { return ai.canSend(actor, targetId || request.agent.id) },
+      canManage: function (targetId) { return ai.canManage(actor, targetId || request.agent.id) },
     }
-    ctx.context = collectContext(request, ctx)
+    ctx.context = request.runtimeContext || ai.collectContext(request, ctx)
     return ctx
   }
 
-  ai.tools = {
-    register: registerTool,
-    unregister: unregisterTool,
-    unregisterOwner: unregisterToolOwner,
-    unregisterPrefix: unregisterToolPrefix,
-    get: getTool,
-    visible: isToolVisibleToModel,
-    visibleList: visibleToolNames,
-    list: function (prefix) {
-      const names = keys(tools)
-      return prefix ? names.filter(function (name) { return matchesPrefix(name, prefix) }) : names
-    },
-    meta: function (name) { return Object.assign({}, toolMeta[name] || {}) },
-  }
-  ai.toolMeta = function (name) { return Object.assign({}, toolMeta[name] || {}) }
   ai.createToolCall = createToolCall
   ai.attachToolCalls = attachToolCalls
   ai.findToolCall = findToolCall
@@ -644,45 +389,5 @@
   ai.getToolCallActionState = getToolCallActionState
   ai.isToolAlwaysAllowed = isToolAlwaysAllowed
   ai.setToolAlwaysAllowed = setToolAlwaysAllowed
-  ai.skills = {
-    register: registerSkill,
-    unregister: unregisterSkill,
-    unregisterPrefix: unregisterSkillPrefix,
-    get: getSkill,
-    list: function (prefix) {
-      const names = keys(skills)
-      return prefix ? names.filter(function (name) { return matchesPrefix(name, prefix) }) : names
-    },
-  }
-  ai.context = {
-    register: registerContextProvider,
-    unregister: unregisterContextProvider,
-    unregisterPrefix: unregisterContextProviderPrefix,
-    get: getContextProvider,
-    list: function (prefix) {
-      const names = keys(contextProviders)
-      return prefix ? names.filter(function (name) { return matchesPrefix(name, prefix) }) : names
-    },
-  }
-  ai.agentTemplates = {
-    register: registerAgentTemplate,
-    unregister: unregisterAgentTemplate,
-    unregisterPrefix: unregisterAgentTemplatePrefix,
-    get: getAgentTemplate,
-    list: function (prefix) {
-      const names = keys(agentTemplates)
-      return prefix ? names.filter(function (name) { return matchesPrefix(name, prefix) }) : names
-    },
-  }
-  ai.bundles = {
-    register: registerBundle,
-    unregister: unregisterBundle,
-    unregisterPrefix: unregisterBundlePrefix,
-    get: getBundle,
-    list: function (prefix) {
-      const names = keys(bundles)
-      return prefix ? names.filter(function (name) { return matchesPrefix(name, prefix) }) : names
-    },
-  }
   ai.createRunContext = createRunContext
 })(window.aeditor = window.aeditor || {})

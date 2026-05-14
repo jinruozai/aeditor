@@ -18,9 +18,9 @@
       'For view surfaces and scrollable panel content, use aeditor.ui.view instead of raw native overflow scrollbars. Do not set raw overflowY/overflow:auto on primary panel content unless aeditor.ui.view cannot fit the case.',
       'For buttons, icon buttons, cards, lists, trees, tables, form fields, and scroll containers, use the matching aeditor.ui component first, then add only the minimal layout CSS the panel needs.',
       'For hover tips or floating UI, prefer aeditor.ui.tooltip/popover/menu. If floating DOM is manually appended outside the panel root, register it with aeditor.ui.registerScopedOverlay(anchor, close).',
-      'Durable AI-authored UI is file-backed: inspect workspace files, write or patch component files, then ask the host to mount an already registered component by name. Do not pass source code inside panel or dock tool arguments.',
-      'Keep generated panel files concise. For existing or large files, read the current hash and use workspace.patchFile instead of rewriting the whole file. If a write fails validation, inspect the file/range and repair with a small patch; do not repeat the same broad rewrite.',
-      'If no file workspace is available for a durable UI request, do not search for legacy panel creation workarounds. Tell the user to open or select a workspace first.',
+      'Durable AI-authored UI is file-backed: inspect workspace files, edit/write component files, then ask the host to mount an already registered component by name. Do not pass source code inside panel or dock tool arguments.',
+      'For existing source files, use map/search first, read the exact range, then call workspace.editFile with baseHash and exact oldText/newText. Use workspace.writeFile for new files, and workspace.patchFile only for mechanical line patches. If an edit is stale or ambiguous, reread the current range and retry with a more precise oldText.',
+      'If no file workspace is available for a durable UI request, do not search for alternate panel creation workarounds. Tell the user to open or select a workspace first.',
     ],
   })
 })(window.aeditor = window.aeditor || {})

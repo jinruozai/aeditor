@@ -6,6 +6,10 @@ Any previewed mutation must be tied to the version of the resource it inspected.
 Apply is compare-and-set. If the resource changed, the stale preview is rejected
 and the agent or UI must re-preview or rebase.
 
+This document defines the architecture contract for mutable resources. Current
+implementation coverage is strongest for workspace files; other subsystems
+should follow this contract as their preview/apply surfaces become versioned.
+
 ## ResourceVersion
 
 Different resources use different version tokens, but the contract is the same:

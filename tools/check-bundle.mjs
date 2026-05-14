@@ -43,6 +43,14 @@ function bundle(order, kind) {
   return { text: banner + parts.join('\n'), missing }
 }
 
+function isCoreJs(rel) {
+  return rel.indexOf('ai/') !== 0 && rel.indexOf('extensions/') !== 0
+}
+
+function isCoreCss(rel) {
+  return rel !== 'style/ui-ai.css'
+}
+
 function checkCoverage(order, ext) {
   const source = []
   walk(SRC, ext, source)
@@ -54,22 +62,33 @@ function checkCoverage(order, ext) {
 
 const jsOrder = parseOrder('JS_ORDER')
 const cssOrder = parseOrder('CSS_ORDER')
+const coreJsOrder = jsOrder.filter(isCoreJs)
+const coreCssOrder = cssOrder.filter(isCoreCss)
 const jsCoverage = checkCoverage(jsOrder, '.js')
 const cssCoverage = checkCoverage(cssOrder, '.css')
-const js = bundle(jsOrder, 'JS')
-const css = bundle(cssOrder, 'CSS')
+const fullJs = bundle(jsOrder, 'Full JS')
+const fullCss = bundle(cssOrder, 'Full CSS')
+const coreJs = bundle(coreJsOrder, 'Core JS')
+const coreCss = bundle(coreCssOrder, 'Core CSS')
 
 const errors = []
 if (jsCoverage.missing.length) errors.push('JS files missing from JS_ORDER: ' + jsCoverage.missing.join(', '))
 if (jsCoverage.stale.length) errors.push('stale JS_ORDER entries: ' + jsCoverage.stale.join(', '))
 if (cssCoverage.missing.length) errors.push('CSS files missing from CSS_ORDER: ' + cssCoverage.missing.join(', '))
 if (cssCoverage.stale.length) errors.push('stale CSS_ORDER entries: ' + cssCoverage.stale.join(', '))
-if (js.text !== readFileSync(join(DIST, 'aeditor.js'), 'utf8')) errors.push('dist/aeditor.js is out of date; run node tools/build.mjs')
-if (css.text !== readFileSync(join(DIST, 'aeditor.css'), 'utf8')) errors.push('dist/aeditor.css is out of date; run node tools/build.mjs')
+if (/\/\* ---- (ai|extensions)\//.test(coreJs.text)) errors.push('core bundle contains optional AI/extension source files')
+if (coreJs.text.indexOf('aeditor.ai') >= 0 || coreJs.text.indexOf('aeditor-ai') >= 0) errors.push('core bundle contains AI namespace or AI CSS class names')
+if (coreCss.text.indexOf('aeditor-ai') >= 0) errors.push('core CSS contains AI CSS class names')
+if (fullJs.text !== readFileSync(join(DIST, 'aeditor-full.js'), 'utf8')) errors.push('dist/aeditor-full.js is out of date; run node tools/build.mjs')
+if (fullCss.text !== readFileSync(join(DIST, 'aeditor-full.css'), 'utf8')) errors.push('dist/aeditor-full.css is out of date; run node tools/build.mjs')
+if (coreJs.text !== readFileSync(join(DIST, 'aeditor-core.js'), 'utf8')) errors.push('dist/aeditor-core.js is out of date; run node tools/build.mjs')
+if (coreCss.text !== readFileSync(join(DIST, 'aeditor-core.css'), 'utf8')) errors.push('dist/aeditor-core.css is out of date; run node tools/build.mjs')
+if (coreJs.text !== readFileSync(join(DIST, 'aeditor.js'), 'utf8')) errors.push('dist/aeditor.js is out of date; run node tools/build.mjs')
+if (coreCss.text !== readFileSync(join(DIST, 'aeditor.css'), 'utf8')) errors.push('dist/aeditor.css is out of date; run node tools/build.mjs')
 
 if (errors.length) {
   for (const e of errors) console.error(e)
   process.exit(1)
 }
 
-console.log('bundle ok: ' + jsOrder.length + ' JS, ' + cssOrder.length + ' CSS')
+console.log('bundle ok: core ' + coreJsOrder.length + ' JS/' + coreCssOrder.length + ' CSS, full ' + jsOrder.length + ' JS/' + cssOrder.length + ' CSS')

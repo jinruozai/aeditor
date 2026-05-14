@@ -25,6 +25,8 @@ memory disk should not be created behind the user's back.
 
 ```js
 aeditor.workspace.openDirectory(options)
+aeditor.workspace.restoreDirectory(key, options)
+aeditor.workspace.saveDirectoryHandle(key, handle)
 aeditor.workspace.fromHandle(handle)
 aeditor.workspace.fromBridge(root)
 aeditor.workspace.memory(files)
@@ -33,6 +35,9 @@ aeditor.workspace.memory(files)
 Utility helpers in the workspace module may normalize relative paths, hash text,
 derive parent paths, and build safe previews. Those helpers support file tools
 and adapters; they do not create a project concept.
+
+Implemented helpers include `normalizePath`, `parentPath`, `hashText`,
+`diffSummary`, `validateText`, `applyLinePatches`, and `applyTextEdits`.
 
 Each workspace adapter should expose:
 
@@ -64,6 +69,7 @@ workspace.fileSummary
 workspace.searchFiles
 workspace.readFile
 workspace.readFileRange
+workspace.editFile
 workspace.writeFile
 workspace.patchFile
 workspace.deleteFile
@@ -74,18 +80,19 @@ These are ordinary AI tools backed by the current workspace adapter. They are
 generic and do not know product descriptors, table schemas, panel registrations,
 or build scripts.
 
-Mutating tools (`workspace.writeFile`, `workspace.patchFile`, and
-`workspace.deleteFile`) expose preview/apply phases so the runtime can review
-and permission-check writes before applying them. Their direct `run` functions
+Mutating tools (`workspace.editFile`, `workspace.writeFile`,
+`workspace.patchFile`, and `workspace.deleteFile`) expose preview/apply phases
+so the runtime can review and permission-check writes before applying them.
+Their direct `run` functions
 remain available for trusted local callers and tests, but model-facing flows
 should use preview/apply.
 
-`workspace.writeFile` and `workspace.patchFile` validate JS and JSON before
-commit. JSON must parse. JS must not contain known truncation markers,
-unterminated strings/comments, or unbalanced braces; classic non-module scripts
-also receive a syntax parse check. A failed validation leaves the previous file
-unchanged. This keeps interrupted provider output from corrupting workspace
-files.
+`workspace.editFile`, `workspace.writeFile`, and `workspace.patchFile` validate
+JS and JSON before commit. JSON must parse. JS must not contain known truncation
+markers, unterminated strings/comments, or unbalanced braces; classic non-module
+scripts also receive a syntax parse check. A failed validation leaves the
+previous file unchanged. This keeps interrupted provider output from corrupting
+workspace files.
 
 Preview reads the current file and returns the same diff summary shape that
 apply returns:
@@ -178,6 +185,9 @@ component name.
 5. Large reads should use search or range reads first.
 6. Workspace adapters enforce the boundary. Tools should not accept absolute
    paths.
-7. Existing or large source files should be changed with `workspace.patchFile`
-   and `baseHash`; full-file writes are for complete new files or deliberate
-   replacement.
+7. Existing source files should usually be changed with `workspace.editFile`:
+   search, read the exact range, then replace a unique `oldText` with
+   `baseHash`. See [workspace-precise-editing.md](./workspace-precise-editing.md).
+8. Full-file writes are for complete new files or deliberate replacement.
+9. Line patches are an escape hatch for mechanical edits and must still use
+   `baseHash`.

@@ -4,8 +4,8 @@
 
   const ai = aeditor.ai = aeditor.ai || {}
   const providers = {}
-  const TARGET_MIME = 'application/x-aeditor-ai-target'
-  const TARGET_LIST_MIME = 'application/x-aeditor-ai-target-list'
+  const TARGET_MIME = 'application/x-aeditor-target'
+  const TARGET_LIST_MIME = 'application/x-aeditor-target-list'
 
   function clone(v) {
     return v == null ? v : (ai.serialize && ai.serialize.clone ? ai.serialize.clone(v) : JSON.parse(JSON.stringify(v)))
@@ -77,7 +77,7 @@
     return null
   }
 
-  function findResource(target) {
+  function findAttachment(target) {
     const list = ai.attachments && ai.attachments.peek ? ai.attachments.peek() : []
     for (let i = 0; i < list.length; i++) {
       if (list[i].resolver === target.resolver && list[i].uri === target.uri) return list[i]
@@ -88,7 +88,7 @@
   function addTarget(target) {
     const normalized = normalizeTarget(target)
     if (!normalized) return null
-    const existing = findResource(normalized)
+    const existing = findAttachment(normalized)
     return existing || ai.addAttachment(normalized)
   }
 

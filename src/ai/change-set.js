@@ -261,10 +261,28 @@
     return 'ChangeSet operation failed'
   }
 
+  function permissionTarget(set, actor) {
+    return (set.source && (set.source.agentId || set.source.agent)) ||
+      (set.meta && (set.meta.agentId || set.meta.agent)) ||
+      actor ||
+      'user'
+  }
+
+  function canApplyChangeSet(set, target, actor) {
+    if (!ai.canUseChangeSet) return true
+    return ai.canUseChangeSet(actor || 'user', permissionTarget(set, actor), set.id, 'apply', {
+      changeSetId: set.id,
+      phase: 'apply',
+      target: target,
+      risk: 'write',
+    })
+  }
+
   function apply(idOrSet, scope, actor) {
     const set = resolveSet(idOrSet)
     const target = normalizeScope(scope)
     if (!scopeAllowed(set, target)) return Promise.resolve(failResult(set, { message: 'Scope is not supported by ' + set.apply.mode + ' ChangeSet' }, target))
+    if (!canApplyChangeSet(set, target, actor)) return Promise.resolve(failResult(set, { message: 'ChangeSet apply not allowed' }, target))
     const adapter = getAdapter(set.apply.adapter)
     if (!adapter || !adapter.apply) return Promise.resolve(failResult(set, { message: 'Missing ChangeSet adapter: ' + set.apply.adapter }, target))
     const ctx = { actor: actor || 'user', scope: target }

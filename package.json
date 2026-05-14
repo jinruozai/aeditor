@@ -2,17 +2,14 @@
   "name": "@gooooo/aeditor",
   "version": "1.1.1",
   "description": "Blender-style dock layout UI framework - zero build, zero dependencies, pure IIFE. Drop-in <script> tag, everything hangs on window.aeditor.",
-  "main": "dist/aeditor.js",
-  "style": "dist/aeditor.css",
+  "main": "dist/aeditor-core.js",
+  "style": "dist/aeditor-core.css",
   "files": [
-    "dist",
-    "screenshots",
-    "src",
-    "tools",
-    "tests",
+    "dist/aeditor-core.css",
+    "dist/aeditor-core.js",
+    "dist/aeditor-full.css",
+    "dist/aeditor-full.js",
     "README.md",
-    "AGENTS.md",
-    "CLAUDE.md",
     "LICENSE"
   ],
   "keywords": [
@@ -43,12 +40,12 @@
     "build": "node tools/build.mjs",
     "watch": "node tools/build.mjs --watch",
     "bridge": "node tools/ai-bridge.mjs",
-    "check": "node tools/check-syntax.mjs && node tests/signal.test.mjs && node tests/tree.test.mjs && node tests/theme.test.mjs && node tests/history.test.mjs && node tests/i18n.test.mjs && node tests/settings.test.mjs && node tests/commands.test.mjs && node tests/workspace.test.mjs && node tests/ui-scope.test.mjs && node tests/ui-edit-session.test.mjs && node tests/project-runtime.test.mjs && node tests/change-set.test.mjs && node tests/ai-adapter.test.mjs && node tests/ai.test.mjs && node tests/ai-provider.test.mjs && node tests/ai-stream.test.mjs && node tests/ai-tools.test.mjs && node tests/ai-workdir.test.mjs && node tests/ai-code-git.test.mjs && node tests/ai-orchestration.test.mjs && node tests/ai-quest-runtime.test.mjs && node tests/ai-persistence.test.mjs && node tests/ai-compaction.test.mjs && node tests/ai-target.test.mjs && node tests/ai-reference-operation.test.mjs && node tests/extension-runtime.test.mjs && node tests/ai-rich-prompt.test.mjs && node tests/ai-resource-permission.test.mjs",
+    "check": "node tools/check-syntax.mjs && node tests/signal.test.mjs && node tests/tree.test.mjs && node tests/theme.test.mjs && node tests/history.test.mjs && node tests/i18n.test.mjs && node tests/settings.test.mjs && node tests/commands.test.mjs && node tests/dock-menu.test.mjs && node tests/workspace.test.mjs && node tests/ui-scope.test.mjs && node tests/ui-edit-session.test.mjs && node tests/project-runtime.test.mjs && node tests/change-set.test.mjs && node tests/ai-adapter.test.mjs && node tests/ai.test.mjs && node tests/ai-provider.test.mjs && node tests/ai-stream.test.mjs && node tests/ai-tools.test.mjs && node tests/ai-workdir.test.mjs && node tests/ai-code-git.test.mjs && node tests/ai-orchestration.test.mjs && node tests/ai-quest-runtime.test.mjs && node tests/ai-persistence.test.mjs && node tests/ai-compaction.test.mjs && node tests/ai-target.test.mjs && node tests/ai-reference-operation.test.mjs && node tests/extension-runtime.test.mjs && node tests/ai-rich-prompt.test.mjs && node tests/ai-resource-permission.test.mjs",
     "check:ai": "node tests/ai.test.mjs && node tests/ai-provider.test.mjs && node tests/ai-stream.test.mjs && node tests/ai-tools.test.mjs && node tests/ai-workdir.test.mjs && node tests/ai-code-git.test.mjs && node tests/ai-orchestration.test.mjs && node tests/ai-quest-runtime.test.mjs && node tests/ai-persistence.test.mjs && node tests/ai-compaction.test.mjs && node tests/ai-target.test.mjs && node tests/ai-reference-operation.test.mjs && node tests/ai-rich-prompt.test.mjs && node tests/ai-resource-permission.test.mjs",
     "check:dist": "node tools/check-bundle.mjs"
   },
   "sideEffects": [
-    "dist/aeditor.css",
-    "dist/aeditor.js"
+    "dist/*.css",
+    "dist/*.js"
   ]
 }

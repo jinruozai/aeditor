@@ -14,6 +14,7 @@ function storage() {
 global.window = { aeditor: {}, localStorage: storage() }
 vm.runInThisContext(readFileSync('src/core/signal.js', 'utf8'), { filename: 'signal.js' })
 vm.runInThisContext(readFileSync('src/ai/name-generator.js', 'utf8'), { filename: 'ai/name-generator.js' })
+vm.runInThisContext(readFileSync('src/ai/permission.js', 'utf8'), { filename: 'ai/permission.js' })
 vm.runInThisContext(readFileSync('src/ai/store.js', 'utf8'), { filename: 'ai/store.js' })
 
 let ai = window.aeditor.ai
@@ -54,6 +55,7 @@ assert.equal(stored.agents[1].messages[1].toolCalls[0].args.text.length < 13000,
 global.window.aeditor = {}
 vm.runInThisContext(readFileSync('src/core/signal.js', 'utf8'), { filename: 'signal.js#2' })
 vm.runInThisContext(readFileSync('src/ai/name-generator.js', 'utf8'), { filename: 'ai/name-generator.js#2' })
+vm.runInThisContext(readFileSync('src/ai/permission.js', 'utf8'), { filename: 'ai/permission.js#2' })
 vm.runInThisContext(readFileSync('src/ai/store.js', 'utf8'), { filename: 'ai/store.js#2' })
 ai = window.aeditor.ai
 ai.configurePersistence({ key: 'test.ai' })

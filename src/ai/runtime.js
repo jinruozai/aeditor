@@ -735,8 +735,7 @@
     }
     return Promise.resolve().then(function () {
       request.stream = request.stream || !!provider.stream
-      const sendRequest = ai.requestWithRuntimeContext ? ai.requestWithRuntimeContext(request, ctx) : request
-      return provider.stream ? provider.stream(sendRequest, ctx) : provider.send(sendRequest, ctx)
+      return provider.stream ? provider.stream(request, ctx) : provider.send(request, ctx)
     }).then(function (result) {
       if (controller.signal.aborted) return null
       if (isIterable(result)) {
@@ -838,6 +837,51 @@
 
   function makeRequest(agent, input, runId, actor, turn) {
     return ai.makeRequest(agent, input, runId, actor, turn)
+  }
+
+  function providerRunner() {
+    return {
+      send: function (request, runCtx) { return ai.sendViaConnection(request.connectionName, request, runCtx) },
+    }
+  }
+
+  function failRunningRequest(agentId, request, controller, key, err) {
+    delete runs[key]
+    const input = request.input
+    const stopped = controller.signal.aborted
+    if (input && input.id) ai.updateMessage(agentId, input.id, { status: stopped ? 'stopped' : 'failed', completedAt: Date.now() })
+    if (input && input.questId) ai.updateQuest(agentId, input.questId, { status: stopped ? 'stopped' : 'failed', completedAt: Date.now(), summary: String(err && err.message ? err.message : err) })
+    ai.setAgentStatus(agentId, stopped ? 'idle' : 'failed')
+    if (!stopped && aeditor.reportError) aeditor.reportError({ scope: 'ai', connection: request.connectionName }, err)
+    scheduleQueuedAgents()
+    return null
+  }
+
+  function startRunningRequest(agentId, request, actor, statusText, markInputStarted) {
+    const controller = new AbortController()
+    const runner = providerRunner()
+    const ctx = ai.createRunContext(request, controller)
+    const key = agentId
+    const input = request.input
+    runs[key] = { controller: controller, connection: runner, runId: request.runId, request: request }
+    ai.setAgentStatus(agentId, {
+      status: 'running',
+      statusText: statusText || '',
+      activeMessageId: input && input.id || null,
+      activeQuestId: input && input.questId || null,
+    })
+    if (markInputStarted && input && input.id) ai.updateMessage(agentId, input.id, { status: 'running', startedAt: Date.now() })
+    if (markInputStarted && input && input.questId) ai.updateQuest(agentId, input.questId, { status: 'running', startedAt: Date.now() })
+
+    const promise = Promise.resolve().then(function () {
+      return runChatTurn(agentId, runner, request, ctx, controller, actor)
+    }).then(function (result) {
+      if (controller.signal.aborted) return null
+      return finishAgentRun(agentId, request, result, key, controller)
+    }, function (err) {
+      return failRunningRequest(agentId, request, controller, key, err)
+    })
+    return { request: request, controller: controller, promise: promise }
   }
 
   function completeMessageExecution(agentId, request, result) {
@@ -993,45 +1037,13 @@
     let agent = agentId ? ai.findAgent(agentId) : ai.getActiveAgent()
     const connection = ai.getConnection(agent && agent.connection)
     if (!agent || !connection) return null
-    const runner = {
-      send: function (request, runCtx) { return ai.sendViaConnection(request.connectionName, request, runCtx) },
-    }
-    const controller = new AbortController()
     const runId = 'run_' + Date.now().toString(36) + '_' + nextRunId++
     const actor = (input && input.actor) || agent.id
     closeStaleToolCalls(agent.id)
     if (ai.compaction && ai.compaction.maybeCompact) ai.compaction.maybeCompact(agent.id, input, { phase: 'before_request' })
     agent = ai.findAgent(agent.id)
     const request = makeRequest(agent, input, runId, actor, 0)
-    const ctx = ai.createRunContext(request, controller)
-    const key = agent.id
-
-    runs[key] = { controller: controller, connection: runner, runId: runId, request: request }
-    ai.setAgentStatus(agent.id, {
-      status: 'running',
-      statusText: input && input.content ? String(input.content).slice(0, 120) : '',
-      activeMessageId: input && input.id || null,
-      activeQuestId: input && input.questId || null,
-    })
-    if (input && input.id) ai.updateMessage(agent.id, input.id, { status: 'running', startedAt: Date.now() })
-    if (input && input.questId) ai.updateQuest(agent.id, input.questId, { status: 'running', startedAt: Date.now() })
-
-    const promise = Promise.resolve().then(function () {
-      return runChatTurn(agent.id, runner, request, ctx, controller, actor)
-    }).then(function (result) {
-      if (controller.signal.aborted) return null
-      return finishAgentRun(agent.id, request, result, key, controller)
-    }, function (err) {
-      delete runs[key]
-      if (input && input.id) ai.updateMessage(agent.id, input.id, { status: controller.signal.aborted ? 'stopped' : 'failed', completedAt: Date.now() })
-      if (input && input.questId) ai.updateQuest(agent.id, input.questId, { status: controller.signal.aborted ? 'stopped' : 'failed', completedAt: Date.now(), summary: String(err && err.message ? err.message : err) })
-      ai.setAgentStatus(agent.id, controller.signal.aborted ? 'idle' : 'failed')
-      if (!controller.signal.aborted && aeditor.reportError) aeditor.reportError({ scope: 'ai', connection: request.connectionName }, err)
-      scheduleQueuedAgents()
-      return null
-    })
-
-    return { request: request, controller: controller, promise: promise }
+    return startRunningRequest(agent.id, request, actor, input && input.content ? String(input.content).slice(0, 120) : '', true)
   }
 
   function activeRunCount() {
@@ -1049,8 +1061,8 @@
     const run = runs[agent.id]
     const waiting = waitingRuns[agent.id]
     if (!run && !waiting) return false
-      if (run) {
-        run.controller.abort()
+    if (run) {
+      run.controller.abort()
       ai.setActiveRunState(agent.id, {
         runId: run.runId,
         messageId: run.messageId || null,
@@ -1094,36 +1106,8 @@
     delete waitingRuns[agent.id]
     if (ai.compaction && ai.compaction.maybeCompact) ai.compaction.maybeCompact(agent.id, waiting.request.input, { phase: 'before_resume' })
 
-    const controller = new AbortController()
-    const runner = {
-      send: function (request, runCtx) { return ai.sendViaConnection(request.connectionName, request, runCtx) },
-    }
     const request = makeRequest(ai.findAgent(agent.id), waiting.request.input, waiting.runId, waiting.actor, waiting.turn + 1)
-    const ctx = ai.createRunContext(request, controller)
-    const key = agent.id
-    runs[key] = { controller: controller, connection: runner, runId: waiting.runId, request: request }
-    ai.setAgentStatus(agent.id, {
-      status: 'running',
-      statusText: 'continuing after tool approval',
-      activeMessageId: request.input && request.input.id || null,
-      activeQuestId: request.input && request.input.questId || null,
-    })
-    const promise = Promise.resolve().then(function () {
-      return runChatTurn(agent.id, runner, request, ctx, controller, actor || waiting.actor)
-    }).then(function (result) {
-      if (controller.signal.aborted) return null
-      return finishAgentRun(agent.id, request, result, key, controller)
-    }, function (err) {
-      delete runs[key]
-      const input = request.input
-      if (input && input.id) ai.updateMessage(agent.id, input.id, { status: controller.signal.aborted ? 'stopped' : 'failed', completedAt: Date.now() })
-      if (input && input.questId) ai.updateQuest(agent.id, input.questId, { status: controller.signal.aborted ? 'stopped' : 'failed', completedAt: Date.now(), summary: String(err && err.message ? err.message : err) })
-      ai.setAgentStatus(agent.id, controller.signal.aborted ? 'idle' : 'failed')
-      if (!controller.signal.aborted && aeditor.reportError) aeditor.reportError({ scope: 'ai', connection: request.connectionName }, err)
-      scheduleQueuedAgents()
-      return null
-    })
-    return { request: request, controller: controller, promise: promise }
+    return startRunningRequest(agent.id, request, actor || waiting.actor, 'continuing after tool approval', false)
   }
 
   function stopAgent(agentId) {

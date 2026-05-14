@@ -32,6 +32,25 @@ const found = await ws.search('TWO', { limit: 5 })
 assert.equal(found.length, 1)
 assert.equal(found[0].path, 'src/panel.js')
 assert.equal(found[0].line, 2)
+assert.equal(found[0].column, 1)
+assert.equal(found[0].fileHash, patched.hash)
+assert.equal(found[0].previewEndLine, 4)
+
+const regexFound = await ws.search('t.o', { mode: 'regex', caseSensitive: false, limit: 5 })
+assert.equal(regexFound.some(function (item) { return item.path === 'src/panel.js' && item.matchText === 'TWO' }), true)
+const included = await ws.search('items', { include: ['data/*.json'], limit: 5 })
+assert.equal(included.length, 1)
+assert.equal(included[0].path, 'data/items.json')
+
+const editedText = aeditor.workspace.applyTextEdits('alpha\nbeta\n', aeditor.workspace.hashText('alpha\nbeta\n'), [
+  { oldText: 'beta', newText: 'BETA' },
+])
+assert.equal(editedText, 'alpha\nBETA\n')
+assert.throws(function () {
+  aeditor.workspace.applyTextEdits('same\nsame\n', aeditor.workspace.hashText('same\nsame\n'), [
+    { oldText: 'same', newText: 'other' },
+  ])
+}, /matched more than once/)
 
 await ws.write('src/new.js', 'hello')
 assert.equal((await ws.stat('src/new.js')).kind, 'file')

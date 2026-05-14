@@ -56,7 +56,7 @@
       placeholder: { type: 'string', desc: 'Hint shown when the textarea is empty.' },
       rows:        { type: 'int',    desc: 'Visible height in rows of text.' },
       submitMode:  { type: 'enum_string', type_agv: { options: ['none','modifier','enter'] },
-                     desc: 'Commit behavior: none 路 Ctrl/Cmd+Enter 路 Enter (Shift+Enter newline).' },
+                     desc: 'Commit behavior: none, Ctrl/Cmd+Enter, Enter (Shift+Enter newline).' },
       disabled:    { type: 'bool',   desc: 'Disable interaction (greyed out, not focusable).' },
     }),
     factory: function (p) {

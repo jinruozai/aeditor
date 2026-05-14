@@ -7,6 +7,7 @@ vm.runInThisContext(readFileSync('src/core/signal.js', 'utf8'), { filename: 'sig
 vm.runInThisContext(readFileSync('src/core/log.js', 'utf8'), { filename: 'log.js' })
 vm.runInThisContext(readFileSync('src/core/names.js', 'utf8'), { filename: 'names.js' })
 vm.runInThisContext(readFileSync('src/ai/name-generator.js', 'utf8'), { filename: 'ai/name-generator.js' })
+vm.runInThisContext(readFileSync('src/ai/permission.js', 'utf8'), { filename: 'ai/permission.js' })
 vm.runInThisContext(readFileSync('src/ai/store.js', 'utf8'), { filename: 'ai/store.js' })
 vm.runInThisContext(readFileSync('src/ai/connection.js', 'utf8'), { filename: 'ai/connection.js' })
 vm.runInThisContext(readFileSync('src/ai/adapter.js', 'utf8'), { filename: 'ai/adapter.js' })
@@ -14,6 +15,7 @@ vm.runInThisContext(readFileSync('src/ai/provider.js', 'utf8'), { filename: 'ai/
 vm.runInThisContext(readFileSync('src/ai/provider-auth.js', 'utf8'), { filename: 'ai/provider-auth.js' })
 vm.runInThisContext(readFileSync('src/ai/provider-transports.js', 'utf8'), { filename: 'ai/provider-transports.js' })
 vm.runInThisContext(readFileSync('src/ai/provider-connections.js', 'utf8'), { filename: 'ai/provider-connections.js' })
+vm.runInThisContext(readFileSync('src/ai/registries.js', 'utf8'), { filename: 'ai/registries.js' })
 vm.runInThisContext(readFileSync('src/ai/context.js', 'utf8'), { filename: 'ai/context.js' })
 vm.runInThisContext(readFileSync('src/ai/reference.js', 'utf8'), { filename: 'ai/reference.js' })
 vm.runInThisContext(readFileSync('src/ai/request.js', 'utf8'), { filename: 'ai/request.js' })
@@ -30,8 +32,11 @@ ai.registerTransport('capture', {
 })
 ai.registerConnection('capture', { auth: { type: 'none' }, transport: { type: 'capture' }, configDefaults: {} })
 
+let deniedReferenceCalls = 0
 ai.references.register('secret', {
-  read: function () { return { hidden: true } },
+  read: function () { deniedReferenceCalls += 1; return { hidden: true } },
+  schema: function () { deniedReferenceCalls += 1; return { type: 'object' } },
+  capabilities: function () { deniedReferenceCalls += 1; return [{ op: 'secret.write' }] },
 })
 
 const target = ai.createAgent({
@@ -61,8 +66,50 @@ assert.deepEqual(requestSeen.attachments, [])
 assert.equal(requestSeen.messages.some(function (m) {
   return String(m.content || '').indexOf('Secret One') >= 0 || String(m.content || '').indexOf('secret://one') >= 0
 }), false)
+assert.equal(deniedReferenceCalls, 0)
 
 ai.setPermissionResolver(null)
+let readCtx = null
+let schemaCtx = null
+let capabilitiesCtx = null
+ai.references.register('inspect', {
+  read: function (ref, options, ctx) {
+    readCtx = ctx
+    return { uri: ref.uri, text: 'visible' }
+  },
+  schema: function (ref, ctx) {
+    schemaCtx = ctx
+    return { type: 'object', properties: { text: { type: 'string' } } }
+  },
+  capabilities: function (ref, ctx) {
+    capabilitiesCtx = ctx
+    return [{ op: 'inspect.update', risk: 'edit' }]
+  },
+})
+const supervisor = ai.createAgent({ name: 'Supervisor' })
+const visibleAgent = ai.createAgent({
+  name: 'Visible Target',
+  parentAgentId: supervisor.id,
+  connection: 'capture',
+  messages: [{ role: 'user', content: 'read visible context' }],
+})
+const visible = ai.addAttachment({
+  resolver: 'inspect',
+  uri: 'inspect://one',
+  kind: 'inspect.item',
+  title: 'Visible One',
+  meta: { id: 'one' },
+})
+ai.updateAgent(visibleAgent.id, { contextRefs: [visible.id] })
+await ai.runAgent(visibleAgent.id, { actor: supervisor.id }).promise
+assert.equal(readCtx.actor, supervisor.id)
+assert.equal(schemaCtx.actor, supervisor.id)
+assert.equal(capabilitiesCtx.actor, supervisor.id)
+assert.equal(typeof readCtx.canRead, 'function')
+assert.equal(readCtx.canRead(visibleAgent.id, 'attachments.read'), true)
+assert.equal(requestSeen.attachmentRefs[0].schema.properties.text.type, 'string')
+assert.equal(requestSeen.attachmentRefs[0].capabilities[0].op, 'inspect.update')
+
 const imageAgent = ai.createAgent({
   name: 'Image Target',
   connection: 'capture',

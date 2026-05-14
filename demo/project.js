@@ -333,7 +333,7 @@
         if (!container || container.nodeType !== 1) return noopProjectHandle()
         container.textContent = ''
         const tree = ctx.layout || defaultLayoutRoot()
-        return ctx.createDockLayout(container, { tree: tree, lru: { max: -1 } })
+        return ctx.createDockLayout(container, { tree: tree, lru: { max: -1 }, dockMenu: true })
       },
     }
   }
@@ -1085,7 +1085,7 @@
     }, { owner: owner, layer: 'builtin' })
     aeditor.ai.tools.register('demo.project.writeFile', {
       title: 'Write Project File',
-      description: 'Write one complete project file. JS/JSON writes are validated before commit; broad rewrites are high risk, prefer patchFile when possible.',
+      description: 'Write one complete project file. JS/JSON writes are validated before commit; broad rewrites are high risk, prefer workspace.editFile for existing source files.',
       schema: { type: 'object', required: ['path', 'text'], properties: { projectId: { type: 'string' }, path: { type: 'string' }, text: { type: 'string' }, baseHash: { type: 'string' }, validate: { type: 'string', enum: ['auto', 'none', 'javascript', 'json'] } } },
       permissions: ['tool.call', 'tool.apply'],
       exposeToModel: false,

@@ -9,6 +9,7 @@ for (const file of [
   'src/core/log.js',
   'src/core/names.js',
   'src/ai/name-generator.js',
+  'src/ai/permission.js',
   'src/ai/store.js',
   'src/ai/connection.js',
   'src/ai/adapter.js',
@@ -16,6 +17,7 @@ for (const file of [
   'src/ai/provider-auth.js',
   'src/ai/provider-transports.js',
   'src/ai/provider-connections.js',
+  'src/ai/registries.js',
   'src/ai/context.js',
   'src/ai/request.js',
   'src/ai/runtime.js',
@@ -24,6 +26,46 @@ for (const file of [
 }
 
 const ai = window.aeditor.ai
+
+ai.tools.register('dupe.tool', { run: function () { return 'one' } })
+assert.throws(function () {
+  ai.tools.register('dupe.tool', { run: function () { return 'hidden overwrite' } })
+}, /duplicate name "dupe.tool"/)
+ai.tools.register('dupe.tool', { run: function () { return 'two' } }, { replace: true })
+assert.equal(ai.tools.get('dupe.tool').run(), 'two')
+ai.tools.unregister('dupe.tool')
+
+ai.context.register('dupe.context', { capture: function () { return 'one' } })
+assert.throws(function () {
+  ai.context.register('dupe.context', { capture: function () { return 'hidden overwrite' } })
+}, /duplicate name "dupe.context"/)
+ai.context.register('dupe.context', { capture: function () { return 'two' } }, { replace: true })
+assert.equal(ai.context.get('dupe.context').capture(), 'two')
+ai.context.unregister('dupe.context')
+
+ai.skills.register('dupe.skill', { title: 'One' })
+assert.throws(function () {
+  ai.skills.register('dupe.skill', { title: 'Hidden overwrite' })
+}, /duplicate name "dupe.skill"/)
+ai.skills.register('dupe.skill', { title: 'Two' }, { replace: true })
+assert.equal(ai.skills.get('dupe.skill').title, 'Two')
+ai.skills.unregister('dupe.skill')
+
+ai.agentTemplates.register('dupe.agent', { title: 'One' })
+assert.throws(function () {
+  ai.agentTemplates.register('dupe.agent', { title: 'Hidden overwrite' })
+}, /duplicate name "dupe.agent"/)
+ai.agentTemplates.register('dupe.agent', { title: 'Two' }, { replace: true })
+assert.equal(ai.agentTemplates.get('dupe.agent').title, 'Two')
+ai.agentTemplates.unregister('dupe.agent')
+
+ai.bundles.register('dupe.bundle', {})
+assert.throws(function () {
+  ai.bundles.register('dupe.bundle', {})
+}, /duplicate name "dupe.bundle"/)
+ai.bundles.register('dupe.bundle', {}, { replace: true })
+assert.equal(ai.bundles.get('dupe.bundle') != null, true)
+ai.bundles.unregister('dupe.bundle')
 
 function latestCall(agentId) {
   const agent = ai.findAgent(agentId)
@@ -78,6 +120,14 @@ ai.tools.register('currently-unavailable', {
   available: function () { return false },
   run: function () { return true },
 })
+let availableCtx = null
+ai.tools.register('ctx-visible', {
+  available: function (ctx) {
+    availableCtx = ctx
+    return typeof ctx.canRead === 'function' && ctx.canRead(defaultToolAgent.id, 'agent.full')
+  },
+  run: function () { return true },
+})
 const filteredToolRequest = ai.makeRequest(ai.createAgent({
   name: 'Filtered Tool Agent',
   path: 'tools/filtered',
@@ -85,6 +135,8 @@ const filteredToolRequest = ai.makeRequest(ai.createAgent({
 }), null, 'run_filtered_tools', 'user', 0)
 assert.equal(filteredToolRequest.tools.includes('hidden-by-default'), false)
 assert.equal(filteredToolRequest.tools.includes('currently-unavailable'), false)
+assert.equal(filteredToolRequest.tools.includes('ctx-visible'), true)
+assert.equal(availableCtx.actor, 'user')
 const explicitToolRequest = ai.makeRequest(ai.createAgent({
   name: 'Explicit Tool Agent',
   path: 'tools/explicit',
@@ -318,6 +370,22 @@ const loopReply = await loopRun.promise
 assert.equal(loopReply.content, 'Tool says 42')
 assert.equal(loopRequests.length, 2)
 assert.equal(ai.findAgent(loopAgent.id).messages.some(function (message) { return message.role === 'tool' }), true)
+
+let autoSkillCalls = 0
+ai.skills.register('auto.once', {
+  title: 'Auto Once',
+  rules: ['Auto once rule'],
+  auto: function (ctx) {
+    autoSkillCalls += 1
+    return ctx.agent && ctx.agent.id === loopAgent.id
+  },
+})
+const autoSkillRequest = ai.makeRequest(loopAgent, null, 'run_auto_skill', 'user', 0)
+assert.deepEqual(autoSkillRequest.skills.filter(function (id) { return id === 'auto.once' }), ['auto.once'])
+assert.equal(autoSkillRequest.skillSpecs.some(function (skill) { return skill.id === 'auto.once' }), true)
+assert.match(autoSkillRequest.messages[0].content, /Auto once rule/)
+assert.equal(autoSkillCalls, 1)
+ai.skills.unregister('auto.once')
 
 ai.bundles.register('bundle.case', {
   connections: [{ id: 'bundle.connection', auth: { type: 'none' }, transport: { type: 'mock' }, configDefaults: {} }],

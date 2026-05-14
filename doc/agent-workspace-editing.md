@@ -36,8 +36,9 @@ verify.*     optional host-provided verification adapter
 ```
 
 `workspace.*` is the file boundary. It can list, summarize, search, read ranges,
-write, patch, delete, and stat files. Mutating tools return a diff summary with
-before and after hashes, changed line range, and size/line counts.
+edit by exact replacement, write, patch, delete, and stat files. Mutating tools
+return a diff summary with before and after hashes, changed line range, and
+size/line counts.
 Their preview phase also returns this summary, so file edits are reviewable
 before apply.
 
@@ -181,7 +182,7 @@ verify.diagnostics
 Keep model context small and exact:
 
 ```text
-map/search first -> read outlines/ranges -> patch with baseHash -> reload/check
+map/search first -> read outlines/ranges -> exact edit with baseHash -> reload/check
 ```
 
 Use full file reads only for small files or when exact rewrite context is
@@ -193,10 +194,16 @@ workspace.fileSummary(...)
 code.outline(...)
 workspace.searchFiles(...)
 workspace.readFileRange(...)
+workspace.editFile(...)
 workspace.patchFile(...)
 demo.project.readSource({ projection: "outline" })
 demo.project.readSource({ projection: "events" })
 ```
+
+For existing source files, prefer `workspace.editFile`: copy `oldText` from a
+recent `readFileRange` result and include that file hash as `baseHash`.
+`workspace.patchFile` is for mechanical line patches. `workspace.writeFile` is
+for new files or deliberate full replacement.
 
 The transcript is not the source of truth for code. Workspace files are. After a
 reload or failed check, reread the relevant file or panel health before

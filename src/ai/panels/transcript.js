@@ -209,7 +209,7 @@
       const item = items[i]
       const label = typeof item === 'string'
         ? item
-        : (item.title || item.label || item.name || item.uri || item.id || item.resourceId || 'context')
+        : (item.title || item.label || item.name || item.uri || item.id || item.refId || 'context')
       const kind = typeof item === 'string' ? 'ref' : (item.kind || item.resolver || 'ref')
       const chip = ui.h('span', 'aeditor-ai-message-chip')
       chip.appendChild(ui.h('span', 'aeditor-ai-message-chip-kind', { text: kind }))

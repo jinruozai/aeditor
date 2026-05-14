@@ -197,11 +197,11 @@
     const seen = {}
     const out = []
     function add(ref) {
-      const id = typeof ref === 'string' ? ref : (ref && (ref.uri || ref.id || ref.resourceId))
+      const id = typeof ref === 'string' ? ref : (ref && (ref.uri || ref.id || ref.refId))
       if (!id || seen[id]) return
       seen[id] = true
       out.push(typeof ref === 'string' ? { id: ref } : {
-        id: ref.id || ref.resourceId || null,
+        id: ref.id || ref.refId || null,
         uri: ref.uri || '',
         kind: ref.kind || ref.resolver || '',
         title: ref.title || '',

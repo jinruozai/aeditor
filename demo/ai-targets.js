@@ -411,8 +411,8 @@
           : (workspace ? { op: 'demo.project.mountPanel', risk: 'edit', purpose: 'Bootstrap/open the selected workspace and mount a registered component.' } : null)
       ].filter(Boolean),
       tools: project
-        ? ['aeditor.readReference', 'aeditor.getCapabilities', 'workspace.fileSummary', 'workspace.searchFiles', 'workspace.readFile', 'workspace.patchFile', 'workspace.writeFile', 'code.map', 'code.outline', 'demo.project.readDescriptor', 'demo.project.mountPanel', 'demo.project.reload']
-        : (workspace ? ['aeditor.readReference', 'aeditor.getCapabilities', 'workspace.fileSummary', 'workspace.readFile', 'workspace.writeFile', 'demo.project.mountPanel'] : ['aeditor.readReference', 'aeditor.getCapabilities']),
+        ? ['aeditor.readReference', 'aeditor.getCapabilities', 'workspace.fileSummary', 'workspace.searchFiles', 'workspace.readFile', 'workspace.readFileRange', 'workspace.editFile', 'workspace.patchFile', 'workspace.writeFile', 'code.map', 'code.outline', 'demo.project.readDescriptor', 'demo.project.mountPanel', 'demo.project.reload']
+        : (workspace ? ['aeditor.readReference', 'aeditor.getCapabilities', 'workspace.fileSummary', 'workspace.searchFiles', 'workspace.readFileRange', 'workspace.editFile', 'workspace.writeFile', 'demo.project.mountPanel'] : ['aeditor.readReference', 'aeditor.getCapabilities']),
     }
   }
 

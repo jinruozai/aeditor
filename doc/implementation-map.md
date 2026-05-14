@@ -16,23 +16,23 @@ preserved or deliberately replaced.
 | `src/core/theme.js` | [core.md](./core.md), [ui.md](./ui.md) | Theme mode and tokens. |
 | `src/style/theme-settings.js` | [core.md](./core.md), [ui.md](./ui.md) | Theme module settings contribution. |
 | `src/core/i18n.js` | [core.md](./core.md) | Language strings. |
-| `src/core/settings.js` | [core.md](./core.md) | Settings sections, schemas, pages, persistence, prefix cleanup. |
-| `src/core/commands.js` | [core.md](./core.md) | Commands, menus, and prefix cleanup. |
+| `src/core/settings.js` | [core.md](./core.md) | Settings sections, schemas, pages, persistence, owner cleanup, and dotted-prefix helpers. |
+| `src/core/commands.js` | [core.md](./core.md) | Commands, menus, owner cleanup, and dotted-prefix helpers. |
 | `src/core/shortcuts.js` | [core.md](./core.md) | Shortcut infrastructure. |
-| `src/core/workspace.js` | [workspace.md](./workspace.md) | Workspace adapters and path safety. |
+| `src/core/workspace.js` | [workspace.md](./workspace.md), [workspace-precise-editing.md](./workspace-precise-editing.md) | Workspace adapters, path safety, search, and exact text edit helpers. |
 
 ## UI
 
 | Source | Document | Notes |
 | --- | --- | --- |
 | `src/tree/tree.js` | [ui.md](./ui.md) | Immutable dock tree and pure layout functions. |
-| `src/core/registry.js` | [ui.md](./ui.md) | Component registry and prefix cleanup. |
+| `src/core/registry.js` | [ui.md](./ui.md) | Component registry, owner cleanup, and dotted-prefix helpers. |
 | `src/core/context.js` | [ui.md](./ui.md), [core.md](./core.md) | Component context and cleanup. |
 | `src/dock/runtime.js` | [ui.md](./ui.md) | Dock runtime, panel materialization, and detached DOM. |
 | `src/dock/render.js` | [ui.md](./ui.md) | Dock reconciliation and toolbar rendering. |
 | `src/dock/interactions.js` | [ui.md](./ui.md) | Splitter, split, merge, drag hover. |
 | `src/dock/panel-drag.js` | [ui.md](./ui.md) | Panel/tab drag and dock drop. |
-| `src/dock/menu.js` | [ui.md](./ui.md) | Dock and tab menus. |
+| `src/dock/menu.js` | [ui.md](./ui.md) | Optional built-in dock command/menu contribution. |
 | `src/dock/migrate.js` | [ui.md](./ui.md) | Pop-out and cross-window migration. |
 | `src/dock/layout.js` | [ui.md](./ui.md) | `createDockLayout`. |
 | `src/ui/**` | [ui.md](./ui.md) | Generic UI component library and built-in generic panel components. |
@@ -43,18 +43,20 @@ preserved or deliberately replaced.
 | Source | Document | Notes |
 | --- | --- | --- |
 | `src/ai/name-generator.js` | [ai-runtime.md](./ai-runtime.md) | Agent name generation. |
-| `src/ai/store.js` | [ai-runtime.md](./ai-runtime.md), [ai-context-compaction.md](./ai-context-compaction.md), [ai-registries.md](./ai-registries.md) | Agents, messages, quests, permissions, persistence, memory, attachments. |
+| `src/ai/permission.js` | [ai-permission-policy.md](./ai-permission-policy.md), [ai-runtime.md](./ai-runtime.md) | Permission resolver, default hierarchy policy, path rules, and audit log. |
+| `src/ai/store.js` | [ai-runtime.md](./ai-runtime.md), [ai-context-compaction.md](./ai-context-compaction.md), [ai-registries.md](./ai-registries.md) | Agents, messages, quests, persistence, memory, attachments, and permission-scoped read facades. |
 | `src/ai/compaction.js` | [ai-context-compaction.md](./ai-context-compaction.md), [ai-runtime.md](./ai-runtime.md) | Semantic compaction records, safe range planning, request filtering, and compaction context messages. |
 | `src/ai/runtime.js` | [ai-runtime.md](./ai-runtime.md) | Scheduler, runs, resume, tool approval flow. |
 | `src/ai/orchestration.js` | [ai-runtime.md](./ai-runtime.md) | Agent, quest, message tools. |
-| `src/ai/request.js` | [ai-runtime.md](./ai-runtime.md), [ai-context-compaction.md](./ai-context-compaction.md), [ai-registries.md](./ai-registries.md) | Runtime prompt/context construction, attachments, and current budget fallback. |
-| `src/ai/context.js` | [ai-runtime.md](./ai-runtime.md), [ai-registries.md](./ai-registries.md) | `ai.tools`/`ai.context` facades, skill registry, plugin hooks, and tool-call lifecycle. |
+| `src/ai/request.js` | [ai-runtime.md](./ai-runtime.md), [ai-context-assembly.md](./ai-context-assembly.md), [ai-context-compaction.md](./ai-context-compaction.md), [ai-registries.md](./ai-registries.md) | Runtime request assembly: context cards, attachments, compaction, tool visibility, and budgeted transcript fallback. |
+| `src/ai/registries.js` | [ai-runtime.md](./ai-runtime.md), [ai-registries.md](./ai-registries.md) | Tool, skill, context provider, agent template, and bundle registries. |
+| `src/ai/context.js` | [ai-runtime.md](./ai-runtime.md) | Tool-call lifecycle and run context helpers. |
 | `src/ai/skills.js` | [ai-runtime.md](./ai-runtime.md) | Built-in framework skills, including `aeditor.authoring`. |
-| `src/ai/reference.js` | [ai-registries.md](./ai-registries.md) | Reference provider and operation protocol with prefix cleanup. |
+| `src/ai/reference.js` | [ai-registries.md](./ai-registries.md) | Reference provider and operation protocol with owner cleanup and dotted-prefix helpers. |
 | `src/ai/target.js` | [ai-registries.md](./ai-registries.md) | Add-to-chat targets, drag/drop, file targets. |
 | `src/ai/rich-prompt.js` | [ai-registries.md](./ai-registries.md) | Inline references in prompt text. |
 | `src/ai/change-set.js` | [ai-registries.md](./ai-registries.md) | Grouped review and apply/reject. |
-| `src/ai/workdir.js` | [workspace.md](./workspace.md) | Workspace module tool contributions and preview/apply file writes. |
+| `src/ai/workdir.js` | [workspace.md](./workspace.md), [workspace-precise-editing.md](./workspace-precise-editing.md) | Workspace module tool contributions and preview/apply file writes/edits. |
 
 ## Outside Framework Bundle
 
@@ -67,7 +69,7 @@ preserved or deliberately replaced.
 | Source | Document | Notes |
 | --- | --- | --- |
 | `src/ai/provider.js` | [provider.md](./provider.md) | Provider helper utilities and usage cost. |
-| `src/ai/adapter.js` | [provider.md](./provider.md) | Request/response adapter and text tool protocol. |
+| `src/ai/adapter.js` | [provider.md](./provider.md) | Provider message/tool formatting and text tool protocol. |
 | `src/ai/connection.js` | [provider.md](./provider.md) | Connection, auth driver, transport driver registries. |
 | `src/ai/provider-auth.js` | [provider.md](./provider.md) | Built-in auth drivers. |
 | `src/ai/provider-transports.js` | [provider.md](./provider.md) | Built-in transport drivers. |
@@ -77,7 +79,10 @@ preserved or deliberately replaced.
 
 | Source | Document | Notes |
 | --- | --- | --- |
-| `src/core/extensions.js` | [extensions.md](./extensions.md), [architecture-notes.md](./architecture-notes.md) | Extension install/review/recovery/dynamic UI. |
+| `src/extensions/manifest.js` | [extensions.md](./extensions.md), [architecture-notes.md](./architecture-notes.md) | Manifest normalization, public ids, trust helpers, and structural validation helpers. |
+| `src/extensions/install.js` | [extensions.md](./extensions.md), [architecture-notes.md](./architecture-notes.md) | Installs extension contributions into existing component, AI, settings, and command registries. |
+| `src/extensions/runtime.js` | [extensions.md](./extensions.md), [architecture-notes.md](./architecture-notes.md) | Optional Extension Runtime lifecycle: review, install/update/uninstall, storage, layers, recovery, and dock panel placement. |
+| `src/extensions/ai.js` | [extensions.md](./extensions.md), [ai.md](./ai.md) | Bridge that exposes Extension Runtime lifecycle and dock-panel actions through AI operations/tools. |
 
 ## AI Panels
 

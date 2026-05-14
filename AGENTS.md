@@ -9,13 +9,14 @@
 
 **aeditor** —— 一个纯前端、零依赖、Blender 风格的通用编辑器框架。
 
-当前产品边界分三层:
+当前产品边界分四块:
 
 1. **AEditor Core/UI**:稳定零依赖内核,提供 Dock/Panel/Component、UI 组件库、主题、signal/log/bus/settings/history/workspace contract。
 2. **AEditor AI Host**:可选上层模块,提供 agent runtime、provider、tools/context/operations、permissions、ChangeSet、compaction。它依赖 Core/UI,但 Core/UI 不依赖 AI。
-3. **Demo Project Runtime**:示例宿主应用,用于演示“打开 workspace、加载文件、注册组件、挂到 dock”。它不属于框架层概念,不得写进 `src/` 的通用设计。
+3. **AEditor Extension Runtime**:可选上层模块,把 component/tool/context/reference/operation/settings/command/menu/dock panel contribution 安装进已有 registry。它不是第二套组件或 AI 模型。
+4. **Demo Project Runtime**:示例宿主应用,用于演示“打开 workspace、加载文件、注册组件、挂到 dock”。它不属于框架层概念,不得写进 `src/` 的通用设计。
 
-AEditor 仍坚持零依赖、零模块系统、单命名空间和 file:// 可运行。AI Host 和 Extension 是框架提供的可选能力,不是把 Core/UI 变成业务编辑器。
+AEditor 仍坚持零依赖、零模块系统、单命名空间和 file:// 可运行。AI Host 和 Extension Runtime 是框架提供的可选能力,不是把 Core/UI 变成业务编辑器。
 
 - **零构建**:经典 `<script>` 标签,直接 `file://` 双击 `index.html` 就能跑
 - **零依赖**:不用 npm,不用打包工具,不用任何框架
@@ -111,25 +112,26 @@ HTML 用 `<script src="...">` 按依赖顺序加载。用户必须能双击 `ind
 
 ## 3. 当前代码状态(已实现)
 
-> § 6 的 Phase 1 在用户的"Phase 1 范围就是全部实现,直接按最终版本做"指令下被一次性整体落地。本节是给"上一个会话结束后回来的 Codex"看的最新快照 —— 读完这一节就知道当前代码到什么程度了,**不要再去 git log 一行一行查**。
+> 本节是当前实现快照。读完这一节就知道代码到什么程度了;不要用旧对话、旧阶段或 `doc/old/**` 推断当前架构。
 
 ### 3.1 目录(实际落盘)
 
 ```
 aeditor/
-  index.html                       # demo 入口 — 引用 dist/aeditor.{css,js} + demo widgets
+  index.html                       # demo 入口 — 引用 dist/aeditor-full.{css,js} + demo widgets
   AGENTS.md                        # 本文件 — 工作交接与硬规则权威
   doc/
-    editor_style.html              # 视觉调色板参考(只读,不改)
+    old/editor_style.html          # 视觉调色板历史参考(只读,不改)
 
   tools/
     build.mjs                      # § 2.2 零构建承诺的载体:cat 带 banner,
-                                   # 把 src/ 里 62 个 .js 和 9 个 .css 拼成
-                                   # dist/aeditor.js + dist/aeditor.css。支持 --watch
+                                   # 拼出 core/full 双 bundle;支持 --watch
 
   dist/                            # 已 commit 的 bundle 产物(保证零环境双击运行)
-    aeditor.js                          # ~174 KB,62 个 IIFE 文件按依赖序拼接
-    aeditor.css                         # ~68 KB,9 个 CSS 文件拼接
+    aeditor-core.js / .css              # Core/UI/Dock
+    aeditor-full.js / .css              # Core/UI/Dock + AI Host + Extension Runtime
+    aeditor.js / .css                   # core alias,保持经典路径可用
+                                   # npm 发布包只包含 core/full 四个 runtime 文件
 
   .Codex/
     launch.json                    # Codex Preview 的 dev server 配置
@@ -154,7 +156,22 @@ aeditor/
     style/
       theme.css                    # 主题 v2 token(authoring → primitive/ramp → role → component)+ dark/dracula/light
       dock.css / component.css        # 框架自己的 dock + tab + toolbar 样式
-      ui-base.css / ui-form.css / ui-editor.css / ui-container.css / ui-data.css / ui-overlay.css
+      ui-base.css / ui-form.css / ui-editor.css / ui-container.css / ui-data.css / ui-overlay.css / ui-ai.css
+    ai/
+      permission.js                # 统一 permission resolver + audit + path rules
+      store.js                     # agents/messages/quests/attachments/persistence 状态核心
+      registries.js                # tools/skills/context/templates/bundles registry
+      context.js                   # tool-call lifecycle + run context helpers
+      request.js / runtime.js      # request assembly + scheduler/run/resume/tool approval
+      reference.js / change-set.js # references/operations + grouped review/apply
+      target.js / rich-prompt.js   # add-to-chat targets + inline references
+      provider*.js / adapter.js    # provider/connection/auth/transport/message tool protocol
+      panels/                      # AI panel components(chat/transcript/settings/rich prompt 等)
+    extensions/
+      manifest.js                  # manifest normalize / public ids / trust + validation helpers
+      install.js                   # contribution installers into existing registries
+      runtime.js                   # Optional Extension Runtime lifecycle/review/storage/recovery/dock panels
+      ai.js                        # Extension Runtime ↔ AI Host bridge(operations/tools)
     ui/                            # ⭐ UI 组件库(aeditor.ui.* 命名空间),按类别分目录
       _internal/                   # _portal / _floating / _drag / _signal / _overlay
       base/                        # button / iconButton / icon / tooltip / popover / kbd / badge / tag / spinner / divider
@@ -180,12 +197,14 @@ aeditor/
 ```
 
 **关键提示给下一个会话的 Codex**:
-- **目录分层**(重构后):
-  - `src/core/` = 零依赖底层 + 注册表 + context 工厂(原 `src/core/` 的 registry/context 已并入这里)
+- **目录分层**:
+  - `src/core/` = 零依赖底层 + component registry + context 工厂
+  - `src/ai/` = Optional AI Host(agent/provider/tool/context/reference/operation/ChangeSet/permission/runtime)
+  - `src/extensions/` = Optional Extension Runtime,安装 contribution 到已有 registry,并通过 owner 精确卸载
   - `src/ui/` = `aeditor.ui.*` 通用 UI 元件库(50+ 个)
   - `src/ui/panel/` = 内置 panel 级 component(dock-tabs / log),用 `registerComponent` 注册,能直接塞进 dock
   - `demo/` = 用户层 demo,catalog+state 负责数据,components/ 负责 5 个面板
-- 改完 `src/` 下任何文件**必须** `node tools/build.mjs` 重新生成 `dist/aeditor.{js,css}`,index.html 是直接引用 dist 的,不重建就看不到改动
+- 改完 `src/` 下任何文件**必须** `node tools/build.mjs` 重新生成 `dist/aeditor-core.*` / `dist/aeditor-full.*` / `dist/aeditor.*`,index.html 是直接引用 full dist 的,不重建就看不到改动
 - **`demo/` 下的文件不进 bundle** —— index.html 直接 `<script>` 加载 demo/*.js,改完 reload 即可
 - 写 dev server 时用 `.Codex/launch.json` 已配好的 `aeditor-demo`(端口 5570),不要自己拉新端口
 - 文件加载顺序看 `tools/build.mjs` 的 `JS_ORDER` / `CSS_ORDER` 数组,**那是依赖序的唯一权威**
@@ -211,7 +230,24 @@ aeditor/
 - 全部走统一 cleanup 协议:`el.__aeditorCleanups: fn[]` + `aeditor.ui.dispose(el)`
 - Overlay 走 `_portal.js` 的 `#aeditor-portal-root` 单例
 - 数据组件(list/tree/table)直接虚拟化,tree 先 flatten 再复用 list 行
-- 全部 50 个组件 + 内部辅助 + 9 个 CSS 文件 = 已经 100% 编出 dist 并在 demo 里可以点
+- 全部 50+ 个组件 + 内部辅助 + 11 个 CSS 文件 = 已经 100% 编出 dist 并在 demo 里可以点
+
+**AI Host(可选层)**:
+- `src/ai/permission.js` 是统一 permission resolver / audit / path rule owner。Tools、operations、ChangeSet apply、workspace writes、extension install、host adapter 调用都走同一套 actor/target/scope 判断。
+- `src/ai/registries.js` 统一管理 tools、skills、context providers、agent templates、bundles。Dotted name 是公开命名和筛选形状;extension 生命周期用 owner 精确清理。
+- `src/ai/context.js` 只负责 tool-call lifecycle 和 run context helper,不再承担 registry。
+- `src/ai/request.js` 负责请求组装:system context、attachments、reference snapshots、compaction、tool visibility、budgeted transcript。
+- `src/ai/runtime.js` 负责 scheduler/run/resume/tool approval/continuation。
+- `src/ai/reference.js` 提供 references + operations 协议;`src/ai/change-set.js` 提供 grouped review/apply。
+- Rich prompt token 存 `refId`,不是 `resourceId`;chat attachments 是 runtime state,不是新的 model-facing registry。
+
+**Extension Runtime(可选层)**:
+- `src/extensions/manifest.js` 负责 manifest normalize、public id、trust 和结构校验 helper。
+- `src/extensions/install.js` 负责把 contribution 安装进已有 component/AI/settings/commands registry。
+- `src/extensions/runtime.js` 负责 review、install/update/uninstall、enable/disable、storage、safe mode、recovery、dock panel placement。
+- `src/extensions/ai.js` 只负责把 Extension Runtime 的生命周期和 dock-panel 能力桥接成 AI operations/tools。
+- Extension contribution 发布 dotted public name,例如 `sample.panel`;生命周期 owner 是 `extension:sample`。卸载/禁用优先 `unregisterOwner(owner)`,不能用裸 prefix 当最终生命周期边界。
+- Extension Runtime 不创建第二套 component/tool/context/operation 模型,只把 contribution 安装到已有 registry。
 
 **主题系统**:
 - `src/style/theme.css` 采用 v2 分层:Authoring tokens(给主题作者改:`--aeditor-surface-*` / `--aeditor-text-*` / `--aeditor-stroke-*` / `--aeditor-brand*` / `--aeditor-state-*`) → primitive/ramp 兼容层(`--aeditor-c-00..11`) → role tokens(组件消费:`--aeditor-bg-N` / `--aeditor-fg-N` / `--aeditor-border*` / `--aeditor-accent*`) → 少量 component tokens(`--aeditor-toolbar-h` 等)
@@ -246,10 +282,10 @@ aeditor/
 3. **不要在 component `factory(propsSig, ctx)` 里调 `ctx.panel.updateProps()` 高频化**(§ 4.9 已警告)。它写回 tree 触发 reconcile,keystroke 级别会卡。
 4. **改了 `src/` 没 rebuild = 看不到改动**。每次都跑 `node tools/build.mjs`(或 `--watch`)。**改 `demo/` 不用 rebuild**,demo 是 `<script>` 直挂的,reload 即可。
 5. **`registerComponent` 重名 throw**。同一个 component 不能注册两次,reload 时如果 demo component 文件被加载两次会炸。`index.html` 里 demo component 用 `<script>` 标签,默认不会重复。
-6. **dist/aeditor.{js,css} 是已 commit 的产物**。改了源码之后 commit 时记得把 dist 一起 commit,否则克隆出去的人看不到效果。
+6. **dist/aeditor-core.* / dist/aeditor-full.* / dist/aeditor.* 是已 commit 的产物**。改了源码之后 commit 时记得把 dist 一起 commit,否则克隆出去的人看不到效果。
 7. **focus mode 有 CSS containing block 限制**(§ 4.5 已记录)。aeditor root 的祖先不能有 `transform/filter/perspective/will-change`。
 8. **`addPanel(..., { transient: true })` 自动驱逐同 dock 已有 transient**(§ 4.4 框架级预览槽语义,2026-04-15 落地)。调用方不用自己写"找到现有 transient 再删"的胶水 —— tree 层已经做了。`LayoutHandle.promotePanel(panelId)` 负责"单击→preview / 双击→固定"的升级路径。
-9. **所有可调常数的唯一存储是 `src/style/theme.css` 的 `--aeditor-*` token**(2026-04-16 "统一配置" 轮落地,见 § 8 item 13)。**不要**在 JS 里新写任何"默认时长 220ms / 默认阈值 6px / icon 映射表"。判据:"JS 要不要对这个值做数值运算?" 否 → CSS `var()`/`calc(var())`/`content: var()`;是 → `aeditor.ui.readNum('--aeditor-xxx', fallback)`。消费者看 `drawer.js` / `interactions.js` / `panel-drag.js` 的写法,不要复制旧习惯。
+9. **所有可调常数的唯一存储是 `src/style/theme.css` 的 `--aeditor-*` token**。**不要**在 JS 里新写任何"默认时长 220ms / 默认阈值 6px / icon 映射表"。判据:"JS 要不要对这个值做数值运算?" 否 → CSS `var()`/`calc(var())`/`content: var()`;是 → `aeditor.ui.readNum('--aeditor-xxx', fallback)`。消费者看 `drawer.js` / `interactions.js` / `panel-drag.js` 的写法,不要复制旧习惯。
 
 ---
 
@@ -268,11 +304,11 @@ aeditor/
 合并时**直接吞并**,被吞 dock 的所有 panels 默认**直接丢弃**。winner dock 保持自己的 panels 和 active 不变,只是面积扩大。这是 Blender-correct 的 —— merge 不是数据合并,是几何吞并。
 
 **但是 dirty panel 不能静默丢失**(Blender 的 area 没有 dirty 概念,我们有,这里要偏离原版语义):
-- 纯函数 `mergeDocks(tree, dockId, dir)` 的返回值从单 tree 改成 `{ tree, discardedPanels }`(仍无副作用,`discardedPanels` 是被吞 dock 的 `panels[]` 快照)
+- 纯函数 `mergeDocks(tree, winnerId, loserId)` 的返回值是 `{ tree, discardedPanels }`(仍无副作用,`discardedPanels` 是被吞 dock 的 `panels[]` 快照)
 - `interactions.js` 在 commit merge 前检查 `discardedPanels.some(p => p.dirty)`:
   - 无 dirty → 正常 commit
   - 有 dirty → 默认**阻止 merge**,preview 回滚,不弹任何 UI(框架不绑对话框)
-- 可选钩子 `aeditor.hooks.onDirtyDiscard?: (panels) => 'discard' | 'cancel'`:用户设置后,有 dirty 时调钩子,钩子返回 `'discard'` 才允许 merge。钩子缺省时永远当成 `'cancel'`
+- 可选钩子 `config.hooks.onDirtyDiscard?: (panels) => 'discard' | 'cancel'`:用户设置后,有 dirty 时调钩子,钩子返回 `'discard'` 才允许 merge。钩子缺省时永远当成 `'cancel'`
 
 ### 4.3 多 panel 的实现:Detached DOM(高效的本质)
 这是最重要的性能决策,也是最简单的那个:**dock 的 content 容器在任何时刻只挂 active panel 的 contentEl,其他 panel 的 contentEl 从 DOM 完全 detach,保留在 runtime map 里作为 reference。**
@@ -410,6 +446,7 @@ createDockLayout(container: HTMLElement, config: LayoutConfig) → LayoutHandle
 LayoutConfig = {
   tree:   LayoutTree,                // 初始布局(必填)
   lru?:   { max: number },           // 默认 { max: -1 }(不限,见 § 4.3)
+  dockMenu?: boolean,                // 默认 false; true 时安装内置 Dock Menu contribution
   hooks?: {
     onDirtyDiscard?: (panels: PanelData[]) => 'discard' | 'cancel',   // § 4.2
   },
@@ -701,14 +738,14 @@ ctx.panel = {
 - `dock.id`:框架内部计数器 `dock-1 / dock-2 / ...`
 - 对应 API 改为只接 "部分 PanelData"(不含 id),执行后返回新生成的 id:
   - `addPanel(tree, dockId, partial, opts?) → { tree, panelId }`
-  - `splitDock(tree, dockId, dir, opts?) → { tree, newDockId, newPanelId? }`(分裂出空 dock 时 `newPanelId` 为 `undefined`)
+  - `splitDock(tree, dockId, dir, side, ratio?, opts?) → { tree, newDockId, newPanelId? }`(分裂出空 dock 时 `newPanelId` 为 `undefined`)
   - `createDockLayout(config)` 顶层配置允许用"锚点名"(如 `name: 'sidebar'`)做稳定引用,内部依然生成 id 并维护一张 `name → id` 的查找表
 - 重复 id 理论上不会发生(框架生成,全局单调)
 
 **active 切换用激活计数,不用"前/后邻居"。**
-- 全局单调递增 `aeditor._activationCounter`(进程内)
-- `activatePanel(dockId, panelId)` 执行时,在对应 PanelRuntime 上写 `runtime.lastActivatedAt = ++aeditor._activationCounter`(这是 runtime 的字段,不写回 tree)
-- 删除 active panel 后,新 active = 剩余 panels 里 `lastActivatedAt` 最大的那个 runtime 对应的 panelId;dock 空了则 `activeId = null`
+- 每个 `LayoutRuntime` 内部维护单调递增 `activationCounter`。
+- `activatePanel(panelId)` 执行时,在对应 PanelRuntime 上写 `runtime.lastActivatedAt = ++layout.activationCounter`(这是 runtime 的字段,不写回 tree)。
+- 删除 active panel 后,纯 tree 层默认选择剩余 panels 的最后一个;运行时层负责 dispose 被删 panel 并保持 tree/runtime 一致。
 - 同一个字段被 § 4.3 的 LRU 复用:`lru.max = N` 时,按 runtime 的 `lastActivatedAt` 升序挑最小的 **dispose**(真 dispose,不是 hide)
 
 ### 4.12 Panel 白名单(dock.accept)
@@ -793,289 +830,83 @@ aeditor.bus.emit(topic, payload)
 
 ---
 
-## 5. 目录结构
+## 5. 目录与维护规则
 
-```
-aeditor/
-  index.html
-  AGENTS.md            # 本文件(工作交接与硬规则权威)
-  doc/
-    editor_style.html  # 视觉调色板参考
+目录边界必须表达概念边界:
 
-  src/
-    core/
-      signal.js        # 响应式核心:signal / effect / derived / batch / onCleanup
-      log.js           # 全局日志流 + reportError + safeCall + window 兜底
-      bus.js           # aeditor.bus:pub/sub + auto-unsubscribe(§ 4.13)
-
-    tree/
-      tree.js          # 不可变树节点 + 所有纯函数(无 DOM)
-
-    core/
-      registry.js      # registerComponent / resolveComponent / componentDefaults(§ 4.8)
-      context.js       # ComponentContext 工厂(panel + dock + bus + errors 接口)
-    ui/panel/
-      dock-tabs.js     # 单 tab 组件 + 三套预设(standard/compact/collapsible)
-      log.js           # 内置 log component
-
-    dock/
-      runtime.js       # PanelRuntime + activate/transient/focus/collapsed + LRU dispose
-      render.js        # reconcile / build / createSplit / createDock / createToolbar
-                       # toolbar 分 static + dynamic 两段;content 区只挂 active contentEl
-      interactions.js  # splitter drag + corner drag(split/merge) + 3×3 hover
-                       # panel drag(tab drag-out + cross-dock drop + pop-out window)
-      migrate.js       # 跨窗口迁移协议(BroadcastChannel handshake + serialize/deserialize)
-      layout.js        # createDockLayout 入口胶水
-
-    style/
-      dock.css         # dock / split / splitter / corner / overlay / focused / collapsed
-      component.css       # toolbar / tab / log / panel-error
+```text
+src/core/          Core primitives, registry, context, settings, commands, workspace
+src/tree/          Immutable dock tree pure functions
+src/dock/          Dock runtime, render, interactions, drag, migration, layout
+src/ui/            Generic UI component library
+src/ai/            Optional AI Host
+src/extensions/    Optional Extension Runtime + AI bridge
+demo/              Host/demo app code, not framework design
 ```
 
-**`<script>` 加载顺序**(依赖自顶向下,无环):
-```html
-<script src="./src/core/signal.js"></script>
-<script src="./src/core/log.js"></script>
-<script src="./src/core/bus.js"></script>
-<script src="./src/tree/tree.js"></script>
-<script src="./src/core/registry.js"></script>
-<script src="./src/core/context.js"></script>
-<script src="./src/dock/runtime.js"></script>
-<script src="./src/dock/render.js"></script>
-<script src="./src/dock/interactions.js"></script>
-<script src="./src/dock/migrate.js"></script>
-<script src="./src/dock/layout.js"></script>
-<script src="./src/ui/panel/dock-tabs.js"></script>
-<script src="./src/ui/panel/log.js"></script>
+唯一权威映射:
+
+- 文件职责看 `doc/implementation-map.md`。
+- 架构边界看 `doc/architecture.md`。
+- AI registry / permission / context 细节看 `doc/ai*.md`。
+- Extension 最终语义看 `doc/extensions.md`。
+- 构建加载顺序看 `tools/build.mjs` 的 `JS_ORDER` / `CSS_ORDER`。
+
+维护规则:
+
+- 改 `src/` 后必须跑 `node tools/build.mjs`,并提交 `dist/aeditor-core.*` / `dist/aeditor-full.*` / `dist/aeditor.*`。
+- 改 `demo/` 不需要 rebuild,但需要 reload demo 验证。
+- `src/` 继续保持 IIFE + `window.aeditor` 单命名空间;不写 `import/export`。
+- 新 framework 能力必须进正确层:Core/UI、AI Host、Extension Runtime、Demo Runtime 不能互相偷概念。
+- Extension contribution 发布 dotted public name,但生命周期 owner 是 `extension:<id>`;卸载/禁用用 owner 精确清理。
+- AI Host 的 model-facing 主概念保持 Agent / Tool / Context Reference / Operation / ChangeSet;targets、attachments、rich prompt、quests、bundles、templates 是 runtime/UX 细节。
+- 所有组件和 toolbar item 引用 component 都只能用已注册 string name。
+- CSS 可调常数优先放在 `src/style/theme.css` 的 `--aeditor-*` token;JS 只有需要数值计算时用 `aeditor.ui.readNum(...)`。
+
+## 6. 验证入口
+
+常规门禁:
+
+```powershell
+node tools/build.mjs
+npm.cmd run check
+npm.cmd run check:dist
+git diff --check
 ```
 
-**行数预算**(每个文件目标上限,超了反思粒度切错没):
+当前 `npm.cmd run check` 覆盖语法检查、signal/tree/theme/history/i18n/settings/commands/workspace、UI scope/edit session、project runtime、ChangeSet、AI provider/stream/tools/workdir/orchestration/quest/persistence/compaction/target/reference/resource permission、Extension Runtime、rich prompt 等测试。
 
-| 文件 | 上限 |
-|---|---|
-| core/signal.js | 100 |
-| core/log.js | 100 |
-| core/bus.js | 80 |
-| tree/tree.js | 450 |
-| core/registry.js | 60 |
-| core/context.js | 200 |
-| components/tab.js | 300 |
-| ui/panel/log.js | 80 |
-| dock/runtime.js | 280 |
-| dock/render.js | 320 |
-| dock/interactions.js | 350 |
-| dock/migrate.js | 150 |
-| dock/layout.js | 80 |
-| style/dock.css | 260 |
-| style/component.css | 200 |
-
-**编码规范(从第一行就遵守,不留债):**
-
-- **CSS 变量前缀 `--aeditor-*`**:所有颜色、边距、圆角、阴影、字号、时长都走 token,不要硬编码散落。主题作者入口是 `--aeditor-surface-*` / `--aeditor-text-*` / `--aeditor-stroke-*` / `--aeditor-brand*` / `--aeditor-state-*`;组件 CSS 消费 `--aeditor-bg-*` / `--aeditor-fg-*` / `--aeditor-border*` / `--aeditor-accent*` 等 role token。`aeditor.theme.set/apply/reset/exportCss` 是运行时主题 API。
-  - `--aeditor-space-1..6`(4 / 8 / 12 / 16 / 24 / 32)
-  - `--aeditor-r-1..4 / --aeditor-r-pill`
-  - `--aeditor-shadow-1..4 / --aeditor-shadow-raised`
-  - `--aeditor-font-ui / --aeditor-font-mono`
-  - `--aeditor-dur-fast`(80ms,hover/active)/ `--aeditor-dur-med`(200ms,面板过渡)
-- **DOM 卫生**:
-  - 每个 `.aeditor-dock` 元素加 `contain: layout style paint`,把布局/绘制隔离在 dock 内,外部变化不 invalidate dock 内部,dock 内部变化不冒泡出去
-  - 所有可交互组件统一四态,由 CSS 变量供色:`hover` → `--aeditor-hover` / `--aeditor-border-hover`,`active` → `--aeditor-active`,`focus` → `--aeditor-focus-ring`,`disabled` → `opacity: 0.38; pointer-events: none`
-  - 尊重 `@media (prefers-reduced-motion: reduce)` —— 里面把所有 transition 归零
-  - 禁止 `filter: drop-shadow` / `text-shadow` / `box-shadow spread > 0`,阴影只用分层预设
-- **拖放视觉反馈**(§ 4.14 的视觉层规约):
-  - 被拖的 tab:`opacity: 0.5`
-  - 跟手 ghost:`position: fixed` + `will-change: transform` + `--aeditor-shadow-lg`
-  - 合法 drop zone:`--aeditor-accent` 半透明蒙层;非法(被 `accept` 白名单拒):`--aeditor-error` 1px 描边 + 禁入光标
-  - 分割线 hover:`--aeditor-accent` 高亮;拖动时全局 cursor 锁定
-- **零依赖自动化测试**:不引入 vitest/jest/puppeteer 等测试框架,但必须保留 Node 内置测试/检查入口。当前基础门禁是 `npm run check`(语法 + signal/tree/theme 纯函数)和 `npm run check:dist`(bundle 顺序 + dist 漂移)。UI 交互仍通过 `index.html` demo + 手动 smoke 验证
-- **Component 引用永远是 string**:`PanelData.component` / `ToolbarItemSpec.component` 必须是已注册的名字。所有读取点统一走 `aeditor.resolveComponent(name)`,未注册立即 throw,不写 `typeof` 分支,不写 fallback。这是 § 4.8 的延伸编码规范
-
----
-
-## 6. 实现顺序(历史档案 — 全部完成)
-
-> ⚠ 这一节是**历史档案**,Phase 1~7 已经在用户的"Phase 1 范围就是全部实现,直接按最终版本做"指令下被一次性整体落地。当前代码状态见 § 3。本节保留原始分期文字给"想知道当初是怎么计划的"的下一个 Codex 看 —— **不要再按这个节奏重新走一遍**。
-
-每个 Phase 结束有可验证的里程碑(原计划如下,现已全部实现):
-
-1. **Phase 1 — 核心层(零 tree / 零 UI 改动)** ✅
-   - `core/signal.js`:加 `derived`(在当前 IIFE 上扩充),其它不动
-   - `core/log.js`:全局日志/错误系统 —— `aeditor.log` / `reportError` / `safeCall`(**此时不挂 window 监听**,留到 layout 入口)
-   - `core/bus.js`:`aeditor.bus` 的 on/off/emit + auto-unsubscribe 辅助(见 § 4.13)
-   - `core/registry.js`:`registerComponent` / `resolveComponent` / `componentDefaults`(§ 4.8,只接 spec)
-   - **此阶段不碰 `tree.js` 和 `dock.js` / `dock.css`** —— 保持现有 demo 行为完全不变
-   - **也不写 `core/context.js`** —— 因为 ctx 工厂要用 tree 层的新字段(§ 4.9),留到 Phase 2b 和 dock runtime 一起做
-   - 阶段验证:console 跑 `aeditor.signal(0)` / `aeditor.bus.on(...).emit(...)` / `aeditor.registerComponent(...)` / `aeditor.reportError(...)` 各一次,确认挂载正确;**现有 demo 完全不回归**(因为 tree.js / dock.js 一行没动)
-
-2. **Phase 2a — 机械拆分(不改能力)** ✅
-   - 把现有 `src/dock.js` 按边界切开成 `dock/runtime.js` / `dock/render.js` / `dock/interactions.js` / `dock/layout.js` 四个 IIFE 文件,**不引入任何新概念**(还是单 panel 模式,没有 panels[]、没有 tab、没有 toolbar、没有 LRU、没有跨 dock 拖放)
-   - 把 `src/dock.css` 搬到 `src/style/dock.css`,顺手把硬编码颜色换成 `--aeditor-*` 变量(默认值对齐 editor_style.html)
-   - HTML 按新顺序加 `<script>`
-   - **阶段验证**:demo 行为必须和 Phase 2a 之前完全一致 —— keyed reconciliation、splitter 拖拽、corner split、corner merge、input/counter 状态保留全部不回归。commit 讲得清 "pure refactor, no behavior change"
-   - 完成后 commit 一次,再进 2b
-
-3. **Phase 2b — tree 层扩展 + Dock 多 panel + toolbar 两段** ✅
-   - `tree/tree.js`:扩展 DockData 字段(`panels[]` / `activeId` / `toolbar` / `accept` / `collapsed` / `focused`)+ 全局 id 计数器 + 激活计数器 + 所有新纯函数(`addPanel` / `removePanel` / `activatePanel` / `movePanel` / `reorderPanel` / `updatePanel` / `promotePanel` / `updateDock` / `setCollapsed` / `setFocused` / `findPanel`),按 § 4.11 让写接口不接 id 而是返回新 id,按 § 4.12 做 accept 白名单校验,按 § 4.1 修正 `splitDock`(含空 dock + 返回 `{ tree, newDockId, newPanelId? }`),按 § 4.2 修正 `mergeDocks`(返回 `{ tree, discardedPanels }`)
-   - `core/context.js`:ComponentContext 工厂 —— 暴露 `ctx.panel` / `ctx.dock` / `ctx.bus`(auto-unsub 版)/ `ctx.safeCall` / `ctx.active`(signal)。共享 / panel-only 两段按 § 4.9
-   - `dock/runtime.js`:PanelRuntime 生命周期 + contentEl 懒创建 + activate 切换实现为 detach + re-attach(§ 4.3) + `ctx.active` signal 维护 + focus/collapsed/transient 状态 + LRU dispose 超出上限逻辑
-   - `dock/render.js`:toolbar 两段渲染(static + dynamic)+ dock body 两段式(toolbar + content) + content 区域切 active 时的 DOM 操作 + dynamic toolbar items 的 reconciliation。替换 Phase 2a 留下的单 panel 渲染分支
-   - `dock/interactions.js`:split 角拖按 § 4.1 跑 component defaults;merge 前按 § 4.2 检查 dirty;3×3 hover 保持原样
-   - `dock/layout.js`:`createDockLayout` 入口对齐新 `LayoutConfig` 契约(§ 4.9 Layer 1),挂全局 `error` / `unhandledrejection` 监听一次(§ 4.7)
-   - **阶段验证**:单 dock 多 panel API 切 active 无状态丢失、focus mode / collapsed API、角拖新 dock 是默认参数、merge 遇 dirty 被阻止
-
-4. **Phase 3 — Tab Component(作为普通 toolbar 组件)** ✅
-   - `components/tab.js`:单组件 + 三套预设默认 props,内部只通过 `ctx.dock.panels` / `ctx.dock.activeId` signals 和 `ctx.dock.activatePanel` / `ctx.dock.removePanel` API 工作,无特权
-   - 阶段验证:三种 tab 样式都能用,collapsible 折叠正常;把同一个 tab component 当成 static item 和 dynamic item 分别验证,行为一致
-
-5. **Phase 4 — 错误隔离 + bus 通讯** ✅
-   - `ui/panel/log.js`:订阅 `aeditor.log` 的列表 component,用于查看 component/global/bus 错误
-   - Demo 里注册一个 buggy component 抛同步错 → 只影响这个 panel
-   - Demo 里注册一个 async-buggy component 用 `setTimeout(() => { throw })` 抛异步错 → global scope 兜底路由到 log
-   - Demo 里写两个假 component 互相通过 `ctx.bus.emit('demo:ping', ...)` 通讯,验证 auto-unsubscribe:关一个 panel 后另一个 emit 不再被收
-
-6. **Phase 5 — Panel 拖放(同窗口跨 dock)** ✅
-   - `dock/interactions.js` 扩展:从 tab 按下 → 拖移 → 目标 dock hit-test(查 `accept` 白名单) → drop zone 高亮 → pointerup commit `movePanel`
-   - 同 dock 内 tab reorder 作为退化场景
-   - 实现上 runtime 整体从源 dock map 迁到目标 dock map,contentEl 跟着走,不调序列化
-   - 阶段验证:demo 里把一个 panel 从左 dock 拖到右 dock,input 内容保留;被 `accept:['monaco']` 限制的 dock 拒收 preview panel
-
-7. **Phase 6 — Pop out 独立窗口** ✅
-   - `dock/migrate.js`:BroadcastChannel 协议 + 两阶段 handshake + `component.serialize`/`deserialize` 调用
-   - `ctx.panel.popOut()` API 和拖 panel 到窗口外触发两条入口
-   - Demo 里一个 component 实现 `serialize`,另一个不实现,都能成功 pop out,区别是前者状态保留、后者只有 props
-   - 阶段验证:pop out 后主窗口 panel 消失,独立窗口出现;关闭独立窗口 panel 跟着消失不回流
-
-8. **Phase 7 — Demo 收尾** ✅(实际收尾形态:`demo/components/ui-showcase.js` + `theme-config.js`,而非 fake monaco/preview/terminal —— 用户改了方向,直接做"展示完整 UI 库 + 现场调主题"的双 panel demo)
-   - `index.html`:注册 monaco-fake / preview-fake / terminal-fake / buggy / log 等假 component
-   - 多 dock 配多 panel,演示 Focus / Collapsed / Promote Transient / pop out
-   - 验证 Split 克隆语义(角拖出新 dock 是默认参数的同 component)
-   - 验证空 dock 也能被角拖分裂出空 dock
-   - 验证关闭 active panel 后新 active 是"最近用过的"而不是邻居
-   - 验证 LRU `max = 3` 时第 4 个非 dirty panel 被 dispose,状态丢失是预期的
-
----
+`git diff --check` 在 Windows 上可能打印 LF/CRLF 替换 warning;只要没有 whitespace error 即可。
 
 ## 7. 与用户协作的方式
 
-- **用户用中文**,你也用中文回复
-- **简洁优先**,不要长篇大论解释你"打算怎么做",直接给方案
-- **不要在每条回复末尾总结你刚刚做了什么**,用户能看 diff
-- **不要无脑同意**,有更好的方案要直说,但要给充分理由
-- **拿不准就问**,用户喜欢明确的开放问题清单,不喜欢含糊的"差不多吧"
-- **遇到设计冲突时,以用户已确认的为准**,即使和本文件当前文字不一致也以用户为准(然后同步回本文件)
-- **每个 commit 都要 Co-Authored-By: Codex**,但不要在 commit message 里写"我"或自我吹嘘
+- 用户用中文,你也用中文回复。
+- 用户要求审查时,先讲真实问题,不要为了显得乐观把风险淡化。
+- 用户要求按最终形态判断时,不要用“暂时不做”当理由;只判断最终模型是否简洁、优雅、稳定。
+- 非平凡改动遵守 design-first:先列模型/API/文件清单,等用户明确说“开始”再改代码。
+- 如果文档和代码冲突,先确认是文档落后还是代码没实现;不要盖错方向。
+- 有更好的方案要直说,但保持简洁,不要长篇自我解释。
+- 新踩的坑要回写到 § 3.3 或对应 `doc/*.md`,不要留在对话里。
 
----
+## 8. 当前交付状态
 
-## 8. 当前会话状态(2026-04-16)
+当前主线已经完成:
 
-> 用户在家里和公司之间切换电脑。这一节让下一个 Codex 一打开就能"接着干"。
+- Core/UI、AI Host、Extension Runtime、Demo Runtime 的边界已对齐。
+- Extension Runtime 已位于 `src/extensions/`,不再挂在 Core 目录下。
+- `src/extensions/manifest.js` / `install.js` / `runtime.js` 分别负责 manifest helper、registry install、lifecycle/recovery/dock panel placement。
+- `src/extensions/ai.js` 负责 Extension Runtime 与 AI Host 的 operations/tools bridge。
+- `src/ai/permission.js` 负责统一 permission resolver/audit/path rules。
+- `src/ai/registries.js` 负责 tools/skills/context/templates/bundles registry。
+- rich prompt 使用 `refId`;chat attachments 不是新的 model-facing registry。
+- Extension 卸载按 owner 精确清理,并有 nested extension 回归测试覆盖主要 registry。
+- 发布边界的最终目标是 core/full 双 bundle 和干净 npm runtime 包;当前代码优化计划应优先落这里。
 
-**已完成的全部工作(按时间线)**:
+提交/交接时必须确认新增文件已纳入版本控制:
 
-**更早的会话(家里)**:
-1. Demo 目录重构:单文件拆成 `demo/catalog.js` + `demo/state.js` + 5 张 panel component
-2. `src/core/` 并入 `src/core/`;tab/log 搬到 `src/ui/panel/`
-3. 修了 sidebar dock toolbar 方向、log 顶栏 Copy/Clear 不可见、bottom dock 折叠
-4. 框架级 transient 预览槽语义(addPanel 自动驱逐同 dock 已有 transient)
-5. 修了 Light 主题 inline 污染 bug(§ 3.3 已知坑 #2)
-6. Demo 手写元素换成 ui.* 组件(ui.card / ui.tag)
-7. UX 微交互全面精修(按钮/表单/overlay/tab spring 动画 + glow 焦点环)
-8. showcase 加了 Tabs 分类(三种 dock tab mock)
-
-**2026-04-16 这一轮(家里)**:
-9. **修了 showcase 卡片尺寸不适配**(方案 A+B):
-   - `demo/components/demo.css`:`.demo-showcase-body` 从 `grid` 改成 `flex-wrap: wrap; align-items: flex-start`,卡片按内容高度自然排列不再被同行最高卡撑开
-   - `demo/catalog.js`:gradientInput / curveInput / codeInput / fileInput 四个大组件标 `stageSize: 'lg'`
-   - `demo/components/showcase.js`:读 `entry.stageSize === 'lg'` 加 `.demo-showcase-card-wide` class(`flex: 1 1 280px; max-width: 420px`,默认卡片 `flex: 1 1 200px; max-width: 320px`)
-   - 验证:editor 分类卡片参差排列,curveInput(h=214)不再撑高 gradientInput(h=130);form 分类 15 张小卡 3 列均匀排布
-
-10. **审计一轮 8 处硬 bug 的"最终优雅形态"修复**(不是补丁式,是直接按应该的样子重写):
-    - `src/style/ui-data.css`:`--aeditor-warning` → `--aeditor-warn`(L217/218/240)、`--aeditor-radius-sm` → `--aeditor-r-2`(L230)—— theme.css 只定义了 `--aeditor-warn` 和 `--aeditor-r-*`,老名字静默 fall back 到 initial
-    - `src/dock/interactions.js`:splitter `onUp` 补 `classList.remove('aeditor-splitter-active')`,对齐 pointerdown 的 add
-    - `src/ui/form/numberInput.js`:Escape 从"重写 txt.value + blur 触发 exitEdit(true)"改成直接 `exitEdit(false); txt.blur()`;`exitEdit(false)` 先置 `editing = false`,随后 blur 的 `exitEdit(true)` 被 `if (!editing) return` 守卫吞掉,不再虚假回写精度化的值
-    - `src/ui/editor/pathInput.js`:在 hidden file input 上补 `cancel` 事件监听,cancel 和 change 都走统一 `cleanup()` 移除 DOM 节点,用户点 Cancel 不再泄漏
-    - `src/core/signal.js`:提取 `teardown(eff)` 共享函数,`run` 和 `dispose` 都复用;`dispose` 加 `if (eff.disposed) return` 守卫,重复 dispose 不再重复跑 cleanups
-    - `src/dock/migrate.js`:popOut 单一 cleanup 路径(ack / reject / popup-closed 三条都走同一个 `cleanup()`),加 `pollClosed = setInterval(…, 500)` 监测 popup 关闭,`clearInterval` 一并清
-    - `src/ui/overlay/menu.js`:加 `openSubs[]` 跟踪,`closeSubs()` 递归关闭;sibling-row mouseenter 时关掉前一个 submenu,避免孤立子菜单
-    - `src/core/context.js`:`ctx.bus` 丢弃 `off(topic, handler)` 表面,只留 `on` 返回的 disposer;disposer 幂等 + 自行从 `cleanups` 里 splice 自己,彻底防止 dispose 留 stale 条目
-
-11. **审计二轮 5 处"架构级"统一**(同样最终形态,不妥协):
-    - `src/dock/runtime.js`:新增 `layout.movePanel` 和 `layout.promotePanel` 作为 authoritative mutation —— 和已有的 `addPanel/removePanel/activatePanel` 并列。`movePanel` 自带 markActivation;所有调用点(`handle.movePanel`、`interactions.js` 拖放、`panel-drag.js`、migrate.js)统一走这条路径,markActivation 不会再被忘
-    - `src/dock/layout.js`:`handle.movePanel`/`promotePanel` 瘦成 `function (…) { layout.…(…) }` 纯代理
-    - `src/core/context.js`:`ctx.panel.promote()` 委派给 `layout.promotePanel`;`ctx.dock.addPanel(partial)` 返回 `{ panelId }` 对象,和 `handle.addPanel` 形状一致("一个操作一种形状")
-    - `src/dock/interactions.js`:删掉内联 `treeSig.set(aeditor.movePanel(...)) + markActivation`,改 `layout.movePanel(panelId, resolvedDock, resolvedIndex)` 单行
-    - `src/dock/migrate.js` `acceptMigration`:同理,改 `layout.addPanel(targetId, …)` 单行,不再自己 setTree+markActivation
-
-12. **拆 `interactions.js`**(442 → 228 行,纳入 350 预算):
-    - 新增 `src/dock/panel-drag.js`(234 行),装 `beginPanelDrag` + `computeTabInsertionIndex` + `makeDropIndicator` + `makeGhost`
-    - `interactions.js` 只保留 splitter drag(§ 4.1)+ corner drag split/merge(§ 4.1/§ 4.2)+ helpers(`canMergeInto` / `makeMergeLabel` / `clamp`)
-    - `DRAG_THRESHOLD` 最初两个文件各持一份 local const —— 被下一轮"统一配置"(item 13)清理,改为都从 `--aeditor-drag-threshold` 读
-    - `tools/build.mjs` 的 `JS_ORDER` 把 `dock/panel-drag.js` 插到 `dock/interactions.js` 之后、`dock/migrate.js` 之前
-    - preview 验证:真实 pointerdown/move/up 序列跑一遍 reorder,ghost 挂载、indicator 绘制、`layout.movePanel` 提交、pointerup 全部清理 —— 无错误;17 个 `aeditor._dock.*` 公共函数全部健在
-
-13. **统一配置总线(单一存储 + 两种消费形态)** —— 把散落在 JS 里的可调常数(drag threshold、z-index 磁数、setTimeout 时长、icon 字符映射)全部迁到 `src/style/theme.css` 作为 `--aeditor-*` token,JS 侧只留**一条**通道读取:
-    - 新增 `src/ui/_internal/_css.js`,导出唯一 JS 桥 `aeditor.ui.readNum(name, fallback)` —— `getComputedStyle(documentElement).getPropertyValue(name)` + `parseFloat`
-    - `src/style/theme.css` Layer 3 扩 5 个 token:`--aeditor-drag-threshold: 6` 一个交互阈值 + `--aeditor-icon-info/success/warn/error` 四个 CSS 字符串(带引号,给 `content:` 用)
-    - `src/style/ui-overlay.css` 加 alert/toast 的 `.aeditor-ui-*-icon::before { content: var(--aeditor-icon-<kind>) }` 规则
-    - `alert.js` / `toast.js` 删掉本地 `const ICONS` 映射表,icon span 留空(只给 `aria-hidden`)由 CSS `::before` 填字符 —— 换图标集改 token 一行搞定
-    - `_portal.js` / `_overlay.js` z-index 从 JS 写 hardcoded 数字改为 `style.zIndex = 'var(--aeditor-z-popover)'` / `'calc(var(--aeditor-z-popover) + ' + depth + ')'`,**计算延迟到浏览器** —— 主题改 `--aeditor-z-popover` 立刻生效,JS 零感知
-    - `drawer.js` / `toast.js` 的 `setTimeout(..., 220)` 硬编码改 `ui.readNum('--aeditor-dur-slow', 240)` —— 动画时长改 theme 同步
-    - `interactions.js` / `panel-drag.js` 的 DRAG_THRESHOLD 模块常数删除,改每次 drag 会话开始时 `ui.readNum('--aeditor-drag-threshold', 6)` 读一次存 local(不在 pointermove 内层循环里 re-read)
-    - `tools/build.mjs` `JS_ORDER` 把 `ui/_internal/_css.js` 排在 Layer 5 UI internals 首位(必须先于 `_overlay.js` 等消费者)
-    - preview 实测:4 个 toast kind 的 `::before` content 肉眼 + `getComputedStyle` 双验通过(ⓘ/✓/⚠/⨯);`portalRoot().style.zIndex` 内联 = `var(--aeditor-z-popover)`,computed = 1000;`ui.readNum('--aeditor-dur-slow')` = 240;控制台零报错
-    - **架构意义**:单一存储(CSS tokens)+ 判据收敛(只有一个问题:"JS 要不要对这个值做运算",不做 → `var()`/`calc()`/`content: var()`,做 → `ui.readNum`)+ 零 JS 映射表 —— 换主题/换图标集/换触控尺寸,全部只改 theme.css 一份
-    - **2026-04-16 晚些时候**补完 § 8 时间线(本 item)、写了项目 README.md、推 Gitee
-
-14. **内置主题扩到三套,默认改 Godot Minimal 风**(2026-04-16 当晚):
-    - 缘起:用户指出"原先 dark 主题其实带冷蓝 + 紫,叫 dark 不合适",要求按 [passivestar/godot-minimal-theme](https://github.com/passivestar/godot-minimal-theme) 的配色重做默认 dark,老默认搬到 `Dracula` 名下
-    - 通过 WebFetch 直接读 `minimal_theme.tres` 拿到官方**字面值**(非主观调色):surface_base `#272727` / accent `#569eff` / warn khaki `0.83, 0.78, 0.62` / success forward+ green `0.55, 0.75, 0.39` / low-contrast 0.3–0.35 ramp luminance step
-    - `src/style/theme.css` 重写:
-      - `:root` 装 Godot Minimal(`--aeditor-c-00..11` 中性炭灰 ramp 锚 `#272727`,`--aeditor-c-accent: #569eff`,低对比度 + "inset input" 角色映射 `--aeditor-bg-2` 用 `--aeditor-c-01` 比 `--aeditor-bg-1=--aeditor-c-03` 更深)
-      - 新增 `:root[data-aeditor-theme="dracula"]` 块,搬老默认的**冷调深灰 + `#7b6ef6` 紫 accent + "raised input"**(bg-2=c-03 比 bg-1=c-01 亮)+ 更强 shadow alpha
-      - `:root[data-aeditor-theme="light"]` **显式锁定** bg-1=c-01(白)/bg-2=c-03(浅灰 inset)/border 三条角色映射 + shadow 级别 —— 因为 :root 改 "inset in dark" 后光亮 primitives 再继承会反向变成 "raised in light",必须各主题各自 lock
-    - `demo/components/theme-config.js`:mode select 从 Dark/Light 两项扩成 Dark/Dracula/Light 三项;`applyThemeMode()` 改为"dark 去属性,其他全部 setAttribute"的统一写法
-    - 用户明确"不需要考虑任何兼容性,直接按最好的设计来做"—— 所以 localStorage 无迁移脚本、无 version 字段,旧用户上来就是新默认 + 自动清理(modeSig 若旧值 'dark' 直接重用,否则 select 默认到 dark)
-    - 验证(preview 真实点击 dropdown 三档):
-      - dark(attr=null):bg1=#272727, bg2=#1a1a1a, accent=#569eff, inset 约定 OK
-      - dracula(attr=dracula):bg1=#111113, bg2=#1c1c20, accent=#7b6ef6, raised 约定 OK
-      - light(attr=light):bg1=#ffffff, bg2=#e6e6ec, text=#18181c, accent=#5b4ee0, inset gray 约定 OK
-      - 零控制台报错;theme-config 的 refreshAll() 在 mode 切换后正确 re-pull 每个 token 到 signal,palette 面板 swatch 立刻同步
-    - rebuild:`dist/aeditor.css` 从 ~68K → 83010 bytes(三主题块 + light 显式锁定 role 映射)
-    - README.md + AGENTS.md § 3.1 注释 + § 3.2 主题段均同步
-
-15. **v1.1.0 — TypeConfig / propertyPanel / icon set / framework hardening**(2026-04-21):
-    - 缘起:审计第三方项目 `GameDataEditor` 对库的用法(`temp/GameDataEditor/`),暴露 4 个框架级问题 + 7 个项目级错用。用户拍板把合理能力补进库、把不合理用法在项目里修掉
-    - **F1 — splitter collapsed dock 挤出视口**:复盘发现是项目 `#app { height: 100vh }` 在 topbar 之下仍然占满视口,不是框架 bug。改 `#app { height: 100% }` 继承父 `.gde-body` 的高度就好。框架侧 `canCollapseDock` + `flex: 0 0 auto` 的折叠逻辑本身正确
-    - **F2 — `--aeditor-bg-raised` + `--aeditor-shadow-raised` role**:补"浮起卡片"语义(一步 LIGHTER 于 dock body 的背景,配合 subtle shadow)。dark/dracula/light 三主题各显式声明。消费者:项目 `.gde-card` 一键升级
-    - **F3 — SVG 图标库 + `aeditor.ui.registerIcon`**(方案 C):
-      - 新 `src/ui/base/icon-set.js` 内嵌 Lucide ISC-licensed 精选子集 ~40 个(plus/minus/x/check/chevron-{up,down,left,right}/search/filter/folder/file/trash/edit/copy/save/refresh/arrow-{left,right}/arrow-up-down/table/database/columns/grid/list/image/music/calendar/clock/info/alert-{triangle,circle}/check-circle/help-circle/menu/more-{horizontal,vertical}/maximize/minimize/eye/eye-off/settings/user/hash/tag/link/type/palette)
-      - `ui.icon({ name })` 优先 resolve 到注册的 SVG,fallback 到 `glyph` 文本(legacy),再 fallback 到把 name 自身当字符显示 —— 老代码 `ui.icon({ glyph:'＋' })` 不回归
-      - `aeditor.ui.registerIcon(name, innerMarkup)` 允许用户覆盖 / 扩展
-      - `iconButton` / `tab` component 的 icon 字段都走 name → SVG 路径;CSS `.aeditor-ui-icon svg { width:1em; height:1em }` + 按 size 变体 sm/md/lg 跟 `var(--aeditor-size-icon-*)`
-    - **F4 — TypeConfig + propertyEditor + propertyPanel(核心新一等能力)**:
-      - `src/ui/form/typeconfig.js`:`aeditor.ui.setTypeConfig(builtin, { overrides })` / `resolveType` / `resolveFieldDef` / `registerRenderer` / `getRenderer` / `listRenderKinds`。内置默认 builtin(int/float/string/struct/array/var/enum_int/enum_string/range_int/range_float/id/ref_id/color/img/snd/date/bool)
-      - `src/ui/form/propertyEditor.js`:`aeditor.ui.propertyEditor(fieldDef, value, onChange, ctx)` 把一个字段分发到已注册 renderer。内建 14 种 renderer(input_string/textarea/input_int/input_float/range/enum/toggle/color/date/img/snd/id/ref_id/struct/array),全部复用 `aeditor.ui.*` 基础组件,**不写一个裸 `<input>`**
-      - `src/ui/form/propertyPanel.js`:`aeditor.ui.propertyPanel({ schema, value, onChange, ctx })` 从 `StructDef` 自动生成一整张 "label · editor" 表单。value/schema 可以是 plain 对象也可以是 signal,内部 `aeditor.effect` 跟踪重建
-      - CSS `.aeditor-ui-prop-{panel,row,label,cell,empty}` / `.aeditor-ui-struct-*` / `.aeditor-ui-array-*` 补到 ui-form.css
-      - 业务项目的 450 行 `renderers.js` → 彻底作废,改用 `ui.propertyPanel` + `ui.registerRenderer` 自定义覆盖 `ref_id`(跨表跳转)就搞定
-    - **F5 — 补缺组件**:
-      - `ui.dateInput`:基于原生 `<input type=date>` + `.aeditor-ui-field` 外框,支持 value/min/max/disabled signal
-      - `ui.assetPicker`:路径 input + 预览缩略图 + browse 按钮,`kind: 'image'|'audio'|'file'`,`onBrowse` hook 允许调用方接自定义 picker 对话框,缺省 fallback 到 hidden `<input type=file>`
-      - `ui.numberInput` 扩展 `radix: 'dec'|'hex'|'bin'` + `percent` —— fmt/parse/commit 分支处理
-      - `ui.colorInput` 扩展 `valueKind: 'hex'|'int'` —— 24-bit int(0xRRGGBB) / hex string 双模式,swatch/picker 内部统一 hex,边界翻译
-    - **Framework 硬化**(发现的两个 reactive bug):
-      - `aeditor.untracked(fn)` 新增:运行 fn 时把 `currentEffect = null`,读 signal 不会订阅外层 effect。用于"在 effect scope 里执行不应建立响应关系的代码"
-      - `dock/runtime.js` 的 `materializeComponentEl` 把 `safeCall(factory)` 包在 `aeditor.untracked(...)` 里 —— component.factory 在 reconcile effect 内被调用,component 代码的 ctx.* 读取不应让 reconcile 订阅无关 signal,否则后续 signal.set 会引发递归 reconcile(发现时的症状:"Maximum call stack size exceeded at materializeComponentEl")
-      - `core/bus.js` 的 `emit()` 把每个 handler 也包在 `untracked(...)` 里 —— bus 语义就是 fire-and-forget,handler 读 signal 不应把它订阅到上游 effect(症状:发射 'selection:changed' 的 effect 被订阅到 handler 读的 `State.gameData` 上,后续 `setEntityField` 写 gameData → 反向触发 effect 内 doWrite → onChange → setEntityField → loop)
-    - `tools/build.mjs` JS_ORDER 把 `ui/base/icon-set.js` 排在 `ui/base/icon.js` 前,`ui/form/dateInput.js` 放到 colorInput 后,`ui/form/typeconfig.js`/`propertyEditor.js`/`propertyPanel.js` 放在 tab.js 后(form layer 末),`ui/editor/assetPicker.js` 放在 fileInput 后
-    - README / package.json 版本 1.0.0 → 1.1.0
-    - 配合 `temp/GameDataEditor/` 改造(删 gde-log → 用内置 'log' / emoji → framework icon 名 / renderers.js 瘦成 2 个工具函数 / inspector 改用 propertyPanel);自动验证点击 card → Inspector 渲染 10 个字段 iron sword 编辑器零报错
-
-**下一步给下个 Codex 的提示**:
-- 进项目第一件事:`node tools/build.mjs --watch` + `.Codex/launch.json` 的 `aeditor-demo`(端口 5570)
-- 改 `src/` 下文件**必须 rebuild**;改 `demo/` 文件只需 reload
-- 用户给新需求时按 § 2.3 design-first 流程(先列计划等用户说"开始")
-- 新踩的坑补到 § 3.3
-
-**Gitee 远程**:`https://gitee.com/lazygoo/aeditor.git`。
+```text
+src/ai/permission.js
+src/ai/registries.js
+src/extensions/runtime.js
+src/extensions/ai.js
+```

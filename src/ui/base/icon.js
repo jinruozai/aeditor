@@ -2,7 +2,7 @@
 //
 // opts:
 //   name  : string | signal<string>   lookup in the registered icon set
-//   glyph : string | signal<string>   legacy — raw unicode char / emoji
+//   glyph : string | signal<string>   raw text glyph / emoji
 //   size  : 'sm' | 'md' | 'lg' | signal
 //
 // Resolution order per render: if `name` resolves to a registered icon,
@@ -65,7 +65,7 @@
         el.classList.remove('aeditor-ui-icon-svg')
         el.textContent = g
       } else if (n) {
-        // Name provided but not registered — show it as text (legacy)
+        // Name provided but not registered: show it as text.
         el.classList.remove('aeditor-ui-icon-svg')
         el.textContent = n
       } else {

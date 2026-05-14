@@ -164,16 +164,17 @@ results or failed attempts that should not become durable memory.
 
 ## Request Assembly
 
-The request builder constructs a working context in this order:
+The request builder constructs a working context in the layered order described
+in [ai-context-assembly.md](./ai-context-assembly.md). In compact form:
 
 ```text
-1. Runtime guide and active skills
-2. Compact agent memory
-3. Relevant compaction records, chronological
-4. Current attached references and bounded context payloads
-5. Inbox/queue runtime messages
-6. Recent raw transcript tail
-7. Current user input
+runtime / skills
+workspace and task state
+attached references and bounded context payloads
+memory and compaction records
+inbox / queue runtime messages
+recent raw transcript tail
+current user input
 ```
 
 Large context entries should enter as summaries and references first. The model

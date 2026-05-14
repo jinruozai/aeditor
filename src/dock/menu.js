@@ -1,83 +1,181 @@
-// Dock Menu - context menu opened from a dock corner handle.
-//
-// This is dock-level editing surface: add registered panels, close/pin panels,
-// and adjust toolbar position/tab style for the target dock.
+// Dock Menu - optional command/menu contribution rendered from a dock corner.
 ;(function (aeditor) {
   'use strict'
 
   const findDock = aeditor.findDock
+  const OWNER = 'aeditor:dock-menu'
+  let installed = false
+
+  function installDefaultDockMenu() {
+    const commands = aeditor.commands
+    if (defaultDockMenuInstalled(commands)) {
+      installed = true
+      return
+    }
+    commands.unregisterOwner(OWNER)
+
+    commands.register('aeditor.dock.addPanel', {
+      title: 'Add Panel',
+      icon: 'plus',
+      run: function (_, ctx) { openAddPanelMenu(ctx.pos, ctx.dockId, ctx.layout) },
+    }, { owner: OWNER, layer: 'core' })
+    commands.register('aeditor.dock.toggleFocus', {
+      title: 'Focus Panel',
+      icon: 'maximize',
+      run: function (_, ctx) {
+        ctx.layout.setTree(aeditor.setFocused(ctx.layout.treeSig.peek(), ctx.dockId, !ctx.dock.focused))
+      },
+    }, { owner: OWNER, layer: 'core' })
+    commands.register('aeditor.dock.closeActivePanel', {
+      title: 'Close Active',
+      icon: 'x',
+      run: function (_, ctx) { if (ctx.activeId) ctx.layout.removePanel(ctx.activeId) },
+    }, { owner: OWNER, layer: 'core' })
+    commands.register('aeditor.dock.closeOtherPanels', {
+      title: 'Close Others',
+      icon: 'x',
+      run: function (_, ctx) { closeOtherPanels(ctx.dockId, ctx.activeId, ctx.layout) },
+    }, { owner: OWNER, layer: 'core' })
+    commands.register('aeditor.dock.closeAllPanels', {
+      title: 'Close All',
+      icon: 'x',
+      run: function (_, ctx) { closeAllPanels(ctx.dockId, ctx.layout) },
+    }, { owner: OWNER, layer: 'core' })
+    commands.register('aeditor.dock.promoteActivePanel', {
+      title: 'Pin Active',
+      icon: 'pin',
+      run: function (_, ctx) { if (ctx.activeId) ctx.layout.promotePanel(ctx.activeId) },
+    }, { owner: OWNER, layer: 'core' })
+    commands.register('aeditor.dock.toolbar.setPosition', {
+      title: 'Toolbar Position',
+      run: function (input, ctx) {
+        const dock = findDock(ctx.layout.treeSig.peek(), ctx.dockId).node
+        const direction = input.direction
+        if (!direction) setDockToolbar(ctx.dockId, ctx.layout, null)
+        else setDockToolbar(ctx.dockId, ctx.layout, Object.assign({}, dock.toolbar || defaultToolbar(direction), { direction: direction }))
+      },
+    }, { owner: OWNER, layer: 'core' })
+    commands.register('aeditor.dock.toolbar.setTabs', {
+      title: 'Tab Style',
+      run: function (input, ctx) {
+        const dock = findDock(ctx.layout.treeSig.peek(), ctx.dockId).node
+        setDockToolbar(ctx.dockId, ctx.layout, withTabComponent(dock.toolbar || defaultToolbar('top'), input.component))
+      },
+    }, { owner: OWNER, layer: 'core' })
+    commands.register('aeditor.dock.toolbar.show', {
+      title: 'Show Toolbar',
+      run: function (_, ctx) { ensureToolbar(ctx.dockId, ctx.layout) },
+    }, { owner: OWNER, layer: 'core' })
+    commands.register('aeditor.dock.toolbar.hide', {
+      title: 'Hide Toolbar',
+      run: function (_, ctx) { setDockToolbar(ctx.dockId, ctx.layout, null) },
+    }, { owner: OWNER, layer: 'core' })
+
+    registerDefaultMenus(commands)
+    installed = true
+  }
+
+  function defaultDockMenuInstalled(commands) {
+    return installed &&
+      commands.get('aeditor.dock.addPanel') &&
+      commands.menuMeta('aeditor.dock.context.addPanel').owner === OWNER
+  }
 
   function openDockMenu(pos, dockId, layout) {
+    if (!layout.dockMenu) return
     const dock = findDock(layout.treeSig.peek(), dockId)
     if (!dock) return
-    const activeId = dock.node.activeId
-    const active = activePanel(dock.node)
-    const items = [
-      { label: 'Add Panel', icon: 'plus', onSelect: function () { openAddPanelMenu(pos, dockId, layout) } },
-      focusItem(dock.node, dockId, layout),
-      { type: 'divider' },
-      {
-        label: 'Panel',
-        items: [
-          { label: 'Close Active', icon: 'x', disabled: !activeId, onSelect: function () {
-            if (activeId) layout.removePanel(activeId)
-          } },
-          { label: 'Close Others', icon: 'x', disabled: !activeId || dock.node.panels.length < 2, onSelect: function () {
-            closeOtherPanels(dockId, activeId, layout)
-          } },
-          { label: 'Close All', icon: 'x', disabled: dock.node.panels.length === 0, onSelect: function () {
-            closeAllPanels(dockId, layout)
-          } },
-          { type: 'divider' },
-          { label: 'Pin Active', icon: active && active.transient ? 'pin' : 'check', disabled: !active || !active.transient, onSelect: function () {
-            if (activeId) layout.promotePanel(activeId)
-          } },
-        ],
-      },
-      {
-        label: 'Toolbar',
-        items: [
-          {
-            label: 'Position',
-            items: [
-              toolbarPositionItem('Top', 'top', dockId, layout),
-              toolbarPositionItem('Bottom', 'bottom', dockId, layout),
-              toolbarPositionItem('Left', 'left', dockId, layout),
-              toolbarPositionItem('Right', 'right', dockId, layout),
-              { label: 'Hidden', icon: dock.node.toolbar ? '' : 'check', onSelect: function () { setDockToolbar(dockId, layout, null) } },
-            ],
-          },
-          {
-            label: 'Tabs',
-            items: [
-              tabsItem('Standard', 'tab-standard', dockId, layout),
-              tabsItem('Compact', 'tab-compact', dockId, layout),
-              tabsItem('Collapsible', 'tab-collapsible', dockId, layout),
-              tabsItem('Sidebar', 'tab-sidebar', dockId, layout),
-            ],
-          },
-          { type: 'divider' },
-          { label: 'Show Toolbar', icon: dock.node.toolbar ? 'check' : '', onSelect: function () {
-            ensureToolbar(dockId, layout)
-          } },
-          { label: 'Hide Toolbar', icon: dock.node.toolbar ? '' : 'check', onSelect: function () {
-            setDockToolbar(dockId, layout, null)
-          } },
-        ],
-      },
-    ]
+    const ctx = dockContext(pos, dockId, layout, dock.node)
+    const items = aeditor.commands.menuUiItems('dock.context', ctx)
     aeditor.ui.contextMenu(pos, items)
   }
 
-  function focusItem(dock, dockId, layout) {
-    const focused = !!dock.focused
+  function dockContext(pos, dockId, layout, dock) {
     return {
-      label: focused ? 'Restore Panel' : 'Focus Panel',
-      icon: focused ? 'minimize' : 'maximize',
-      onSelect: function () {
-        layout.setTree(aeditor.setFocused(layout.treeSig.peek(), dockId, !focused))
-      },
+      pos: pos,
+      dockId: dockId,
+      layout: layout,
+      dock: dock,
+      activeId: dock.activeId,
+      active: activePanel(dock),
     }
+  }
+
+  function registerDefaultMenus(commands) {
+    menu(commands, 'aeditor.dock.context.addPanel', { target: 'dock.context', command: 'aeditor.dock.addPanel', label: 'Add Panel', icon: 'plus', order: 10 })
+    menu(commands, 'aeditor.dock.context.focus', {
+      target: 'dock.context',
+      command: 'aeditor.dock.toggleFocus',
+      label: function (ctx) { return ctx.dock.focused ? 'Restore Panel' : 'Focus Panel' },
+      icon: function (ctx) { return ctx.dock.focused ? 'minimize' : 'maximize' },
+      order: 20,
+    })
+    menu(commands, 'aeditor.dock.context.divider', { target: 'dock.context', type: 'divider', order: 30 })
+    menu(commands, 'aeditor.dock.context.panel', { target: 'dock.context', label: 'Panel', childrenTarget: 'dock.context.panel', order: 40 })
+    menu(commands, 'aeditor.dock.context.toolbar', { target: 'dock.context', label: 'Toolbar', childrenTarget: 'dock.context.toolbar', order: 50 })
+
+    menu(commands, 'aeditor.dock.panel.closeActive', { target: 'dock.context.panel', command: 'aeditor.dock.closeActivePanel', label: 'Close Active', icon: 'x', disabled: function (ctx) { return !ctx.activeId }, order: 10 })
+    menu(commands, 'aeditor.dock.panel.closeOthers', { target: 'dock.context.panel', command: 'aeditor.dock.closeOtherPanels', label: 'Close Others', icon: 'x', disabled: function (ctx) { return !ctx.activeId || ctx.dock.panels.length < 2 }, order: 20 })
+    menu(commands, 'aeditor.dock.panel.closeAll', { target: 'dock.context.panel', command: 'aeditor.dock.closeAllPanels', label: 'Close All', icon: 'x', disabled: function (ctx) { return ctx.dock.panels.length === 0 }, order: 30 })
+    menu(commands, 'aeditor.dock.panel.divider', { target: 'dock.context.panel', type: 'divider', order: 40 })
+    menu(commands, 'aeditor.dock.panel.pinActive', {
+      target: 'dock.context.panel',
+      command: 'aeditor.dock.promoteActivePanel',
+      label: 'Pin Active',
+      icon: function (ctx) { return ctx.active && ctx.active.transient ? 'pin' : 'check' },
+      disabled: function (ctx) { return !ctx.active || !ctx.active.transient },
+      order: 50,
+    })
+
+    menu(commands, 'aeditor.dock.toolbar.position', { target: 'dock.context.toolbar', label: 'Position', childrenTarget: 'dock.context.toolbar.position', order: 10 })
+    menu(commands, 'aeditor.dock.toolbar.tabs', { target: 'dock.context.toolbar', label: 'Tabs', childrenTarget: 'dock.context.toolbar.tabs', order: 20 })
+    menu(commands, 'aeditor.dock.toolbar.divider', { target: 'dock.context.toolbar', type: 'divider', order: 30 })
+    menu(commands, 'aeditor.dock.toolbar.show', { target: 'dock.context.toolbar', command: 'aeditor.dock.toolbar.show', label: 'Show Toolbar', icon: function (ctx) { return ctx.dock.toolbar ? 'check' : '' }, order: 40 })
+    menu(commands, 'aeditor.dock.toolbar.hide', { target: 'dock.context.toolbar', command: 'aeditor.dock.toolbar.hide', label: 'Hide Toolbar', icon: function (ctx) { return ctx.dock.toolbar ? '' : 'check' }, order: 50 })
+
+    toolbarPositionMenu(commands, 'Top', 'top', 10)
+    toolbarPositionMenu(commands, 'Bottom', 'bottom', 20)
+    toolbarPositionMenu(commands, 'Left', 'left', 30)
+    toolbarPositionMenu(commands, 'Right', 'right', 40)
+    menu(commands, 'aeditor.dock.toolbar.position.hidden', {
+      target: 'dock.context.toolbar.position',
+      command: 'aeditor.dock.toolbar.setPosition',
+      label: 'Hidden',
+      input: { direction: null },
+      icon: function (ctx) { return ctx.dock.toolbar ? '' : 'check' },
+      order: 50,
+    })
+
+    tabStyleMenu(commands, 'Standard', 'tab-standard', 10)
+    tabStyleMenu(commands, 'Compact', 'tab-compact', 20)
+    tabStyleMenu(commands, 'Collapsible', 'tab-collapsible', 30)
+    tabStyleMenu(commands, 'Sidebar', 'tab-sidebar', 40)
+  }
+
+  function menu(commands, id, spec) {
+    commands.registerMenu(id, spec, { owner: OWNER, layer: 'core' })
+  }
+
+  function toolbarPositionMenu(commands, label, direction, order) {
+    menu(commands, 'aeditor.dock.toolbar.position.' + direction, {
+      target: 'dock.context.toolbar.position',
+      command: 'aeditor.dock.toolbar.setPosition',
+      label: label,
+      input: { direction: direction },
+      icon: function (ctx) { return ctx.dock.toolbar && (ctx.dock.toolbar.direction || 'top') === direction ? 'check' : '' },
+      order: order,
+    })
+  }
+
+  function tabStyleMenu(commands, label, component, order) {
+    menu(commands, 'aeditor.dock.toolbar.tabs.' + component, {
+      target: 'dock.context.toolbar.tabs',
+      command: 'aeditor.dock.toolbar.setTabs',
+      label: label,
+      input: { component: component },
+      icon: function (ctx) { return currentTabComponent(ctx.dock.toolbar) === component ? 'check' : '' },
+      order: order,
+    })
   }
 
   function activePanel(dock) {
@@ -144,24 +242,6 @@
     return !a || a === '*' || (Array.isArray(a) && a.indexOf(component) >= 0)
   }
 
-  function toolbarPositionItem(label, direction, dockId, layout) {
-    const dock = findDock(layout.treeSig.peek(), dockId).node
-    const active = dock.toolbar && (dock.toolbar.direction || 'top') === direction
-    return { label: label, icon: active ? 'check' : '', onSelect: function () {
-      const tb = dock.toolbar || defaultToolbar(direction)
-      setDockToolbar(dockId, layout, Object.assign({}, tb, { direction: direction }))
-    } }
-  }
-
-  function tabsItem(label, component, dockId, layout) {
-    const dock = findDock(layout.treeSig.peek(), dockId).node
-    const current = currentTabComponent(dock.toolbar)
-    return { label: label, icon: current === component ? 'check' : '', onSelect: function () {
-      const tb = dock.toolbar || defaultToolbar('top')
-      setDockToolbar(dockId, layout, withTabComponent(tb, component))
-    } }
-  }
-
   function ensureToolbar(dockId, layout) {
     const dock = findDock(layout.treeSig.peek(), dockId)
     if (!dock || dock.node.toolbar) return
@@ -207,5 +287,6 @@
   }
 
   aeditor._dock = aeditor._dock || {}
+  aeditor._dock.installDefaultDockMenu = installDefaultDockMenu
   aeditor._dock.openDockMenu = openDockMenu
 })(window.aeditor = window.aeditor || {})

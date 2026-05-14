@@ -68,38 +68,39 @@
     })
   }
 
-  function tokenFromResource(resource) {
+  function tokenFromReference(ref) {
     return {
       type: 'ref',
-      resourceId: resource.id || resource.resourceId || '',
-      label: resource.label || resource.title || resource.name || resource.uri || resource.id || 'Resource',
-      kind: resource.kind || resource.resolver || 'ref',
-      uri: resource.uri || '',
-      title: resource.title || resource.label || '',
-      meta: resource.meta || {},
+      refId: ref.id || ref.refId || '',
+      label: ref.label || ref.title || ref.name || ref.uri || ref.id || 'Reference',
+      kind: ref.kind || ref.resolver || 'ref',
+      uri: ref.uri || '',
+      title: ref.title || ref.label || '',
+      meta: ref.meta || {},
     }
   }
 
-  function insertRef(draft, index, resource) {
+  function insertRef(draft, index, ref) {
     const d = normalize(draft)
     const token = allocateToken(d)
     if (!token) return d
     const at = clampIndex(d.text, index)
     const tokens = Object.assign({}, d.tokens)
-    tokens[token] = tokenFromResource(resource || {})
+    tokens[token] = tokenFromReference(ref || {})
     return normalize({
       text: d.text.slice(0, at) + token + d.text.slice(at),
       tokens: tokens,
     })
   }
 
-  function insertRefs(draft, index, resources) {
+  function insertRefs(draft, index, references) {
     let d = normalize(draft)
     let at = clampIndex(d.text, index)
-    for (let i = 0; i < (resources || []).length; i++) {
-      d = insertRef(d, at, resources[i])
+    const list = references || []
+    for (let i = 0; i < list.length; i++) {
+      d = insertRef(d, at, list[i])
       at++
-      if (i < resources.length - 1) {
+      if (i < list.length - 1) {
         d = insertText(d, at, ' ')
         at++
       }
@@ -161,9 +162,9 @@
     for (let i = 0; i < d.text.length; i++) {
       const ch = d.text[i]
       const token = d.tokens[ch]
-      if (!token || !token.resourceId || seen[token.resourceId]) continue
-      seen[token.resourceId] = true
-      out.push(token.resourceId)
+      if (!token || !token.refId || seen[token.refId]) continue
+      seen[token.refId] = true
+      out.push(token.refId)
     }
     return out
   }
@@ -179,7 +180,7 @@
     for (let i = 0; i < d.text.length; i++) {
       const ch = d.text[i]
       const token = d.tokens[ch]
-      out += token ? '[' + (token.label || token.resourceId || 'Resource') + ']' : ch
+      out += token ? '[' + (token.label || token.refId || 'Reference') + ']' : ch
     }
     return out
   }
@@ -194,8 +195,8 @@
         out += ch
         continue
       }
-      const label = String(token.label || token.resourceId || 'Resource').replace(/\]/g, '\\]')
-      const id = String(token.resourceId || '').replace(/\)/g, '')
+      const label = String(token.label || token.refId || 'Reference').replace(/\]/g, '\\]')
+      const id = String(token.refId || '').replace(/\)/g, '')
       out += '[' + label + '](ref:' + id + ')'
     }
     return out

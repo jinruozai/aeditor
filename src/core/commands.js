@@ -127,7 +127,11 @@
     return keys(menus).filter(function (id) { return passFilter(menuMeta[id] || {}, filter) })
   }
 
-  function menuItems(target, filter) {
+  function valueOf(value, ctx, item, cmd) {
+    return typeof value === 'function' ? value(ctx || {}, item, cmd) : value
+  }
+
+  function menuItems(target, filter, ctx) {
     const out = []
     keys(menus).forEach(function (id) {
       const meta = menuMeta[id] || {}
@@ -135,15 +139,28 @@
       if (item.target !== target) return
       if (!passFilter(meta, filter)) return
       const cmd = item.command ? commands[item.command] : null
+      if (valueOf(item.when, ctx, item, cmd) === false) return
+      if (item.type === 'divider' || item.type === 'header') {
+        out.push({
+          id: id,
+          target: item.target,
+          type: item.type,
+          label: valueOf(item.label, ctx, item, cmd) || '',
+          order: item.order,
+        })
+        return
+      }
       out.push({
         id: id,
         target: item.target,
         command: item.command || null,
-        label: item.label || item.title || (cmd && (cmd.title || cmd.label)) || id,
-        icon: item.icon || cmd && cmd.icon || '',
-        kbd: item.kbd || cmd && cmd.kbd || '',
-        danger: !!(item.danger || cmd && cmd.danger),
-        disabled: !!item.disabled || item.command && !cmd,
+        childrenTarget: item.childrenTarget || null,
+        label: valueOf(item.label, ctx, item, cmd) || valueOf(item.title, ctx, item, cmd) || (cmd && (cmd.title || cmd.label)) || id,
+        icon: valueOf(item.icon, ctx, item, cmd) || cmd && cmd.icon || '',
+        kbd: valueOf(item.kbd, ctx, item, cmd) || cmd && cmd.kbd || '',
+        danger: !!(valueOf(item.danger, ctx, item, cmd) || cmd && cmd.danger),
+        disabled: !!valueOf(item.disabled, ctx, item, cmd) || item.command && !cmd,
+        input: valueOf(item.input, ctx, item, cmd) || {},
         order: item.order,
       })
     })
@@ -155,10 +172,12 @@
   }
 
   function menuUiItems(target, ctx) {
-    return menuItems(target).map(function (item) {
+    return menuItems(target, null, ctx).map(function (item) {
+      if (item.type) return item
       return Object.assign({}, item, {
+        items: item.childrenTarget ? menuUiItems(item.childrenTarget, ctx) : null,
         onSelect: item.command && !item.disabled
-          ? function () { run(item.command, {}, ctx || {}) }
+          ? function () { run(item.command, item.input || {}, ctx || {}) }
           : null,
       })
     })

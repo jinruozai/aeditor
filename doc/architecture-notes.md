@@ -39,10 +39,11 @@ It intentionally lives under `demo/`, not `src/`.
 
 ## Metadata
 
-Dotted prefixes are the lifecycle boundary for registries. Metadata such as
+Dotted prefixes are the public namespace for registries. Metadata such as
 `owner` and `layer` remains available for diagnostics, palette filtering,
-permission review, and extension safety policy. New cleanup logic should prefer
-`unregisterPrefix(prefix)` where a prefix is available.
+permission review, and extension safety policy. Extension cleanup should prefer
+`unregisterOwner(owner)` because owner identity is exact even when public names
+share dotted prefixes.
 
 ## Extensions
 
@@ -50,6 +51,10 @@ Extensions package existing registries. The extension runtime also owns safety
 policy around install review, layers, storage, trusted code components, iframe
 panels, and recovery UI. These are safeguards around registry contributions, not
 a second component or AI model.
+
+The implementation lives under `src/extensions/`. Do not add extension policy
+to Core; Core exposes only the registries and primitive services Extension
+Runtime packages.
 
 ## ChangeSet
 

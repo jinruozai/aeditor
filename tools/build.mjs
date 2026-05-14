@@ -2,9 +2,10 @@
 //
 // The framework stays zero-build for consumers, so this is not a build tool in
 // the webpack sense: it is `cat` with banners. Source files are IIFEs already;
-// we concatenate them in dependency order into dist/aeditor.js and
-// dist/aeditor.css. The output is committed so consumers, including our own
-// demo, can double-click index.html and have it work without ever running node.
+// we concatenate them in dependency order into dist/aeditor-core.* and
+// dist/aeditor-full.*. dist/aeditor.* is the Core/UI alias. The output is
+// committed so consumers, including our own demo, can double-click index.html
+// and have it work without ever running node.
 //
 // Usage:
 //   node tools/build.mjs            one-shot build
@@ -19,8 +20,9 @@ const SRC  = join(ROOT, 'src')
 const DIST = join(ROOT, 'dist')
 
 // load order
-// Must match the legacy script order, plus newer ui/ai trees in dependency
-// order. This array is the source of truth for dist/aeditor.js.
+// Must match classic <script> dependency order. This array is the source of
+// truth for the full bundle. The core bundle is derived by excluding optional
+// AI Host and Extension Runtime files.
 
 const JS_ORDER = [
   // Layer 0 - reactivity & log
@@ -46,6 +48,7 @@ const JS_ORDER = [
   // Layer 2.5 - AI session/agent runtime (no UI dependency)
   'ai/name-generator.js',
   'ai/serialize.js',
+  'ai/permission.js',
   'ai/store.js',
   'ai/compaction.js',
   'ai/connection.js',
@@ -54,6 +57,7 @@ const JS_ORDER = [
   'ai/provider-auth.js',
   'ai/provider-transports.js',
   'ai/provider-connections.js',
+  'ai/registries.js',
   'ai/context.js',
   'ai/skills.js',
   'ai/workdir.js',
@@ -61,7 +65,14 @@ const JS_ORDER = [
   'ai/git.js',
   'ai/verify.js',
   'ai/reference.js',
-  'core/extensions.js',
+
+  // Layer 2.6 - optional extension runtime
+  'extensions/manifest.js',
+  'extensions/install.js',
+  'extensions/runtime.js',
+  'extensions/ai.js',
+
+  // Layer 2.7 - AI review, targets, request assembly, and runtime
   'ai/change-set.js',
   'ai/target.js',
   'ai/rich-prompt.js',
@@ -208,6 +219,17 @@ const CSS_ORDER = [
   'style/ui-settings.css',
 ]
 
+function isCoreJs(rel) {
+  return rel.indexOf('ai/') !== 0 && rel.indexOf('extensions/') !== 0
+}
+
+function isCoreCss(rel) {
+  return rel !== 'style/ui-ai.css'
+}
+
+const CORE_JS_ORDER = JS_ORDER.filter(isCoreJs)
+const CORE_CSS_ORDER = CSS_ORDER.filter(isCoreCss)
+
 function readOptional(path) {
   try { return readFileSync(path, 'utf8') }
   catch (e) { if (e.code === 'ENOENT') return null; throw e }
@@ -232,17 +254,27 @@ function bundle(order, kind) {
 
 function buildOnce() {
   mkdirSync(DIST, { recursive: true })
-  const js  = bundle(JS_ORDER,  'JS')
-  const css = bundle(CSS_ORDER, 'CSS')
-  writeFileSync(join(DIST, 'aeditor.js'),  js.text)
-  writeFileSync(join(DIST, 'aeditor.css'), css.text)
+  const coreJs  = bundle(CORE_JS_ORDER, 'Core JS')
+  const coreCss = bundle(CORE_CSS_ORDER, 'Core CSS')
+  const fullJs  = bundle(JS_ORDER, 'Full JS')
+  const fullCss = bundle(CSS_ORDER, 'Full CSS')
+  writeFileSync(join(DIST, 'aeditor-core.js'), coreJs.text)
+  writeFileSync(join(DIST, 'aeditor-core.css'), coreCss.text)
+  writeFileSync(join(DIST, 'aeditor-full.js'), fullJs.text)
+  writeFileSync(join(DIST, 'aeditor-full.css'), fullCss.text)
+  writeFileSync(join(DIST, 'aeditor.js'), coreJs.text)
+  writeFileSync(join(DIST, 'aeditor.css'), coreCss.text)
   const stamp = new Date().toLocaleTimeString()
-  console.log('[' + stamp + '] built dist/aeditor.js (' + js.text.length + ' bytes, ' +
-              (JS_ORDER.length - js.missing.length) + '/' + JS_ORDER.length + ' files), ' +
-              'dist/aeditor.css (' + css.text.length + ' bytes, ' +
-              (CSS_ORDER.length - css.missing.length) + '/' + CSS_ORDER.length + ' files)')
-  if (js.missing.length || css.missing.length) {
-    const all = js.missing.concat(css.missing)
+  console.log('[' + stamp + '] built dist/aeditor-core.js (' + coreJs.text.length + ' bytes, ' +
+              (CORE_JS_ORDER.length - coreJs.missing.length) + '/' + CORE_JS_ORDER.length + ' files), ' +
+              'dist/aeditor-core.css (' + coreCss.text.length + ' bytes, ' +
+              (CORE_CSS_ORDER.length - coreCss.missing.length) + '/' + CORE_CSS_ORDER.length + ' files)')
+  console.log('[' + stamp + '] built dist/aeditor-full.js (' + fullJs.text.length + ' bytes, ' +
+              (JS_ORDER.length - fullJs.missing.length) + '/' + JS_ORDER.length + ' files), ' +
+              'dist/aeditor-full.css (' + fullCss.text.length + ' bytes, ' +
+              (CSS_ORDER.length - fullCss.missing.length) + '/' + CSS_ORDER.length + ' files)')
+  if (coreJs.missing.length || coreCss.missing.length || fullJs.missing.length || fullCss.missing.length) {
+    const all = coreJs.missing.concat(coreCss.missing, fullJs.missing, fullCss.missing)
     console.log('  - skipped (not yet created): ' + all.join(', '))
   }
 }

@@ -25,6 +25,7 @@
       dockRuntimes:      new Map(),
       activationCounter: 0,
       lruMax:            (opts && opts.lru && opts.lru.max != null) ? opts.lru.max : -1,
+      dockMenu:          !!(opts && opts.dockMenu),
       hooks:             (opts && opts.hooks) || {},
       broadcastChannel:  null,
       cleanups:          [],

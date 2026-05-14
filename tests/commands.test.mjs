@@ -43,6 +43,40 @@ const uiItem = aeditor.commands.menuUiItems('dock.panel.context').find(function 
 uiItem.onSelect()
 assert.deepEqual(ran.input, {})
 
+aeditor.commands.register('case.choice', {
+  run: function (input, ctx) {
+    ran = { input, ctx }
+  },
+}, { owner: 'extension:case', layer: 'app' })
+
+aeditor.commands.registerMenu('case.parent.menu', {
+  target: 'dock.panel.context',
+  label: function (ctx) { return ctx.title },
+  childrenTarget: 'case.children',
+  order: 1,
+}, { owner: 'extension:case', layer: 'app' })
+
+aeditor.commands.registerMenu('case.child.menu', {
+  target: 'case.children',
+  command: 'case.choice',
+  label: 'Child',
+  input: function (ctx) { return { id: ctx.id } },
+  disabled: function (ctx) { return ctx.locked },
+}, { owner: 'extension:case', layer: 'app' })
+
+const parent = aeditor.commands.menuUiItems('dock.panel.context', { title: 'Actions', id: 7, locked: false })
+  .find(function (item) { return item.id === 'case.parent.menu' })
+assert.equal(parent.label, 'Actions')
+assert.equal(parent.items.length, 1)
+assert.equal(parent.items[0].disabled, false)
+parent.items[0].onSelect()
+assert.deepEqual(ran.input, { id: 7 })
+
+const lockedParent = aeditor.commands.menuUiItems('dock.panel.context', { title: 'Actions', id: 8, locked: true })
+  .find(function (item) { return item.id === 'case.parent.menu' })
+assert.equal(lockedParent.items[0].disabled, true)
+assert.equal(lockedParent.items[0].onSelect, null)
+
 aeditor.commands.unregisterOwner('extension:case')
 assert.deepEqual(aeditor.commands.list({ owner: 'extension:case' }), [])
 assert.equal(aeditor.commands.menuItems('dock.panel.context').length, 1)

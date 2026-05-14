@@ -8,17 +8,14 @@
   let nextMessageId = 1
   let nextAttachmentId = 1
   let nextEventId = 1
-  let nextPermissionAuditId = 1
 
   const agentsSig = aeditor.signal([])
   const attachmentsSig = aeditor.signal([])
-  const permissionAuditSig = aeditor.signal([])
   const activeAgentIdSig = aeditor.signal(null)
   const agentVersionSigs = {}
   const messageListVersionSigs = {}
   const messageVersionSigs = {}
   const activeRunStateSigs = {}
-  let permissionResolver = null
   let persistenceKey = 'aeditor.ai.v2'
   let persistenceEnabled = true
   let saveTimer = null
@@ -26,7 +23,6 @@
   const MAX_SNAPSHOT_REASONING_CHARS = 65536
   const MAX_STORED_STATE_CHARS = 5000000
   const MAX_SNAPSHOT_TOOL_STRING_CHARS = 12000
-  const MAX_PERMISSION_AUDIT = 500
 
   function now() { return Date.now() }
 
@@ -561,7 +557,7 @@
     agentsSig.update(function (agents) {
       return agents.map(function (agent) {
         return Object.assign({}, agent, {
-          contextRefs: agent.contextRefs.filter(function (ref) { return ref.resourceId !== id && ref.id !== id }),
+          contextRefs: agent.contextRefs.filter(function (ref) { return typeof ref === 'string' ? ref !== id : ref.refId !== id && ref.id !== id }),
         })
       })
     })
@@ -705,7 +701,7 @@
     const next = data || readStored()
     if (!next || next.version !== 2) return null
     agentsSig.set((next.agents || []).map(function (agent) { return normalizeRestoredRuntime(makeAgent(agent)) }))
-    attachmentsSig.set((next.attachments || next.resources || []).map(makeAttachment))
+    attachmentsSig.set((next.attachments || []).map(makeAttachment))
     activeAgentIdSig.set(next.activeAgentId || (agentsSig.peek()[0] && agentsSig.peek()[0].id) || null)
     const agents = agentsSig.peek()
     for (let i = 0; i < agents.length; i++) touchMessages(agents[i].id, agents[i].messages)
@@ -740,149 +736,19 @@
     if (s) s.removeItem(persistenceKey)
   }
 
-  function canMode(ruleMode, wantedMode) {
-    if (ruleMode === 'readwrite') return true
-    if (wantedMode === 'read') return ruleMode === 'read'
-    if (wantedMode === 'write') return ruleMode === 'write'
-    return ruleMode === wantedMode
-  }
-
-  function pathInside(path, root) {
-    const child = normalizePath(path).toLowerCase().split('/').filter(Boolean)
-    const parent = normalizePath(root).toLowerCase().split('/').filter(Boolean)
-    if (!parent.length) return true
-    if (child.length < parent.length) return false
-    for (let i = 0; i < parent.length; i++) if (child[i] !== parent[i]) return false
-    return true
-  }
-
-  function canAccessPath(agent, path, mode) {
-    const wantedMode = mode || 'read'
-    const rules = (agent && agent.permissions && agent.permissions.paths) || []
-    for (let i = 0; i < rules.length; i++) {
-      if (pathInside(path, rules[i].path) && canMode(rules[i].mode, wantedMode)) return true
-    }
-    return false
-  }
-
-  function canReadPath(agent, path) { return canAccessPath(agent, path, 'read') }
-  function canWritePath(agent, path) { return canAccessPath(agent, path, 'write') }
-
-  function defaultPermission(ctx) {
-    if (ctx.actor === 'user') return true
-    const actorAgent = findAgent(ctx.actor)
-    const target = findAgent(ctx.targetAgentId)
-    if (!actorAgent || !target) return false
-    if (actorAgent.id === target.id) return true
-    if (ctx.scope === 'messages.send') return isDescendant(actorAgent.id, target.id)
-    if (ctx.scope === 'agent.manage') return isDescendant(actorAgent.id, target.id)
-    if (ctx.scope === 'agent.summary') return isDescendant(actorAgent.id, target.id)
-    if (ctx.scope === 'quest.read') {
-      const quest = findQuest(ctx.targetAgentId, ctx.questId)
-      return !!(quest && quest.fromAgentId === actorAgent.id)
-    }
-    return isDescendant(actorAgent.id, target.id)
-  }
-
-  function normalizePermissionDecision(value, ctx) {
-    if (value === true) return { decision: 'allow', allowed: true, reason: 'allowed' }
-    if (value === false || value == null) return { decision: 'deny', allowed: false, reason: 'denied' }
-    if (typeof value === 'string') {
-      const decision = value === 'allow' || value === 'ask' || value === 'unavailable' ? value : 'deny'
-      return { decision: decision, allowed: decision === 'allow', reason: decision }
-    }
-    const decision = value.decision || value.status || (value.allowed ? 'allow' : 'deny')
-    return {
-      decision: decision,
-      allowed: value.allowed != null ? !!value.allowed : decision === 'allow',
-      reason: value.reason || decision,
-      details: value.details || null,
-      ctx: value.ctx || ctx || null,
-    }
-  }
-
-  function permissionEntry(ctx) {
-    return ctx.toolId || ctx.operation || ctx.op || ctx.changeSetId || ctx.extensionId || ctx.adapter || ctx.scope || ''
-  }
-
-  function auditPermission(ctx, decision) {
-    const item = {
-      id: 'perm_' + now().toString(36) + '_' + nextPermissionAuditId++,
-      time: now(),
-      traceId: ctx.traceId || null,
-      runId: ctx.runId || null,
-      agentId: ctx.targetAgentId || (ctx.agent && ctx.agent.id) || null,
-      actor: ctx.actor || 'user',
-      scope: ctx.scope || '',
-      entry: permissionEntry(ctx),
-      phase: ctx.phase || '',
-      target: ctx.target || ctx.path || ctx.dock || ctx.setting || null,
-      workspace: ctx.workspace || null,
-      origin: ctx.origin || null,
-      risk: ctx.risk || null,
-      decision: decision.decision,
-      allowed: !!decision.allowed,
-      reason: decision.reason || '',
-      baseVersion: ctx.baseVersion || null,
-      resultVersion: ctx.resultVersion || null,
-    }
-    permissionAuditSig.update(function (items) {
-      const next = items.concat([item])
-      return next.length > MAX_PERMISSION_AUDIT ? next.slice(next.length - MAX_PERMISSION_AUDIT) : next
-    })
-    return item
-  }
-
-  function decidePermission(actor, targetAgentId, scope, details) {
-    const ctx = Object.assign({
-      actor: actor || 'user',
-      targetAgentId: targetAgentId,
-      scope: scope || 'agent.full',
-      actorAgent: actor === 'user' ? null : findAgent(actor),
-      agent: findAgent(targetAgentId),
-    }, details || {})
-    const next = function (nextCtx) { return defaultPermission(nextCtx || ctx) }
-    const raw = permissionResolver ? permissionResolver(ctx, next) : next(ctx)
-    const decision = normalizePermissionDecision(raw, ctx)
-    auditPermission(ctx, decision)
-    return decision
-  }
-
-  function resolvePermission(actor, targetAgentId, scope, details) {
-    return decidePermission(actor, targetAgentId, scope, details).allowed === true
-  }
-
-  function setPermissionResolver(fn) {
-    permissionResolver = fn
-    return fn
-  }
-
-  function getPermissionResolver() { return permissionResolver }
-  function permissionAudit() { return permissionAuditSig() }
-  function clearPermissionAudit() { permissionAuditSig.set([]) }
-  function canRead(actorId, targetId, scope) { return resolvePermission(actorId, targetId, scope || 'agent.full') }
-  function canSend(actorId, targetId) { return resolvePermission(actorId, targetId, 'messages.send') }
-  function canManage(actorId, targetId) { return resolvePermission(actorId, targetId, 'agent.manage') }
-  function canUseTool(actorId, targetId, toolId, phase) {
-    return resolvePermission(actorId, targetId, phase === 'apply' ? 'tool.apply' : 'tool.call', { toolId: toolId, entry: toolId, phase: phase || 'call' })
-  }
-
-  function canUseOperation(actorId, targetId, op, phase, details) {
-    const apply = phase === 'apply'
-    return resolvePermission(actorId, targetId, apply ? 'operation.apply' : 'operation.preview', Object.assign({
-      operation: op,
-      op: op,
-      phase: phase || 'preview',
-    }, details || {}))
+  function permissionAllowed(actor, targetAgentId, scope, details) {
+    return ai.decidePermission
+      ? ai.decidePermission(actor || 'user', targetAgentId, scope, details || {}).allowed === true
+      : true
   }
 
   function messageApiRead(agentId, messageId, actor) {
-    if (!resolvePermission(actor || 'user', agentId, 'messages.read', { messageId: messageId })) return null
+    if (!permissionAllowed(actor || 'user', agentId, 'messages.read', { messageId: messageId })) return null
     return readMessage(agentId, messageId)
   }
 
   function questApiRead(agentId, questId, actor) {
-    if (!resolvePermission(actor || 'user', agentId, 'quest.read', { questId: questId })) return null
+    if (!permissionAllowed(actor || 'user', agentId, 'quest.read', { questId: questId })) return null
     const quest = findQuest(agentId, questId)
     if (!quest) return null
     return {
@@ -904,7 +770,7 @@
   }
 
   function agentApiRead(agentId, actor) {
-    if (!resolvePermission(actor || 'user', agentId, 'agent.summary')) return null
+    if (!permissionAllowed(actor || 'user', agentId, 'agent.summary')) return null
     const agent = findAgent(agentId)
     if (!agent) return null
     const unread = (agent.inbox || []).filter(function (event) { return !event.consumed }).length
@@ -925,7 +791,7 @@
 
   function agentMessages(agentId, opts, actor) {
     opts = opts || {}
-    if (!resolvePermission(actor || 'user', agentId, 'messages.read')) return []
+    if (!permissionAllowed(actor || 'user', agentId, 'messages.read')) return []
     const agent = findAgent(agentId)
     let messages = agent && agent.messages || []
     if (!opts.includeToolMessages) messages = messages.filter(function (message) { return message.role !== 'tool' })
@@ -1015,9 +881,16 @@
     return next
   }
 
+  if (ai.configurePermissionAccessors) {
+    ai.configurePermissionAccessors({
+      findAgent: findAgent,
+      findQuest: findQuest,
+      isDescendant: isDescendant,
+    })
+  }
+
   ai.agents = agentsSig
   ai.attachments = attachmentsSig
-  ai.permissionAudit = permissionAuditSig
   ai.activeAgentId = activeAgentIdSig
   ai.findAgent = findAgent
   ai.getActiveAgent = getActiveAgent
@@ -1050,19 +923,6 @@
   ai.markInboxEventConsumed = markInboxEventConsumed
   ai.addAttachment = addAttachment
   ai.removeAttachment = removeAttachment
-  ai.canAccessPath = canAccessPath
-  ai.canReadPath = canReadPath
-  ai.canWritePath = canWritePath
-  ai.canRead = canRead
-  ai.canSend = canSend
-  ai.canManage = canManage
-  ai.canUseTool = canUseTool
-  ai.canUseOperation = canUseOperation
-  ai.decidePermission = decidePermission
-  ai.permissionAuditRecords = permissionAudit
-  ai.clearPermissionAudit = clearPermissionAudit
-  ai.setPermissionResolver = setPermissionResolver
-  ai.getPermissionResolver = getPermissionResolver
   ai.snapshot = snapshot
   ai.save = save
   ai.restore = restore

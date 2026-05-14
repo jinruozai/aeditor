@@ -40,8 +40,10 @@
     const tree   = signal(config.tree)
     const layout = RT.createLayoutRuntime(container, tree, {
       lru:   config.lru,
+      dockMenu: config.dockMenu === true,
       hooks: config.hooks,
     })
+    if (layout.dockMenu && RT.installDefaultDockMenu) RT.installDefaultDockMenu()
 
     const stopReconcile = effect(function () {
       const t = tree()
@@ -49,7 +51,7 @@
     })
     layout.cleanups.push(stopReconcile)
 
-    // Phase 6 — popup mode handshake. No-op in regular windows.
+    // Popup-window handshake. No-op in regular windows.
     if (RT.bindMigrationReceiver) RT.bindMigrationReceiver(layout)
 
     // ── LayoutHandle ───────────────────────────────────

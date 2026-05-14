@@ -92,6 +92,7 @@
   function attachCornerDrag(handle, dockId, corner, layout) {
     const treeSig = layout.treeSig
     handle.addEventListener('contextmenu', function (e) {
+      if (!layout.dockMenu || !aeditor._dock.openDockMenu) return
       e.preventDefault()
       e.stopPropagation()
       aeditor._dock.openDockMenu({ x: e.clientX, y: e.clientY }, dockId, layout)

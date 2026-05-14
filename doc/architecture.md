@@ -12,7 +12,7 @@ Core infrastructure
   -> optional Extension Runtime
 ```
 
-Framework layers depend only on lower layers:
+Conceptual layers depend only on lower layers:
 
 ```text
 Extension Runtime
@@ -25,6 +25,13 @@ Applications can use any layer they need. Demo Project Runtime is application
 code that demonstrates workspace-backed editor loading; it is not a framework
 layer.
 
+Source directories should express the same conceptual boundary. Core stays under
+`src/core/`; Optional Extension Runtime lives under `src/extensions/`.
+
+The distribution should express the same boundary. A Core/UI bundle must be
+usable without loading AI Host, Extension Runtime, AI panels, or AI-specific
+styles. A full bundle may concatenate every layer as an opt-in convenience.
+
 ## Architecture Invariants
 
 These invariants are the design spine:
@@ -34,7 +41,8 @@ UI identity          -> registered Component
 AI public model      -> Agent / Tool / Context Reference / Operation / ChangeSet
 file boundary        -> workspace
 reviewed mutation    -> Operation preview/apply or ChangeSet
-lifecycle group      -> dotted prefix
+lifecycle owner      -> owner metadata
+distribution unit    -> core bundle + full bundle
 mutable consistency  -> ResourceVersion + CAS apply
 package format       -> Extension
 privileged boundary  -> Host Adapter
@@ -95,6 +103,10 @@ PanelData and toolbar items reference registered components. They are not
 separate registration systems. Panel communication uses `aeditor.bus` through
 the component context. Components do not directly own each other.
 
+Dock menus are command/menu contributions, not hard-coded application policy.
+The built-in dock menu is installed only when a host opts in with
+`createDockLayout(..., { dockMenu: true })`.
+
 ## 3. Optional AI Host
 
 The public AI model has five concepts:
@@ -118,22 +130,25 @@ semantics are exposed through tools, context references, and operations.
 ## 4. Optional Extension Runtime
 
 Extension Runtime is a package format and lifecycle wrapper around existing
-registries:
+registries plus dock/menu contribution records:
 
 ```text
 components
+dock panels
 tools
-context references
+context providers
+reference providers
 operations
 settings
 commands
-styles
+menus
 ```
 
-Extension install means registering those contributions. Extension uninstall
-means removing the same dotted prefixes. Extension Runtime may add review,
-trust, storage, and recovery safeguards, but it must not introduce another
-component model or another AI registry model.
+Extension install means registering or mounting those contributions with an
+extension owner. Extension uninstall means removing that owner. Extension
+Runtime may add
+review, trust, storage, and recovery safeguards, but it must not introduce
+another component model, another project model, or another AI registry model.
 
 ## 5. Host Adapters
 
@@ -150,7 +165,7 @@ remote service connector
 
 Adapters must declare their capability surface and must be consumed through
 explicit contracts. Framework code should never depend on shell strings,
-absolute host paths, or implicit local privileges.
+absolute host paths, implicit local privileges, or hidden permission bypasses.
 
 ## Commands Versus Tools
 
@@ -167,6 +182,7 @@ Dotted names are the grouping and lifecycle mechanism:
 
 ```text
 workspace.readFile
+workspace.editFile
 workspace.patchFile
 theme.setMode
 ui.setProp
@@ -177,16 +193,21 @@ ani.timeline.insertKey
 Registry APIs should support:
 
 ```js
-register(name, spec)
-unregister(name)
+register(name, spec, meta)
+unregister(name, meta)
+unregisterOwner(owner)
 unregisterPrefix(prefix)
 get(name)
 list(prefix)
 ```
 
-There is no separate group field and no separate lifecycle token. Metadata may
-exist for diagnostics, palette hints, review UI, and compatibility, but it must
-not become the owner/uninstall mechanism.
+There is no separate group field. Dotted names are the public namespace and
+filtering shape. Owner metadata is the exact lifecycle token for extension-owned
+registrations; this keeps nested prefixes safe without adding a second public
+grouping concept.
+
+Registers should reject duplicate names by default. Intentional replacement must
+be explicit through metadata such as `{ replace: true }`.
 
 ## Forbidden Shape
 

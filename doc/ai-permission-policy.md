@@ -22,6 +22,24 @@ risk         read | write | delete | execute | network | install
 baseVersion  optional ResourceVersion inspected during preview
 ```
 
+## Actor Semantics
+
+`actor` is the caller asking for the action. It may be the user, an agent, an
+extension, or system code acting through an explicit host policy.
+
+`agentId` is the agent run or conversation the action belongs to. It is not
+automatically the actor. Helpers must preserve this distinction:
+
+```text
+canRead(actor, target, scope)
+canSend(actor, target)
+canManage(actor, target)
+canUseTool(actor, agentId, toolId, phase)
+```
+
+Using the target agent as the actor silently widens permissions for delegated
+agents and provider/runtime hooks, so it is a contract violation.
+
 The resolver returns:
 
 ```text
@@ -100,6 +118,7 @@ ChangeSet apply
 workspace write/patch/delete
 extension install/update/enable
 host adapter call
+context/reference read when it exposes non-public host state
 ```
 
 A module may add helper APIs, but it must not invent a second permission system.
