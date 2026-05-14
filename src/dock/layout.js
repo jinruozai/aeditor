@@ -72,6 +72,7 @@
       activatePanel: function (panelId)                      { layout.activatePanel(panelId) },
       promotePanel:  function (panelId)                      { layout.promotePanel(panelId) },
       movePanel:     function (panelId, dstDockId, dstIndex) { layout.movePanel(panelId, dstDockId, dstIndex) },
+      inspectDocks:  function ()                             { return RT.inspectDocks(layout) },
       inspectPanel:  function (panelId)                      { return RT.inspectPanel(layout, panelId) },
       inspectPanels: function ()                             { return RT.inspectPanels(layout) },
 

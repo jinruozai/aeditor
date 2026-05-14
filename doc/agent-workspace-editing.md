@@ -151,22 +151,23 @@ Project panel files register components through the demo loader:
 })(window.aeditor = window.aeditor || {}, window.Demo = window.Demo || {})
 ```
 
-3. Mount the registered component to the persistent layout:
+3. Add the registered component to a runtime dock:
 
 ```text
-demo.project.mountPanel({
+aeditor.inspectDocks({})
+
+aeditor.addPanelToDock({
+  dock: "dock id returned by inspectDocks",
   component: "sample.panel",
-  dock: "editor",
   title: "Sample Panel",
-  icon: "box",
-  entryPath: "src/panels/sample.panel.js"
+  icon: "box"
 })
 ```
 
-`mountPanel` is the preferred demo path. It opens or bootstraps the current
-workspace project, ensures `aeditor.project.json` and `aeditor.layout.json`
-exist, appends `entryPath` when missing, updates the layout, and reloads by
-default.
+`aeditor.inspectDocks` returns the current dock ids, viewport rects, active
+panels, and panel summaries. Choose a returned `dockId` from that runtime state;
+do not guess names such as `main`, and do not hand-write layout JSON. Runtime
+panel placement and later layout persistence are separate host concerns.
 
 4. Verify:
 

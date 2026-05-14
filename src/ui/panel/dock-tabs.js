@@ -12,6 +12,9 @@
 //   tab-collapsible closeable + click-active collapses     (utility)
 //   tab-sidebar     icon-only + collapsible                (rail style)
 //
+// All dock tab presets must be visible when panels.length > 1. Otherwise a
+// dock can contain multiple panels with no built-in way to switch between them.
+//
 // A preset's `props` can override any of the hard-coded defaults on a
 // per-toolbar-item basis — that's how a caller could, e.g., use the
 // sidebar preset but force text mode with `props: { iconOnly: false }`,
@@ -30,7 +33,10 @@
       iconOnly:     p.iconOnly,
       closable:     p.closable != null ? p.closable : true,
       addable:      !!p.addable,
-      minShowCount: p.minShowCount || 0,
+      // Dock tabs are the only built-in way to switch active panels inside a
+      // dock, so every dock tab preset must show when there is more than one
+      // panel. Presets may still hide the single-panel case with minShowCount:2.
+      minShowCount: Math.min(p.minShowCount || 0, 2),
 
       onActivate: function (id) {
         ctx.dock.activatePanel(id)

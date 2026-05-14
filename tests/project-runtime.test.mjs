@@ -84,7 +84,11 @@ window.CaseProject = {
     return {
       destroyed: false,
       inspectPanel: function (panelId) { return { panelId: panelId, status: 'ready' } },
+      inspectDocks: function () { return [{ dockId: 'dock-1', name: 'main', rect: { x: 1, y: 2, width: 300, height: 200 }, panels: [] }] },
       inspectPanels: function () { return [{ panelId: 'p1', status: 'ready' }] },
+      tree: function () {
+        return { type: 'dock', id: 'dock-1', name: 'main', panels: [{ id: 'saved-panel', component: 'case.panel', title: 'Saved Panel', props: {} }], activeId: 'saved-panel' }
+      },
       destroy: function () { this.destroyed = true },
     }
   },
@@ -141,6 +145,15 @@ assert.equal(aeditor.componentRegistration('case.panel').owner.startsWith('proje
 assert.equal(aeditor.ai.toolMeta('case.ping').owner.startsWith('project:case'), true)
 assert.deepEqual(aeditor.ai.references.read({ uri: 'case.ref://x', resolver: 'case.ref' }), { ok: true })
 
+const savedLayout = await project.saveLayout()
+assert.equal(savedLayout.layoutPath, 'layout.json')
+assert.equal((await ws.read('layout.json')).text.includes('saved-panel'), true)
+const savedAsLayout = await window.Demo.project.saveLayout('case', { layoutPath: 'layout-copy.json', updateDescriptor: true })
+assert.equal(savedAsLayout.layoutPath, 'layout-copy.json')
+assert.equal(JSON.parse((await ws.read('aeditor.project.json')).text).layout, 'layout-copy.json')
+assert.equal((await ws.read('layout-copy.json')).text.includes('saved-panel'), true)
+await project.saveLayout({ layoutPath: 'layout.json', updateDescriptor: true })
+
 const file = await aeditor.ai.tools.get('demo.project.readFile').run({ path: 'src/panel.js' })
 assert.equal(file.path, 'src/panel.js')
 const ranged = await aeditor.ai.tools.get('demo.project.readFileRange').run({ path: 'src/panel.js', startLine: 2, endLine: 2 })
@@ -159,6 +172,7 @@ await aeditor.ai.tools.get('demo.project.patchFile').run({
 assert.equal((await ws.read('src/panel.js')).text.includes('return 2'), true)
 
 assert.deepEqual(aeditor.ai.tools.get('demo.project.inspectPanel').run({ panelId: 'p1' }), { panelId: 'p1', status: 'ready' })
+assert.deepEqual(window.Demo.project.current().inspectDocks(), [{ dockId: 'dock-1', name: 'main', rect: { x: 1, y: 2, width: 300, height: 200 }, panels: [] }])
 const verifyChecks = await aeditor.ai.tools.get('verify.list').run({})
 assert.deepEqual(verifyChecks, [{
   id: 'demo.project.check',
@@ -318,6 +332,45 @@ assert.equal(bootstrapped.mounted, true)
 assert.equal(JSON.parse((await bootstrapWs.read('aeditor.project.json')).text).type, 'aeditor-project')
 assert.equal((await bootstrapWs.read('aeditor.layout.json')).text.includes('bootstrap.panel'), true)
 window.Demo.project.close('bootstrap-demo')
+
+const malformedWs = aeditor.workspace.memory({
+  'aeditor.project.json': JSON.stringify({
+    type: 'aeditor-project',
+    id: 'malformed-demo',
+    title: 'Malformed Demo',
+    entries: [{ type: 'script', path: 'panel.js', component: 'malformed.panel' }],
+    layout: {
+      docks: {
+        editor: {
+          panels: [{ id: 'old-panel', component: 'malformed.panel', title: 'Old Panel' }],
+        },
+      },
+    },
+    permissions: { 'project.code.load': true },
+  }),
+  'panel.js': [
+    ';(function (aeditor, Demo) {',
+    "  'use strict'",
+    "  Demo.project.component('malformed.panel', {",
+    "    defaults: function () { return { title: 'Malformed', props: {} } },",
+    '    factory: function () { return { tagName: "DIV" } }',
+    '  })',
+    '})(window.aeditor = window.aeditor || {}, window.Demo = window.Demo || {})',
+    '',
+  ].join('\n'),
+})
+aeditor.ai.setWorkspace(malformedWs, { id: 'memory:malformed', label: 'Malformed', kind: 'memory' })
+const malformedMount = await aeditor.ai.tools.get('demo.project.mountPanel').run({
+  component: 'malformed.panel',
+  entryPath: 'panel.js',
+})
+assert.equal(malformedMount.mounted, true)
+const malformedDescriptor = JSON.parse((await malformedWs.read('aeditor.project.json')).text)
+assert.equal(malformedDescriptor.layout, 'aeditor.layout.json')
+assert.equal(malformedDescriptor.entries.filter(function (entry) { return entry.src === 'panel.js' }).length, 1)
+assert.equal((await malformedWs.read('aeditor.layout.json')).text.includes('malformed.panel'), true)
+assert.equal((await malformedWs.list('')).some(function (entry) { return entry.path === '[object Object]' }), false)
+window.Demo.project.close('malformed-demo')
 
 window.NoApplyProject = {
   setup: function (ctx) {

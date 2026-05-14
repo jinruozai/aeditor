@@ -72,7 +72,7 @@
       const el = document.elementFromPoint(ev.clientX, ev.clientY)
       if (!el || !el.closest) return
 
-      const dockEl = el.closest('.aeditor-dock')
+      const dockEl = dockForLayout(el, layout)
       if (!dockEl) return
       const dstId = dockEl.dataset.dockId
       if (!dstId) return
@@ -250,7 +250,7 @@
       drop = null
 
       const el = document.elementFromPoint(ev.clientX, ev.clientY)
-      const dockEl = el && el.closest && el.closest('.aeditor-dock')
+      const dockEl = dockForLayout(el, layout)
       if (!dockEl) return
       const dstId = dockEl.dataset.dockId
       const dst = dstId && aeditor.findDock(layout.tree(), dstId)
@@ -396,6 +396,17 @@
   function activeZoneName(zone) {
     if (zone && Object.prototype.hasOwnProperty.call(zone, 'active')) return zone.active
     return zone && zone.name
+  }
+
+  function dockForLayout(el, layout) {
+    let dockEl = el && el.closest && el.closest('.aeditor-dock')
+    while (dockEl) {
+      const id = dockEl.dataset && dockEl.dataset.dockId
+      if (id && layout.dockRuntimes && layout.dockRuntimes.has(id)) return dockEl
+      const parent = dockEl.parentElement
+      dockEl = parent && parent.closest ? parent.closest('.aeditor-dock') : null
+    }
+    return null
   }
 
   // Build a short accent bar between two tabs (or before/after the whole

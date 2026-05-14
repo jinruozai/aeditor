@@ -178,28 +178,73 @@
     return '$' + n.toFixed(digits).replace(/0+$/, '').replace(/\.$/, '')
   }
 
-  function appendTextParts(parent, text) {
+  function textPartItems(text) {
     const source = String(text == null ? '' : text)
     const parts = source.split(/```/g)
+    const out = []
     for (let i = 0; i < parts.length; i++) {
       const chunk = parts[i]
       if (!chunk) continue
       if (i % 2) {
-        const pre = ui.h('pre', 'aeditor-ai-message-code aeditor-ui-scrollarea')
-        pre.textContent = chunk.replace(/^\w+\n/, '')
-        parent.appendChild(pre)
+        out.push({ type: 'code', text: chunk.replace(/^\w+\n/, '') })
       } else {
         const lines = chunk.split(/\n{2,}/g)
         for (let j = 0; j < lines.length; j++) {
           const line = lines[j].trim()
           if (!line) continue
-          const p = ui.h('p', 'aeditor-ai-message-text')
-          p.textContent = line
-          parent.appendChild(p)
+          out.push({ type: 'text', text: line })
         }
       }
     }
-    if (!parent.firstChild) parent.appendChild(ui.h('p', 'aeditor-ai-message-text', { text: '' }))
+    if (!out.length) out.push({ type: 'text', text: '' })
+    return out
+  }
+
+  function setStableText(el, text) {
+    const s = String(text == null ? '' : text)
+    if (el.childNodes && el.childNodes.length === 1 && el.firstChild && el.firstChild.nodeType === 3) {
+      if (el.firstChild.nodeValue !== s) el.firstChild.nodeValue = s
+      return
+    }
+    while (el.firstChild) el.removeChild(el.firstChild)
+    el.appendChild(document.createTextNode(s))
+  }
+
+  function createTextPart(item) {
+    const el = item.type === 'code'
+      ? ui.h('pre', 'aeditor-ai-message-code aeditor-ui-scrollarea')
+      : ui.h('p', 'aeditor-ai-message-text')
+    el.dataset.messagePart = item.type
+    setStableText(el, item.text)
+    return el
+  }
+
+  function patchTextParts(parent, text) {
+    const items = textPartItems(text)
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i]
+      let child = parent.children[i]
+      if (!child || child.dataset.messagePart !== item.type) {
+        const next = createTextPart(item)
+        if (child) {
+          parent.insertBefore(next, child)
+          disposeTree(child)
+        } else {
+          parent.appendChild(next)
+        }
+        child = next
+      } else {
+        setStableText(child, item.text)
+      }
+    }
+    while (parent.children.length > items.length) {
+      disposeTree(parent.children[parent.children.length - 1])
+    }
+  }
+
+  function appendTextParts(parent, text) {
+    const items = textPartItems(text)
+    for (let i = 0; i < items.length; i++) parent.appendChild(createTextPart(items[i]))
   }
 
   function appendChips(parent, className, items) {
@@ -558,12 +603,32 @@
     const content = msg.content != null ? msg.content : msg.text
     if (content && typeof content === 'object' && content.type !== 'rich-prompt') {
       const pre = ui.h('pre', 'aeditor-ai-message-code aeditor-ui-scrollarea')
-      pre.textContent = JSON.stringify(content, null, 2)
+      pre.dataset.messagePayload = 'json'
+      setStableText(pre, JSON.stringify(content, null, 2))
       return pre
     }
     const wrap = ui.h('div', 'aeditor-ai-message-content')
+    wrap.dataset.messagePayload = 'text'
     appendTextParts(wrap, displayText(content))
     return wrap
+  }
+
+  function patchPayload(body, msg) {
+    const content = msg.content != null ? msg.content : msg.text
+    const current = body.querySelector('[data-message-payload]')
+    const want = content && typeof content === 'object' && content.type !== 'rich-prompt' ? 'json' : 'text'
+    if (!current || current.dataset.messagePayload !== want) {
+      const next = renderPayload(msg)
+      if (current) {
+        body.insertBefore(next, current)
+        disposeTree(current)
+      } else {
+        body.insertBefore(next, body.firstChild || null)
+      }
+      return
+    }
+    if (want === 'json') setStableText(current, JSON.stringify(content, null, 2))
+    else patchTextParts(current, displayText(content))
   }
 
   function renderEmpty(item) {
@@ -573,13 +638,92 @@
     return row
   }
 
+  function messageRowClass(role, status) {
+    return 'aeditor-ai-message-row aeditor-ai-message-row-' + role + ' aeditor-ai-message-row-status-' + status
+  }
+
+  function renderMessageFooter(msg, runFooters) {
+    const role = msg.role || msg.type || 'message'
+    const runId = runIdOf(msg)
+    const runFooter = runId && runFooters ? runFooters[msg.id] : null
+    if (runId && isAssistantMessage(msg) && !runFooter) return null
+    if (runFooter && !runFooter.complete) return null
+
+    const copyText = runFooter && runFooter.content.length ? runFooter.content.join('\n\n') : messageText(msg)
+    const footer = ui.h('div', 'aeditor-ai-message-footer')
+    footer.appendChild(ui.copyButton({ text: copyText, title: runFooter ? 'Copy run' : 'Copy message', size: 'sm' }))
+    const calls = toolCallsOf(msg)
+    const callCount = runFooter ? runFooter.toolCalls : calls.length
+    if (callCount) footer.appendChild(ui.h('span', 'aeditor-ai-message-metrics', { text: callCount + ' tool call' + (callCount === 1 ? '' : 's') }))
+    if (role !== 'user') {
+      const metrics = runFooter ? runMetricText(runFooter, metricText(msg)) : metricText(msg)
+      if (metrics) footer.appendChild(ui.h('span', 'aeditor-ai-message-metrics', { text: metrics }))
+    }
+    return footer
+  }
+
+  function patchError(body, msg) {
+    const existing = body.querySelector('.aeditor-ai-message-error')
+    const text = statusOf(msg) === 'error' && msg.meta && msg.meta.error ? msg.meta.error : ''
+    if (!text) {
+      if (existing) disposeTree(existing)
+      return
+    }
+    if (existing) setStableText(existing, text)
+    else body.appendChild(ui.h('div', 'aeditor-ai-message-error', { text: text }))
+  }
+
+  function patchToolCalls(body, agentId, messageId, calls, viewState) {
+    const existing = body.querySelector('.aeditor-ai-tool-calls')
+    if (existing) disposeTree(existing)
+    renderToolCalls(body, agentId, messageId, calls, viewState)
+  }
+
+  function patchChips(card, className, items) {
+    const existing = card.querySelector('.' + className)
+    if (existing) disposeTree(existing)
+    appendChips(card, className, items)
+  }
+
+  function patchFooter(stack, msg, runFooters) {
+    const existing = stack.querySelector('.aeditor-ai-message-footer')
+    const next = renderMessageFooter(msg, runFooters)
+    if (!next) {
+      if (existing) disposeTree(existing)
+      return
+    }
+    if (existing) stack.replaceChild(next, existing)
+    else stack.appendChild(next)
+  }
+
+  function patchMessageRow(entry, agent, msg, runFooters, viewState, listVersion, version) {
+    if (!entry || entry.patchable === false || msg.empty || runtimeEventsOf(msg).length) return false
+    const row = entry.el
+    const stack = row.querySelector('.aeditor-ai-message-stack')
+    const card = row.querySelector('.aeditor-ai-message')
+    const body = row.querySelector('.aeditor-ai-message-body')
+    if (!stack || !card || !body) return false
+    const role = msg.role || msg.type || 'message'
+    const status = statusOf(msg)
+    row.className = messageRowClass(role, status)
+    patchPayload(body, msg)
+    patchError(body, msg)
+    patchToolCalls(body, agent.id, msg.id, toolCallsOf(msg), viewState)
+    patchChips(card, 'aeditor-ai-message-contexts', msg.contextRefs)
+    patchChips(card, 'aeditor-ai-message-attachments', msg.attachments || (msg.meta && msg.meta.attachments))
+    patchFooter(stack, msg, runFooters)
+    entry.version = version
+    entry.listVersion = listVersion
+    return true
+  }
+
   function renderMessage(agent, msg, runFooters, viewState) {
     if (msg.empty) return renderEmpty(msg)
     if (runtimeEventsOf(msg).length) return renderRuntimeEvent(agent, msg)
 
     const role = msg.role || msg.type || 'message'
     const status = statusOf(msg)
-    const row = ui.h('div', 'aeditor-ai-message-row aeditor-ai-message-row-' + role + ' aeditor-ai-message-row-status-' + status)
+    const row = ui.h('div', messageRowClass(role, status))
     const stack = ui.h('div', 'aeditor-ai-message-stack')
     const card = ui.h('div', 'aeditor-ai-message')
 
@@ -594,28 +738,8 @@
     appendChips(card, 'aeditor-ai-message-attachments', msg.attachments || (msg.meta && msg.meta.attachments))
     stack.appendChild(card)
 
-    const runId = runIdOf(msg)
-    const runFooter = runId && runFooters ? runFooters[msg.id] : null
-    if (runId && isAssistantMessage(msg) && !runFooter) {
-      row.appendChild(stack)
-      return row
-    }
-    if (runFooter && !runFooter.complete) {
-      row.appendChild(stack)
-      return row
-    }
-
-    const copyText = runFooter && runFooter.content.length ? runFooter.content.join('\n\n') : messageText(msg)
-    const footer = ui.h('div', 'aeditor-ai-message-footer')
-    footer.appendChild(ui.copyButton({ text: copyText, title: runFooter ? 'Copy run' : 'Copy message', size: 'sm' }))
-    const calls = toolCallsOf(msg)
-    const callCount = runFooter ? runFooter.toolCalls : calls.length
-    if (callCount) footer.appendChild(ui.h('span', 'aeditor-ai-message-metrics', { text: callCount + ' tool call' + (callCount === 1 ? '' : 's') }))
-    if (role !== 'user') {
-      const metrics = runFooter ? runMetricText(runFooter, metricText(msg)) : metricText(msg)
-      if (metrics) footer.appendChild(ui.h('span', 'aeditor-ai-message-metrics', { text: metrics }))
-    }
-    stack.appendChild(footer)
+    const footer = renderMessageFooter(msg, runFooters)
+    if (footer) stack.appendChild(footer)
     row.appendChild(stack)
     return row
   }
@@ -630,6 +754,17 @@
 
   function setSpacerHeight(el, height) {
     el.style.height = Math.max(0, Math.round(height)) + 'px'
+  }
+
+  function containsNode(root, node) {
+    return !!(root && node && (node === root || root.contains(node.nodeType === 3 ? node.parentNode : node)))
+  }
+
+  function hasTextSelectionInside(root) {
+    if (!window.getSelection) return false
+    const sel = window.getSelection()
+    if (!sel || sel.rangeCount === 0 || sel.isCollapsed) return false
+    return containsNode(root, sel.anchorNode) || containsNode(root, sel.focusNode)
   }
 
   function factory(propsSig, ctx) {
@@ -656,10 +791,50 @@
     let cacheRunFooters = {}
     let emptyEl = null
     let stickToBottom = true
+    let selectingTranscript = false
+    let selectionWasInside = false
+    let selectionTimer = null
+    function selectionActive() {
+      return selectingTranscript || hasTextSelectionInside(root)
+    }
+    function releaseSelectionDrag() {
+      if (selectionTimer) clearTimeout(selectionTimer)
+      selectionTimer = setTimeout(function () {
+        selectionTimer = null
+        selectingTranscript = false
+        if (!hasTextSelectionInside(root)) scheduleRender()
+      }, 160)
+    }
+    function onSelectionChange() {
+      const inside = hasTextSelectionInside(root)
+      if (inside) {
+        selectionWasInside = true
+        stickToBottom = false
+        return
+      }
+      if (selectionWasInside && !selectingTranscript) scheduleRender()
+      selectionWasInside = false
+    }
     scroll.addEventListener('scroll', function () {
-      stickToBottom = scroll.scrollTop + scroll.clientHeight >= scroll.scrollHeight - 32
+      stickToBottom = selectionActive() ? false : scroll.scrollTop + scroll.clientHeight >= scroll.scrollHeight - 32
       visibleRevision.set(visibleRevision.peek() + 1)
     }, { passive: true })
+    scroll.addEventListener('pointerdown', function (ev) {
+      if (ev.button !== 0) return
+      const target = ev.target
+      if (target && target.closest && target.closest('.aeditor-ai-message-row')) {
+        selectingTranscript = true
+        stickToBottom = false
+      }
+    }, true)
+    if (window.addEventListener) {
+      window.addEventListener('pointerup', releaseSelectionDrag)
+      window.addEventListener('pointercancel', releaseSelectionDrag)
+      window.addEventListener('blur', releaseSelectionDrag)
+    }
+    if (typeof document !== 'undefined' && document.addEventListener) {
+      document.addEventListener('selectionchange', onSelectionChange)
+    }
 
     function disposeRows() {
       Object.keys(rows).forEach(function (id) {
@@ -727,6 +902,7 @@
       const version = aeditor.ai.messageVersion ? aeditor.ai.messageVersion(agent.id, id) : 0
       const entry = rows[id]
       if (entry && entry.version === version && entry.listVersion === cacheListVersion) return entry.el
+      if (entry && patchMessageRow(entry, agent, msg, cacheRunFooters, viewState, cacheListVersion, version)) return entry.el
       const next = renderMessage(agent, msg, cacheRunFooters, viewState)
       if (entry) {
         if (entry.el.parentNode && entry.el.parentNode.replaceChild) entry.el.parentNode.replaceChild(next, entry.el)
@@ -736,7 +912,7 @@
         }
         disposeTree(entry.el)
       }
-      rows[id] = { el: next, version: version, listVersion: cacheListVersion }
+      rows[id] = { el: next, version: version, listVersion: cacheListVersion, patchable: !msg.empty && !runtimeEventsOf(msg).length }
       return next
     }
 
@@ -805,14 +981,26 @@
       placeRows(agentId, range)
       requestAnimationFrame(function () {
         if (measureRows()) visibleRevision.set(visibleRevision.peek() + 1)
-        if (shouldStick) scroll.scrollTop = scroll.scrollHeight
+        if (shouldStick && !selectionActive()) scroll.scrollTop = scroll.scrollHeight
       })
     }
 
     ui.collect(root, function () {
       if (renderTimer) clearTimeout(renderTimer)
+      if (selectionTimer) clearTimeout(selectionTimer)
       renderTimer = null
+      selectionTimer = null
       disposeRows()
+    })
+    ui.collect(root, function () {
+      if (window.removeEventListener) {
+        window.removeEventListener('pointerup', releaseSelectionDrag)
+        window.removeEventListener('pointercancel', releaseSelectionDrag)
+        window.removeEventListener('blur', releaseSelectionDrag)
+      }
+      if (typeof document !== 'undefined' && document.removeEventListener) {
+        document.removeEventListener('selectionchange', onSelectionChange)
+      }
     })
     const liveTimer = setInterval(function () { liveStrip.tick() }, 1000)
     if (liveTimer && liveTimer.unref) liveTimer.unref()

@@ -28,11 +28,18 @@ search/map files
 read exact current content
 edit with base hash and exact old text
 verify syntax/build
-mount registered component name
+inspect docks
+mount registered component name into a returned dock id
 ```
 
 Do not ask tools to create panels from source strings. A panel should reference
 an already registered component.
+
+When placing a panel, do not hand-write layout JSON and do not guess dock names.
+Call `aeditor.inspectDocks`, choose a returned `dockId` from its position,
+size, and existing panels, then call `aeditor.addPanelToDock` with that dock id
+and the registered component name. Layout persistence is a separate host/save
+concern.
 
 ## Registry Shape
 
@@ -58,7 +65,7 @@ The full bundle includes `aeditor.authoring`. It tells agents to:
   projects;
 - prefer `aeditor.ui.*`;
 - use workspace-backed precise edits;
-- mount by registered component name.
+- inspect docks before mounting by registered component name.
 
 Host apps may add domain-specific skills. Domain skills should explain project
 data and workflows, not create private tool systems.

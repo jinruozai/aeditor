@@ -56,12 +56,14 @@ const aeditor = window.aeditor
 const ai = aeditor.ai
 assert.equal(ai.tools.get('aeditor.createPanel'), undefined)
 assert.equal(ai.operations.get('aeditor.createPanel'), null)
+assert.equal(typeof ai.tools.get('aeditor.inspectDocks').run, 'function')
 assert.equal(typeof ai.tools.get('aeditor.installExtension').preview, 'function')
 assert.equal(typeof ai.tools.get('aeditor.addPanelToDock').preview, 'function')
 const extensionAgent = ai.createAgent({ name: 'Extension Agent' })
 const extensionRequest = ai.makeRequest(extensionAgent, null, 'run_extension_tools', 'user', 0)
 assert.equal(extensionRequest.tools.includes('aeditor.installExtension'), false)
-assert.equal(extensionRequest.tools.includes('aeditor.addPanelToDock'), false)
+assert.equal(extensionRequest.tools.includes('aeditor.inspectDocks'), true)
+assert.equal(extensionRequest.tools.includes('aeditor.addPanelToDock'), true)
 assert.equal(extensionRequest.tools.includes('aeditor.previewOperation'), false)
 assert.equal(extensionRequest.tools.includes('aeditor.applyOperation'), false)
 assert.throws(function () {
@@ -90,6 +92,19 @@ const layout = {
 }
 
 aeditor.extensions.registerLayout('default', layout)
+assert.deepEqual(ai.tools.get('aeditor.inspectDocks').run({}), [{
+  layout: 'default',
+  dockId: tree.id,
+  name: 'main',
+  rect: null,
+  visible: null,
+  activeId: null,
+  panels: [],
+  panelCount: 0,
+  accept: null,
+  collapsed: false,
+  focused: false,
+}])
 aeditor.extensions.configureStorage({ key: 'test.extensions', load: false })
 const installTool = ai.tools.get('aeditor.installExtension')
 const directInstallPreview = installTool.preview({

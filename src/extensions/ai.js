@@ -106,6 +106,17 @@
 
   function registerTools() {
     if (!ai.tools) return
+    ai.tools.register('aeditor.inspectDocks', {
+      title: 'Inspect Editor Docks',
+      description: 'List registered editor docks with id, name, viewport rect, active panel, panel summaries, and accept rules. Use this before adding a panel so the dock id comes from runtime state rather than a guessed name.',
+      schema: {
+        type: 'object',
+        properties: {
+          layout: { type: 'string', description: 'Registered layout name; omit to inspect every registered layout.' },
+        },
+      },
+      run: function (input) { return ext.inspectDocks(input || {}) },
+    }, META)
     ai.tools.register('aeditor.installExtension', {
       title: 'Install Editor Extension',
       description: 'Install a low-level AEditor extension manifest for commands, menus, references, context, operations, settings, dock panels, or pre-registered component contributions. Agent-authored panels must be written as workspace files and added by registered component name.',
@@ -126,7 +137,7 @@
     }, META)
     ai.tools.register('aeditor.addPanelToDock', {
       title: 'Add Panel To Dock',
-      description: 'Add an already registered component as a panel in a dock. This tool never accepts source code; create durable UI by registering a component from files, then add it here by component name.',
+      description: 'Add an already registered component as a runtime panel in a dock, equivalent to choosing that component from the dock Add Panel menu. This tool never accepts source code; inspect docks first, then pass a dock id returned by aeditor.inspectDocks.',
       schema: {
         type: 'object',
         required: ['dock', 'component'],
@@ -140,7 +151,6 @@
           transient: { type: 'boolean' },
         },
       },
-      exposeToModel: false,
       preview: ext.previewAddPanelToDock,
       apply: ext.applyAddPanelToDock,
     }, META)

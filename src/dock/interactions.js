@@ -104,13 +104,12 @@
       e.stopPropagation()
       handle.setPointerCapture(e.pointerId)
 
-      const rootEl = handle.closest('.aeditor-root')
       const dockEl = handle.closest('.aeditor-dock')
       const dockRect = dockEl.getBoundingClientRect()
 
       const overlay = document.createElement('div')
       overlay.className = 'aeditor-overlay'
-      rootEl.appendChild(overlay)
+      document.body.appendChild(overlay)
 
       document.body.classList.add('aeditor-dragging')
       dockEl.classList.add('aeditor-dock-dragging')

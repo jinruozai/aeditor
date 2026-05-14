@@ -41,6 +41,10 @@ those registered component names into dock panels.
   have `ctx.dock` but no `ctx.panel`.
 - Use `dockMenu: true` only when the host wants AEditor default dock menu
   contributions. Menus and commands are opt-in host choices.
+- In the AEditor demo project runtime, component entry files use
+  `Demo.project.component(componentId, spec)`. Do not hand-write layout JSON or
+  guess dock names. Use `aeditor.inspectDocks`, choose a returned `dockId`, then
+  call `aeditor.addPanelToDock` with the registered `component`.
 
 ## Component Pattern
 
@@ -100,7 +104,7 @@ When an AI agent modifies AEditor code, use the workspace-backed path:
 3. For existing files, use exact edits with the current base hash and exact
    `oldText`.
 4. For new files, write the component file, then make sure the host loads it.
-5. Mount by registered component name, not by sending source code as data.
+5. Inspect docks, then mount by registered component name and returned dock id.
 6. If the edit is stale or ambiguous, reread and retry with a narrower change.
 
 For AI registry details, read

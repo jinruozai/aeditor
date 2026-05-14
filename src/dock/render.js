@@ -159,6 +159,10 @@
       for (let i = 0; i < CLS.length; i++) dockEl.classList.remove(CLS[i])
     }
     dockEl.addEventListener('pointermove', function (e) {
+      if (e.target.closest('.aeditor-dock') !== dockEl) {
+        clear()
+        return
+      }
       const r = dockEl.getBoundingClientRect()
       const x = (e.clientX - r.left) / r.width
       const y = (e.clientY - r.top) / r.height

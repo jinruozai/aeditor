@@ -232,6 +232,58 @@
     return layouts.default || firstLayout()
   }
 
+  function inspectDocks(input) {
+    input = input || {}
+    const selected = input.layout ? [input.layout] : keys(layouts)
+    const out = []
+    for (let i = 0; i < selected.length; i++) {
+      const name = selected[i]
+      const layout = layouts[name]
+      if (!layout) {
+        if (input.layout) throw new Error('Layout not registered: ' + input.layout)
+        continue
+      }
+      const docks = layout.inspectDocks ? layout.inspectDocks() : inspectDocksFromTree(layout.tree && layout.tree())
+      for (let j = 0; j < docks.length; j++) out.push(Object.assign({ layout: name }, docks[j]))
+    }
+    return out
+  }
+
+  function inspectDocksFromTree(tree) {
+    const out = []
+    function walk(node) {
+      if (!node) return
+      if (node.type === 'dock') {
+        const panels = node.panels || []
+        out.push({
+          dockId: node.id,
+          name: node.name || '',
+          rect: null,
+          visible: null,
+          activeId: node.activeId || null,
+          panels: panels.map(function (panel) {
+            return {
+              panelId: panel.id,
+              component: panel.component,
+              title: panel.title || panel.component,
+              active: node.activeId === panel.id,
+              transient: !!panel.transient,
+              dirty: !!panel.dirty,
+            }
+          }),
+          panelCount: panels.length,
+          accept: node.accept || null,
+          collapsed: !!node.collapsed,
+          focused: !!node.focused,
+        })
+        return
+      }
+      for (let i = 0; node.children && i < node.children.length; i++) walk(node.children[i])
+    }
+    walk(tree)
+    return out
+  }
+
   function panelDockTarget(input) {
     return input.dock || input.dockId || input.target || 'main'
   }
@@ -991,6 +1043,7 @@
     save: saveExtensions,
     clearStored: clearStoredExtensions,
     registerLayout: registerLayout,
+    inspectDocks: inspectDocks,
     registerAdapter: registerAdapter,
   }
 

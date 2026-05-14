@@ -3353,6 +3353,66 @@
     return out
   }
 
+  function inspectDocks(layout) {
+    const out = []
+    function walk(node) {
+      if (!node) return
+      if (node.type === 'dock') {
+        const dr = layout.dockRuntimes.get(node.id)
+        const rect = dr && dr.dockEl && dr.dockEl.getBoundingClientRect
+          ? rectInfo(dr.dockEl.getBoundingClientRect())
+          : null
+        const panels = node.panels || []
+        const items = []
+        for (let i = 0; i < panels.length; i++) {
+          const panel = panels[i]
+          items.push({
+            panelId: panel.id,
+            component: panel.component,
+            title: panel.title || panel.component,
+            active: node.activeId === panel.id,
+            transient: !!panel.transient,
+            dirty: !!panel.dirty,
+          })
+        }
+        out.push({
+          dockId: node.id,
+          name: node.name || '',
+          rect: rect,
+          visible: !!(rect && rect.width > 0 && rect.height > 0),
+          activeId: node.activeId || null,
+          panels: items,
+          panelCount: items.length,
+          accept: node.accept || null,
+          collapsed: !!node.collapsed,
+          focused: !!node.focused,
+        })
+        return
+      }
+      for (let j = 0; node.children && j < node.children.length; j++) walk(node.children[j])
+    }
+    walk(layout.treeSig.peek())
+    return out
+  }
+
+  function rectInfo(rect) {
+    return {
+      x: roundRect(rect.x != null ? rect.x : rect.left),
+      y: roundRect(rect.y != null ? rect.y : rect.top),
+      left: roundRect(rect.left),
+      top: roundRect(rect.top),
+      right: roundRect(rect.right),
+      bottom: roundRect(rect.bottom),
+      width: roundRect(rect.width),
+      height: roundRect(rect.height),
+    }
+  }
+
+  function roundRect(value) {
+    value = Number(value || 0)
+    return Math.round(value * 100) / 100
+  }
+
   function inspectPanel(layout, panelId) {
     const list = inspectPanels(layout)
     for (let i = 0; i < list.length; i++) if (list[i].panelId === panelId) return list[i]
@@ -3396,6 +3456,7 @@
   aeditor._dock.disposeStalePanelRuntimes   = disposeStalePanelRuntimes
   aeditor._dock.disposePanelRuntime         = disposePanelRuntime
   aeditor._dock.findPanelRuntime            = findPanelRuntime
+  aeditor._dock.inspectDocks                = inspectDocks
   aeditor._dock.inspectPanels               = inspectPanels
   aeditor._dock.inspectPanel                = inspectPanel
 })(window.aeditor = window.aeditor || {})
@@ -3856,6 +3917,10 @@
       for (let i = 0; i < CLS.length; i++) dockEl.classList.remove(CLS[i])
     }
     dockEl.addEventListener('pointermove', function (e) {
+      if (e.target.closest('.aeditor-dock') !== dockEl) {
+        clear()
+        return
+      }
       const r = dockEl.getBoundingClientRect()
       const x = (e.clientX - r.left) / r.width
       const y = (e.clientY - r.top) / r.height
@@ -3982,13 +4047,12 @@
       e.stopPropagation()
       handle.setPointerCapture(e.pointerId)
 
-      const rootEl = handle.closest('.aeditor-root')
       const dockEl = handle.closest('.aeditor-dock')
       const dockRect = dockEl.getBoundingClientRect()
 
       const overlay = document.createElement('div')
       overlay.className = 'aeditor-overlay'
-      rootEl.appendChild(overlay)
+      document.body.appendChild(overlay)
 
       document.body.classList.add('aeditor-dragging')
       dockEl.classList.add('aeditor-dock-dragging')
@@ -4220,7 +4284,7 @@
       const el = document.elementFromPoint(ev.clientX, ev.clientY)
       if (!el || !el.closest) return
 
-      const dockEl = el.closest('.aeditor-dock')
+      const dockEl = dockForLayout(el, layout)
       if (!dockEl) return
       const dstId = dockEl.dataset.dockId
       if (!dstId) return
@@ -4398,7 +4462,7 @@
       drop = null
 
       const el = document.elementFromPoint(ev.clientX, ev.clientY)
-      const dockEl = el && el.closest && el.closest('.aeditor-dock')
+      const dockEl = dockForLayout(el, layout)
       if (!dockEl) return
       const dstId = dockEl.dataset.dockId
       const dst = dstId && aeditor.findDock(layout.tree(), dstId)
@@ -4544,6 +4608,17 @@
   function activeZoneName(zone) {
     if (zone && Object.prototype.hasOwnProperty.call(zone, 'active')) return zone.active
     return zone && zone.name
+  }
+
+  function dockForLayout(el, layout) {
+    let dockEl = el && el.closest && el.closest('.aeditor-dock')
+    while (dockEl) {
+      const id = dockEl.dataset && dockEl.dataset.dockId
+      if (id && layout.dockRuntimes && layout.dockRuntimes.has(id)) return dockEl
+      const parent = dockEl.parentElement
+      dockEl = parent && parent.closest ? parent.closest('.aeditor-dock') : null
+    }
+    return null
   }
 
   // Build a short accent bar between two tabs (or before/after the whole
@@ -4889,6 +4964,7 @@
       activatePanel: function (panelId)                      { layout.activatePanel(panelId) },
       promotePanel:  function (panelId)                      { layout.promotePanel(panelId) },
       movePanel:     function (panelId, dstDockId, dstIndex) { layout.movePanel(panelId, dstDockId, dstIndex) },
+      inspectDocks:  function ()                             { return RT.inspectDocks(layout) },
       inspectPanel:  function (panelId)                      { return RT.inspectPanel(layout, panelId) },
       inspectPanels: function ()                             { return RT.inspectPanels(layout) },
 
@@ -14949,6 +15025,9 @@
 //   tab-collapsible closeable + click-active collapses     (utility)
 //   tab-sidebar     icon-only + collapsible                (rail style)
 //
+// All dock tab presets must be visible when panels.length > 1. Otherwise a
+// dock can contain multiple panels with no built-in way to switch between them.
+//
 // A preset's `props` can override any of the hard-coded defaults on a
 // per-toolbar-item basis — that's how a caller could, e.g., use the
 // sidebar preset but force text mode with `props: { iconOnly: false }`,
@@ -14967,7 +15046,10 @@
       iconOnly:     p.iconOnly,
       closable:     p.closable != null ? p.closable : true,
       addable:      !!p.addable,
-      minShowCount: p.minShowCount || 0,
+      // Dock tabs are the only built-in way to switch active panels inside a
+      // dock, so every dock tab preset must show when there is more than one
+      // panel. Presets may still hide the single-panel case with minShowCount:2.
+      minShowCount: Math.min(p.minShowCount || 0, 2),
 
       onActivate: function (id) {
         ctx.dock.activatePanel(id)

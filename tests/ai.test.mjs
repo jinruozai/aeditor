@@ -401,11 +401,49 @@ assert.equal(removedSeed.id, seed.agent.id)
 assert.deepEqual(ai.agents(), [])
 assert.equal(ai.activeAgentId(), null)
 
+function matchesSelector(el, selector) {
+  if (!el || !selector) return false
+  if (selector[0] === '.') return (el.className || '').split(/\s+/).includes(selector.slice(1))
+  if (selector === '[data-message-payload]') return !!(el.dataset && el.dataset.messagePayload)
+  return el.tagName && el.tagName.toLowerCase() === selector.toLowerCase()
+}
+
+function findInTree(el, selector) {
+  const children = el && el.children || []
+  for (let i = 0; i < children.length; i++) {
+    const child = children[i]
+    if (matchesSelector(child, selector)) return child
+    const found = findInTree(child, selector)
+    if (found) return found
+  }
+  return null
+}
+
+function makeTextNode(text) {
+  let value = String(text == null ? '' : text)
+  return {
+    nodeType: 3,
+    parentNode: null,
+    children: [],
+    get nodeValue() { return value },
+    set nodeValue(next) {
+      value = String(next == null ? '' : next)
+      this.textContent = value
+    },
+    textContent: value,
+    remove: function () {
+      if (this.parentNode) this.parentNode.removeChild(this)
+    },
+  }
+}
+
 function makeElement(tag) {
   return {
+    nodeType: 1,
     tagName: tag.toUpperCase(),
     className: '',
     attributes: {},
+    dataset: {},
     children: [],
     parentNode: null,
     textContent: '',
@@ -420,9 +458,28 @@ function makeElement(tag) {
       el: null,
     },
     appendChild: function (child) {
+      if (child.parentNode) child.parentNode.removeChild(child)
       this.children.push(child)
       child.parentNode = this
       return child
+    },
+    insertBefore: function (child, before) {
+      if (!before) return this.appendChild(child)
+      const index = this.children.indexOf(before)
+      if (index < 0) return this.appendChild(child)
+      if (child.parentNode) child.parentNode.removeChild(child)
+      this.children.splice(index, 0, child)
+      child.parentNode = this
+      return child
+    },
+    replaceChild: function (next, prev) {
+      const index = this.children.indexOf(prev)
+      if (index < 0) return this.appendChild(next)
+      if (next.parentNode) next.parentNode.removeChild(next)
+      this.children[index] = next
+      next.parentNode = this
+      prev.parentNode = null
+      return prev
     },
     removeChild: function (child) {
       this.children = this.children.filter(function (item) { return item !== child })
@@ -436,8 +493,22 @@ function makeElement(tag) {
       this.attributes[name] = value
     },
     addEventListener: function () {},
+    contains: function (node) {
+      if (node === this) return true
+      const children = this.children || []
+      for (let i = 0; i < children.length; i++) {
+        if (children[i] === node || (children[i].contains && children[i].contains(node))) return true
+      }
+      return false
+    },
+    querySelector: function (selector) {
+      return findInTree(this, selector)
+    },
     get firstChild() {
       return this.children[0] || null
+    },
+    get childNodes() {
+      return this.children
     },
   }
 }
@@ -448,7 +519,7 @@ function collectText(el) {
   return out
 }
 
-function assertGdePatchPreviewRendering() {
+async function assertGdePatchPreviewRendering() {
   const components = {}
   global.document = {
     createElement: function (tag) {
@@ -456,6 +527,7 @@ function assertGdePatchPreviewRendering() {
       el.classList.el = el
       return el
     },
+    createTextNode: makeTextNode,
   }
   global.requestAnimationFrame = function (fn) { fn() }
   window.aeditor.ui = {
@@ -538,8 +610,29 @@ function assertGdePatchPreviewRendering() {
   assert.match(text, /Before\s+20/)
   assert.match(text, /After\s+25/)
   assert.doesNotMatch(text, /"value": 1/)
+
+  const streamAgent = ai.createAgent({
+    name: 'Stable Transcript',
+    messages: [{ id: 'stream-1', role: 'assistant', status: 'running', content: 'hello' }],
+  })
+  ai.activeAgentId.set(streamAgent.id)
+  const streamingRoot = components['ai-messages'].factory(null, {})
+  const row = streamingRoot.querySelector('.aeditor-ai-message-row')
+  const payload = streamingRoot.querySelector('[data-message-payload]')
+  const firstTextPart = streamingRoot.querySelector('.aeditor-ai-message-text')
+  assert.ok(row)
+  assert.ok(payload)
+  assert.ok(firstTextPart)
+
+  ai.updateMessage(streamAgent.id, 'stream-1', { content: 'hello\n\nworld', status: 'running' })
+  await new Promise(function (resolve) { setTimeout(resolve, 140) })
+
+  assert.equal(streamingRoot.querySelector('.aeditor-ai-message-row'), row)
+  assert.equal(streamingRoot.querySelector('[data-message-payload]'), payload)
+  assert.equal(streamingRoot.querySelector('.aeditor-ai-message-text'), firstTextPart)
+  assert.match(collectText(streamingRoot), /world/)
 }
 
-assertGdePatchPreviewRendering()
+await assertGdePatchPreviewRendering()
 
 console.log('ai tests ok')

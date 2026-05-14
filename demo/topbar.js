@@ -4,6 +4,7 @@
   const ui = aeditor.ui
   const LANG_KEY = 'aeditor.lang'
   const LAST_WORKSPACE_KEY = 'aeditor.demo.lastWorkspace'
+  const RECENT_WORKSPACES_KEY = 'aeditor.demo.recentWorkspaces'
 
   function savedLang() {
     return localStorage.getItem(LANG_KEY) || document.documentElement.lang || 'en'
@@ -25,6 +26,30 @@
     let suffix = ''
     try { suffix = meta ? ' ' + JSON.stringify(meta) : '' } catch (_) { suffix = ' [unserializable meta]' }
     if (aeditor.log && aeditor.log.push) aeditor.log.push('info', { scope: 'demo', component: 'topbar' }, message + suffix)
+  }
+
+  function toast(kind, message) {
+    if (ui.toast) ui.toast({ kind: kind || 'info', message: message })
+  }
+
+  function readRecentWorkspaces() {
+    try {
+      const list = JSON.parse(localStorage.getItem(RECENT_WORKSPACES_KEY) || '[]')
+      return Array.isArray(list) ? list.filter(function (item) { return item && item.key && item.label }) : []
+    } catch (_) {
+      return []
+    }
+  }
+
+  function writeRecentWorkspaces(list) {
+    localStorage.setItem(RECENT_WORKSPACES_KEY, JSON.stringify(list.slice(0, 8)))
+  }
+
+  function rememberWorkspace(key, ws) {
+    const label = ws && ws.rootId ? ws.rootId() : 'Workspace'
+    const next = readRecentWorkspaces().filter(function (item) { return item.key !== key && item.label !== label })
+    next.unshift({ key: key, label: label, openedAt: Date.now() })
+    writeRecentWorkspaces(next)
   }
 
   function isMissingProjectDescriptor(err) {
@@ -60,7 +85,9 @@
     if (!aeditor.workspace || !aeditor.workspace.openDirectory) return false
     try {
       info('Open workspace folder: requesting directory permission')
-      const ws = await aeditor.workspace.openDirectory({ mode: 'readwrite', rememberKey: LAST_WORKSPACE_KEY })
+      const rememberKey = LAST_WORKSPACE_KEY + '.' + Date.now().toString(36)
+      const ws = await aeditor.workspace.openDirectory({ mode: 'readwrite', rememberKey: rememberKey })
+      rememberWorkspace(rememberKey, ws)
       return useWorkspace(ws, 'Open workspace folder')
     } catch (err) {
       report(err)
@@ -69,16 +96,91 @@
     }
   }
 
+  async function restoreWorkspaceKey(key, source) {
+    if (!aeditor.workspace || !aeditor.workspace.restoreDirectory || !key) return false
+    const ws = await aeditor.workspace.restoreDirectory(key, { mode: 'readwrite' })
+    if (!ws) return false
+    rememberWorkspace(key, ws)
+    return useWorkspace(ws, source || 'Open recent workspace')
+  }
+
   async function restoreWorkspaceFolder() {
     if (!aeditor.workspace || !aeditor.workspace.restoreDirectory) return false
     try {
+      const recent = readRecentWorkspaces()
+      for (let i = 0; i < recent.length; i++) {
+        if (await restoreWorkspaceKey(recent[i].key, 'Restore recent workspace')) return true
+      }
       const ws = await aeditor.workspace.restoreDirectory(LAST_WORKSPACE_KEY, { mode: 'readwrite' })
       if (!ws) return false
+      rememberWorkspace(LAST_WORKSPACE_KEY, ws)
       return useWorkspace(ws, 'Restore workspace folder')
     } catch (err) {
       report(err)
       return false
     }
+  }
+
+  async function saveProjectLayout(opts) {
+    if (!window.Demo || !Demo.project || !Demo.project.current) return false
+    const project = Demo.project.current()
+    if (!project || !project.saveLayout) return false
+    try {
+      const result = await project.saveLayout(opts || {})
+      toast('success', 'Layout saved: ' + result.layoutPath)
+      return true
+    } catch (err) {
+      report(err)
+      toast('error', 'Save failed')
+      return false
+    }
+  }
+
+  function saveProjectLayoutAs() {
+    const project = window.Demo && Demo.project && Demo.project.current && Demo.project.current()
+    const currentPath = project && project.descriptor && project.descriptor.layout || 'aeditor.layout.json'
+    ui.prompt({
+      title: 'Save Layout As',
+      message: 'Workspace path',
+      default: currentPath,
+      okLabel: 'Save',
+    }).then(function (path) {
+      path = String(path || '').trim()
+      if (path) saveProjectLayout({ layoutPath: path, updateDescriptor: true })
+    })
+  }
+
+  function newWorkspaceSession() {
+    if (window.Demo && Demo.project) {
+      const projects = Demo.project.list ? Demo.project.list() : []
+      for (let i = 0; i < projects.length; i++) {
+        if (projects[i] && projects[i].close) projects[i].close()
+      }
+      if (!projects.length && Demo.project.current) {
+        const project = Demo.project.current()
+        if (project && project.close) project.close()
+      }
+    }
+    if (aeditor.ai && aeditor.ai.clearWorkspace) aeditor.ai.clearWorkspace()
+  }
+
+  function recentWorkspaceItems(refreshTitle) {
+    const recent = readRecentWorkspaces()
+    if (!recent.length) return [{ label: 'No Recent Workspaces', disabled: true }]
+    return recent.map(function (item) {
+      return {
+        label: item.label,
+        onSelect: function () {
+          restoreWorkspaceKey(item.key, 'Open recent workspace').then(function (opened) {
+            if (opened) refreshTitle()
+            else toast('warn', 'Recent workspace is unavailable')
+          }).catch(function (err) {
+            report(err)
+            toast('error', 'Open recent failed')
+          })
+        },
+      }
+    })
   }
 
   function currentTitle() {
@@ -166,18 +268,24 @@
     language.classList.add('aed-lang-btn')
 
     brand.addEventListener('click', function (ev) {
+      const projectOpen = !!(window.Demo && Demo.project && Demo.project.current && Demo.project.current())
+      const refreshTitle = function () { titleTick.set(titleTick.peek() + 1) }
       toggleMenu(brandMenu, ev.currentTarget, {
         side: 'bottom',
         align: 'start',
         items: [
-          { label: 'New Workspace', icon: 'file', onSelect: function () { if (aeditor.ai.clearWorkspace) aeditor.ai.clearWorkspace() } },
-          { label: 'Open Workspace Folder', icon: 'folder', onSelect: function () {
+          { label: 'New', onSelect: function () { newWorkspaceSession(); refreshTitle() } },
+          { label: 'Open', onSelect: function () {
             openWorkspaceFolder().then(function () {
-              titleTick.set(titleTick.peek() + 1)
+              refreshTitle()
             })
           } },
+          { label: 'Open Recent', items: recentWorkspaceItems(refreshTitle) },
           { type: 'divider' },
-          { label: 'Settings', icon: 'settings', onSelect: openSettings },
+          { label: 'Save', disabled: !projectOpen, onSelect: function () { saveProjectLayout() } },
+          { label: 'Save As', disabled: !projectOpen, onSelect: saveProjectLayoutAs },
+          { type: 'divider' },
+          { label: 'Settings', onSelect: openSettings },
         ],
       })
     })

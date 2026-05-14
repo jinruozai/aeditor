@@ -620,6 +620,66 @@
     return out
   }
 
+  function inspectDocks(layout) {
+    const out = []
+    function walk(node) {
+      if (!node) return
+      if (node.type === 'dock') {
+        const dr = layout.dockRuntimes.get(node.id)
+        const rect = dr && dr.dockEl && dr.dockEl.getBoundingClientRect
+          ? rectInfo(dr.dockEl.getBoundingClientRect())
+          : null
+        const panels = node.panels || []
+        const items = []
+        for (let i = 0; i < panels.length; i++) {
+          const panel = panels[i]
+          items.push({
+            panelId: panel.id,
+            component: panel.component,
+            title: panel.title || panel.component,
+            active: node.activeId === panel.id,
+            transient: !!panel.transient,
+            dirty: !!panel.dirty,
+          })
+        }
+        out.push({
+          dockId: node.id,
+          name: node.name || '',
+          rect: rect,
+          visible: !!(rect && rect.width > 0 && rect.height > 0),
+          activeId: node.activeId || null,
+          panels: items,
+          panelCount: items.length,
+          accept: node.accept || null,
+          collapsed: !!node.collapsed,
+          focused: !!node.focused,
+        })
+        return
+      }
+      for (let j = 0; node.children && j < node.children.length; j++) walk(node.children[j])
+    }
+    walk(layout.treeSig.peek())
+    return out
+  }
+
+  function rectInfo(rect) {
+    return {
+      x: roundRect(rect.x != null ? rect.x : rect.left),
+      y: roundRect(rect.y != null ? rect.y : rect.top),
+      left: roundRect(rect.left),
+      top: roundRect(rect.top),
+      right: roundRect(rect.right),
+      bottom: roundRect(rect.bottom),
+      width: roundRect(rect.width),
+      height: roundRect(rect.height),
+    }
+  }
+
+  function roundRect(value) {
+    value = Number(value || 0)
+    return Math.round(value * 100) / 100
+  }
+
   function inspectPanel(layout, panelId) {
     const list = inspectPanels(layout)
     for (let i = 0; i < list.length; i++) if (list[i].panelId === panelId) return list[i]
@@ -663,6 +723,7 @@
   aeditor._dock.disposeStalePanelRuntimes   = disposeStalePanelRuntimes
   aeditor._dock.disposePanelRuntime         = disposePanelRuntime
   aeditor._dock.findPanelRuntime            = findPanelRuntime
+  aeditor._dock.inspectDocks                = inspectDocks
   aeditor._dock.inspectPanels               = inspectPanels
   aeditor._dock.inspectPanel                = inspectPanel
 })(window.aeditor = window.aeditor || {})

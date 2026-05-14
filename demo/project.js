@@ -44,7 +44,9 @@
 
   function normalizeEntry(entry) {
     if (typeof entry === 'string') return { type: 'script', src: entry }
-    return Object.assign({ type: 'script' }, entry || {})
+    const out = Object.assign({ type: 'script' }, entry || {})
+    if (!out.src && out.path) out.src = out.path
+    return out
   }
 
   function normalizeEntries(entries) {
@@ -65,9 +67,21 @@
     d.kind = d.kind || 'app'
     d.entry = normalizeEntry(d.entry)
     d.entries = normalizeEntries(d.entries)
+    if (d.layout != null && typeof d.layout !== 'string') d.layout = DEFAULT_LAYOUT_PATH
     d.styles = d.styles || []
     d.permissions = d.permissions || {}
     return d
+  }
+
+  function layoutPathFrom(value, fallback) {
+    return typeof value === 'string' && value ? value : (fallback || DEFAULT_LAYOUT_PATH)
+  }
+
+  function inlineLayoutRoot(value) {
+    if (!value || typeof value !== 'object') return null
+    if (value.root) return value.root
+    if (value.type === 'dock' || value.type === 'split') return value
+    return null
   }
 
   function hasPermission(runtime, key) {
@@ -321,6 +335,7 @@
     return {
       destroy: function () {},
       inspectPanel: function () { return null },
+      inspectDocks: function () { return [] },
       inspectPanels: function () { return [] },
     }
   }
@@ -580,8 +595,12 @@
       ctx: runtime.ctx,
       close: function () { return close(runtime.id) },
       reload: function (options) { return reload(runtime.id, options || {}) },
+      saveLayout: function (options) { return saveLayout(runtime.id, options || {}) },
       inspectPanel: function (panelId) {
         return runtime.handle && runtime.handle.inspectPanel ? runtime.handle.inspectPanel(panelId) : null
+      },
+      inspectDocks: function () {
+        return runtime.handle && runtime.handle.inspectDocks ? runtime.handle.inspectDocks() : []
       },
     }
   }
@@ -594,6 +613,27 @@
 
   function projectAvailable() {
     return !!activeId
+  }
+
+  async function saveLayout(id, options) {
+    const runtime = projectForTool(id)
+    const o = options || {}
+    const ws = hostWorkspaceFor(runtime)
+    const layoutPath = layoutPathFrom(o.path || o.layoutPath || runtime.descriptor.layout, DEFAULT_LAYOUT_PATH)
+    const root = runtime.handle && runtime.handle.tree ? runtime.handle.tree() : runtime.layoutData
+    if (!root) throw new Error('Project layout is not available')
+    const previous = await readJsonOrNull(ws, layoutPath)
+    const saved = omitFileText(await ws.write(layoutPath, JSON.stringify({ root: root }, null, 2), previous && previous.file ? { baseHash: previous.file.hash } : {}))
+    runtime.layoutData = clone(root)
+    if (runtime.ctx) runtime.ctx.layout = runtime.layoutData
+    if (o.updateDescriptor && runtime.descriptor.layout !== layoutPath) {
+      const descriptorFile = await ws.read('aeditor.project.json')
+      const descriptor = normalizeDescriptor(JSON.parse(descriptorFile.text))
+      descriptor.layout = layoutPath
+      await ws.write('aeditor.project.json', JSON.stringify(descriptor, null, 2), { baseHash: descriptorFile.hash })
+      runtime.descriptor = descriptor
+    }
+    return { ok: true, projectId: runtime.id, layoutPath: layoutPath, layout: saved }
   }
 
   function workspaceAvailable() {
@@ -794,7 +834,8 @@
     const existing = await readJsonOrNull(ws, 'aeditor.project.json')
     const raw = existing && existing.json && typeof existing.json === 'object' ? existing.json : {}
     const projectId = safeId(input.projectId || raw.id || raw.name || workspaceLabel(ws))
-    const layoutPath = input.layoutPath || raw.layout || DEFAULT_LAYOUT_PATH
+    const layoutPath = layoutPathFrom(input.layoutPath || raw.layout, DEFAULT_LAYOUT_PATH)
+    const inlineRoot = inlineLayoutRoot(raw.layout)
     const descriptor = raw.type === 'aeditor-project'
       ? normalizeDescriptor(raw)
       : normalizeDescriptor({
@@ -810,12 +851,19 @@
           'ai.operations.apply': true,
         },
       })
-    let changed = raw.type !== 'aeditor-project'
+    let changed = raw.type !== 'aeditor-project' ||
+      (raw.layout != null && typeof raw.layout !== 'string') ||
+      entryNeedsNormalize(raw.entry) ||
+      entriesNeedNormalize(raw.entries)
     if (!descriptor.title && (input.projectTitle || raw.name)) {
       descriptor.title = input.projectTitle || raw.name
       changed = true
     }
     if (!descriptor.layout) {
+      descriptor.layout = layoutPath
+      changed = true
+    }
+    if (descriptor.layout !== layoutPath) {
       descriptor.layout = layoutPath
       changed = true
     }
@@ -839,9 +887,19 @@
     }
     const layout = await readJsonOrNull(ws, descriptor.layout)
     if (!layout) {
-      await ws.write(descriptor.layout, JSON.stringify({ root: defaultLayoutRoot() }, null, 2))
+      await ws.write(descriptor.layout, JSON.stringify({ root: inlineRoot || defaultLayoutRoot() }, null, 2))
     }
     return descriptor
+  }
+
+  function entryNeedsNormalize(entry) {
+    return !!(entry && typeof entry === 'object' && entry.path && !entry.src)
+  }
+
+  function entriesNeedNormalize(entries) {
+    if (!Array.isArray(entries)) return false
+    for (let i = 0; i < entries.length; i++) if (entryNeedsNormalize(entries[i])) return true
+    return false
   }
 
   async function mountPanel(input) {
@@ -968,6 +1026,7 @@
       size: file.size,
       lines: lines.length,
       panels: runtime.handle && runtime.handle.inspectPanels ? runtime.handle.inspectPanels() : [],
+      docks: runtime.handle && runtime.handle.inspectDocks ? runtime.handle.inspectDocks() : [],
     }
   }
 
@@ -1248,7 +1307,7 @@
     if (!aeditor.ai || !aeditor.ai.skills || !aeditor.ai.skills.register) return
     aeditor.ai.skills.register('demo.project.authoring', {
       title: 'Demo Project Authoring',
-      systemPrompt: 'Use the current demo project runtime as the host-specific AEditor authoring environment. Keep UI code file-backed and mount registered components by name.',
+      systemPrompt: 'Use the current demo project runtime as the host-specific AEditor authoring environment. Keep UI code file-backed and add registered components to inspected docks by name.',
       auto: function (ctx) {
         return !!(ctx && ctx.uiAuthoringIntent && (workspaceAvailable() || projectAvailable()))
       },
@@ -1256,11 +1315,12 @@
         'A demo project is a workspace folder with aeditor.project.json, optional aeditor.layout.json, and plain .js entry files.',
         'Demo project component files register with Demo.project.component(componentId, spec). Use this instead of aeditor.registerComponent inside demo project entry files.',
         'Use generic dotted component ids such as app.mainPanel or tool.timeline. Do not copy ids from examples unless they match the requested feature.',
-        'For an empty workspace, write the component file first, then call demo.project.mountPanel; it will create or update the project descriptor and layout.',
-        'demo.project.mountPanel is the normal path for placing a newly authored panel. It can bootstrap/open the workspace project, update descriptor/layout, reload, and mount by component name.',
+        'After writing or editing a component file, make sure the demo project has loaded that file before adding its component.',
+        'Before adding a panel, call aeditor.inspectDocks and choose a returned dockId from its position, size, and existing panels.',
+        'Add panels with aeditor.addPanelToDock using the registered component id and returned dock id. This is the AI-facing version of choosing a component from the dock Add Panel menu.',
         'Pass title, icon, or props only when overriding component defaults; otherwise defaults() supplies them.',
         'Do not manually create aeditor.project.json or aeditor.layout.json unless the user explicitly asks to edit project metadata or layout files.',
-        'Do not call demo.project.addPanel directly unless explicitly asked to edit only layout for an already loaded component.',
+        'Do not guess dock names such as main/editor and do not hand-write layout JSON to place a panel.',
       ],
     })
   }
@@ -1273,6 +1333,7 @@
     reload: reload,
     current: current,
     list: list,
+    saveLayout: saveLayout,
     addPanel: addPanel,
     mountPanel: mountPanel,
     component: registerProjectComponent,

@@ -6417,7 +6417,7 @@
       'For view surfaces and scrollable panel content, use aeditor.ui.view instead of raw native overflow scrollbars. Do not set raw overflowY/overflow:auto on primary panel content unless aeditor.ui.view cannot fit the case.',
       'For buttons, icon buttons, cards, lists, trees, tables, form fields, and scroll containers, use the matching aeditor.ui component first, then add only the minimal layout CSS the panel needs.',
       'For hover tips or floating UI, prefer aeditor.ui.tooltip/popover/menu. If floating DOM is manually appended outside the panel root, register it with aeditor.ui.registerScopedOverlay(anchor, close).',
-      'Durable AI-authored UI is file-backed: inspect workspace files, edit/write component files, then ask the host to mount an already registered component by name. Do not pass source code inside panel or dock tool arguments.',
+      'Durable AI-authored UI is file-backed: inspect workspace files, edit/write component files, make sure the host loads the registered component, inspect docks, then add the component by name to a returned dock id. Do not pass source code inside panel or dock tool arguments, do not guess dock names, and do not hand-write layout JSON.',
       'For existing source files, use map/search first, read the exact range, then call workspace.editFile with baseHash and exact oldText/newText. Use workspace.writeFile for new files, and workspace.patchFile only for mechanical line patches. If an edit is stale or ambiguous, reread the current range and retry with a more precise oldText.',
       'If no file workspace is available for a durable UI request, do not search for alternate panel creation workarounds. Tell the user to open or select a workspace first.',
     ],
@@ -8598,6 +8598,58 @@
     return layouts.default || firstLayout()
   }
 
+  function inspectDocks(input) {
+    input = input || {}
+    const selected = input.layout ? [input.layout] : keys(layouts)
+    const out = []
+    for (let i = 0; i < selected.length; i++) {
+      const name = selected[i]
+      const layout = layouts[name]
+      if (!layout) {
+        if (input.layout) throw new Error('Layout not registered: ' + input.layout)
+        continue
+      }
+      const docks = layout.inspectDocks ? layout.inspectDocks() : inspectDocksFromTree(layout.tree && layout.tree())
+      for (let j = 0; j < docks.length; j++) out.push(Object.assign({ layout: name }, docks[j]))
+    }
+    return out
+  }
+
+  function inspectDocksFromTree(tree) {
+    const out = []
+    function walk(node) {
+      if (!node) return
+      if (node.type === 'dock') {
+        const panels = node.panels || []
+        out.push({
+          dockId: node.id,
+          name: node.name || '',
+          rect: null,
+          visible: null,
+          activeId: node.activeId || null,
+          panels: panels.map(function (panel) {
+            return {
+              panelId: panel.id,
+              component: panel.component,
+              title: panel.title || panel.component,
+              active: node.activeId === panel.id,
+              transient: !!panel.transient,
+              dirty: !!panel.dirty,
+            }
+          }),
+          panelCount: panels.length,
+          accept: node.accept || null,
+          collapsed: !!node.collapsed,
+          focused: !!node.focused,
+        })
+        return
+      }
+      for (let i = 0; node.children && i < node.children.length; i++) walk(node.children[i])
+    }
+    walk(tree)
+    return out
+  }
+
   function panelDockTarget(input) {
     return input.dock || input.dockId || input.target || 'main'
   }
@@ -9357,6 +9409,7 @@
     save: saveExtensions,
     clearStored: clearStoredExtensions,
     registerLayout: registerLayout,
+    inspectDocks: inspectDocks,
     registerAdapter: registerAdapter,
   }
 
@@ -9472,6 +9525,17 @@
 
   function registerTools() {
     if (!ai.tools) return
+    ai.tools.register('aeditor.inspectDocks', {
+      title: 'Inspect Editor Docks',
+      description: 'List registered editor docks with id, name, viewport rect, active panel, panel summaries, and accept rules. Use this before adding a panel so the dock id comes from runtime state rather than a guessed name.',
+      schema: {
+        type: 'object',
+        properties: {
+          layout: { type: 'string', description: 'Registered layout name; omit to inspect every registered layout.' },
+        },
+      },
+      run: function (input) { return ext.inspectDocks(input || {}) },
+    }, META)
     ai.tools.register('aeditor.installExtension', {
       title: 'Install Editor Extension',
       description: 'Install a low-level AEditor extension manifest for commands, menus, references, context, operations, settings, dock panels, or pre-registered component contributions. Agent-authored panels must be written as workspace files and added by registered component name.',
@@ -9492,7 +9556,7 @@
     }, META)
     ai.tools.register('aeditor.addPanelToDock', {
       title: 'Add Panel To Dock',
-      description: 'Add an already registered component as a panel in a dock. This tool never accepts source code; create durable UI by registering a component from files, then add it here by component name.',
+      description: 'Add an already registered component as a runtime panel in a dock, equivalent to choosing that component from the dock Add Panel menu. This tool never accepts source code; inspect docks first, then pass a dock id returned by aeditor.inspectDocks.',
       schema: {
         type: 'object',
         required: ['dock', 'component'],
@@ -9506,7 +9570,6 @@
           transient: { type: 'boolean' },
         },
       },
-      exposeToModel: false,
       preview: ext.previewAddPanelToDock,
       apply: ext.applyAddPanelToDock,
     }, META)
@@ -13536,6 +13599,66 @@
     return out
   }
 
+  function inspectDocks(layout) {
+    const out = []
+    function walk(node) {
+      if (!node) return
+      if (node.type === 'dock') {
+        const dr = layout.dockRuntimes.get(node.id)
+        const rect = dr && dr.dockEl && dr.dockEl.getBoundingClientRect
+          ? rectInfo(dr.dockEl.getBoundingClientRect())
+          : null
+        const panels = node.panels || []
+        const items = []
+        for (let i = 0; i < panels.length; i++) {
+          const panel = panels[i]
+          items.push({
+            panelId: panel.id,
+            component: panel.component,
+            title: panel.title || panel.component,
+            active: node.activeId === panel.id,
+            transient: !!panel.transient,
+            dirty: !!panel.dirty,
+          })
+        }
+        out.push({
+          dockId: node.id,
+          name: node.name || '',
+          rect: rect,
+          visible: !!(rect && rect.width > 0 && rect.height > 0),
+          activeId: node.activeId || null,
+          panels: items,
+          panelCount: items.length,
+          accept: node.accept || null,
+          collapsed: !!node.collapsed,
+          focused: !!node.focused,
+        })
+        return
+      }
+      for (let j = 0; node.children && j < node.children.length; j++) walk(node.children[j])
+    }
+    walk(layout.treeSig.peek())
+    return out
+  }
+
+  function rectInfo(rect) {
+    return {
+      x: roundRect(rect.x != null ? rect.x : rect.left),
+      y: roundRect(rect.y != null ? rect.y : rect.top),
+      left: roundRect(rect.left),
+      top: roundRect(rect.top),
+      right: roundRect(rect.right),
+      bottom: roundRect(rect.bottom),
+      width: roundRect(rect.width),
+      height: roundRect(rect.height),
+    }
+  }
+
+  function roundRect(value) {
+    value = Number(value || 0)
+    return Math.round(value * 100) / 100
+  }
+
   function inspectPanel(layout, panelId) {
     const list = inspectPanels(layout)
     for (let i = 0; i < list.length; i++) if (list[i].panelId === panelId) return list[i]
@@ -13579,6 +13702,7 @@
   aeditor._dock.disposeStalePanelRuntimes   = disposeStalePanelRuntimes
   aeditor._dock.disposePanelRuntime         = disposePanelRuntime
   aeditor._dock.findPanelRuntime            = findPanelRuntime
+  aeditor._dock.inspectDocks                = inspectDocks
   aeditor._dock.inspectPanels               = inspectPanels
   aeditor._dock.inspectPanel                = inspectPanel
 })(window.aeditor = window.aeditor || {})
@@ -14039,6 +14163,10 @@
       for (let i = 0; i < CLS.length; i++) dockEl.classList.remove(CLS[i])
     }
     dockEl.addEventListener('pointermove', function (e) {
+      if (e.target.closest('.aeditor-dock') !== dockEl) {
+        clear()
+        return
+      }
       const r = dockEl.getBoundingClientRect()
       const x = (e.clientX - r.left) / r.width
       const y = (e.clientY - r.top) / r.height
@@ -14165,13 +14293,12 @@
       e.stopPropagation()
       handle.setPointerCapture(e.pointerId)
 
-      const rootEl = handle.closest('.aeditor-root')
       const dockEl = handle.closest('.aeditor-dock')
       const dockRect = dockEl.getBoundingClientRect()
 
       const overlay = document.createElement('div')
       overlay.className = 'aeditor-overlay'
-      rootEl.appendChild(overlay)
+      document.body.appendChild(overlay)
 
       document.body.classList.add('aeditor-dragging')
       dockEl.classList.add('aeditor-dock-dragging')
@@ -14403,7 +14530,7 @@
       const el = document.elementFromPoint(ev.clientX, ev.clientY)
       if (!el || !el.closest) return
 
-      const dockEl = el.closest('.aeditor-dock')
+      const dockEl = dockForLayout(el, layout)
       if (!dockEl) return
       const dstId = dockEl.dataset.dockId
       if (!dstId) return
@@ -14581,7 +14708,7 @@
       drop = null
 
       const el = document.elementFromPoint(ev.clientX, ev.clientY)
-      const dockEl = el && el.closest && el.closest('.aeditor-dock')
+      const dockEl = dockForLayout(el, layout)
       if (!dockEl) return
       const dstId = dockEl.dataset.dockId
       const dst = dstId && aeditor.findDock(layout.tree(), dstId)
@@ -14727,6 +14854,17 @@
   function activeZoneName(zone) {
     if (zone && Object.prototype.hasOwnProperty.call(zone, 'active')) return zone.active
     return zone && zone.name
+  }
+
+  function dockForLayout(el, layout) {
+    let dockEl = el && el.closest && el.closest('.aeditor-dock')
+    while (dockEl) {
+      const id = dockEl.dataset && dockEl.dataset.dockId
+      if (id && layout.dockRuntimes && layout.dockRuntimes.has(id)) return dockEl
+      const parent = dockEl.parentElement
+      dockEl = parent && parent.closest ? parent.closest('.aeditor-dock') : null
+    }
+    return null
   }
 
   // Build a short accent bar between two tabs (or before/after the whole
@@ -15072,6 +15210,7 @@
       activatePanel: function (panelId)                      { layout.activatePanel(panelId) },
       promotePanel:  function (panelId)                      { layout.promotePanel(panelId) },
       movePanel:     function (panelId, dstDockId, dstIndex) { layout.movePanel(panelId, dstDockId, dstIndex) },
+      inspectDocks:  function ()                             { return RT.inspectDocks(layout) },
       inspectPanel:  function (panelId)                      { return RT.inspectPanel(layout, panelId) },
       inspectPanels: function ()                             { return RT.inspectPanels(layout) },
 
@@ -26255,28 +26394,73 @@
     return '$' + n.toFixed(digits).replace(/0+$/, '').replace(/\.$/, '')
   }
 
-  function appendTextParts(parent, text) {
+  function textPartItems(text) {
     const source = String(text == null ? '' : text)
     const parts = source.split(/```/g)
+    const out = []
     for (let i = 0; i < parts.length; i++) {
       const chunk = parts[i]
       if (!chunk) continue
       if (i % 2) {
-        const pre = ui.h('pre', 'aeditor-ai-message-code aeditor-ui-scrollarea')
-        pre.textContent = chunk.replace(/^\w+\n/, '')
-        parent.appendChild(pre)
+        out.push({ type: 'code', text: chunk.replace(/^\w+\n/, '') })
       } else {
         const lines = chunk.split(/\n{2,}/g)
         for (let j = 0; j < lines.length; j++) {
           const line = lines[j].trim()
           if (!line) continue
-          const p = ui.h('p', 'aeditor-ai-message-text')
-          p.textContent = line
-          parent.appendChild(p)
+          out.push({ type: 'text', text: line })
         }
       }
     }
-    if (!parent.firstChild) parent.appendChild(ui.h('p', 'aeditor-ai-message-text', { text: '' }))
+    if (!out.length) out.push({ type: 'text', text: '' })
+    return out
+  }
+
+  function setStableText(el, text) {
+    const s = String(text == null ? '' : text)
+    if (el.childNodes && el.childNodes.length === 1 && el.firstChild && el.firstChild.nodeType === 3) {
+      if (el.firstChild.nodeValue !== s) el.firstChild.nodeValue = s
+      return
+    }
+    while (el.firstChild) el.removeChild(el.firstChild)
+    el.appendChild(document.createTextNode(s))
+  }
+
+  function createTextPart(item) {
+    const el = item.type === 'code'
+      ? ui.h('pre', 'aeditor-ai-message-code aeditor-ui-scrollarea')
+      : ui.h('p', 'aeditor-ai-message-text')
+    el.dataset.messagePart = item.type
+    setStableText(el, item.text)
+    return el
+  }
+
+  function patchTextParts(parent, text) {
+    const items = textPartItems(text)
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i]
+      let child = parent.children[i]
+      if (!child || child.dataset.messagePart !== item.type) {
+        const next = createTextPart(item)
+        if (child) {
+          parent.insertBefore(next, child)
+          disposeTree(child)
+        } else {
+          parent.appendChild(next)
+        }
+        child = next
+      } else {
+        setStableText(child, item.text)
+      }
+    }
+    while (parent.children.length > items.length) {
+      disposeTree(parent.children[parent.children.length - 1])
+    }
+  }
+
+  function appendTextParts(parent, text) {
+    const items = textPartItems(text)
+    for (let i = 0; i < items.length; i++) parent.appendChild(createTextPart(items[i]))
   }
 
   function appendChips(parent, className, items) {
@@ -26635,12 +26819,32 @@
     const content = msg.content != null ? msg.content : msg.text
     if (content && typeof content === 'object' && content.type !== 'rich-prompt') {
       const pre = ui.h('pre', 'aeditor-ai-message-code aeditor-ui-scrollarea')
-      pre.textContent = JSON.stringify(content, null, 2)
+      pre.dataset.messagePayload = 'json'
+      setStableText(pre, JSON.stringify(content, null, 2))
       return pre
     }
     const wrap = ui.h('div', 'aeditor-ai-message-content')
+    wrap.dataset.messagePayload = 'text'
     appendTextParts(wrap, displayText(content))
     return wrap
+  }
+
+  function patchPayload(body, msg) {
+    const content = msg.content != null ? msg.content : msg.text
+    const current = body.querySelector('[data-message-payload]')
+    const want = content && typeof content === 'object' && content.type !== 'rich-prompt' ? 'json' : 'text'
+    if (!current || current.dataset.messagePayload !== want) {
+      const next = renderPayload(msg)
+      if (current) {
+        body.insertBefore(next, current)
+        disposeTree(current)
+      } else {
+        body.insertBefore(next, body.firstChild || null)
+      }
+      return
+    }
+    if (want === 'json') setStableText(current, JSON.stringify(content, null, 2))
+    else patchTextParts(current, displayText(content))
   }
 
   function renderEmpty(item) {
@@ -26650,13 +26854,92 @@
     return row
   }
 
+  function messageRowClass(role, status) {
+    return 'aeditor-ai-message-row aeditor-ai-message-row-' + role + ' aeditor-ai-message-row-status-' + status
+  }
+
+  function renderMessageFooter(msg, runFooters) {
+    const role = msg.role || msg.type || 'message'
+    const runId = runIdOf(msg)
+    const runFooter = runId && runFooters ? runFooters[msg.id] : null
+    if (runId && isAssistantMessage(msg) && !runFooter) return null
+    if (runFooter && !runFooter.complete) return null
+
+    const copyText = runFooter && runFooter.content.length ? runFooter.content.join('\n\n') : messageText(msg)
+    const footer = ui.h('div', 'aeditor-ai-message-footer')
+    footer.appendChild(ui.copyButton({ text: copyText, title: runFooter ? 'Copy run' : 'Copy message', size: 'sm' }))
+    const calls = toolCallsOf(msg)
+    const callCount = runFooter ? runFooter.toolCalls : calls.length
+    if (callCount) footer.appendChild(ui.h('span', 'aeditor-ai-message-metrics', { text: callCount + ' tool call' + (callCount === 1 ? '' : 's') }))
+    if (role !== 'user') {
+      const metrics = runFooter ? runMetricText(runFooter, metricText(msg)) : metricText(msg)
+      if (metrics) footer.appendChild(ui.h('span', 'aeditor-ai-message-metrics', { text: metrics }))
+    }
+    return footer
+  }
+
+  function patchError(body, msg) {
+    const existing = body.querySelector('.aeditor-ai-message-error')
+    const text = statusOf(msg) === 'error' && msg.meta && msg.meta.error ? msg.meta.error : ''
+    if (!text) {
+      if (existing) disposeTree(existing)
+      return
+    }
+    if (existing) setStableText(existing, text)
+    else body.appendChild(ui.h('div', 'aeditor-ai-message-error', { text: text }))
+  }
+
+  function patchToolCalls(body, agentId, messageId, calls, viewState) {
+    const existing = body.querySelector('.aeditor-ai-tool-calls')
+    if (existing) disposeTree(existing)
+    renderToolCalls(body, agentId, messageId, calls, viewState)
+  }
+
+  function patchChips(card, className, items) {
+    const existing = card.querySelector('.' + className)
+    if (existing) disposeTree(existing)
+    appendChips(card, className, items)
+  }
+
+  function patchFooter(stack, msg, runFooters) {
+    const existing = stack.querySelector('.aeditor-ai-message-footer')
+    const next = renderMessageFooter(msg, runFooters)
+    if (!next) {
+      if (existing) disposeTree(existing)
+      return
+    }
+    if (existing) stack.replaceChild(next, existing)
+    else stack.appendChild(next)
+  }
+
+  function patchMessageRow(entry, agent, msg, runFooters, viewState, listVersion, version) {
+    if (!entry || entry.patchable === false || msg.empty || runtimeEventsOf(msg).length) return false
+    const row = entry.el
+    const stack = row.querySelector('.aeditor-ai-message-stack')
+    const card = row.querySelector('.aeditor-ai-message')
+    const body = row.querySelector('.aeditor-ai-message-body')
+    if (!stack || !card || !body) return false
+    const role = msg.role || msg.type || 'message'
+    const status = statusOf(msg)
+    row.className = messageRowClass(role, status)
+    patchPayload(body, msg)
+    patchError(body, msg)
+    patchToolCalls(body, agent.id, msg.id, toolCallsOf(msg), viewState)
+    patchChips(card, 'aeditor-ai-message-contexts', msg.contextRefs)
+    patchChips(card, 'aeditor-ai-message-attachments', msg.attachments || (msg.meta && msg.meta.attachments))
+    patchFooter(stack, msg, runFooters)
+    entry.version = version
+    entry.listVersion = listVersion
+    return true
+  }
+
   function renderMessage(agent, msg, runFooters, viewState) {
     if (msg.empty) return renderEmpty(msg)
     if (runtimeEventsOf(msg).length) return renderRuntimeEvent(agent, msg)
 
     const role = msg.role || msg.type || 'message'
     const status = statusOf(msg)
-    const row = ui.h('div', 'aeditor-ai-message-row aeditor-ai-message-row-' + role + ' aeditor-ai-message-row-status-' + status)
+    const row = ui.h('div', messageRowClass(role, status))
     const stack = ui.h('div', 'aeditor-ai-message-stack')
     const card = ui.h('div', 'aeditor-ai-message')
 
@@ -26671,28 +26954,8 @@
     appendChips(card, 'aeditor-ai-message-attachments', msg.attachments || (msg.meta && msg.meta.attachments))
     stack.appendChild(card)
 
-    const runId = runIdOf(msg)
-    const runFooter = runId && runFooters ? runFooters[msg.id] : null
-    if (runId && isAssistantMessage(msg) && !runFooter) {
-      row.appendChild(stack)
-      return row
-    }
-    if (runFooter && !runFooter.complete) {
-      row.appendChild(stack)
-      return row
-    }
-
-    const copyText = runFooter && runFooter.content.length ? runFooter.content.join('\n\n') : messageText(msg)
-    const footer = ui.h('div', 'aeditor-ai-message-footer')
-    footer.appendChild(ui.copyButton({ text: copyText, title: runFooter ? 'Copy run' : 'Copy message', size: 'sm' }))
-    const calls = toolCallsOf(msg)
-    const callCount = runFooter ? runFooter.toolCalls : calls.length
-    if (callCount) footer.appendChild(ui.h('span', 'aeditor-ai-message-metrics', { text: callCount + ' tool call' + (callCount === 1 ? '' : 's') }))
-    if (role !== 'user') {
-      const metrics = runFooter ? runMetricText(runFooter, metricText(msg)) : metricText(msg)
-      if (metrics) footer.appendChild(ui.h('span', 'aeditor-ai-message-metrics', { text: metrics }))
-    }
-    stack.appendChild(footer)
+    const footer = renderMessageFooter(msg, runFooters)
+    if (footer) stack.appendChild(footer)
     row.appendChild(stack)
     return row
   }
@@ -26707,6 +26970,17 @@
 
   function setSpacerHeight(el, height) {
     el.style.height = Math.max(0, Math.round(height)) + 'px'
+  }
+
+  function containsNode(root, node) {
+    return !!(root && node && (node === root || root.contains(node.nodeType === 3 ? node.parentNode : node)))
+  }
+
+  function hasTextSelectionInside(root) {
+    if (!window.getSelection) return false
+    const sel = window.getSelection()
+    if (!sel || sel.rangeCount === 0 || sel.isCollapsed) return false
+    return containsNode(root, sel.anchorNode) || containsNode(root, sel.focusNode)
   }
 
   function factory(propsSig, ctx) {
@@ -26733,10 +27007,50 @@
     let cacheRunFooters = {}
     let emptyEl = null
     let stickToBottom = true
+    let selectingTranscript = false
+    let selectionWasInside = false
+    let selectionTimer = null
+    function selectionActive() {
+      return selectingTranscript || hasTextSelectionInside(root)
+    }
+    function releaseSelectionDrag() {
+      if (selectionTimer) clearTimeout(selectionTimer)
+      selectionTimer = setTimeout(function () {
+        selectionTimer = null
+        selectingTranscript = false
+        if (!hasTextSelectionInside(root)) scheduleRender()
+      }, 160)
+    }
+    function onSelectionChange() {
+      const inside = hasTextSelectionInside(root)
+      if (inside) {
+        selectionWasInside = true
+        stickToBottom = false
+        return
+      }
+      if (selectionWasInside && !selectingTranscript) scheduleRender()
+      selectionWasInside = false
+    }
     scroll.addEventListener('scroll', function () {
-      stickToBottom = scroll.scrollTop + scroll.clientHeight >= scroll.scrollHeight - 32
+      stickToBottom = selectionActive() ? false : scroll.scrollTop + scroll.clientHeight >= scroll.scrollHeight - 32
       visibleRevision.set(visibleRevision.peek() + 1)
     }, { passive: true })
+    scroll.addEventListener('pointerdown', function (ev) {
+      if (ev.button !== 0) return
+      const target = ev.target
+      if (target && target.closest && target.closest('.aeditor-ai-message-row')) {
+        selectingTranscript = true
+        stickToBottom = false
+      }
+    }, true)
+    if (window.addEventListener) {
+      window.addEventListener('pointerup', releaseSelectionDrag)
+      window.addEventListener('pointercancel', releaseSelectionDrag)
+      window.addEventListener('blur', releaseSelectionDrag)
+    }
+    if (typeof document !== 'undefined' && document.addEventListener) {
+      document.addEventListener('selectionchange', onSelectionChange)
+    }
 
     function disposeRows() {
       Object.keys(rows).forEach(function (id) {
@@ -26804,6 +27118,7 @@
       const version = aeditor.ai.messageVersion ? aeditor.ai.messageVersion(agent.id, id) : 0
       const entry = rows[id]
       if (entry && entry.version === version && entry.listVersion === cacheListVersion) return entry.el
+      if (entry && patchMessageRow(entry, agent, msg, cacheRunFooters, viewState, cacheListVersion, version)) return entry.el
       const next = renderMessage(agent, msg, cacheRunFooters, viewState)
       if (entry) {
         if (entry.el.parentNode && entry.el.parentNode.replaceChild) entry.el.parentNode.replaceChild(next, entry.el)
@@ -26813,7 +27128,7 @@
         }
         disposeTree(entry.el)
       }
-      rows[id] = { el: next, version: version, listVersion: cacheListVersion }
+      rows[id] = { el: next, version: version, listVersion: cacheListVersion, patchable: !msg.empty && !runtimeEventsOf(msg).length }
       return next
     }
 
@@ -26882,14 +27197,26 @@
       placeRows(agentId, range)
       requestAnimationFrame(function () {
         if (measureRows()) visibleRevision.set(visibleRevision.peek() + 1)
-        if (shouldStick) scroll.scrollTop = scroll.scrollHeight
+        if (shouldStick && !selectionActive()) scroll.scrollTop = scroll.scrollHeight
       })
     }
 
     ui.collect(root, function () {
       if (renderTimer) clearTimeout(renderTimer)
+      if (selectionTimer) clearTimeout(selectionTimer)
       renderTimer = null
+      selectionTimer = null
       disposeRows()
+    })
+    ui.collect(root, function () {
+      if (window.removeEventListener) {
+        window.removeEventListener('pointerup', releaseSelectionDrag)
+        window.removeEventListener('pointercancel', releaseSelectionDrag)
+        window.removeEventListener('blur', releaseSelectionDrag)
+      }
+      if (typeof document !== 'undefined' && document.removeEventListener) {
+        document.removeEventListener('selectionchange', onSelectionChange)
+      }
     })
     const liveTimer = setInterval(function () { liveStrip.tick() }, 1000)
     if (liveTimer && liveTimer.unref) liveTimer.unref()
@@ -28185,6 +28512,9 @@
 //   tab-collapsible closeable + click-active collapses     (utility)
 //   tab-sidebar     icon-only + collapsible                (rail style)
 //
+// All dock tab presets must be visible when panels.length > 1. Otherwise a
+// dock can contain multiple panels with no built-in way to switch between them.
+//
 // A preset's `props` can override any of the hard-coded defaults on a
 // per-toolbar-item basis — that's how a caller could, e.g., use the
 // sidebar preset but force text mode with `props: { iconOnly: false }`,
@@ -28203,7 +28533,10 @@
       iconOnly:     p.iconOnly,
       closable:     p.closable != null ? p.closable : true,
       addable:      !!p.addable,
-      minShowCount: p.minShowCount || 0,
+      // Dock tabs are the only built-in way to switch active panels inside a
+      // dock, so every dock tab preset must show when there is more than one
+      // panel. Presets may still hide the single-panel case with minShowCount:2.
+      minShowCount: Math.min(p.minShowCount || 0, 2),
 
       onActivate: function (id) {
         ctx.dock.activatePanel(id)
