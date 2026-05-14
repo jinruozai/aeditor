@@ -75,11 +75,12 @@
     shell.appendChild(detail)
     root.appendChild(shell)
 
+    renderConnectionList(list, selected)
+    renderConnectionDetail(detail, selected)
     ui.collect(root, aeditor.effect(function () {
       selected()
-      if (aeditor.ai && aeditor.ai.connections) aeditor.ai.connections()
-      renderConnectionList(list, selected)
       renderConnectionDetail(detail, selected)
+      updateConnectionListActive(list, selected.peek())
     }))
 
     return root
@@ -123,8 +124,16 @@
     }
   }
 
+  function updateConnectionListActive(host, activeId) {
+    const items = host.querySelectorAll('.aeditor-settings-connection-item')
+    for (let i = 0; i < items.length; i++) {
+      items[i].toggleAttribute('data-active', items[i].getAttribute('data-connection-id') === activeId)
+    }
+  }
+
   function connectionListItem(meta, activeId, onSelect) {
     const item = ui.h('button', 'aeditor-settings-connection-item', { type: 'button' })
+    item.setAttribute('data-connection-id', meta.id)
     if (meta.id === activeId) item.setAttribute('data-active', 'true')
     item.appendChild(ui.h('span', 'aeditor-settings-connection-item-title', { text: meta.label || meta.id }))
     item.appendChild(ui.h('span', 'aeditor-settings-connection-item-meta', {
