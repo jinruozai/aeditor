@@ -182,18 +182,16 @@ aeditor/
       data/                        # list / tree / table / breadcrumbs / progressBar(全部虚拟化)
       overlay/                     # menu / modal / drawer / alert / toast
       panel/                       # 能被 registerComponent 注册的 "panel 级" 内置 component
-                                   # dock-tabs(tab-standard/compact/collapsible/sidebar 预设) / log
+                                   # inspector / dock-tabs(tab-standard/compact/collapsible/sidebar 预设) / log
 
   demo/                            # ⚠ 上一个 Codex 做了一次重构:单文件 ui-showcase.js 拆成 4 份
     catalog.js                     # 全部组件的 catalog(signals / mount / editFor)数据
     state.js                       # window.Demo 命名空间(selected / select / openCategory / signal cache)
-    components/                    # 5 个 panel component,全都走 registerComponent
-      component-tree.js            # 左侧面板:按 category 分组的平铺树,单击 preview / 双击 permanent
-      component-search.js          # 搜索面板:list 过滤,onSelect=preview onActivate=permanent
-      showcase.js                  # 'showcase-<cat>' 6 个,按分类渲染 ui.card 网格 + 点击同步 Demo.selected
-      property-panel.js            # 右侧面板:订阅 Demo.selected 构造编辑表单
+    components/
+      ui-gallery.js                # 组件库浏览与预览,展示内置/项目组件
+      panel-list.js                # 可拖拽 panel 列表,用于把 panel 加到 dock
       theme-config.js              # 实时改主题 token + 亮暗模式切换,localStorage 持久化
-      demo.css                     # 以上 5 个 component 的额外样式
+      demo.css                     # demo component 的额外样式
 ```
 
 **关键提示给下一个会话的 Codex**:
@@ -203,7 +201,7 @@ aeditor/
   - `src/extensions/` = Optional Extension Runtime,安装 contribution 到已有 registry,并通过 owner 精确卸载
   - `src/ui/` = `aeditor.ui.*` 通用 UI 元件库(50+ 个)
   - `src/ui/panel/` = 内置 panel 级 component(dock-tabs / log),用 `registerComponent` 注册,能直接塞进 dock
-  - `demo/` = 用户层 demo,catalog+state 负责数据,components/ 负责 5 个面板
+  - `demo/` = 用户层 demo,catalog+state 负责数据,components/ 负责示例面板
 - 改完 `src/` 下任何文件**必须** `node tools/build.mjs` 重新生成 `dist/aeditor-core.*` / `dist/aeditor-full.*` / `dist/aeditor.*`,index.html 是直接引用 full dist 的,不重建就看不到改动
 - **`demo/` 下的文件不进 bundle** —— index.html 直接 `<script>` 加载 demo/*.js,改完 reload 即可
 - 写 dev server 时用 `.Codex/launch.json` 已配好的 `aeditor-demo`(端口 5570),不要自己拉新端口
@@ -231,6 +229,7 @@ aeditor/
 - Overlay 走 `_portal.js` 的 `#aeditor-portal-root` 单例
 - 数据组件(list/tree/table)直接虚拟化,tree 先 flatten 再复用 list 行
 - 全部 50+ 个组件 + 内部辅助 + 11 个 CSS 文件 = 已经 100% 编出 dist 并在 demo 里可以点
+- `aeditor.inspector` 是 UI 层通用检查器协议:ordered targets + provider.inspect + 内置 `inspector` dock panel。多选显示第一个 target,只有所有 target 都有且可写的字段才可编辑;业务对象语义、校验、持久化由 provider 所属编辑器负责。
 
 **AI Host(可选层)**:
 - `src/ai/permission.js` 是统一 permission resolver / audit / path rule owner。Tools、operations、ChangeSet apply、workspace writes、extension install、host adapter 调用都走同一套 actor/target/scope 判断。

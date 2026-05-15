@@ -165,7 +165,7 @@
     card.body.appendChild(stage)
     card.body.appendChild(footer)
     card.addEventListener('click', function () {
-      if (item.entry) Demo.selected.set(item.entry.id)
+      if (item.entry) Demo.select(item.entry.id)
     })
     return card
   }

@@ -10,6 +10,7 @@ dock layout data
 dock runtime
 component context
 UI library
+Inspector
 theme consumption
 ```
 
@@ -214,6 +215,7 @@ tab-collapsible
 tab-sidebar
 log
 settings
+inspector
 ai-agents-list
 ai-chatinput
 ai-messages
@@ -261,12 +263,20 @@ aeditor.ui.registerRenderer(kind, fn)
 aeditor.ui.getRenderer(kind)
 aeditor.ui.listRenderKinds()
 aeditor.ui.editorFor(fieldDef, value, onChange, ctx)
-aeditor.ui.propertyPanel(options)
+aeditor.ui.propertyForm(options)
 ```
 
 `typeconfig` provides built-in field aliases and render hints. Domain schemas
 can extend it, but property editing should remain a UI helper, not a separate
 data model.
+
+The dock-level Inspector lives above this helper. It owns ordered selection and
+provider dispatch, then uses `propertyForm` for normal property rows. See
+[inspector.md](./inspector.md).
+
+Use `propertyForm` directly when a component already owns the objects it edits.
+Use `aeditor.inspector` when selection can come from many editor surfaces and a
+shared dock panel should inspect the current selection.
 
 ## Icons And Floating UI
 

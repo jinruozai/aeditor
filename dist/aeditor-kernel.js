@@ -2439,7 +2439,7 @@
 //   label?:            string,
 //   icon?:             string,
 //   category?:         'layout'|'base'|'form'|'editor'|'display'|'data'|'overlay'|'panel'|'custom',
-//   schema?:           StructDef,                // describes spec props for propertyPanel
+//   schema?:           StructDef,                // describes spec props for propertyForm
 //   bindable?:         string[],                 // prop keys allowed to bind to a data field
 //   appendChild?:      (parentEl, childEl, layout) => void, // optional custom child layout
 // }

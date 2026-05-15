@@ -1,7 +1,7 @@
 // Shared "box visual chrome" schema fragment + applyBoxStyle helper.
 //
 // Components that look like boxes (containers, badges, banners, text frames,
-// image cards, …) share this set of props so palette / property-panel
+// image cards, …) share this set of props so palette / property form
 // consumers see a uniform vocabulary. Adding a new visual prop = update
 // these two tables in one place.
 //

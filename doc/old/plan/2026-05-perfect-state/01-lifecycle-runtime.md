@@ -105,7 +105,7 @@ Given the project rule "one independent feature per file", `lifecycle.js` is jus
 ## Acceptance criteria
 
 - Repeated `createDockLayout(container, config); layout.destroy();` cycles leave the container empty and no active component effects.
-- Destroying a layout containing `tab-standard`, `log`, `propertyPanel`, virtual lists, overlays, and dynamic toolbar items runs all registered UI cleanups.
+- Destroying a layout containing `tab-standard`, `log`, `propertyForm`, virtual lists, overlays, and dynamic toolbar items runs all registered UI cleanups.
 - Adding a transient panel over an existing transient panel disposes the old panel runtime if it was materialized.
 - Direct `layout.setTree(newTreeWithoutPanel)` disposes removed panel runtimes in surviving docks.
 - LRU eviction, close, merge discard, transient eviction, and layout destroy all share the same component disposal path.

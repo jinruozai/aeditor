@@ -261,8 +261,31 @@ var button = aeditor.ui.button({
 ```
 
 Groups include base controls, form inputs, editor inputs, containers, virtualized
-data views, overlays, schema-driven property editors, settings, log, tabs, and
-AI-specific panels in `aeditor-ai` / `aeditor-full`.
+data views, overlays, schema-driven property forms, the generic Inspector panel,
+settings, log, tabs, and AI-specific panels in `aeditor-ai` / `aeditor-full`.
+
+Inspector is provider-based: editor surfaces call `aeditor.inspector.select(...)`,
+domain code registers `aeditor.inspector.registerProvider(type, { inspect })`,
+and the built-in `inspector` panel renders the primary target while applying
+edits to every selected target whose field is present and writable.
+
+```js
+aeditor.inspector.registerProvider('app.node', {
+  inspect: function (targets) {
+    return {
+      schema: { name: { type: 'string' }, visible: { type: 'bool' } },
+      values: targets.map(function (target) { return nodeStore.get(target.id) }),
+      write: function (field, change, ctx) {
+        ctx.targets.forEach(function (target, index) {
+          nodeStore.patch(target.id, {
+            [field]: ctx.valueForChange(change, target, index, ctx),
+          })
+        })
+      },
+    }
+  },
+})
+```
 
 ### Theme
 

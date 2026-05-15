@@ -111,7 +111,7 @@ High priority:
 - `src/ui/_internal/_text-style.js`
 - `src/ui/_internal/_render-tree.js`
 - `src/ui/form/editorFor.js`
-- `src/ui/form/propertyPanel.js`
+- `src/ui/form/propertyForm.js`
 - `src/ui/data/list.js`
 - `src/ui/data/tree.js`
 - `src/ui/data/table.js`

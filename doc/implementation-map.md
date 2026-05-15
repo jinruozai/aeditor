@@ -35,6 +35,9 @@ preserved or deliberately replaced.
 | `src/dock/menu.js` | [ui.md](./ui.md) | Optional built-in dock command/menu contribution. |
 | `src/dock/migrate.js` | [ui.md](./ui.md) | Pop-out and cross-window migration. |
 | `src/dock/layout.js` | [ui.md](./ui.md) | `createDockLayout`. |
+| `src/ui/inspector.js` | [inspector.md](./inspector.md), [ui.md](./ui.md) | Ordered Inspector selection, provider registry, multi-target edit gates, and formula-ready change helpers. |
+| `src/ui/panel/inspector.js` | [inspector.md](./inspector.md), [ui.md](./ui.md) | Built-in generic Inspector dock panel backed by `aeditor.inspector` and `aeditor.ui.propertyForm`. |
+| `src/ui/form/propertyForm.js` | [ui.md](./ui.md), [inspector.md](./inspector.md) | Schema-driven single/multi-target property form helper. |
 | `src/ui/**` | [ui.md](./ui.md) | Generic UI component library and built-in generic panel components. |
 | `src/style/**` | [ui.md](./ui.md) | Theme, dock, UI, AI, and settings styles. |
 

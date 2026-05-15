@@ -1,27 +1,29 @@
-// aeditor.ui.propertyPanel — schema-driven form for editing one or more objects.
-// One panel can edit a single object (length-1 targets) or batch-edit many;
+// aeditor.ui.propertyForm — schema-driven form for editing one or more objects.
+// One form can edit a single object (length-1 targets) or batch-edit many;
 // multi-target reads display the first target's value, and a user edit fans
 // out to every target.
 //
 // opts:
 //   targets:  signal<T[]> | T[]                       required (single-edit = [obj])
 //   schema:   signal<StructDef> | StructDef           field shape; rare changes rebuild rows
-//   onChange?:(field, newValue, targets) => void      app persistence; if omitted writes are
+//   onChange?:(field, newValue, targets, meta) => void app persistence; if omitted writes are
 //                                                     fan-out into `targets` directly
 //   disabled?:signal<boolean> | boolean               toggles `inert` on the root
 //   defaults?:object                                  per-key reset-to-default values; when
 //                                                     supplied, each row gets a small reset
 //                                                     iconButton (faded when already at default)
+//   requireAllTargets?:boolean                        disables a field when any target lacks it
+//   canEdit?:(field, targets, rawField) => boolean     extra per-field edit gate
 //   ctx?:     any                                     forwarded to editorFor
 ;(function (aeditor) {
   'use strict'
   const ui = aeditor.ui = aeditor.ui || {}
 
-  // Schema fields can carry a `group` tag; propertyPanel collects fields
+  // Schema fields can carry a `group` tag; propertyForm collects fields
   // by tag and renders a labeled section per group. The order below is
   // the canonical "what most users want to see" ranking. Anything not in
   // PROP_GROUPS appears in declaration order at the end. Apps can mutate
-  // these tables to reskin / extend the panel without touching propertyPanel.
+  // these tables to reskin / extend the form without touching propertyForm.
   ui.PROP_GROUPS = ['text', 'background', 'border', 'spacing', 'effects', 'shadow']
   ui.PROP_GROUP_LABELS = {
     text:       'Text',
@@ -32,16 +34,18 @@
     shadow:     'Shadow',
   }
 
-  ui.propertyPanel = function (opts) {
+  ui.propertyForm = function (opts) {
     const o = opts || {}
     const targets   = ui.isSignal(o.targets) ? o.targets : aeditor.signal(o.targets || [])
     const schemaSig = ui.isSignal(o.schema)  ? o.schema  : aeditor.signal(o.schema  || {})
     const disabled  = ui.asSig(o.disabled != null ? o.disabled : false)
-    const defaults  = (o.defaults && typeof o.defaults === 'object') ? o.defaults : null
+    const defaults  = o.defaults || null
     const onChange  = typeof o.onChange === 'function' ? o.onChange : null
+    const requireAllTargets = !!o.requireAllTargets
+    const canEdit = typeof o.canEdit === 'function' ? o.canEdit : null
     const ctx       = o.ctx
 
-    const root = ui.h('div', 'aeditor-ui-property-panel')
+    const root = ui.h('div', 'aeditor-ui-property-form')
     ui.bind(root, disabled, function (v) { root.toggleAttribute('inert', !!v) })
 
     const composite = aeditor.derived(function () {
@@ -52,7 +56,8 @@
     ui.collect(root, composite.dispose)
 
     function fanOut(field, nv) {
-      if (onChange) { onChange(field, nv, targets.peek()); return }
+      const change = { field: field, mode: 'literal', value: nv }
+      if (onChange) { onChange(field, nv, targets.peek(), { change: change }); return }
       const arr = (targets.peek() || []).map(function (t) {
         const next = Object.assign({}, t || {})
         next[field] = nv
@@ -87,7 +92,8 @@
               label:   raw.label || fname,
               tooltip: subFd.desc || '',
               editor:  function (slotSig, write, innerCtx) {
-                return slotEditor(slotSig, write, fieldCtx(innerCtx, fname), subFd, fname, defaults)
+                return slotEditor(slotSig, write, fieldCtx(innerCtx, fname), subFd, fname, defaults,
+                  fieldDisabled(targets, requireAllTargets, canEdit, fname, raw))
               },
             }
           })
@@ -145,23 +151,53 @@
     return typeof ctx === 'function' ? ctx(field) : ctx
   }
 
+  function fieldDisabled(targets, requireAllTargets, canEdit, field, raw) {
+    return aeditor.derived(function () {
+      const arr = targets() || []
+      if (raw && raw.disabled === true) return true
+      if (requireAllTargets && !allHave(arr, field)) return true
+      return canEdit ? !canEdit(field, arr, raw) : false
+    })
+  }
+
+  function allHave(arr, field) {
+    for (let i = 0; i < arr.length; i++) {
+      if (!arr[i] || !Object.prototype.hasOwnProperty.call(arr[i], field)) return false
+    }
+    return arr.length > 0
+  }
+
   // Slot wrapper. Optional reset button: present when `defaults[fname]` is defined; faded
   // when the current slot value already equals that default.
-  function slotEditor(slotSig, write, innerCtx, fieldDef, fname, defaults) {
+  function slotEditor(slotSig, write, innerCtx, fieldDef, fname, defaults, disabled) {
     const editorEl = ui.editorFor(fieldDef, slotSig, write, innerCtx)
     const slot = ui.h('div', 'aeditor-ui-slot')
     slot.appendChild(editorEl)
-    if (defaults && Object.prototype.hasOwnProperty.call(defaults, fname)) {
-      slot.appendChild(buildReset(slotSig, write, defaults[fname]))
-    }
+    if (defaults) slot.appendChild(buildReset(slotSig, write, function () {
+      const current = defaultsFor(defaults) || {}
+      return current[fname]
+    }, function () {
+      const current = defaultsFor(defaults) || {}
+      return Object.prototype.hasOwnProperty.call(current, fname)
+    }))
+    ui.bind(slot, disabled, function (v) {
+      slot.toggleAttribute('inert', !!v)
+      slot.classList.toggle('aeditor-ui-slot-disabled', !!v)
+      slot.title = v ? 'Not editable for the current selection' : ''
+    })
+    ui.collect(slot, disabled.dispose)
     ui.collect(slot, function () { ui.dispose(editorEl) })
     return slot
   }
 
-  function buildReset(slotSig, write, defaultValue) {
+  function defaultsFor(defaults) {
+    return typeof defaults === 'function' ? defaults() : defaults
+  }
+
+  function buildReset(slotSig, write, defaultValue, hasDefault) {
     const btn = ui.iconButton({
       icon: 'refresh', kind: 'ghost', size: 'sm', title: 'Reset to default',
-      onClick: function () { write(defaultValue) },
+      onClick: function () { if (hasDefault()) write(defaultValue()) },
     })
     btn.classList.add('aeditor-ui-slot-reset')
     // Fade when already at default — visual cue that the button is a
@@ -171,9 +207,11 @@
     // "at default" even when the default literal is ''.
     ui.collect(btn, aeditor.effect(function () {
       const v = slotSig()
-      const atDefault = isAtDefault(v, defaultValue)
+      const has = hasDefault()
+      const atDefault = has && isAtDefault(v, defaultValue())
+      btn.hidden = !has
       btn.style.opacity = atDefault ? '0.3' : '1'
-      btn.style.cursor  = atDefault ? 'default' : ''
+      btn.style.cursor  = !has || atDefault ? 'default' : ''
     }))
     return btn
   }

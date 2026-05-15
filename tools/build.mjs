@@ -145,7 +145,8 @@ const JS_ORDER = [
   'ui/form/structInput.js',
   'ui/form/arrayInput.js',
   'ui/form/editorFor.js',
-  'ui/form/propertyPanel.js',
+  'ui/form/propertyForm.js',
+  'ui/inspector.js',
 
   // Layer 8 - UI library: editor specials
   'ui/editor/gradientInput.js',
@@ -198,6 +199,7 @@ const JS_ORDER = [
   'ui/panel/settings.js',
   'ai/panels/settings-ai.js',
   'style/theme-settings.js',
+  'ui/panel/inspector.js',
   'ui/panel/dock-tabs.js',
   'ui/panel/log.js',
 

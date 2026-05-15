@@ -35,7 +35,7 @@ explicitly references one.
 | Area | Responsibility | Does Not Own |
 | --- | --- | --- |
 | Kernel | Shared infrastructure: signals, log, bus, history, settings, commands, theme, i18n, workspace contracts, component registry, dock tree, and dock runtime. | Editor business rules, product project formats, or widget catalog breadth. |
-| UI | `aeditor.ui.*` widgets, settings UI, built-in tab/log panel components, and theme consumption. | AI execution or domain data semantics. |
+| UI | `aeditor.ui.*` widgets, schema-driven `propertyForm`, generic Inspector selection/providers, settings UI, built-in tab/log/inspector panel components, and theme consumption. | AI execution or domain data semantics. |
 | AI Host | Agents, providers, streaming, permissions, tools, context references, operations, ChangeSet, compaction, and memory. | Product data models or hidden host privileges. |
 | Extension Runtime | Package, review, install, disable, and uninstall contributions through existing registries. | A second component/tool/context model. |
 | Host Adapters | File-system bridges, provider transports, git, verification, and other privileged integrations. | Framework policy bypasses. |
@@ -132,6 +132,7 @@ extension runtime, AI panels, or AI-specific styles.
 - [architecture.md](./architecture.md): full layer model and naming rules.
 - [core.md](./core.md): core infrastructure that already exists.
 - [ui.md](./ui.md): component registry, dock layout/runtime, toolbar records, and UI library.
+- [inspector.md](./inspector.md): ordered selection, provider protocol, multi-target property editing, and the built-in Inspector panel.
 - [ai.md](./ai.md): optional AI Host and the public AI concept model.
 - [ai-runtime.md](./ai-runtime.md): agents, skills, messages, queues, live run state, compaction, and persistence.
 - [ai-permission-policy.md](./ai-permission-policy.md): unified permission resolver, audit, and always-allow policy.

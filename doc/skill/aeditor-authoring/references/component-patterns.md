@@ -81,6 +81,38 @@ tables, menus, popovers, modals, drawers, toasts, and scroll surfaces.
 If the host loaded only `aeditor-kernel`, write plain DOM inside component
 roots or ask the host to load `aeditor-ui` before using `aeditor.ui.*`.
 
+## Property Forms And Inspector
+
+Use `aeditor.ui.propertyForm` when the current component owns the objects being
+edited:
+
+```js
+const targets = aeditor.signal([{ name: 'Node', visible: true }])
+root.appendChild(aeditor.ui.propertyForm({
+  targets: targets,
+  schema: {
+    name: { type: 'string' },
+    visible: { type: 'bool' },
+  },
+  onChange: function (field, value) {
+    targets.set(targets.peek().map(function (item) {
+      const next = Object.assign({}, item)
+      next[field] = value
+      return next
+    }))
+  },
+}))
+```
+
+Use `aeditor.inspector` when selection comes from different panels or canvases
+and a shared dock panel should inspect it. Register one provider per domain
+target type, call `aeditor.inspector.select(targets)` from selection surfaces,
+and mount the built-in `inspector` component.
+
+Inspector multi-selection is ordered. The first target is primary and supplies
+displayed values. A field is editable only when every selected target has that
+field and the provider allows writing it. Do not invent a mixed-value state.
+
 ## Cleanup
 
 Register external resources with `ctx.onCleanup`:

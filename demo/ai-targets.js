@@ -559,7 +559,7 @@
       required: ['componentId', 'prop', 'value'],
       properties: {
         componentId: { type: 'string', description: 'Demo component id, for example button or numberInput.' },
-        prop: { type: 'string', description: 'Editable property key from the property panel.' },
+        prop: { type: 'string', description: 'Editable property key from the property form.' },
         value: { description: 'New JSON-serializable property value. Must match options for enum properties.' },
       },
     },

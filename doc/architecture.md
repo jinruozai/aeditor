@@ -95,19 +95,29 @@ UI contains the optional component library and built-in UI panels:
 component context
 theme tokens
 ui widgets
+propertyForm
+Inspector selection/providers
 settings UI
-built-in tab/log panels
+built-in tab/log/inspector panels
 ```
 
 The UI layer exposes:
 
 ```js
 aeditor.ui.*
+aeditor.inspector
 ```
 
 PanelData and toolbar items reference registered components. They are not
 separate registration systems. Panel communication uses `aeditor.bus` through
 the component context. Components do not directly own each other.
+
+Inspector is the generic property inspection shell. Editor surfaces publish an
+ordered target selection with `aeditor.inspector.select(...)`; domain code
+registers providers that turn target types into schema/read/write records. The
+built-in `inspector` panel renders that record, usually through
+`aeditor.ui.propertyForm`. Domain objects, undo history, persistence, and
+validation stay in the host app.
 
 Dock menus are command/menu contributions, not hard-coded application policy.
 The built-in dock menu is installed only when a host opts in with

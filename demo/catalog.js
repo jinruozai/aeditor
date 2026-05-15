@@ -9,17 +9,17 @@
 // the same time (user opens `showcase-base` twice via the "+" button, for
 // example). Each panel must have its own DOM tree (because a DOM node can
 // only have one parent), BUT they must share the same signals — editing a
-// prop in the property panel should reflect in every mounted showcase card.
+// prop in the property form should reflect in every mounted showcase card.
 //
 // Solution: split.
 //   • signals()   runs ONCE per component id, cached in Demo.getSignals(id)
 //   • mount(s)    runs per panel mount; returns a FRESH DOM element bound to
 //                 the shared signals
 //   • editFor(s)  returns the { key: signal | {signal, options} } map used by
-//                 the property panel. Same object every call (stable shape).
+//                 the property form. Same object every call (stable shape).
 //
 // All three functions close over the same signal bag, so edits in the
-// property panel flow automatically into every mounted component.
+// property form flow automatically into every mounted component.
 ;(function () {
   'use strict'
   const ui = aeditor.ui
@@ -593,7 +593,7 @@
     },
 
     {
-      id: 'propertyPanel', name: 'Property Panel', category: 'editor',
+      id: 'propertyForm', name: 'Property Form', category: 'editor',
       stageSize: 'lg',
       description: 'Schema-driven form — resolves FieldDef / TypeDef via type_config.',
       signals: function () { return {
@@ -605,7 +605,20 @@
           tint:   { type: 'color' },
         }),
       }},
-      mount: function (s) { return ui.propertyPanel({ value: s.value, schema: s.schema }) },
+      mount: function (s) {
+        const targets = aeditor.derived(function () { return [s.value()] })
+        const form = ui.propertyForm({
+          targets: targets,
+          schema: s.schema,
+          onChange: function (field, value) {
+            const next = Object.assign({}, s.value.peek())
+            next[field] = value
+            s.value.set(next)
+          },
+        })
+        ui.collect(form, targets.dispose)
+        return form
+      },
       editFor: function () { return {} },
     },
 

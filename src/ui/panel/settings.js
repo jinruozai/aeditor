@@ -109,7 +109,7 @@
     root.appendChild(pageHeader(section ? section.title : 'Settings', section ? section.description : ''))
     const schemaSig = aeditor.signal(schemaFor(sectionId))
     const targetsSig = aeditor.signal([valuesForSection(sectionId)])
-    const panel = ui.propertyPanel({
+    const panel = ui.propertyForm({
       targets: targetsSig,
       schema: schemaSig,
       onChange: function (key, value) {

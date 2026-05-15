@@ -89,7 +89,7 @@ Worker G: internal helpers
 Worker H: forms and schema editors
 
 - `src/ui/form/editorFor.js`
-- `src/ui/form/propertyPanel.js`
+- `src/ui/form/propertyForm.js`
 - `src/ui/form/structInput.js`
 - `src/ui/form/arrayInput.js`
 - `src/ui/_internal/_register-builtins.js`

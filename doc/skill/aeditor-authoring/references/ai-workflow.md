@@ -64,6 +64,8 @@ explicit replacement path provided by the registry or host.
 - avoid React, TSX, JSX, import/export, and TypeScript syntax in zero-build
   projects;
 - prefer `aeditor.ui.*`;
+- use `aeditor.ui.propertyForm` for local schema forms and `aeditor.inspector`
+  providers for shared selection inspection;
 - use workspace-backed precise edits;
 - inspect docks before mounting by registered component name.
 

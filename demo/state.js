@@ -53,6 +53,73 @@
     Demo.selected.set(id)
   }
 
+  function readSpec(spec) {
+    const sig = spec && spec.signal ? spec.signal : spec
+    return sig && sig.peek ? sig.peek() : sig
+  }
+
+  function writeSpec(spec, value) {
+    const sig = spec && spec.signal ? spec.signal : spec
+    if (sig && sig.set) sig.set(value)
+  }
+
+  function optionsOf(spec) {
+    const opts = spec && spec.options || []
+    return opts.map(function (item) {
+      return typeof item === 'string'
+        ? { value: item, label: item }
+        : { value: item.value, label: item.label || String(item.value) }
+    })
+  }
+
+  function fieldFor(spec) {
+    const value = readSpec(spec)
+    const opts = optionsOf(spec)
+    if (opts.length) return { type: 'enum_string', type_agv: { options: opts } }
+    if (typeof value === 'boolean') return { type: 'bool' }
+    if (typeof value === 'number') return { type: Number.isInteger(value) ? 'int' : 'float' }
+    return { type: 'string' }
+  }
+
+  function selectInspector(id) {
+    if (!aeditor.inspector) return
+    const entry = Demo.byId(id)
+    if (!entry) { aeditor.inspector.clear(); return }
+    aeditor.inspector.select({
+      type: 'demo.component',
+      id: id,
+      title: entry.name,
+      meta: { componentId: id },
+    }, { source: 'demo' })
+  }
+
+  if (aeditor.inspector) {
+    aeditor.inspector.registerProvider('demo.component', {
+      inspect: function (targets) {
+        const id = targets[0].id
+        const entry = Demo.byId(id)
+        const edit = Demo.editFor(id)
+        const schema = {}
+        const value = {}
+        Object.keys(edit || {}).forEach(function (key) {
+          schema[key] = fieldFor(edit[key])
+          value[key] = readSpec(edit[key])
+        })
+        return {
+          title: entry ? entry.name : id,
+          subtitle: entry ? entry.description : '',
+          schema: schema,
+          values: [value],
+          write: function (field, change) {
+            writeSpec(edit[field], change.value)
+          },
+        }
+      },
+    }, { owner: 'demo' })
+
+    aeditor.effect(function () { selectInspector(Demo.selected()) })
+  }
+
   Demo.dump = function () {
     console.log('[Demo] catalog:', Demo.catalog.length, 'entries')
     console.log('[Demo] selected:', Demo.selected())

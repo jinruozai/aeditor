@@ -15,7 +15,7 @@ Load only the layer the host needs:
 
 ```text
 aeditor-kernel    core services + component registry + tree + dock runtime
-aeditor-ui        aeditor.ui.* widgets, settings UI, tab/log panels
+aeditor-ui        aeditor.ui.* widgets, propertyForm, Inspector, settings UI, tab/log panels
 aeditor-ai        AI Host + Extension Runtime add-on
 aeditor-core      classic Kernel + UI bundle
 aeditor-full      Kernel + UI + AI Host + Extension Runtime
@@ -54,6 +54,9 @@ surface before using optional layers.
   `boxSizing: border-box`, and use flex or grid layouts that adapt.
 - Prefer `aeditor.ui.*` controls over raw controls when the UI layer is loaded
   and one exists. Use `aeditor.ui.view` for primary scroll surfaces.
+- Use `aeditor.ui.propertyForm` for schema-driven fields owned by one component.
+  Use `aeditor.inspector` plus a provider when many editor surfaces need to
+  inspect the current selection in a shared dock panel.
 - Toolbar tab components are normal toolbar components. Static toolbar items
   have `ctx.dock` but no `ctx.panel`.
 - Use `dockMenu: true` only when the host wants AEditor default dock menu
@@ -111,6 +114,38 @@ surface before using optional layers.
 
 For more patterns, read
 `doc/skill/aeditor-authoring/references/component-patterns.md`.
+
+## Inspector Pattern
+
+Do not build an ad hoc inspector panel for generic editor selection. Register
+an Inspector provider for the domain target type, let editor surfaces select
+ordered targets, and mount the built-in `inspector` component where the host
+wants properties to appear.
+
+```js
+aeditor.inspector.registerProvider('app.node', {
+  inspect: function (targets) {
+    return {
+      schema: {
+        name: { type: 'string' },
+        visible: { type: 'bool' },
+      },
+      values: targets.map(function (target) { return nodeStore.get(target.id) }),
+      write: function (field, change, ctx) {
+        ctx.targets.forEach(function (target, index) {
+          nodeStore.patch(target.id, {
+            [field]: ctx.valueForChange(change, target, index, ctx),
+          })
+        })
+      },
+    }
+  },
+})
+```
+
+Multi-target Inspector edits show the first selected target as primary. A field
+is editable only when every selected target has that field and the provider
+allows writing it. There is no mixed-value state.
 
 ## AI Authoring Workflow
 

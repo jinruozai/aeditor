@@ -12,8 +12,8 @@ Use the document form when an external AI system, a host app, or a project
 workspace needs the same guidance outside the bundled runtime.
 
 - [aeditor-authoring/SKILL.md](./aeditor-authoring/SKILL.md): build, modify,
-  mount, and review AEditor components, panels, dock layouts, AI contributions,
-  and extension manifests.
+  mount, and review AEditor components, panels, dock layouts, Inspector
+  providers, AI contributions, and extension manifests.
 
 Skill folders may include `references/` files. Agents should load those
 references only when the current task needs the extra detail.

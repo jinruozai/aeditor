@@ -16,7 +16,7 @@
 //   aeditor.ui.getRenderer(kind)                -> fn or null
 //   aeditor.ui.listRenderKinds()                -> [name, ...] (for picker UIs)
 //
-// See propertyEditor.js / propertyPanel.js for consumption.
+// See propertyForm.js for consumption.
 //
 // Data shapes:
 //   TypeDef = {
