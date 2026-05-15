@@ -355,14 +355,14 @@
     const workspace = aeditor.ai && aeditor.ai.currentWorkspace && aeditor.ai.currentWorkspace()
     const projectWorkflow = project ? [
       'This demo has an open workspace-backed editor project.',
-      'For durable UI, inspect and edit files with workspace.* and code.* tools; demo.project.* is only for demo-specific descriptor/layout actions.',
+      'For durable UI, inspect and edit files with workspace.* and code.* tools; demo.project.* is only for demo-specific descriptor and health checks.',
       'Project panel files should call Demo.project.component(componentId, spec).',
-      'After writing a panel file, prefer demo.project.mountPanel with component and entryPath. It keeps descriptor, layout, reload, and placement on one path.',
-      'Use demo.project.reload after file edits when a tool does not reload automatically.',
+      'After writing a panel file, inspect docks with aeditor.inspectDocks and add the registered component with aeditor.addPanelToDock.',
+      'Runtime panel placement is separate from descriptor/layout persistence; the host Save command decides when to persist layout.',
     ] : workspace ? [
       'An AI workspace is selected, but it is not opened as a demo project yet.',
       'A valid demo workspace contains aeditor.project.json with type "aeditor-project", id, entries, layout, and project.code.load permission.',
-      'After writing a panel file, call demo.project.mountPanel with component and entryPath. It can bootstrap/open the workspace project and place the panel.',
+      'Ask the user to open the workspace as a demo project before adding panels; do not edit descriptor/layout JSON as a mounting shortcut.',
       'Do not guess dock/panel operation names such as dock.addPanel, panel.create, or panel.add.',
     ] : [
       'No workspace-backed demo project is open.',
@@ -402,17 +402,18 @@
           file: 'src/panels/main-panel.js',
           component: project.id + '.mainPanel',
           registration: "Demo.project.component('" + project.id + ".mainPanel', { defaults: function () { return { title: 'Main Panel', icon: 'columns', props: {} } }, factory: function (propsSig, ctx) { const root = document.createElement('div'); root.style.cssText = 'height:100%;min-height:0;box-sizing:border-box;display:flex;flex-direction:column;'; const view = aeditor.ui.view({ children: [] }); view.style.flex = '1 1 auto'; view.style.minHeight = '0'; root.appendChild(view); return root } })",
-          addPanelTool: 'demo.project.mountPanel',
+          inspectTool: 'aeditor.inspectDocks',
+          addPanelTool: 'aeditor.addPanelToDock',
         } : null,
       },
       capabilities: [
         project
-          ? { op: 'demo.project.mountPanel', risk: 'edit', purpose: 'Place an already registered project component into the persistent layout.' }
-          : (workspace ? { op: 'demo.project.mountPanel', risk: 'edit', purpose: 'Bootstrap/open the selected workspace and mount a registered component.' } : null)
+          ? { op: 'aeditor.addPanelToDock', risk: 'edit', purpose: 'Place an already registered component into a runtime dock.' }
+          : null
       ].filter(Boolean),
       tools: project
-        ? ['aeditor.readReference', 'aeditor.getCapabilities', 'workspace.fileSummary', 'workspace.searchFiles', 'workspace.readFile', 'workspace.readFileRange', 'workspace.editFile', 'workspace.patchFile', 'workspace.writeFile', 'code.map', 'code.outline', 'demo.project.readDescriptor', 'demo.project.mountPanel', 'demo.project.reload']
-        : (workspace ? ['aeditor.readReference', 'aeditor.getCapabilities', 'workspace.fileSummary', 'workspace.searchFiles', 'workspace.readFileRange', 'workspace.editFile', 'workspace.writeFile', 'demo.project.mountPanel'] : ['aeditor.readReference', 'aeditor.getCapabilities']),
+        ? ['aeditor.readReference', 'aeditor.getCapabilities', 'workspace.fileSummary', 'workspace.searchFiles', 'workspace.readFile', 'workspace.readFileRange', 'workspace.editFile', 'workspace.patchFile', 'workspace.writeFile', 'code.map', 'code.outline', 'aeditor.inspectDocks', 'aeditor.addPanelToDock', 'demo.project.readDescriptor', 'demo.project.readSource', 'demo.project.inspectPanel', 'demo.project.runCheck']
+        : ['aeditor.readReference', 'aeditor.getCapabilities'],
     }
   }
 

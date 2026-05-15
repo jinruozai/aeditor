@@ -9,6 +9,22 @@ Use AEditor as a zero-dependency, zero-build editor framework. Build durable
 editor UI as plain JavaScript files that register AEditor components, then mount
 those registered component names into dock panels.
 
+## Current Runtime Shape
+
+Load only the layer the host needs:
+
+```text
+aeditor-kernel    core services + component registry + tree + dock runtime
+aeditor-ui        aeditor.ui.* widgets, settings UI, tab/log panels
+aeditor-ai        AI Host + Extension Runtime add-on
+aeditor-core      classic Kernel + UI bundle
+aeditor-full      Kernel + UI + AI Host + Extension Runtime
+```
+
+If a host loaded only `aeditor-kernel`, do not assume `aeditor.ui.*`,
+`tab-standard`, `log`, AI tools, or extension APIs exist. Check the loaded
+surface before using optional layers.
+
 ## First Steps
 
 1. Inspect the host workspace before writing code. Find how it loads scripts,
@@ -19,7 +35,8 @@ those registered component names into dock panels.
 3. Prefer editing or adding real source files. Do not pass source code inside
    dock, panel, or extension tool arguments.
 4. Keep changes small and framework-shaped: Component for UI, Dock for layout,
-   Panel for mounted content, Tool/Context/Operation/ChangeSet for AI work.
+   Panel for mounted content, Tool/Context Reference/Operation/ChangeSet for AI
+   work.
 
 ## Hard Rules
 
@@ -35,8 +52,8 @@ those registered component names into dock panels.
   call `aeditor.ui.dispose(root)` from cleanup when the subtree needs disposal.
 - Panel roots must survive resizable docks: set `height: 100%`, `minHeight: 0`,
   `boxSizing: border-box`, and use flex or grid layouts that adapt.
-- Prefer `aeditor.ui.*` controls over raw controls when one exists. Use
-  `aeditor.ui.view` for primary scroll surfaces.
+- Prefer `aeditor.ui.*` controls over raw controls when the UI layer is loaded
+  and one exists. Use `aeditor.ui.view` for primary scroll surfaces.
 - Toolbar tab components are normal toolbar components. Static toolbar items
   have `ctx.dock` but no `ctx.panel`.
 - Use `dockMenu: true` only when the host wants AEditor default dock menu
@@ -104,7 +121,8 @@ When an AI agent modifies AEditor code, use the workspace-backed path:
 3. For existing files, use exact edits with the current base hash and exact
    `oldText`.
 4. For new files, write the component file, then make sure the host loads it.
-5. Inspect docks, then mount by registered component name and returned dock id.
+5. Inspect docks with `aeditor.inspectDocks`, then mount by registered
+   component name and returned dock id with `aeditor.addPanelToDock`.
 6. If the edit is stale or ambiguous, reread and retry with a narrower change.
 
 For AI registry details, read
@@ -113,8 +131,9 @@ For AI registry details, read
 ## Extension Workflow
 
 Use an extension when the work is packaged, reviewable, installable, and
-uninstallable. Use ordinary component files when the host simply needs project
-UI. Extensions contribute to existing registries; they do not create a second
+uninstallable. The host must load `aeditor-ai` or `aeditor-full` for extension
+APIs. Use ordinary component files when the host simply needs project UI.
+Extensions contribute to existing registries; they do not create a second
 component, tool, or AI model.
 
 For extension details, read

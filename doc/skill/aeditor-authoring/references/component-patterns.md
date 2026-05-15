@@ -55,7 +55,7 @@ areas. Avoid fixed viewport sizes inside panels.
 
 ## UI Library
 
-Prefer AEditor UI primitives:
+Prefer AEditor UI primitives when the UI layer is loaded:
 
 ```js
 const name = aeditor.signal('Untitled')
@@ -77,6 +77,9 @@ root.appendChild(aeditor.ui.view({
 
 Use the matching component for buttons, icon buttons, form fields, lists, trees,
 tables, menus, popovers, modals, drawers, toasts, and scroll surfaces.
+
+If the host loaded only `aeditor-kernel`, write plain DOM inside component
+roots or ask the host to load `aeditor-ui` before using `aeditor.ui.*`.
 
 ## Cleanup
 

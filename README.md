@@ -6,16 +6,17 @@ editors with optional AI and extension runtime layers.
 [![npm](https://img.shields.io/npm/v/@gooooo/aeditor.svg)](https://www.npmjs.com/package/@gooooo/aeditor)
 [![license](https://img.shields.io/npm/l/@gooooo/aeditor.svg)](./LICENSE)
 
-aeditor keeps the editor core small: docks, panels, registered components,
-theme tokens, UI widgets, settings, commands, workspace contracts, and a compact
-reactive runtime. AI Host and Extension Runtime are optional layers on top of
-that core, not hidden requirements.
+aeditor keeps the editor kernel small: docks, panels, registered components,
+theme tokens, settings, commands, workspace contracts, and a compact reactive
+runtime. UI widgets, AI Host, and Extension Runtime are layered on top, not
+hidden requirements.
 
 ```text
-Core/UI/Dock                  small editor framework
-Optional AI Host              agents, tools, context, operations, ChangeSet
-Optional Extension Runtime    package/review/install/disable contributions
-Host App                      project model, domain data, privileged bridges
+Kernel        core services, component registry, tree, dock runtime
+UI            widgets, settings panel, built-in tab/log panels
+AI            agents, providers, tools, references, operations, ChangeSet
+Extensions    package/review/install/disable contributions
+Host App      project model, domain data, privileged bridges
 ```
 
 ## Why
@@ -46,22 +47,50 @@ without paying layout and paint cost in the background.
 
 ## Bundles
 
-Use Core when you want only the editor framework:
+Use **Kernel** for the smallest dock/component runtime. It includes core
+services, component registration, immutable dock tree helpers, dock runtime,
+theme tokens, commands, settings, workspace contracts, and dock CSS. It does
+not include `aeditor.ui.*`, built-in tab/log panels, AI, or extensions:
+
+```html
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@gooooo/aeditor@1/dist/aeditor-kernel.css">
+<script src="https://cdn.jsdelivr.net/npm/@gooooo/aeditor@1/dist/aeditor-kernel.js"></script>
+```
+
+Add **UI** when you want the built-in `aeditor.ui.*` widgets, settings UI, and
+tab/log panel components:
+
+```html
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@gooooo/aeditor@1/dist/aeditor-kernel.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@gooooo/aeditor@1/dist/aeditor-ui.css">
+<script src="https://cdn.jsdelivr.net/npm/@gooooo/aeditor@1/dist/aeditor-kernel.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@gooooo/aeditor@1/dist/aeditor-ui.js"></script>
+```
+
+Use **Core** when you want the classic editor framework bundle in one file:
 
 ```html
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@gooooo/aeditor@1/dist/aeditor-core.css">
 <script src="https://cdn.jsdelivr.net/npm/@gooooo/aeditor@1/dist/aeditor-core.js"></script>
 ```
 
-Use Full when you also want AI Host and Extension Runtime:
+Use **Full** when you also want AI Host and Extension Runtime:
 
 ```html
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@gooooo/aeditor@1/dist/aeditor-full.css">
 <script src="https://cdn.jsdelivr.net/npm/@gooooo/aeditor@1/dist/aeditor-full.js"></script>
 ```
 
-Classic `dist/aeditor.js` and `dist/aeditor.css` are Core aliases. Published npm
-packages contain only runtime dist files, this README, and the license.
+Classic `dist/aeditor.js` and `dist/aeditor.css` are Core aliases. `aeditor-ai`
+is also available as an add-on for hosts that already loaded Kernel and UI:
+
+```html
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@gooooo/aeditor@1/dist/aeditor-ai.css">
+<script src="https://cdn.jsdelivr.net/npm/@gooooo/aeditor@1/dist/aeditor-ai.js"></script>
+```
+
+Published npm packages contain only runtime dist files, this README, and the
+license.
 
 ```bash
 npm install @gooooo/aeditor
@@ -233,7 +262,7 @@ var button = aeditor.ui.button({
 
 Groups include base controls, form inputs, editor inputs, containers, virtualized
 data views, overlays, schema-driven property editors, settings, log, tabs, and
-AI-specific panels in the full bundle.
+AI-specific panels in `aeditor-ai` / `aeditor-full`.
 
 ### Theme
 
@@ -242,6 +271,7 @@ Built-in themes:
 ```js
 aeditor.theme.set('dark')
 aeditor.theme.set('dracula')
+aeditor.theme.set('harbor')
 aeditor.theme.set('light')
 ```
 
@@ -280,9 +310,9 @@ Register context providers or operations when the editor needs to expose current
 selection, bounded reads, previews, or reviewed mutations. All writes should go
 through permission and preview/apply paths.
 
-The full bundle includes the built-in `aeditor.authoring` skill, which teaches
-agents to create file-backed AEditor components instead of inventing ad hoc
-panel code. The copyable skill document lives at
+`aeditor-ai` and `aeditor-full` include the built-in `aeditor.authoring` skill,
+which teaches agents to create file-backed AEditor components instead of
+inventing ad hoc panel code. The copyable skill document lives at
 [`doc/skill/aeditor-authoring/SKILL.md`](./doc/skill/aeditor-authoring/SKILL.md).
 
 ## Optional Extension Runtime
@@ -310,14 +340,18 @@ manifest, reviews trust and conflicts, installs contributions with
 For durable AI-generated UI:
 
 1. Open or select a workspace.
-2. Let the agent inspect current files and docs.
-3. Edit or create plain `.js` component files.
-4. Register the component by name.
-5. Mount the registered component into a dock.
-6. Review and apply file changes through workspace tools.
+2. Let the agent inspect files with `workspace.*` / `code.*`.
+3. Edit or create plain `.js` component files with exact workspace edits.
+4. Register the component by name. Demo project files use
+   `Demo.project.component(...)`; standalone hosts can use
+   `aeditor.registerComponent(...)`.
+5. Inspect docks with `aeditor.inspectDocks`.
+6. Add the registered component with `aeditor.addPanelToDock`.
+7. Verify with `verify.*` or host project checks.
 
 Do not pass panel source code through dock or extension arguments. Source files
 are the durable artifact; dock data only references registered component names.
+Layout persistence is a host save decision, not part of runtime placement.
 
 ## Local Development
 
@@ -338,6 +372,7 @@ npm run check
 npm run check:dist
 ```
 
+`dist/aeditor-kernel.*`, `dist/aeditor-ui.*`, `dist/aeditor-ai.*`,
 `dist/aeditor-core.*`, `dist/aeditor-full.*`, and the `dist/aeditor.*` core
 aliases are generated artifacts that stay in the repository for zero-build use.
 

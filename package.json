@@ -5,10 +5,18 @@
   "main": "dist/aeditor-core.js",
   "style": "dist/aeditor-core.css",
   "files": [
+    "dist/aeditor.css",
+    "dist/aeditor.js",
+    "dist/aeditor-ai.css",
+    "dist/aeditor-ai.js",
     "dist/aeditor-core.css",
     "dist/aeditor-core.js",
     "dist/aeditor-full.css",
     "dist/aeditor-full.js",
+    "dist/aeditor-kernel.css",
+    "dist/aeditor-kernel.js",
+    "dist/aeditor-ui.css",
+    "dist/aeditor-ui.js",
     "README.md",
     "LICENSE"
   ],

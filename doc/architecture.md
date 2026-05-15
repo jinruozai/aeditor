@@ -2,12 +2,13 @@
 
 ## One Mental Model
 
-AEditor is a zero-dependency frontend editor framework. Core/UI is the stable
-kernel. AI Host and Extension Runtime are optional layers a host app may load.
+AEditor is a zero-dependency frontend editor framework. Kernel is the small
+runtime base; UI, AI Host, and Extension Runtime are optional layers a host app
+may load.
 
 ```text
-Core infrastructure
-  -> UI framework
+Kernel
+  -> UI
   -> optional AI Host
   -> optional Extension Runtime
 ```
@@ -18,19 +19,26 @@ Conceptual layers depend only on lower layers:
 Extension Runtime
 AI Host
 UI
-Core
+Kernel
 ```
 
 Applications can use any layer they need. Demo Project Runtime is application
 code that demonstrates workspace-backed editor loading; it is not a framework
 layer.
 
-Source directories should express the same conceptual boundary. Core stays under
-`src/core/`; Optional Extension Runtime lives under `src/extensions/`.
+Source directories should express the same conceptual boundary. Kernel code is
+`src/core/`, `src/tree/`, and `src/dock/`; UI lives under `src/ui/` and
+`src/style/`; Optional Extension Runtime lives under `src/extensions/`.
 
-The distribution should express the same boundary. A Core/UI bundle must be
-usable without loading AI Host, Extension Runtime, AI panels, or AI-specific
-styles. A full bundle may concatenate every layer as an opt-in convenience.
+The distribution expresses the same boundary:
+
+```text
+aeditor-kernel    Core services + tree + dock runtime
+aeditor-ui        UI widget and built-in panel add-on
+aeditor-ai        AI Host + Extension Runtime add-on
+aeditor-core      classic Kernel + UI bundle
+aeditor-full      Kernel + UI + AI Host + Extension Runtime
+```
 
 ## Architecture Invariants
 
@@ -42,7 +50,7 @@ AI public model      -> Agent / Tool / Context Reference / Operation / ChangeSet
 file boundary        -> workspace
 reviewed mutation    -> Operation preview/apply or ChangeSet
 lifecycle owner      -> owner metadata
-distribution unit    -> core bundle + full bundle
+distribution unit    -> kernel / ui / ai / core / full bundles
 mutable consistency  -> ResourceVersion + CAS apply
 package format       -> Extension
 privileged boundary  -> Host Adapter
@@ -53,7 +61,7 @@ top-level concept.
 
 ## 1. Core
 
-Core contains stable infrastructure:
+Kernel contains stable infrastructure:
 
 ```text
 signal
@@ -66,6 +74,8 @@ settings
 commands
 shortcuts
 workspace contract
+component registry
+dock tree/runtime
 ```
 
 Core APIs must be small and generic. They must not mention game data,
@@ -79,23 +89,19 @@ every other module.
 
 ## 2. UI
 
-UI contains the editor shell and component library:
+UI contains the optional component library and built-in UI panels:
 
 ```text
-component registry
-dock layout data
-dock runtime
 component context
 theme tokens
 ui widgets
+settings UI
+built-in tab/log panels
 ```
 
 The UI layer exposes:
 
 ```js
-aeditor.registerComponent(name, spec)
-aeditor.resolveComponent(name)
-aeditor.createDockLayout(root, config)
 aeditor.ui.*
 ```
 

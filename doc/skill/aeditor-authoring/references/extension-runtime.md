@@ -5,8 +5,9 @@ Load this reference when the task packages AEditor capabilities as an extension.
 ## When To Use An Extension
 
 Use an extension when the contribution should be reviewable, installable,
-disableable, and uninstallable as a package. Use normal host source files when
-the task is simply building editor UI for one app.
+disableable, and uninstallable as a package. The host must load `aeditor-ai` or
+`aeditor-full` for the Extension Runtime. Use normal host source files when the
+task is simply building editor UI for one app.
 
 ## Boundary
 
@@ -18,6 +19,7 @@ AI tools
 AI context providers
 AI references
 AI operations
+AI skills
 settings
 commands
 menus

@@ -10,7 +10,7 @@ AEditor AI Host keeps the model-facing concept set small:
 ```text
 Agent       runtime identity and transcript
 Tool        executable action
-Context     readable model context or reference
+Reference   stable pointer to bounded readable context
 Operation   preview/apply mutation
 ChangeSet   grouped review and apply
 Skill       behavior guidance, not an action channel
@@ -58,7 +58,7 @@ explicit replacement path provided by the registry or host.
 
 ## Authoring Skill
 
-The full bundle includes `aeditor.authoring`. It tells agents to:
+`aeditor-ai` and `aeditor-full` include `aeditor.authoring`. It tells agents to:
 
 - write plain JavaScript AEditor components;
 - avoid React, TSX, JSX, import/export, and TypeScript syntax in zero-build

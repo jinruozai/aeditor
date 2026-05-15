@@ -87,7 +87,8 @@ demo can define its own tools on top of the same registry:
 
 ```text
 demo.project.readDescriptor
-demo.project.mountPanel
+demo.project.inspectPanel
+demo.project.runCheck
 gde.table.patchRows
 ani.timeline.insertKeyframes
 ```
@@ -101,10 +102,10 @@ demo-only check path.
 
 When the demo opens a project, it binds that project's workspace as the active
 AI workspace. Agents should therefore use the generic `workspace.*` and `code.*`
-tools for file editing/context, and use `demo.project.*` only for demo-specific
-actions such as reading the descriptor, reloading, inspecting panels, or adding a
-registered component to the layout. The demo keeps only one model-visible mount
-path so agents do not waste turns guessing old operation names.
+tools for file editing/context. `demo.project.*` stays as host-specific glue:
+the normal model request sees only descriptor/source projection, panel health,
+and project check tools. Lower-level demo project tools remain registered for
+host code, but hidden from the model by default.
 
 If no project/workspace is open, workspace-backed authoring is unavailable.
 The request builder hides `workspace.*`, `code.*`, and `demo.project.*` tools in
@@ -119,7 +120,8 @@ For the current demo, a durable panel flow is:
 
 ```text
 demo.project.readDescriptor
-demo.project.searchFiles
+workspace.searchFiles
+code.outline
 demo.project.readSource
 ```
 

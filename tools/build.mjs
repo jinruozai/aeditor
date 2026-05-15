@@ -223,11 +223,41 @@ function isCoreJs(rel) {
   return rel.indexOf('ai/') !== 0 && rel.indexOf('extensions/') !== 0
 }
 
+function isKernelJs(rel) {
+  return rel.indexOf('core/') === 0 || rel.indexOf('tree/') === 0 || rel.indexOf('dock/') === 0
+}
+
+function isUiJs(rel) {
+  return rel.indexOf('ui/') === 0 || rel === 'style/theme-settings.js'
+}
+
+function isAiJs(rel) {
+  return rel.indexOf('ai/') === 0 || rel.indexOf('extensions/') === 0
+}
+
 function isCoreCss(rel) {
   return rel !== 'style/ui-ai.css'
 }
 
+function isKernelCss(rel) {
+  return rel === 'style/theme.css' || rel === 'style/dock.css' || rel === 'style/component.css'
+}
+
+function isUiCss(rel) {
+  return !isKernelCss(rel) && rel !== 'style/ui-ai.css'
+}
+
+function isAiCss(rel) {
+  return rel === 'style/ui-ai.css'
+}
+
+const KERNEL_JS_ORDER = JS_ORDER.filter(isKernelJs)
+const UI_JS_ORDER = JS_ORDER.filter(isUiJs)
+const AI_JS_ORDER = JS_ORDER.filter(isAiJs)
 const CORE_JS_ORDER = JS_ORDER.filter(isCoreJs)
+const KERNEL_CSS_ORDER = CSS_ORDER.filter(isKernelCss)
+const UI_CSS_ORDER = CSS_ORDER.filter(isUiCss)
+const AI_CSS_ORDER = CSS_ORDER.filter(isAiCss)
 const CORE_CSS_ORDER = CSS_ORDER.filter(isCoreCss)
 
 function readOptional(path) {
@@ -254,10 +284,22 @@ function bundle(order, kind) {
 
 function buildOnce() {
   mkdirSync(DIST, { recursive: true })
+  const kernelJs  = bundle(KERNEL_JS_ORDER, 'Kernel JS')
+  const kernelCss = bundle(KERNEL_CSS_ORDER, 'Kernel CSS')
+  const uiJs      = bundle(UI_JS_ORDER, 'UI JS')
+  const uiCss     = bundle(UI_CSS_ORDER, 'UI CSS')
+  const aiJs      = bundle(AI_JS_ORDER, 'AI JS')
+  const aiCss     = bundle(AI_CSS_ORDER, 'AI CSS')
   const coreJs  = bundle(CORE_JS_ORDER, 'Core JS')
   const coreCss = bundle(CORE_CSS_ORDER, 'Core CSS')
   const fullJs  = bundle(JS_ORDER, 'Full JS')
   const fullCss = bundle(CSS_ORDER, 'Full CSS')
+  writeFileSync(join(DIST, 'aeditor-kernel.js'), kernelJs.text)
+  writeFileSync(join(DIST, 'aeditor-kernel.css'), kernelCss.text)
+  writeFileSync(join(DIST, 'aeditor-ui.js'), uiJs.text)
+  writeFileSync(join(DIST, 'aeditor-ui.css'), uiCss.text)
+  writeFileSync(join(DIST, 'aeditor-ai.js'), aiJs.text)
+  writeFileSync(join(DIST, 'aeditor-ai.css'), aiCss.text)
   writeFileSync(join(DIST, 'aeditor-core.js'), coreJs.text)
   writeFileSync(join(DIST, 'aeditor-core.css'), coreCss.text)
   writeFileSync(join(DIST, 'aeditor-full.js'), fullJs.text)
@@ -265,6 +307,18 @@ function buildOnce() {
   writeFileSync(join(DIST, 'aeditor.js'), coreJs.text)
   writeFileSync(join(DIST, 'aeditor.css'), coreCss.text)
   const stamp = new Date().toLocaleTimeString()
+  console.log('[' + stamp + '] built dist/aeditor-kernel.js (' + kernelJs.text.length + ' bytes, ' +
+              (KERNEL_JS_ORDER.length - kernelJs.missing.length) + '/' + KERNEL_JS_ORDER.length + ' files), ' +
+              'dist/aeditor-kernel.css (' + kernelCss.text.length + ' bytes, ' +
+              (KERNEL_CSS_ORDER.length - kernelCss.missing.length) + '/' + KERNEL_CSS_ORDER.length + ' files)')
+  console.log('[' + stamp + '] built dist/aeditor-ui.js (' + uiJs.text.length + ' bytes, ' +
+              (UI_JS_ORDER.length - uiJs.missing.length) + '/' + UI_JS_ORDER.length + ' files), ' +
+              'dist/aeditor-ui.css (' + uiCss.text.length + ' bytes, ' +
+              (UI_CSS_ORDER.length - uiCss.missing.length) + '/' + UI_CSS_ORDER.length + ' files)')
+  console.log('[' + stamp + '] built dist/aeditor-ai.js (' + aiJs.text.length + ' bytes, ' +
+              (AI_JS_ORDER.length - aiJs.missing.length) + '/' + AI_JS_ORDER.length + ' files), ' +
+              'dist/aeditor-ai.css (' + aiCss.text.length + ' bytes, ' +
+              (AI_CSS_ORDER.length - aiCss.missing.length) + '/' + AI_CSS_ORDER.length + ' files)')
   console.log('[' + stamp + '] built dist/aeditor-core.js (' + coreJs.text.length + ' bytes, ' +
               (CORE_JS_ORDER.length - coreJs.missing.length) + '/' + CORE_JS_ORDER.length + ' files), ' +
               'dist/aeditor-core.css (' + coreCss.text.length + ' bytes, ' +
@@ -273,8 +327,10 @@ function buildOnce() {
               (JS_ORDER.length - fullJs.missing.length) + '/' + JS_ORDER.length + ' files), ' +
               'dist/aeditor-full.css (' + fullCss.text.length + ' bytes, ' +
               (CSS_ORDER.length - fullCss.missing.length) + '/' + CSS_ORDER.length + ' files)')
-  if (coreJs.missing.length || coreCss.missing.length || fullJs.missing.length || fullCss.missing.length) {
-    const all = coreJs.missing.concat(coreCss.missing, fullJs.missing, fullCss.missing)
+  if (kernelJs.missing.length || kernelCss.missing.length || uiJs.missing.length || uiCss.missing.length ||
+      aiJs.missing.length || aiCss.missing.length || coreJs.missing.length || coreCss.missing.length ||
+      fullJs.missing.length || fullCss.missing.length) {
+    const all = kernelJs.missing.concat(kernelCss.missing, uiJs.missing, uiCss.missing, aiJs.missing, aiCss.missing, coreJs.missing, coreCss.missing, fullJs.missing, fullCss.missing)
     console.log('  - skipped (not yet created): ' + all.join(', '))
   }
 }

@@ -1,11 +1,12 @@
 # AEditor Design
 
 AEditor is a zero-dependency frontend editor framework with optional upper
-layers. Its goal is simple: keep the framework core small, then let host apps
-build powerful editors and AI workflows on top of that small core.
+layers. Its goal is simple: keep the kernel small, then let host apps build
+powerful editors and AI workflows on top of that small kernel.
 
 ```text
-AEditor Core/UI             stable framework kernel
+AEditor Kernel              core services, component registry, tree, dock runtime
+AEditor UI                  optional widget and built-in panel layer
 AEditor AI Host             optional agent/runtime layer
 AEditor Extension Runtime   optional packaging/lifecycle layer
 Host Adapters               privileged bridges owned by the host app
@@ -33,8 +34,8 @@ explicitly references one.
 
 | Area | Responsibility | Does Not Own |
 | --- | --- | --- |
-| Core | Shared infrastructure: signals, log, bus, history, settings, commands, theme, i18n, and workspace contracts. | Editor business rules or product project formats. |
-| UI | Component registry, dock layout/runtime, toolbar records, UI widgets, and theme consumption. | AI execution or domain data semantics. |
+| Kernel | Shared infrastructure: signals, log, bus, history, settings, commands, theme, i18n, workspace contracts, component registry, dock tree, and dock runtime. | Editor business rules, product project formats, or widget catalog breadth. |
+| UI | `aeditor.ui.*` widgets, settings UI, built-in tab/log panel components, and theme consumption. | AI execution or domain data semantics. |
 | AI Host | Agents, providers, streaming, permissions, tools, context references, operations, ChangeSet, compaction, and memory. | Product data models or hidden host privileges. |
 | Extension Runtime | Package, review, install, disable, and uninstall contributions through existing registries. | A second component/tool/context model. |
 | Host Adapters | File-system bridges, provider transports, git, verification, and other privileged integrations. | Framework policy bypasses. |
@@ -52,6 +53,14 @@ dist/aeditor-core.js
 dist/aeditor-core.css
 dist/aeditor-full.js
 dist/aeditor-full.css
+dist/aeditor-kernel.js
+dist/aeditor-kernel.css
+dist/aeditor-ui.js
+dist/aeditor-ui.css
+dist/aeditor-ai.js
+dist/aeditor-ai.css
+dist/aeditor.js
+dist/aeditor.css
 README.md
 LICENSE
 ```
@@ -64,18 +73,22 @@ Optional layers must be optional in distribution as well as in architecture. The
 runtime distribution should provide:
 
 ```text
-aeditor-core      Core/UI/Dock only
-aeditor-full      Core/UI/Dock + AI Host + Extension Runtime
+aeditor-kernel    Core services + tree + dock runtime
+aeditor-ui        UI widget and built-in panel add-on
+aeditor-ai        AI Host + Extension Runtime add-on
+aeditor-core      classic Kernel + UI bundle
+aeditor-full      Kernel + UI + AI Host + Extension Runtime
 ```
 
-Host apps that only need dock layout and UI should be able to load the core
-bundle without AI, extension runtime, AI panels, or AI-specific styles.
+Host apps that only need dock layout should be able to load the kernel bundle.
+Apps that need the classic UI framework can load `aeditor-core` without AI,
+extension runtime, AI panels, or AI-specific styles.
 
 ## Core Principles
 
 1. Keep the concept budget small.
-   Public architecture has four framework areas: Core, UI, optional AI Host, and
-   optional Extension Runtime. Host apps sit outside the framework.
+   Public architecture has Kernel, UI, optional AI Host, and optional Extension
+   Runtime. Host apps sit outside the framework.
 
 2. Names are structure.
    Dotted names such as `workspace.readFile`, `ui.setProp`, and

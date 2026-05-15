@@ -1109,6 +1109,7 @@
       description: 'Search files in the current project workspace. Prefer this before reading whole files.',
       schema: { type: 'object', required: ['query'], properties: { projectId: { type: 'string' }, query: { type: 'string' }, path: { type: 'string' }, limit: { type: 'number' } } },
       permissions: ['tool.call'],
+      exposeToModel: false,
       available: projectAvailable,
       run: function (args) { return hostWorkspaceFor(projectForTool(args && args.projectId)).search(args.query || '', args || {}) },
     }, { owner: owner, layer: 'builtin' })
@@ -1117,6 +1118,7 @@
       description: 'Read one project file. Use readFileRange for large source files.',
       schema: { type: 'object', required: ['path'], properties: { projectId: { type: 'string' }, path: { type: 'string' }, full: { type: 'boolean' }, maxChars: { type: 'number' }, maxLines: { type: 'number' } } },
       permissions: ['tool.call'],
+      exposeToModel: false,
       available: projectAvailable,
       run: function (args) { return readProjectFile(projectForTool(args && args.projectId), args.path, args || {}) },
     }, { owner: owner, layer: 'builtin' })
@@ -1125,6 +1127,7 @@
       description: 'Read a 1-based line range from one project file.',
       schema: { type: 'object', required: ['path', 'startLine', 'endLine'], properties: { projectId: { type: 'string' }, path: { type: 'string' }, startLine: { type: 'number' }, endLine: { type: 'number' } } },
       permissions: ['tool.call'],
+      exposeToModel: false,
       available: projectAvailable,
       run: async function (args) {
         const file = await hostWorkspaceFor(projectForTool(args && args.projectId)).read(args.path)
@@ -1224,6 +1227,7 @@
         },
       },
       permissions: ['tool.call', 'tool.apply'],
+      exposeToModel: false,
       available: function () { return workspaceAvailable() || projectAvailable() },
       run: function (args) { return mountPanel(args || {}) },
     }, { owner: owner, layer: 'builtin' })
@@ -1232,6 +1236,7 @@
       description: 'Update aeditor.project.json in the current project.',
       schema: { type: 'object', required: ['descriptor'], properties: { projectId: { type: 'string' }, descriptor: { type: 'object' }, baseHash: { type: 'string' } } },
       permissions: ['tool.call', 'tool.apply'],
+      exposeToModel: false,
       available: projectAvailable,
       run: function (args) {
         return writeProjectFile(projectForTool(args && args.projectId), 'aeditor.project.json', JSON.stringify(args.descriptor || {}, null, 2), { baseHash: args.baseHash, validate: 'json' })
@@ -1242,6 +1247,7 @@
       description: 'Reload the current AEditor project after file edits.',
       schema: { type: 'object', properties: { projectId: { type: 'string' } } },
       permissions: ['tool.call', 'tool.apply'],
+      exposeToModel: false,
       available: projectAvailable,
       run: function (args) { return reload(args && args.projectId) },
     }, { owner: owner, layer: 'builtin' })
