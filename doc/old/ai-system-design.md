@@ -1,11 +1,11 @@
-# AEditor AI System Design
+# Aiditor AI System Design
 
 Status: final model contract  
 Scope: framework-level AI runtime, panels, extension contracts
 
 ## 1. Goal
 
-AEditor provides a generic AI workbench for editor applications:
+Aiditor provides a generic AI workbench for editor applications:
 
 - parallel agents
 - connection/model abstraction
@@ -61,9 +61,9 @@ Agents are flat runtime records. Parent/child is represented only by `parentAgen
 ## 3. Store Shape
 
 ```js
-aeditor.ai.agents
-aeditor.ai.resources
-aeditor.ai.activeAgentId
+aiditor.ai.agents
+aiditor.ai.resources
+aiditor.ai.activeAgentId
 ```
 
 No framework API exposes `groups`, `groupId`, or agent `path`.
@@ -71,12 +71,12 @@ No framework API exposes `groups`, `groupId`, or agent `path`.
 ## 4. Agent APIs
 
 ```js
-aeditor.ai.createAgent({ name, parentAgentId, connection, model, systemPrompt, contextRefs, skillRefs, toolRefs, permissions, memory, state, meta })
-aeditor.ai.renameAgent(agentId, name)
-aeditor.ai.moveAgent(agentId, { parentAgentId, order })
-aeditor.ai.reparentAgent(agentId, parentAgentId, order)
-aeditor.ai.deleteAgent(agentId)
-aeditor.ai.selectAgent(agentId)
+aiditor.ai.createAgent({ name, parentAgentId, connection, model, systemPrompt, contextRefs, skillRefs, toolRefs, permissions, memory, state, meta })
+aiditor.ai.renameAgent(agentId, name)
+aiditor.ai.moveAgent(agentId, { parentAgentId, order })
+aiditor.ai.reparentAgent(agentId, parentAgentId, order)
+aiditor.ai.deleteAgent(agentId)
+aiditor.ai.selectAgent(agentId)
 ```
 
 Deletion removes the agent and all descendants. Reparenting rejects cycles.
@@ -105,7 +105,7 @@ Every visible chat card is a `Message` with a stable id.
 User input always enters the target agent queue:
 
 ```js
-aeditor.ai.message.send(agentId, {
+aiditor.ai.message.send(agentId, {
   content,
   contextRefs,
   attachments,
@@ -134,9 +134,9 @@ A quest is a cross-agent task index. The quest id is the request message id on t
 ```
 
 ```js
-aeditor.ai.agent.send(toAgentId, { fromAgentId, content, contextRefs, attachments, priority, interrupt, guidance })
-aeditor.ai.quest.read(agentId, questId, actor)
-aeditor.ai.quest.result(agentId, questId, actor)
+aiditor.ai.agent.send(toAgentId, { fromAgentId, content, contextRefs, attachments, priority, interrupt, guidance })
+aiditor.ai.quest.read(agentId, questId, actor)
+aiditor.ai.quest.result(agentId, questId, actor)
 ```
 
 `quest.result` is the model-facing preferred read path. It returns status and, once completed, the exact result message/content in one call.

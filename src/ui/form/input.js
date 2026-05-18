@@ -1,4 +1,4 @@
-// aeditor.ui.input — single-line text input bound to a signal.
+// aiditor.ui.input — single-line text input bound to a signal.
 //
 // opts:
 //   value       : string | signal<string>   (auto-wrapped if plain)
@@ -11,9 +11,9 @@
 //   type        : input type                  default "text"
 //   onCommit    : (v) => void                 fired on Enter / blur
 //   onCancel    : (base) => void              fired after Escape restores base
-;(function (aeditor) {
+;(function (aiditor) {
   'use strict'
-  const ui = aeditor.ui = aeditor.ui || {}
+  const ui = aiditor.ui = aiditor.ui || {}
 
   ui.input = function (opts) {
     const o = opts || {}
@@ -23,9 +23,9 @@
     const readOnly    = ui.asSig(o.readOnly    != null ? o.readOnly    : false)
     const doWrite = ui.writer(sig, o.onChange, 'ui.input')
 
-    const wrap = ui.h('div', 'aeditor-ui-field')
+    const wrap = ui.h('div', 'aiditor-ui-field')
     if (o.prefix != null) wrap.appendChild(slot(o.prefix, 'prefix'))
-    const el = ui.h('input', 'aeditor-ui-input', { type: o.type || 'text' })
+    const el = ui.h('input', 'aiditor-ui-input', { type: o.type || 'text' })
     wrap.appendChild(el)
     if (o.suffix != null) wrap.appendChild(slot(o.suffix, 'suffix'))
 
@@ -36,7 +36,7 @@
     })
     ui.bind(wrap, disabled, function (v) {
       el.disabled = !!v
-      wrap.classList.toggle('aeditor-ui-field-disabled', !!v)
+      wrap.classList.toggle('aiditor-ui-field-disabled', !!v)
     })
 
     el.addEventListener('input', function () { doWrite(el.value) })
@@ -56,9 +56,9 @@
   }
 
   function slot(content, side) {
-    const el = ui.h('span', 'aeditor-ui-field-' + side)
+    const el = ui.h('span', 'aiditor-ui-field-' + side)
     if (content instanceof HTMLElement) el.appendChild(content)
     else el.textContent = String(content)
     return el
   }
-})(window.aeditor = window.aeditor || {})
+})(window.aiditor = window.aiditor || {})

@@ -1,16 +1,16 @@
-// aeditor.ui.popover — floating anchored panel.
+// aiditor.ui.popover — floating anchored panel.
 //
 // Thin shell over ui._overlay. Owns: portal mounting, anchor placement,
 // inline content host. Delegates: dismissal, focus, ARIA, z-index.
 //
 // opts: { anchor, content, side?, align?, role?, onDismiss? }
-;(function (aeditor) {
+;(function (aiditor) {
   'use strict'
-  const ui = aeditor.ui = aeditor.ui || {}
+  const ui = aiditor.ui = aiditor.ui || {}
 
   ui.popover = function (opts) {
     const o = opts || {}
-    const el = ui.h('div', 'aeditor-ui-popover')
+    const el = ui.h('div', 'aiditor-ui-popover')
     if (o.content) {
       el.appendChild(o.content)
       ui.collect(el, function () { ui.dispose(o.content) })
@@ -18,7 +18,7 @@
 
     const placeOpts = { side: o.side || 'bottom', align: o.align || 'start' }
     const ownerScope = ui.scopeOf(o.anchor)
-    if (ownerScope) el.__aeditorUiScope = ownerScope
+    if (ownerScope) el.__aiditorUiScope = ownerScope
     const unmount = ui.portal(el)
     ui.place(o.anchor, el, placeOpts)
 
@@ -40,4 +40,4 @@
 
     return { el: el, close: overlay.close }
   }
-})(window.aeditor = window.aeditor || {})
+})(window.aiditor = window.aiditor || {})

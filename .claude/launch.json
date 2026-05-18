@@ -2,7 +2,7 @@
   "version": "0.0.1",
   "configurations": [
     {
-      "name": "aeditor-demo",
+      "name": "aiditor-demo",
       "runtimeExecutable": "npx",
       "runtimeArgs": ["--yes", "http-server", ".", "-p", "5570", "-c-1", "--silent"],
       "port": 5570

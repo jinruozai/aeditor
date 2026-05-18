@@ -1,4 +1,4 @@
-# aeditor — Claude Handoff
+# aiditor — Claude Handoff
 
 `AGENTS.md` is the current handoff authority for this repository. Read it first.
 

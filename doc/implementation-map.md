@@ -37,7 +37,7 @@ preserved or deliberately replaced.
 | `src/dock/migrate.js` | [ui.md](./ui.md) | Pop-out and cross-window migration. |
 | `src/dock/layout.js` | [ui.md](./ui.md) | `createDockLayout`. |
 | `src/ui/inspector.js` | [inspector.md](./inspector.md), [ui.md](./ui.md) | Ordered Inspector selection, provider registry, multi-target edit gates, and formula-ready change helpers. |
-| `src/ui/panel/inspector.js` | [inspector.md](./inspector.md), [ui.md](./ui.md) | Built-in generic Inspector dock panel backed by `aeditor.inspector` and `aeditor.ui.propertyForm`. |
+| `src/ui/panel/inspector.js` | [inspector.md](./inspector.md), [ui.md](./ui.md) | Built-in generic Inspector dock panel backed by `aiditor.inspector` and `aiditor.ui.propertyForm`. |
 | `src/ui/form/propertyForm.js` | [ui.md](./ui.md), [inspector.md](./inspector.md) | Schema-driven single/multi-target property form helper. |
 | `src/ui/**` | [ui.md](./ui.md) | Generic UI component library and built-in generic panel components. |
 | `src/style/**` | [ui.md](./ui.md) | Theme, dock, UI, AI, and settings styles. |
@@ -55,7 +55,7 @@ preserved or deliberately replaced.
 | `src/ai/request.js` | [ai-runtime.md](./ai-runtime.md), [ai-context-assembly.md](./ai-context-assembly.md), [ai-context-compaction.md](./ai-context-compaction.md), [ai-registries.md](./ai-registries.md) | Runtime request assembly: context cards, attachments, compaction, tool visibility, and budgeted transcript fallback. |
 | `src/ai/registries.js` | [ai-runtime.md](./ai-runtime.md), [ai-registries.md](./ai-registries.md) | Tool, skill, context provider, agent template, and bundle registries. |
 | `src/ai/context.js` | [ai-runtime.md](./ai-runtime.md) | Tool-call lifecycle and run context helpers. |
-| `src/ai/skills.js` | [ai-runtime.md](./ai-runtime.md) | Built-in framework skills, including runtime and library AEditor authoring skills. |
+| `src/ai/skills.js` | [ai-runtime.md](./ai-runtime.md) | Built-in framework skills, including runtime and library Aiditor authoring skills. |
 | `src/ai/reference.js` | [ai-registries.md](./ai-registries.md) | Reference provider and operation protocol with owner cleanup and dotted-prefix helpers. |
 | `src/ai/target.js` | [ai-registries.md](./ai-registries.md) | Add-to-chat targets, drag/drop, file targets. |
 | `src/ai/rich-prompt.js` | [ai-registries.md](./ai-registries.md) | Inline references in prompt text. |
@@ -93,7 +93,7 @@ preserved or deliberately replaced.
 | Source | Document | Notes |
 | --- | --- | --- |
 | `src/ai/panels/agents.js` | [ai-runtime.md](./ai-runtime.md), [ui.md](./ui.md) | AI module component for the agent list panel. |
-| `src/ai/panels/rich-prompt-input.js` | [ai-registries.md](./ai-registries.md), [ui.md](./ui.md) | AI-owned `aeditor.ui.richPromptInput` helper for inline references. |
+| `src/ai/panels/rich-prompt-input.js` | [ai-registries.md](./ai-registries.md), [ui.md](./ui.md) | AI-owned `aiditor.ui.richPromptInput` helper for inline references. |
 | `src/ai/panels/settings-ai.js` | [ai-runtime.md](./ai-runtime.md), [core.md](./core.md) | AI module settings contribution. |
 | `src/ai/panels/chat.js` | [ai-runtime.md](./ai-runtime.md), [ai-registries.md](./ai-registries.md) | AI module component for chat input. |
 | `src/ai/panels/transcript.js` | [ai-runtime.md](./ai-runtime.md) | AI module component for message transcript. |

@@ -1,8 +1,8 @@
-# AEditor Architecture
+# Aiditor Architecture
 
 ## One Mental Model
 
-AEditor is a zero-dependency frontend editor framework. Kernel is the small
+Aiditor is a zero-dependency frontend editor framework. Kernel is the small
 runtime base; UI, AI Host, and Extension Runtime are optional layers a host app
 may load.
 
@@ -33,11 +33,11 @@ Source directories should express the same conceptual boundary. Kernel code is
 The distribution expresses the same boundary:
 
 ```text
-aeditor-kernel    Core services + tree + dock runtime
-aeditor-ui        UI widget and built-in panel add-on
-aeditor-ai        AI Host + Extension Runtime add-on
-aeditor-core      classic Kernel + UI bundle
-aeditor-full      Kernel + UI + AI Host + Extension Runtime
+aiditor-kernel    Core services + tree + dock runtime
+aiditor-ui        UI widget and built-in panel add-on
+aiditor-ai        AI Host + Extension Runtime add-on
+aiditor-core      classic Kernel + UI bundle
+aiditor-full      Kernel + UI + AI Host + Extension Runtime
 ```
 
 ## Architecture Invariants
@@ -104,19 +104,19 @@ built-in tab/log/inspector panels
 The UI layer exposes:
 
 ```js
-aeditor.ui.*
-aeditor.inspector
+aiditor.ui.*
+aiditor.inspector
 ```
 
 PanelData and toolbar items reference registered components. They are not
-separate registration systems. Panel communication uses `aeditor.bus` through
+separate registration systems. Panel communication uses `aiditor.bus` through
 the component context. Components do not directly own each other.
 
 Inspector is the generic property inspection shell. Editor surfaces publish an
-ordered target selection with `aeditor.inspector.select(...)`; domain code
+ordered target selection with `aiditor.inspector.select(...)`; domain code
 registers providers that turn target types into schema/read/write records. The
 built-in `inspector` panel renders that record, usually through
-`aeditor.ui.propertyForm`. Domain objects, undo history, persistence, and
+`aiditor.ui.propertyForm`. Domain objects, undo history, persistence, and
 validation stay in the host app.
 
 Dock menus are command/menu contributions, not hard-coded application policy.
@@ -244,4 +244,4 @@ workspace.readFile
 gde.table.readRows
 ```
 
-File access is generic. Domain access lives outside AEditor Core.
+File access is generic. Domain access lives outside Aiditor Core.

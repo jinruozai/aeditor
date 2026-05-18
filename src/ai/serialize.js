@@ -1,8 +1,8 @@
-// aeditor.ai serialization boundary helpers.
-;(function (aeditor) {
+// aiditor.ai serialization boundary helpers.
+;(function (aiditor) {
   'use strict'
 
-  const ai = aeditor.ai = aeditor.ai || {}
+  const ai = aiditor.ai = aiditor.ai || {}
 
   function isDomLike(value) {
     return value && typeof value === 'object' && (
@@ -80,4 +80,4 @@
     compactString: compactString,
     compactValue: compactValue,
   }
-})(window.aeditor = window.aeditor || {})
+})(window.aiditor = window.aiditor || {})

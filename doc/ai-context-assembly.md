@@ -1,6 +1,6 @@
 # AI Context Assembly
 
-This document defines how AEditor builds one provider request from an agent
+This document defines how Aiditor builds one provider request from an agent
 transcript. It is an internal request-building contract, not a new public
 registry.
 
@@ -21,7 +21,7 @@ search, or range reads before they enter as full text.
 
 ## Context Layers
 
-AEditor assembles context in this order:
+Aiditor assembles context in this order:
 
 ```text
 runtime        current AI runtime rules and active skills
@@ -98,7 +98,7 @@ working with restricted tools".
 
 ## Runtime Context Providers
 
-`aeditor.ai.context` providers remain compact contributors. They are useful for
+`aiditor.ai.context` providers remain compact contributors. They are useful for
 active selection, panel health, current schema, diagnostics, or host-specific
 navigation hints.
 

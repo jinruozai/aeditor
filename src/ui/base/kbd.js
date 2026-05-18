@@ -1,12 +1,12 @@
-// aeditor.ui.kbd — keyboard shortcut hint chip (e.g. ⌘K, Ctrl+S).
+// aiditor.ui.kbd — keyboard shortcut hint chip (e.g. ⌘K, Ctrl+S).
 //
 // Signature accepts either a plain string short form or an opts
 // object with a signal-aware `text` field. Both map to the same DOM.
-//   aeditor.ui.kbd('Ctrl+S')
-//   aeditor.ui.kbd({ text: sig })
-;(function (aeditor) {
+//   aiditor.ui.kbd('Ctrl+S')
+//   aiditor.ui.kbd({ text: sig })
+;(function (aiditor) {
   'use strict'
-  const ui = aeditor.ui = aeditor.ui || {}
+  const ui = aiditor.ui = aiditor.ui || {}
 
   ui.kbd = function (arg) {
     const text = ui.asSig(
@@ -14,8 +14,8 @@
         ? (arg.text != null ? arg.text : '')
         : (arg != null ? arg : '')
     )
-    const el = ui.h('kbd', 'aeditor-ui-kbd')
+    const el = ui.h('kbd', 'aiditor-ui-kbd')
     ui.bindText(el, text)
     return el
   }
-})(window.aeditor = window.aeditor || {})
+})(window.aiditor = window.aiditor || {})

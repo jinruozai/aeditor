@@ -1,7 +1,7 @@
-;(function (aeditor) {
+;(function (aiditor) {
   'use strict'
 
-  const ui = aeditor.ui
+  const ui = aiditor.ui
 
   function read(v) {
     return ui.isSignal(v) ? v() : v
@@ -18,8 +18,8 @@
   }
 
   function activeAgent() {
-    const id = read(aeditor.ai.activeAgentId)
-    const list = readList(aeditor.ai.agents)
+    const id = read(aiditor.ai.activeAgentId)
+    const list = readList(aiditor.ai.agents)
     for (let i = 0; i < list.length; i++) if (list[i].id === id) return list[i]
     return null
   }
@@ -57,7 +57,7 @@
     if (v == null) return ''
     if (typeof v === 'string') return v
     if (v && typeof v === 'object' && v.type === 'rich-prompt') {
-      return v.renderedText || (aeditor.ai.richPrompt && aeditor.ai.richPrompt.toModelText ? aeditor.ai.richPrompt.toModelText(v) : '')
+      return v.renderedText || (aiditor.ai.richPrompt && aiditor.ai.richPrompt.toModelText ? aiditor.ai.richPrompt.toModelText(v) : '')
     }
     return JSON.stringify(v, null, 2)
   }
@@ -212,8 +212,8 @@
 
   function createTextPart(item) {
     const el = item.type === 'code'
-      ? ui.h('pre', 'aeditor-ai-message-code aeditor-ui-scrollarea')
-      : ui.h('p', 'aeditor-ai-message-text')
+      ? ui.h('pre', 'aiditor-ai-message-code aiditor-ui-scrollarea')
+      : ui.h('p', 'aiditor-ai-message-text')
     el.dataset.messagePart = item.type
     setStableText(el, item.text)
     return el
@@ -256,9 +256,9 @@
         ? item
         : (item.title || item.label || item.name || item.uri || item.id || item.refId || 'context')
       const kind = typeof item === 'string' ? 'ref' : (item.kind || item.resolver || 'ref')
-      const chip = ui.h('span', 'aeditor-ai-message-chip')
-      chip.appendChild(ui.h('span', 'aeditor-ai-message-chip-kind', { text: kind }))
-      chip.appendChild(ui.h('span', 'aeditor-ai-message-chip-title', { text: label }))
+      const chip = ui.h('span', 'aiditor-ai-message-chip')
+      chip.appendChild(ui.h('span', 'aiditor-ai-message-chip-kind', { text: kind }))
+      chip.appendChild(ui.h('span', 'aiditor-ai-message-chip-title', { text: label }))
       wrap.appendChild(chip)
     }
     parent.appendChild(wrap)
@@ -288,7 +288,7 @@
   function questActivity(call) {
     const result = call.result || call.applyResult || {}
     if (!result || !result.questId || !result.agentId) return null
-    const quest = aeditor.ai.quest && aeditor.ai.quest.read ? aeditor.ai.quest.read(result.agentId, result.questId, 'user') : null
+    const quest = aiditor.ai.quest && aiditor.ai.quest.read ? aiditor.ai.quest.read(result.agentId, result.questId, 'user') : null
     return {
       agentId: result.agentId,
       questId: result.questId,
@@ -303,17 +303,17 @@
   function renderQuestActivity(call) {
     const quest = questActivity(call)
     if (!quest) return null
-    const row = ui.h('div', 'aeditor-ai-quest-activity aeditor-ai-quest-' + quest.status)
-    row.appendChild(ui.h('span', 'aeditor-ai-quest-agent', { text: quest.agentId }))
-    row.appendChild(ui.h('span', 'aeditor-ai-quest-status', { text: quest.status }))
-    row.appendChild(ui.h('span', 'aeditor-ai-quest-id', { text: quest.questId }))
-    if (quest.completedAt && quest.createdAt) row.appendChild(ui.h('span', 'aeditor-ai-quest-time', { text: formatDuration(quest.completedAt - quest.createdAt) }))
+    const row = ui.h('div', 'aiditor-ai-quest-activity aiditor-ai-quest-' + quest.status)
+    row.appendChild(ui.h('span', 'aiditor-ai-quest-agent', { text: quest.agentId }))
+    row.appendChild(ui.h('span', 'aiditor-ai-quest-status', { text: quest.status }))
+    row.appendChild(ui.h('span', 'aiditor-ai-quest-id', { text: quest.questId }))
+    if (quest.completedAt && quest.createdAt) row.appendChild(ui.h('span', 'aiditor-ai-quest-time', { text: formatDuration(quest.completedAt - quest.createdAt) }))
     if (quest.resultId) {
       row.appendChild(ui.button({
         text: 'View result',
         size: 'sm',
         onClick: function () {
-          const message = aeditor.ai.message && aeditor.ai.message.read ? aeditor.ai.message.read(quest.agentId, quest.resultId, 'user') : null
+          const message = aiditor.ai.message && aiditor.ai.message.read ? aiditor.ai.message.read(quest.agentId, quest.resultId, 'user') : null
           ui.alert({
             title: 'Quest Result',
             message: message ? displayText(message.content) : 'Result message is not readable.',
@@ -354,7 +354,7 @@
   }
 
   function agentLabel(agentId) {
-    const list = readList(aeditor.ai.agents)
+    const list = readList(aiditor.ai.agents)
     for (let i = 0; i < list.length; i++) {
       if (list[i].id === agentId) return list[i].name || list[i].path || list[i].id
     }
@@ -393,20 +393,20 @@
   }
 
   function renderRuntimeEvent(agent, msg) {
-    const row = ui.h('div', 'aeditor-ai-message-row aeditor-ai-message-row-runtime aeditor-ai-message-row-status-' + statusOf(msg))
-    const stack = ui.h('div', 'aeditor-ai-message-stack')
+    const row = ui.h('div', 'aiditor-ai-message-row aiditor-ai-message-row-runtime aiditor-ai-message-row-status-' + statusOf(msg))
+    const stack = ui.h('div', 'aiditor-ai-message-stack')
     const events = runtimeEventsOf(msg)
     for (let i = 0; i < events.length; i++) {
       const event = events[i]
-      const card = ui.h('div', 'aeditor-ai-runtime-event aeditor-ai-runtime-event-' + eventState(event))
-      card.appendChild(ui.h('span', 'aeditor-ai-runtime-event-label', { text: 'event:' }))
-      card.appendChild(ui.h('span', 'aeditor-ai-runtime-event-agent', { text: agentLabel(event.fromAgentId) }))
-      card.appendChild(ui.h('span', 'aeditor-ai-runtime-event-summary', { text: event.summary || event.type || 'Runtime event' }))
-      const btn = ui.h('button', 'aeditor-ai-runtime-event-action', { text: 'View' })
+      const card = ui.h('div', 'aiditor-ai-runtime-event aiditor-ai-runtime-event-' + eventState(event))
+      card.appendChild(ui.h('span', 'aiditor-ai-runtime-event-label', { text: 'event:' }))
+      card.appendChild(ui.h('span', 'aiditor-ai-runtime-event-agent', { text: agentLabel(event.fromAgentId) }))
+      card.appendChild(ui.h('span', 'aiditor-ai-runtime-event-summary', { text: event.summary || event.type || 'Runtime event' }))
+      const btn = ui.h('button', 'aiditor-ai-runtime-event-action', { text: 'View' })
       btn.type = 'button'
       btn.addEventListener('click', function () {
-        const message = event.resultMessageId && aeditor.ai.message && aeditor.ai.message.read
-          ? aeditor.ai.message.read(event.fromAgentId, event.resultMessageId, 'user')
+        const message = event.resultMessageId && aiditor.ai.message && aiditor.ai.message.read
+          ? aiditor.ai.message.read(event.fromAgentId, event.resultMessageId, 'user')
           : null
         ui.alert({
           title: 'Agent Event',
@@ -424,30 +424,30 @@
     if (value == null) return
     opts = opts || {}
     if ((title === 'Preview' || title === 'Applied' || title === 'Result') && !isChangeSet(value)) return
-    const block = ui.h('div', 'aeditor-ai-tool-call-block ' + className)
+    const block = ui.h('div', 'aiditor-ai-tool-call-block ' + className)
     if (isChangeSet(value)) {
       block.appendChild(ui.changeReview({
         changeSet: value,
         allowApply: !!(opts.state && opts.state.canApply),
         allowReject: !!(opts.state && opts.state.canReject),
-        onApply: function () { return afterToolAction(opts.agentId, aeditor.ai.applyToolCall(opts.agentId, opts.call.id, 'user')) },
+        onApply: function () { return afterToolAction(opts.agentId, aiditor.ai.applyToolCall(opts.agentId, opts.call.id, 'user')) },
         onReject: function () {
-          const rejected = aeditor.ai.rejectToolCall(opts.agentId, opts.call.id, 'Rejected by user', 'user')
-          if (aeditor.ai.resumeAgent) aeditor.ai.resumeAgent(opts.agentId, 'user')
+          const rejected = aiditor.ai.rejectToolCall(opts.agentId, opts.call.id, 'Rejected by user', 'user')
+          if (aiditor.ai.resumeAgent) aiditor.ai.resumeAgent(opts.agentId, 'user')
           return rejected
         },
       }))
       parent.appendChild(block)
       return
     }
-    const pre = ui.h('pre', 'aeditor-ai-tool-call-code aeditor-ui-scrollarea')
+    const pre = ui.h('pre', 'aiditor-ai-tool-call-code aiditor-ui-scrollarea')
     pre.textContent = displayText(value)
     block.appendChild(pre)
     parent.appendChild(block)
   }
 
   function isChangeSet(value) {
-    return !!(aeditor.changeSet && aeditor.changeSet.isChangeSet && aeditor.changeSet.isChangeSet(value))
+    return !!(aiditor.changeSet && aiditor.changeSet.isChangeSet && aiditor.changeSet.isChangeSet(value))
   }
 
   function appendToolButton(parent, text, enabled, fn, kind) {
@@ -462,36 +462,36 @@
   }
 
   function applyToolCallSmart(agentId, call) {
-    let state = aeditor.ai.getToolCallActionState ? aeditor.ai.getToolCallActionState(agentId, call.id, 'user') : null
+    let state = aiditor.ai.getToolCallActionState ? aiditor.ai.getToolCallActionState(agentId, call.id, 'user') : null
     if (!state) return null
-    if (state.canApply) return afterToolAction(agentId, aeditor.ai.applyToolCall(agentId, call.id, 'user'))
+    if (state.canApply) return afterToolAction(agentId, aiditor.ai.applyToolCall(agentId, call.id, 'user'))
     if (state.canPreview) {
-      const preview = aeditor.ai.previewToolCall(agentId, call.id, 'user')
+      const preview = aiditor.ai.previewToolCall(agentId, call.id, 'user')
       if (preview && preview.promise) {
         return afterToolAction(agentId, {
           promise: preview.promise.then(function () {
-            const next = aeditor.ai.getToolCallActionState(agentId, call.id, 'user')
-            const applied = next && next.canApply ? aeditor.ai.applyToolCall(agentId, call.id, 'user') : null
+            const next = aiditor.ai.getToolCallActionState(agentId, call.id, 'user')
+            const applied = next && next.canApply ? aiditor.ai.applyToolCall(agentId, call.id, 'user') : null
             return applied && applied.promise ? applied.promise : applied
           }),
         })
       }
-      state = aeditor.ai.getToolCallActionState(agentId, call.id, 'user')
-      if (state && state.canApply) return afterToolAction(agentId, aeditor.ai.applyToolCall(agentId, call.id, 'user'))
+      state = aiditor.ai.getToolCallActionState(agentId, call.id, 'user')
+      if (state && state.canApply) return afterToolAction(agentId, aiditor.ai.applyToolCall(agentId, call.id, 'user'))
       return null
     }
     if (state.canApprove) {
-      aeditor.ai.approveToolCall(agentId, call.id, 'user')
-      state = aeditor.ai.getToolCallActionState(agentId, call.id, 'user')
+      aiditor.ai.approveToolCall(agentId, call.id, 'user')
+      state = aiditor.ai.getToolCallActionState(agentId, call.id, 'user')
     }
-    return state && state.canRun ? afterToolAction(agentId, aeditor.ai.runToolCall(agentId, call.id, 'user')) : null
+    return state && state.canRun ? afterToolAction(agentId, aiditor.ai.runToolCall(agentId, call.id, 'user')) : null
   }
 
   function afterToolAction(agentId, action) {
     if (!action) return action
     function done() {
-      if (aeditor.ai.flushToolResults) aeditor.ai.flushToolResults(agentId)
-      if (aeditor.ai.resumeAgent) aeditor.ai.resumeAgent(agentId, 'user')
+      if (aiditor.ai.flushToolResults) aiditor.ai.flushToolResults(agentId)
+      if (aiditor.ai.resumeAgent) aiditor.ai.resumeAgent(agentId, 'user')
     }
     if (action.promise) {
       action.promise.then(done)
@@ -502,23 +502,23 @@
   }
 
   function renderToolActions(card, agentId, call) {
-    const state = aeditor.ai.getToolCallActionState
-      ? aeditor.ai.getToolCallActionState(agentId, call.id, 'user')
+    const state = aiditor.ai.getToolCallActionState
+      ? aiditor.ai.getToolCallActionState(agentId, call.id, 'user')
       : null
-    const actions = ui.h('div', 'aeditor-ai-tool-call-actions')
+    const actions = ui.h('div', 'aiditor-ai-tool-call-actions')
     const hasForwardAction = state && (state.canPreview || state.canApply || state.canApprove || state.canRun)
     if (hasForwardAction) {
       actions.appendChild(ui['switch']({
-        value: !!(aeditor.ai.isToolAlwaysAllowed && aeditor.ai.isToolAlwaysAllowed(agentId, call.toolId)),
+        value: !!(aiditor.ai.isToolAlwaysAllowed && aiditor.ai.isToolAlwaysAllowed(agentId, call.toolId)),
         label: 'Always',
         onChange: function (value) {
-          if (aeditor.ai.setToolAlwaysAllowed) aeditor.ai.setToolAlwaysAllowed(agentId, call.toolId, value)
+          if (aiditor.ai.setToolAlwaysAllowed) aiditor.ai.setToolAlwaysAllowed(agentId, call.toolId, value)
         },
       }))
     }
     appendToolButton(actions, 'Reject', state && state.canReject, function () {
-      aeditor.ai.rejectToolCall(agentId, call.id, 'Rejected by user', 'user')
-      if (aeditor.ai.resumeAgent) aeditor.ai.resumeAgent(agentId, 'user')
+      aiditor.ai.rejectToolCall(agentId, call.id, 'Rejected by user', 'user')
+      if (aiditor.ai.resumeAgent) aiditor.ai.resumeAgent(agentId, 'user')
     }, 'danger')
     appendToolButton(actions, 'Apply', state && (state.canApply || state.canPreview || state.canApprove || state.canRun), function () {
       applyToolCallSmart(agentId, call)
@@ -526,7 +526,7 @@
     if (actions.firstChild) card.appendChild(actions)
 
     if (state && (!state.callAllowed || (state.hasApply && !state.applyAllowed))) {
-      card.appendChild(ui.h('div', 'aeditor-ai-tool-call-permission', {
+      card.appendChild(ui.h('div', 'aiditor-ai-tool-call-permission', {
         text: !state.callAllowed
           ? 'Tool call permission is not granted for this agent.'
           : 'Tool apply permission is not granted for this agent.',
@@ -540,7 +540,7 @@
 
   function renderToolCall(agentId, messageId, call, viewState) {
     const status = toolStatus(call)
-    const card = ui.h('details', 'aeditor-ai-tool-call aeditor-ai-tool-call-' + status)
+    const card = ui.h('details', 'aiditor-ai-tool-call aiditor-ai-tool-call-' + status)
     const key = runStateKey(agentId, messageId, call.id)
     if (viewState && viewState.expandedToolCalls[key]) card.open = true
     card.addEventListener('toggle', function () {
@@ -548,33 +548,33 @@
       if (card.open) viewState.expandedToolCalls[key] = true
       else delete viewState.expandedToolCalls[key]
     })
-    const head = ui.h('summary', 'aeditor-ai-tool-call-head')
-    const right = ui.h('div', 'aeditor-ai-tool-call-head-right')
+    const head = ui.h('summary', 'aiditor-ai-tool-call-head')
+    const right = ui.h('div', 'aiditor-ai-tool-call-head-right')
     right.addEventListener('click', function (ev) { ev.stopPropagation() })
-    head.appendChild(ui.h('span', 'aeditor-ai-tool-call-name', { text: toolName(call) }))
-    if (status !== 'previewed') right.appendChild(ui.h('span', 'aeditor-ai-tool-call-status', { text: status }))
+    head.appendChild(ui.h('span', 'aiditor-ai-tool-call-name', { text: toolName(call) }))
+    if (status !== 'previewed') right.appendChild(ui.h('span', 'aiditor-ai-tool-call-status', { text: status }))
     const args = call.args && Object.keys(call.args).length ? compactArgs(call.args) : ''
-    if (args) head.appendChild(ui.h('span', 'aeditor-ai-tool-call-summary', { text: args }))
+    if (args) head.appendChild(ui.h('span', 'aiditor-ai-tool-call-summary', { text: args }))
 
-    const state = aeditor.ai.getToolCallActionState
-      ? aeditor.ai.getToolCallActionState(agentId, call.id, 'user')
+    const state = aiditor.ai.getToolCallActionState
+      ? aiditor.ai.getToolCallActionState(agentId, call.id, 'user')
       : null
     renderToolActions(right, agentId, call)
     head.appendChild(right)
     card.appendChild(head)
     if (call.description || call.title) {
-      card.appendChild(ui.h('div', 'aeditor-ai-tool-call-desc', { text: call.description || call.title }))
+      card.appendChild(ui.h('div', 'aiditor-ai-tool-call-desc', { text: call.description || call.title }))
     }
     const opts = { agentId: agentId, call: call, state: state }
-    appendToolBlock(card, 'Args', call.args, 'aeditor-ai-tool-call-args', opts)
+    appendToolBlock(card, 'Args', call.args, 'aiditor-ai-tool-call-args', opts)
     if (isQuestProducingCall(call)) {
       const quest = renderQuestActivity(call)
       if (quest) card.appendChild(quest)
     }
-    appendToolBlock(card, 'Preview', call.preview, 'aeditor-ai-tool-call-preview', opts)
-    appendToolBlock(card, 'Result', call.result, 'aeditor-ai-tool-call-result', opts)
-    appendToolBlock(card, 'Applied', call.applyResult, 'aeditor-ai-tool-call-apply-result', opts)
-    appendToolBlock(card, 'Error', call.error, 'aeditor-ai-tool-call-error', opts)
+    appendToolBlock(card, 'Preview', call.preview, 'aiditor-ai-tool-call-preview', opts)
+    appendToolBlock(card, 'Result', call.result, 'aiditor-ai-tool-call-result', opts)
+    appendToolBlock(card, 'Applied', call.applyResult, 'aiditor-ai-tool-call-apply-result', opts)
+    appendToolBlock(card, 'Error', call.error, 'aiditor-ai-tool-call-error', opts)
     return card
   }
 
@@ -594,7 +594,7 @@
 
   function renderToolCalls(parent, agentId, messageId, calls, viewState) {
     if (!calls || !calls.length) return
-    const wrap = ui.h('div', 'aeditor-ai-tool-calls')
+    const wrap = ui.h('div', 'aiditor-ai-tool-calls')
     for (let i = 0; i < calls.length; i++) wrap.appendChild(renderToolCall(agentId, messageId, calls[i], viewState))
     parent.appendChild(wrap)
   }
@@ -602,12 +602,12 @@
   function renderPayload(msg) {
     const content = msg.content != null ? msg.content : msg.text
     if (content && typeof content === 'object' && content.type !== 'rich-prompt') {
-      const pre = ui.h('pre', 'aeditor-ai-message-code aeditor-ui-scrollarea')
+      const pre = ui.h('pre', 'aiditor-ai-message-code aiditor-ui-scrollarea')
       pre.dataset.messagePayload = 'json'
       setStableText(pre, JSON.stringify(content, null, 2))
       return pre
     }
-    const wrap = ui.h('div', 'aeditor-ai-message-content')
+    const wrap = ui.h('div', 'aiditor-ai-message-content')
     wrap.dataset.messagePayload = 'text'
     appendTextParts(wrap, displayText(content))
     return wrap
@@ -632,14 +632,14 @@
   }
 
   function renderEmpty(item) {
-    const row = ui.h('div', 'aeditor-ai-empty-state')
-    row.appendChild(ui.h('div', 'aeditor-ai-empty-title', { text: item.title }))
-    row.appendChild(ui.h('div', 'aeditor-ai-empty-body', { text: item.content }))
+    const row = ui.h('div', 'aiditor-ai-empty-state')
+    row.appendChild(ui.h('div', 'aiditor-ai-empty-title', { text: item.title }))
+    row.appendChild(ui.h('div', 'aiditor-ai-empty-body', { text: item.content }))
     return row
   }
 
   function messageRowClass(role, status) {
-    return 'aeditor-ai-message-row aeditor-ai-message-row-' + role + ' aeditor-ai-message-row-status-' + status
+    return 'aiditor-ai-message-row aiditor-ai-message-row-' + role + ' aiditor-ai-message-row-status-' + status
   }
 
   function renderMessageFooter(msg, runFooters) {
@@ -650,31 +650,31 @@
     if (runFooter && !runFooter.complete) return null
 
     const copyText = runFooter && runFooter.content.length ? runFooter.content.join('\n\n') : messageText(msg)
-    const footer = ui.h('div', 'aeditor-ai-message-footer')
+    const footer = ui.h('div', 'aiditor-ai-message-footer')
     footer.appendChild(ui.copyButton({ text: copyText, title: runFooter ? 'Copy run' : 'Copy message', size: 'sm' }))
     const calls = toolCallsOf(msg)
     const callCount = runFooter ? runFooter.toolCalls : calls.length
-    if (callCount) footer.appendChild(ui.h('span', 'aeditor-ai-message-metrics', { text: callCount + ' tool call' + (callCount === 1 ? '' : 's') }))
+    if (callCount) footer.appendChild(ui.h('span', 'aiditor-ai-message-metrics', { text: callCount + ' tool call' + (callCount === 1 ? '' : 's') }))
     if (role !== 'user') {
       const metrics = runFooter ? runMetricText(runFooter, metricText(msg)) : metricText(msg)
-      if (metrics) footer.appendChild(ui.h('span', 'aeditor-ai-message-metrics', { text: metrics }))
+      if (metrics) footer.appendChild(ui.h('span', 'aiditor-ai-message-metrics', { text: metrics }))
     }
     return footer
   }
 
   function patchError(body, msg) {
-    const existing = body.querySelector('.aeditor-ai-message-error')
+    const existing = body.querySelector('.aiditor-ai-message-error')
     const text = statusOf(msg) === 'error' && msg.meta && msg.meta.error ? msg.meta.error : ''
     if (!text) {
       if (existing) disposeTree(existing)
       return
     }
     if (existing) setStableText(existing, text)
-    else body.appendChild(ui.h('div', 'aeditor-ai-message-error', { text: text }))
+    else body.appendChild(ui.h('div', 'aiditor-ai-message-error', { text: text }))
   }
 
   function patchToolCalls(body, agentId, messageId, calls, viewState) {
-    const existing = body.querySelector('.aeditor-ai-tool-calls')
+    const existing = body.querySelector('.aiditor-ai-tool-calls')
     if (existing) disposeTree(existing)
     renderToolCalls(body, agentId, messageId, calls, viewState)
   }
@@ -686,7 +686,7 @@
   }
 
   function patchFooter(stack, msg, runFooters) {
-    const existing = stack.querySelector('.aeditor-ai-message-footer')
+    const existing = stack.querySelector('.aiditor-ai-message-footer')
     const next = renderMessageFooter(msg, runFooters)
     if (!next) {
       if (existing) disposeTree(existing)
@@ -699,9 +699,9 @@
   function patchMessageRow(entry, agent, msg, runFooters, viewState, listVersion, version) {
     if (!entry || entry.patchable === false || msg.empty || runtimeEventsOf(msg).length) return false
     const row = entry.el
-    const stack = row.querySelector('.aeditor-ai-message-stack')
-    const card = row.querySelector('.aeditor-ai-message')
-    const body = row.querySelector('.aeditor-ai-message-body')
+    const stack = row.querySelector('.aiditor-ai-message-stack')
+    const card = row.querySelector('.aiditor-ai-message')
+    const body = row.querySelector('.aiditor-ai-message-body')
     if (!stack || !card || !body) return false
     const role = msg.role || msg.type || 'message'
     const status = statusOf(msg)
@@ -709,8 +709,8 @@
     patchPayload(body, msg)
     patchError(body, msg)
     patchToolCalls(body, agent.id, msg.id, toolCallsOf(msg), viewState)
-    patchChips(card, 'aeditor-ai-message-contexts', msg.contextRefs)
-    patchChips(card, 'aeditor-ai-message-attachments', msg.attachments || (msg.meta && msg.meta.attachments))
+    patchChips(card, 'aiditor-ai-message-contexts', msg.contextRefs)
+    patchChips(card, 'aiditor-ai-message-attachments', msg.attachments || (msg.meta && msg.meta.attachments))
     patchFooter(stack, msg, runFooters)
     entry.version = version
     entry.listVersion = listVersion
@@ -724,18 +724,18 @@
     const role = msg.role || msg.type || 'message'
     const status = statusOf(msg)
     const row = ui.h('div', messageRowClass(role, status))
-    const stack = ui.h('div', 'aeditor-ai-message-stack')
-    const card = ui.h('div', 'aeditor-ai-message')
+    const stack = ui.h('div', 'aiditor-ai-message-stack')
+    const card = ui.h('div', 'aiditor-ai-message')
 
-    const body = ui.h('div', 'aeditor-ai-message-body')
+    const body = ui.h('div', 'aiditor-ai-message-body')
     body.appendChild(renderPayload(msg))
     if (status === 'error' && msg.meta && msg.meta.error) {
-      body.appendChild(ui.h('div', 'aeditor-ai-message-error', { text: msg.meta.error }))
+      body.appendChild(ui.h('div', 'aiditor-ai-message-error', { text: msg.meta.error }))
     }
     renderToolCalls(body, agent.id, msg.id, toolCallsOf(msg), viewState)
     card.appendChild(body)
-    appendChips(card, 'aeditor-ai-message-contexts', msg.contextRefs)
-    appendChips(card, 'aeditor-ai-message-attachments', msg.attachments || (msg.meta && msg.meta.attachments))
+    appendChips(card, 'aiditor-ai-message-contexts', msg.contextRefs)
+    appendChips(card, 'aiditor-ai-message-attachments', msg.attachments || (msg.meta && msg.meta.attachments))
     stack.appendChild(card)
 
     const footer = renderMessageFooter(msg, runFooters)
@@ -768,14 +768,14 @@
   }
 
   function factory(propsSig, ctx) {
-    const root = ui.h('div', 'aeditor-ai-panel aeditor-ai-transcript')
+    const root = ui.h('div', 'aiditor-ai-panel aiditor-ai-transcript')
 
-    const scroll = ui.view({ children: [], scroll: 'both', className: 'aeditor-ai-message-scroll' })
+    const scroll = ui.view({ children: [], scroll: 'both', className: 'aiditor-ai-message-scroll' })
     root.appendChild(scroll)
-    const topSpacer = ui.h('div', 'aeditor-ai-message-virtual-spacer')
-    const windowEl = ui.h('div', 'aeditor-ai-message-window')
-    const bottomSpacer = ui.h('div', 'aeditor-ai-message-virtual-spacer')
-    const liveStrip = aeditor.ai.createMessageLiveStrip()
+    const topSpacer = ui.h('div', 'aiditor-ai-message-virtual-spacer')
+    const windowEl = ui.h('div', 'aiditor-ai-message-window')
+    const bottomSpacer = ui.h('div', 'aiditor-ai-message-virtual-spacer')
+    const liveStrip = aiditor.ai.createMessageLiveStrip()
     scroll.appendChild(topSpacer)
     scroll.appendChild(windowEl)
     scroll.appendChild(bottomSpacer)
@@ -783,8 +783,8 @@
 
     const viewState = { expandedToolCalls: {} }
     const rows = {}
-    const virtualizer = aeditor.ai.createMessageVirtualizer({ estimateHeight: 96, overscanPx: 640 })
-    const visibleRevision = aeditor.signal(0)
+    const virtualizer = aiditor.ai.createMessageVirtualizer({ estimateHeight: 96, overscanPx: 640 })
+    const visibleRevision = aiditor.signal(0)
     let cacheAgentId = null
     let cacheListVersion = -1
     let cacheMessages = []
@@ -822,7 +822,7 @@
     scroll.addEventListener('pointerdown', function (ev) {
       if (ev.button !== 0) return
       const target = ev.target
-      if (target && target.closest && target.closest('.aeditor-ai-message-row')) {
+      if (target && target.closest && target.closest('.aiditor-ai-message-row')) {
         selectingTranscript = true
         stickToBottom = false
       }
@@ -865,11 +865,11 @@
     }
 
     function messagesForAgent(agentId) {
-      const ids = aeditor.ai.agentMessageIds ? aeditor.ai.agentMessageIds(agentId) : []
+      const ids = aiditor.ai.agentMessageIds ? aiditor.ai.agentMessageIds(agentId) : []
       const out = []
       if (ids.length) {
         for (let i = 0; i < ids.length; i++) {
-          const msg = aeditor.ai.readMessage(agentId, ids[i])
+          const msg = aiditor.ai.readMessage(agentId, ids[i])
           if (msg && (msg.role || msg.type) !== 'tool' && !isHiddenRuntimeMessage(msg)) out.push(msg)
         }
         return projectedMessages(out)
@@ -879,7 +879,7 @@
     }
 
     function ensureCache(agentId) {
-      const version = aeditor.ai.messageListVersion ? aeditor.ai.messageListVersion(agentId) : 0
+      const version = aiditor.ai.messageListVersion ? aiditor.ai.messageListVersion(agentId) : 0
       if (cacheAgentId === agentId && cacheListVersion === version) return
       cacheAgentId = agentId
       cacheListVersion = version
@@ -893,13 +893,13 @@
     }
 
     function visibleMessage(agentId, msg) {
-      if (aeditor.ai.messageVersion) aeditor.ai.messageVersion(agentId, msg.id)
-      return aeditor.ai.readMessage(agentId, msg.id) || msg
+      if (aiditor.ai.messageVersion) aiditor.ai.messageVersion(agentId, msg.id)
+      return aiditor.ai.readMessage(agentId, msg.id) || msg
     }
 
     function updateRow(agent, msg) {
       const id = msg.id
-      const version = aeditor.ai.messageVersion ? aeditor.ai.messageVersion(agent.id, id) : 0
+      const version = aiditor.ai.messageVersion ? aiditor.ai.messageVersion(agent.id, id) : 0
       const entry = rows[id]
       if (entry && entry.version === version && entry.listVersion === cacheListVersion) return entry.el
       if (entry && patchMessageRow(entry, agent, msg, cacheRunFooters, viewState, cacheListVersion, version)) return entry.el
@@ -964,7 +964,7 @@
 
     function render() {
       const shouldStick = stickToBottom || scroll.scrollTop + scroll.clientHeight >= scroll.scrollHeight - 32
-      const agentId = read(aeditor.ai.activeAgentId)
+      const agentId = read(aiditor.ai.activeAgentId)
       if (!agentId) {
         showEmpty({ title: 'No active agent', content: 'Select an agent to inspect its transcript.' })
         return
@@ -1011,26 +1011,26 @@
       ui.collect(root, function () { ro.disconnect() })
     }
     render()
-    ui.collect(root, aeditor.effect(function () {
-      const agentId = read(aeditor.ai.activeAgentId)
+    ui.collect(root, aiditor.effect(function () {
+      const agentId = read(aiditor.ai.activeAgentId)
       visibleRevision()
       if (agentId) {
         ensureCache(agentId)
         const range = rangeForViewport()
         for (let i = range.start; i < range.end; i++) {
-          if (cacheMessages[i] && aeditor.ai.messageVersion) aeditor.ai.messageVersion(agentId, cacheMessages[i].id)
+          if (cacheMessages[i] && aiditor.ai.messageVersion) aiditor.ai.messageVersion(agentId, cacheMessages[i].id)
         }
       }
       scheduleRender()
     }))
-    ui.collect(root, aeditor.effect(function () {
-      const agentId = read(aeditor.ai.activeAgentId)
-      liveStrip.update(agentId && aeditor.ai.activeRunState ? aeditor.ai.activeRunState(agentId) : null)
+    ui.collect(root, aiditor.effect(function () {
+      const agentId = read(aiditor.ai.activeAgentId)
+      liveStrip.update(agentId && aiditor.ai.activeRunState ? aiditor.ai.activeRunState(agentId) : null)
     }))
     return root
   }
 
-  aeditor.registerComponent('ai-messages', {
+  aiditor.registerComponent('ai-messages', {
     category: 'panel',
     label: 'AI Messages',
     icon: 'message-circle',
@@ -1038,4 +1038,4 @@
     factory: factory,
     dispose: disposeTree,
   })
-})(window.aeditor = window.aeditor || {})
+})(window.aiditor = window.aiditor || {})

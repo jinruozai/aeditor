@@ -5,37 +5,37 @@ Status: architecture + Phase 1-6 runtime implemented; AI visible UI path superse
 Current final guidance:
 
 - Extension runtime remains the lifecycle, ownership, rollback, permission, and recovery layer.
-- AI-created visible UI should use `aeditor.createPanel`, which wraps a same-page `factory(propsSig, ctx)` panel into this runtime.
-- `aeditor.installExtension` and `aeditor.addPanelToDock` remain low-level/advanced operations, not the normal AI UI authoring surface.
+- AI-created visible UI should use `aiditor.createPanel`, which wraps a same-page `factory(propsSig, ctx)` panel into this runtime.
+- `aiditor.installExtension` and `aiditor.addPanelToDock` remain low-level/advanced operations, not the normal AI UI authoring surface.
 
 Implemented Phase 1:
 
 - Owner-aware component / reference / operation registration and owner cleanup.
-- `aeditor.extensions.preview(...)`, `install(...)`, `uninstall(...)`, `list(...)`, `get(...)`.
-- `aeditor.extensions.update(...)`, `enable(...)`, `disable(...)`, `boot(...)`, `safeMode(...)`.
-- `aeditor.extensions.setMaxLayer(...)`, `disableLayer(...)`, `enableLayer(...)` for recovery filtering.
-- `aeditor.extensions.configureStorage(...)`, `save(...)`, `clearStored(...)` for manifest persistence.
-- `aeditor.extensions.review(...)`, `installWithReview(...)`, and `configurePermissions(...)` for install/update permission review.
-- `aeditor.commands` owner-aware command registry and menu seam registry.
+- `aiditor.extensions.preview(...)`, `install(...)`, `uninstall(...)`, `list(...)`, `get(...)`.
+- `aiditor.extensions.update(...)`, `enable(...)`, `disable(...)`, `boot(...)`, `safeMode(...)`.
+- `aiditor.extensions.setMaxLayer(...)`, `disableLayer(...)`, `enableLayer(...)` for recovery filtering.
+- `aiditor.extensions.configureStorage(...)`, `save(...)`, `clearStored(...)` for manifest persistence.
+- `aiditor.extensions.review(...)`, `installWithReview(...)`, and `configurePermissions(...)` for install/update permission review.
+- `aiditor.commands` owner-aware command registry and menu seam registry.
 - Extension-owned settings sections / schemas / pages with owner cleanup.
-- Declarative panel contributions backed by existing `aeditor.registerComponent(...)` and `aeditor.ui.renderUITree(...)`.
+- Declarative panel contributions backed by existing `aiditor.registerComponent(...)` and `aiditor.ui.renderUITree(...)`.
 - Dock panel contributions with `owner` / `extensionId` metadata.
 - Ownerless `extension-disabled` recovery panel for disabled/uninstalled component references.
-- Layout registration bridge through `aeditor.extensions.registerLayout(...)`; `createDockLayout(...)` registers itself as `default` unless given `config.name`.
-- AI operations: `aeditor.installExtension`, `aeditor.updateExtension`, `aeditor.removeExtension`, `aeditor.enableExtension`, `aeditor.disableExtension`, `aeditor.promoteExtensionLayer`, `aeditor.addPanelToDock`, `aeditor.removePanelFromDock`.
-- Trusted code panel contributions are supported only when install/update passes explicit `allowCode: true`; AI-created visible UI now defaults to `aeditor.createPanel`.
+- Layout registration bridge through `aiditor.extensions.registerLayout(...)`; `createDockLayout(...)` registers itself as `default` unless given `config.name`.
+- AI operations: `aiditor.installExtension`, `aiditor.updateExtension`, `aiditor.removeExtension`, `aiditor.enableExtension`, `aiditor.disableExtension`, `aiditor.promoteExtensionLayer`, `aiditor.addPanelToDock`, `aiditor.removePanelFromDock`.
+- Trusted code panel contributions are supported only when install/update passes explicit `allowCode: true`; AI-created visible UI now defaults to `aiditor.createPanel`.
 
 Still planned:
 
 - Stronger future isolation options such as worker-backed panels. Current code panels support explicit same-page factories and sandboxed iframe panels.
 
-This document defines the proposed runtime extension architecture for aeditor. It captures the dynamic panel discussion and folds it into the existing Dock / Panel / Component and AI Reference / Operation model.
+This document defines the proposed runtime extension architecture for aiditor. It captures the dynamic panel discussion and folds it into the existing Dock / Panel / Component and AI Reference / Operation model.
 
-The goal is not to add a one-off "dynamic panel" feature. The goal is to let an editor built on aeditor grow new capabilities at runtime while keeping the framework simple, inspectable, reversible, and consistent with the current component model.
+The goal is not to add a one-off "dynamic panel" feature. The goal is to let an editor built on aiditor grow new capabilities at runtime while keeping the framework simple, inspectable, reversible, and consistent with the current component model.
 
 ## Core Idea
 
-aeditor already has the right foundation:
+aiditor already has the right foundation:
 
 ```txt
 Dock organizes Panel
@@ -59,10 +59,10 @@ Dock does not learn about dynamic panels. Dock still consumes a component name. 
 ## Design Principles
 
 1. **No second component world**
-   Extensions install into the existing registries. A generated panel, a project panel, and a built-in panel are all `aeditor.registerComponent(...)` entries.
+   Extensions install into the existing registries. A generated panel, a project panel, and a built-in panel are all `aiditor.registerComponent(...)` entries.
 
 2. **Manifest lifecycle**
-   Extension capabilities are represented internally as serializable manifests. A manifest can be previewed, diffed, approved, persisted, promoted, reverted, and disabled. AI visible UI does not handcraft these manifests; `aeditor.createPanel` creates them internally.
+   Extension capabilities are represented internally as serializable manifests. A manifest can be previewed, diffed, approved, persisted, promoted, reverted, and disabled. AI visible UI does not handcraft these manifests; `aiditor.createPanel` creates them internally.
 
 3. **Layered ownership**
    Runtime-generated artifacts should not mix with framework core. Extensions belong to explicit layers.
@@ -71,10 +71,10 @@ Dock does not learn about dynamic panels. Dock still consumes a component name. 
    If an extension breaks the editor, the user must be able to boot or switch into a core-only mode.
 
 5. **AI uses Operations**
-   AI does not mutate extension runtime directly. For visible UI it calls `aeditor.createPanel`; advanced extension lifecycle still flows through registered operations such as `aeditor.installExtension`, `aeditor.removeExtension`, and `aeditor.addPanelToDock`, all under the normal permission system.
+   AI does not mutate extension runtime directly. For visible UI it calls `aiditor.createPanel`; advanced extension lifecycle still flows through registered operations such as `aiditor.installExtension`, `aiditor.removeExtension`, and `aiditor.addPanelToDock`, all under the normal permission system.
 
 6. **Factory panel is the AI default**
-   AI-created visible panels should be same-page `factory(propsSig, ctx)` panels created through `aeditor.createPanel`. Declarative UI trees remain a secondary static format.
+   AI-created visible panels should be same-page `factory(propsSig, ctx)` panels created through `aiditor.createPanel`. Declarative UI trees remain a secondary static format.
 
 7. **Install is transactional**
    A partially installed extension is worse than no extension. If any contribution fails, the runtime rolls back every contribution installed in that attempt.
@@ -87,7 +87,7 @@ Dock does not learn about dynamic panels. Dock still consumes a component name. 
 
 ## Architecture Review
 
-The scheme is aligned with aeditor's philosophy because it keeps the original dependency direction:
+The scheme is aligned with aiditor's philosophy because it keeps the original dependency direction:
 
 ```txt
 Extension Runtime owns lifecycle
@@ -97,7 +97,7 @@ Component owns rendering
 AI Operation owns mutation approval
 ```
 
-The design is intentionally not "perfect" in the sense of allowing arbitrary customization. It is perfect for aeditor only if it stays narrow:
+The design is intentionally not "perfect" in the sense of allowing arbitrary customization. It is perfect for aiditor only if it stays narrow:
 
 - Extensions contribute to known registries.
 - Registries remain explicit maps, not implicit file scanners.
@@ -123,7 +123,7 @@ Space Agent and Agent Zero validate the direction but should not be copied whole
 - Space Agent shows the value of a frontend runtime that the agent can reshape, layered customization (`L0` firmware, `L1` group, `L2` user), panel manifests, and safe layer limiting.
 - Agent Zero shows the value of explicit extension points, tool extensibility, cache invalidation, and dynamic module loading.
 
-aeditor should keep its own style: zero build, IIFE, explicit registration, no hidden mutation observers, and no broad "wrap any function" hook system.
+aiditor should keep its own style: zero build, IIFE, explicit registration, no hidden mutation observers, and no broad "wrap any function" hook system.
 
 ## Layers
 
@@ -131,7 +131,7 @@ Recommended layers:
 
 | Layer | Meaning | Editable at runtime | Typical owner |
 |---|---|---:|---|
-| `core` | Framework built-ins | No | aeditor |
+| `core` | Framework built-ins | No | aiditor |
 | `app` | Application-provided built-ins | Usually no | host app |
 | `project` | Project-level extensions | Yes | project |
 | `user` | User personal extensions | Yes | user |
@@ -143,10 +143,10 @@ The runtime also accepts `builtin` as a compatibility alias for framework-owned 
 The runtime should support max-layer filtering:
 
 ```js
-aeditor.extensions.setMaxLayer('core')
-aeditor.extensions.boot({ safeMode: true })
-aeditor.extensions.safeMode(true, { allowApp: true })
-aeditor.extensions.disableLayer('user')
+aiditor.extensions.setMaxLayer('core')
+aiditor.extensions.boot({ safeMode: true })
+aiditor.extensions.safeMode(true, { allowApp: true })
+aiditor.extensions.disableLayer('user')
 ```
 
 This is the recovery path when generated UI breaks.
@@ -168,13 +168,13 @@ Owner responsibilities:
 Owner is optional for classic manual registration:
 
 ```js
-aeditor.registerComponent('my-panel', spec)
+aiditor.registerComponent('my-panel', spec)
 ```
 
-Owner is required for extension-managed registration, but extension authors should not write it manually. `aeditor.extensions.install(...)` injects it.
+Owner is required for extension-managed registration, but extension authors should not write it manually. `aiditor.extensions.install(...)` injects it.
 
 ```js
-aeditor.registerComponent('inventory-panel', spec, {
+aiditor.registerComponent('inventory-panel', spec, {
   owner: 'extension:project.characterInventory',
   layer: 'project',
 })
@@ -183,11 +183,11 @@ aeditor.registerComponent('inventory-panel', spec, {
 Uninstall by owner:
 
 ```js
-aeditor.unregisterComponentOwner('extension:project.characterInventory')
-aeditor.ai.operations.unregisterOwner('extension:project.characterInventory')
-aeditor.ai.references.unregisterOwner('extension:project.characterInventory')
-// Later phase, after aeditor.commands exists:
-aeditor.commands.unregisterOwner('extension:project.characterInventory')
+aiditor.unregisterComponentOwner('extension:project.characterInventory')
+aiditor.ai.operations.unregisterOwner('extension:project.characterInventory')
+aiditor.ai.references.unregisterOwner('extension:project.characterInventory')
+// Later phase, after aiditor.commands exists:
+aiditor.commands.unregisterOwner('extension:project.characterInventory')
 ```
 
 If a registry entry is ownerless, it cannot be removed by extension uninstall.
@@ -228,7 +228,7 @@ Example:
 Installs as:
 
 ```js
-aeditor.registerComponent('project.characterInventory/panel', spec, { owner, layer })
+aiditor.registerComponent('project.characterInventory/panel', spec, { owner, layer })
 ```
 
 Why this matters:
@@ -482,7 +482,7 @@ For the first version, host apps should provide adapters. The extension manifest
 
 Commands and menus should be explicit contributions, not hidden event hooks.
 
-aeditor exposes a small `aeditor.commands` registry. It deliberately does not bind global shortcuts or application behavior; it only stores commands, runs explicit command ids, and provides menu seam items for host UI to render.
+aiditor exposes a small `aiditor.commands` registry. It deliberately does not bind global shortcuts or application behavior; it only stores commands, runs explicit command ids, and provides menu seam items for host UI to render.
 
 ```js
 {
@@ -505,7 +505,7 @@ Menu contributions should target named seams:
 Host UI can render a seam with:
 
 ```js
-aeditor.commands.menuUiItems('dock.panel.context', ctx)
+aiditor.commands.menuUiItems('dock.panel.context', ctx)
 ```
 
 No arbitrary "before/after any function" hook system should be added in the first version.
@@ -526,7 +526,7 @@ project.openAssetPicker
 Adapters are registered by the host app, not generated by AI in the first version:
 
 ```js
-aeditor.extensions.registerAdapter('project.readInventory', {
+aiditor.extensions.registerAdapter('project.readInventory', {
   permissions: ['project.read'],
   run: function (input, ctx) { ... }
 })
@@ -558,46 +558,46 @@ This gives declarative panels real power without making JSON into a programming 
 Proposed namespace:
 
 ```js
-aeditor.extensions.install(manifest, options)
-aeditor.extensions.uninstall(id, options)
-aeditor.extensions.get(id)
-aeditor.extensions.list(filter)
-aeditor.extensions.preview(manifest)
-aeditor.extensions.registerLayout(name, handle)
-aeditor.extensions.registerAdapter(id, spec)
-aeditor.extensions.update(id, nextManifest, options)
-aeditor.extensions.enable(id)
-aeditor.extensions.disable(id)
-aeditor.extensions.boot(options)
-aeditor.extensions.safeMode(enable)
-aeditor.extensions.configureStorage(options)
-aeditor.extensions.setMaxLayer(layer)
-aeditor.extensions.disableLayer(layer)
-aeditor.extensions.enableLayer(layer)
+aiditor.extensions.install(manifest, options)
+aiditor.extensions.uninstall(id, options)
+aiditor.extensions.get(id)
+aiditor.extensions.list(filter)
+aiditor.extensions.preview(manifest)
+aiditor.extensions.registerLayout(name, handle)
+aiditor.extensions.registerAdapter(id, spec)
+aiditor.extensions.update(id, nextManifest, options)
+aiditor.extensions.enable(id)
+aiditor.extensions.disable(id)
+aiditor.extensions.boot(options)
+aiditor.extensions.safeMode(enable)
+aiditor.extensions.configureStorage(options)
+aiditor.extensions.setMaxLayer(layer)
+aiditor.extensions.disableLayer(layer)
+aiditor.extensions.enableLayer(layer)
 ```
 
 Registry owner support:
 
 ```js
-aeditor.registerComponent(name, spec, { owner, layer })
-aeditor.unregisterComponent(name, { owner })
-aeditor.listComponents({ owner, layer })
-aeditor.unregisterComponentOwner(owner)
-aeditor.ai.operations.unregisterOwner(owner)
-aeditor.ai.references.unregisterOwner(owner)
+aiditor.registerComponent(name, spec, { owner, layer })
+aiditor.unregisterComponent(name, { owner })
+aiditor.listComponents({ owner, layer })
+aiditor.unregisterComponentOwner(owner)
+aiditor.ai.operations.unregisterOwner(owner)
+aiditor.ai.references.unregisterOwner(owner)
 ```
 
 AI operations:
 
 ```js
-aeditor.installExtension
-aeditor.updateExtension
-aeditor.removeExtension
-aeditor.enableExtension
-aeditor.disableExtension
-aeditor.promoteExtensionLayer
-aeditor.addPanelToDock
-aeditor.removePanelFromDock
+aiditor.installExtension
+aiditor.updateExtension
+aiditor.removeExtension
+aiditor.enableExtension
+aiditor.disableExtension
+aiditor.promoteExtensionLayer
+aiditor.addPanelToDock
+aiditor.removePanelFromDock
 
 // planned
 editor.configureExtensionPermissions
@@ -610,14 +610,14 @@ Declarative panel should be the default authoring target for AI.
 It should reuse existing UI registration:
 
 ```txt
-Built-in UI component      -> aeditor.registerComponent
-Built-in panel             -> aeditor.registerComponent
-App panel                  -> aeditor.registerComponent
-Extension UI component     -> aeditor.extensions.install -> aeditor.registerComponent
-Extension panel            -> aeditor.extensions.install -> aeditor.registerComponent
+Built-in UI component      -> aiditor.registerComponent
+Built-in panel             -> aiditor.registerComponent
+App panel                  -> aiditor.registerComponent
+Extension UI component     -> aiditor.extensions.install -> aiditor.registerComponent
+Extension panel            -> aiditor.extensions.install -> aiditor.registerComponent
 ```
 
-Rendering can reuse `aeditor.ui.renderUITree` or a small wrapper around it.
+Rendering can reuse `aiditor.ui.renderUITree` or a small wrapper around it.
 
 Minimum first-version capabilities:
 
@@ -711,7 +711,7 @@ Rules:
 - Code panels declare permissions.
 - Code panels have owner-based cleanup.
 - Code panel factory receives the normal `propsSig, ctx`.
-- Code panels must use `ctx.onCleanup` and `aeditor.ui.dispose`.
+- Code panels must use `ctx.onCleanup` and `aiditor.ui.dispose`.
 - Code panel update must uninstall the previous owner contribution first.
 
 Optional future isolation:
@@ -739,7 +739,7 @@ For safer UI-only code panels, use an iframe contribution:
   kind: 'iframe',
   srcdoc: '<!doctype html><body>...</body>',
   sandbox: 'allow-scripts',
-  hash: aeditor.extensions.hashSource(srcdoc)
+  hash: aiditor.extensions.hashSource(srcdoc)
 }
 ```
 
@@ -779,14 +779,14 @@ Full access can auto-approve normal edit operations, but extension code install 
 The runtime exposes this review surface without forcing a specific host UI:
 
 ```js
-const review = aeditor.extensions.review(manifest, { actor, agentId })
+const review = aiditor.extensions.review(manifest, { actor, agentId })
 // review.canInstall, review.canApply, review.permissions, review.requiredConsent
 ```
 
-Hosts may use `aeditor.extensions.installWithReview(...)` for a small built-in confirmation helper, or render their own review UI from the same object. Permission policy can be customized with:
+Hosts may use `aiditor.extensions.installWithReview(...)` for a small built-in confirmation helper, or render their own review UI from the same object. Permission policy can be customized with:
 
 ```js
-aeditor.extensions.configurePermissions({
+aiditor.extensions.configurePermissions({
   install(details) { return true },
   update(details) { return true },
   uninstall(details) { return true },
@@ -796,7 +796,7 @@ aeditor.extensions.configurePermissions({
 
 ## Preview Model
 
-`aeditor.extensions.preview(...)` and the preview phase of `aeditor.installExtension` should return:
+`aiditor.extensions.preview(...)` and the preview phase of `aiditor.installExtension` should return:
 
 ```js
 {
@@ -831,8 +831,8 @@ Invalid preview examples:
 The framework should not decide where project/user extensions are stored. It should expose a storage adapter.
 
 ```js
-aeditor.extensions.configureStorage({
-  key: 'aeditor.extensions.v1',
+aiditor.extensions.configureStorage({
+  key: 'aiditor.extensions.v1',
   storage: window.localStorage,
   load: true
 })
@@ -862,14 +862,14 @@ create dock layout
 reconcile panels
 ```
 
-If the host creates dock layout before extensions are installed, panels that reference extension components will fail. Therefore extension boot can register extension components before layout creation, while dock panel contributions may be deferred. `aeditor.extensions.registerLayout(...)` applies pending dock panel contributions when the named layout becomes available. Explicit layout names never fall back to another layout.
+If the host creates dock layout before extensions are installed, panels that reference extension components will fail. Therefore extension boot can register extension components before layout creation, while dock panel contributions may be deferred. `aiditor.extensions.registerLayout(...)` applies pending dock panel contributions when the named layout becomes available. Explicit layout names never fall back to another layout.
 
 ## Safe Mode
 
 Safe mode should disable non-core layers and avoid loading code contributions.
 
 ```js
-aeditor.extensions.boot({ safeMode: true })
+aiditor.extensions.boot({ safeMode: true })
 ```
 
 Expected behavior:
@@ -916,7 +916,7 @@ Add:
 - adapter registry
 - tests
 
-No AI-facing `aeditor.createPanel` yet in this phase; code panels arrive through the later trusted factory path.
+No AI-facing `aiditor.createPanel` yet in this phase; code panels arrive through the later trusted factory path.
 
 ### Phase 3: Declarative Panels
 
@@ -945,7 +945,7 @@ Integrate with existing permission and operation preview/apply flow.
 
 Implemented contribution types that need their own registries:
 
-- `aeditor.commands`
+- `aiditor.commands`
 - menu seams
 - extension-owned settings sections/pages
 
@@ -962,9 +962,9 @@ Trusted code panel support is implemented behind explicit `allowCode: true`.
 - no second UI registry
 - no forced backend/server discovery
 - no iframe-only requirement; same-page factory panels remain available behind explicit `allowCode`
-- no replacing `aeditor.registerComponent`
+- no replacing `aiditor.registerComponent`
 - no broad low-code language beyond simple UI tree/actions
-- no implicit command/menu hooks outside the explicit `aeditor.commands` registry
+- no implicit command/menu hooks outside the explicit `aiditor.commands` registry
 - no layer shadowing / override resolution in the first version
 
 ## Example: AI Adds Character Inventory Panel
@@ -977,9 +977,9 @@ Add a character inventory panel to the main view dock.
 
 AI flow:
 
-1. Calls `aeditor.getCapabilities` / layout read tool.
+1. Calls `aiditor.getCapabilities` / layout read tool.
 2. Generates same-page panel factory source.
-3. Calls `aeditor.createPanel` with `layer: 'session'`.
+3. Calls `aiditor.createPanel` with `layer: 'session'`.
 4. Runtime wraps the factory in an extension manifest, registers the component, and adds the panel to the dock.
 5. Runtime health-checks the created panel; failures roll back and are reported to the agent.
 6. User can promote extension to `project` layer.
@@ -1009,10 +1009,10 @@ Extension Manifest is the internal lifecycle artifact.
 Layered Extension Runtime manages install/update/uninstall/safe mode.
 Component Registry remains the only UI and Panel registry.
 Dock consumes component names exactly as before.
-AI creates visible panels through aeditor.createPanel and uses low-level extension operations only for advanced extension work.
+AI creates visible panels through aiditor.createPanel and uses low-level extension operations only for advanced extension work.
 ```
 
-This is compatible with aeditor's original philosophy and makes the editor grow without turning the framework into a pile of special cases.
+This is compatible with aiditor's original philosophy and makes the editor grow without turning the framework into a pile of special cases.
 
 ## Completeness Verdict
 

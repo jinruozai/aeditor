@@ -24,12 +24,12 @@ memory disk should not be created behind the user's back.
 ## Core API
 
 ```js
-aeditor.workspace.openDirectory(options)
-aeditor.workspace.restoreDirectory(key, options)
-aeditor.workspace.saveDirectoryHandle(key, handle)
-aeditor.workspace.fromHandle(handle)
-aeditor.workspace.fromBridge(root)
-aeditor.workspace.memory(files)
+aiditor.workspace.openDirectory(options)
+aiditor.workspace.restoreDirectory(key, options)
+aiditor.workspace.saveDirectoryHandle(key, handle)
+aiditor.workspace.fromHandle(handle)
+aiditor.workspace.fromBridge(root)
+aiditor.workspace.memory(files)
 ```
 
 Utility helpers in the workspace module may normalize relative paths, hash text,
@@ -129,13 +129,13 @@ The AI runtime may bind one active workspace so `workspace.*` tool calls know
 which adapter to use:
 
 ```js
-aeditor.ai.setWorkspace(workspace, meta)
-aeditor.ai.clearWorkspace()
-aeditor.ai.selectWorkspaceDirectory(options)
-aeditor.ai.currentWorkspace()
-aeditor.ai.workspaceMeta()
-aeditor.ai.workspaceLabel()
-aeditor.ai.workspaceVersion()
+aiditor.ai.setWorkspace(workspace, meta)
+aiditor.ai.clearWorkspace()
+aiditor.ai.selectWorkspaceDirectory(options)
+aiditor.ai.currentWorkspace()
+aiditor.ai.workspaceMeta()
+aiditor.ai.workspaceLabel()
+aiditor.ai.workspaceVersion()
 ```
 
 This binding is not a second workspace API and not a project model. It is only
@@ -159,7 +159,7 @@ belong outside Core. There is still only one AI tool registry.
 
 Verification is also adapter-backed, not a workspace responsibility. Hosts that
 can run checks may register `verify.*` tools with
-`aeditor.ai.configureVerify(adapter)`. The workspace module still only provides
+`aiditor.ai.configureVerify(adapter)`. The workspace module still only provides
 bounded file access.
 
 The bundled local bridge can provide this adapter over `/verify/*`, but it is
@@ -171,7 +171,7 @@ declare allowed roots, timeouts, output limits, command policy, and audit fields
 The framework consumes their contract; it does not treat them as ordinary
 browser workspace APIs.
 
-The AEditor demo uses this pattern for workspace-backed UI generation. See
+The Aiditor demo uses this pattern for workspace-backed UI generation. See
 [agent-workspace-editing.md](./agent-workspace-editing.md): agents write
 workspace files, reload the demo workspace app, and add panels by registered
 component name.

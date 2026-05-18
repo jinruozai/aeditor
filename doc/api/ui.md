@@ -2,12 +2,12 @@
 
 Generated from structured API comments in `src/`.
 
-## `aeditor.ui.propertyForm`
+## `aiditor.ui.propertyForm`
 
 Render a schema-driven property editor for one target or a multi-target batch edit. Multi-target reads use the first target value; writes fan out only through enabled fields.
 
 ```js
-aeditor.ui.propertyForm(opts)
+aiditor.ui.propertyForm(opts)
 ```
 
 | Param | Type | Description |
@@ -22,12 +22,12 @@ aeditor.ui.propertyForm(opts)
 Returns: `HTMLElement` Property form root element.
 
 ```js
-var form = aeditor.ui.propertyForm({
-  targets: aeditor.signal([{ x: 0, color: '#44aaff' }]),
+var form = aiditor.ui.propertyForm({
+  targets: aiditor.signal([{ x: 0, color: '#44aaff' }]),
   schema: { x: { type: 'number' }, color: { type: 'color' } },
 })
 ```
 
-Related: `aeditor.inspector.registerProvider`
+Related: `aiditor.inspector.registerProvider`
 
 Source: `src/ui/form/propertyForm.js`

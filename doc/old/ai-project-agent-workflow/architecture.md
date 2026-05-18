@@ -1,7 +1,7 @@
-# AEditor Project Agent Architecture
+# Aiditor Project Agent Architecture
 
 This document defines the final design for AI-assisted project editing in
-AEditor.
+Aiditor.
 
 The target quality bar:
 
@@ -29,7 +29,7 @@ state observation
 If any step is vague, the model guesses. If every step is typed and bounded, the
 model can act precisely.
 
-Therefore AEditor needs five primitives:
+Therefore Aiditor needs five primitives:
 
 1. `ProjectWorkspace` - the authorized root and file boundary.
 2. `ProjectMap` - a compact index of files, panels, components, data resources,
@@ -43,21 +43,21 @@ Everything else is UI around those primitives.
 ## 2. Runtime Shape
 
 ```text
-aeditor.project
+aiditor.project
   opens descriptor
   owns project lifecycle
   owns project registries through owner scope
 
-aeditor.workspace
+aiditor.workspace
   bounds local file access
   exposes list/read/range/search/write/patch/delete/watch
 
-aeditor.ai project tools
+aiditor.ai project tools
   expose project file operations
   add workspace/project facts to request context
   leave richer maps, routers, and memory as project-agent layer work
 
-aeditor.dock / aeditor.ui / aeditor.bus
+aiditor.dock / aiditor.ui / aiditor.bus
   remain the visual and interaction runtime
 ```
 
@@ -70,7 +70,7 @@ Recommended shape:
 
 ```text
 my-editor/
-  aeditor.project.json
+  aiditor.project.json
   layout.json
   AGENTS.md
   src/
@@ -86,7 +86,7 @@ my-editor/
   styles/
 ```
 
-`aeditor.project.json` remains the descriptor defined in
+`aiditor.project.json` remains the descriptor defined in
 `doc/project-runtime-architecture.md`.
 
 `AGENTS.md` is the project-level instruction file. It should be concise and
@@ -215,9 +215,9 @@ It stores:
 - file paths, sizes, hashes, mtimes
 - component names and source files
 - panel ids, titles, component ids, owner/layer
-- `aeditor.registerComponent` calls
-- `aeditor.ai.references`, `aeditor.ai.operations`, `aeditor.commands`, project tools
-- `ctx.bus.on`, `ctx.bus.emit`, `aeditor.bus` topics
+- `aiditor.registerComponent` calls
+- `aiditor.ai.references`, `aiditor.ai.operations`, `aiditor.commands`, project tools
+- `ctx.bus.on`, `ctx.bus.emit`, `aiditor.bus` topics
 - descriptors and layout nodes
 - data schemas and table columns when known
 - test/check commands
@@ -441,9 +441,9 @@ parallel execution.
 There is one UI code shape:
 
 ```js
-aeditor.registerComponent('project.inventory', {
+aiditor.registerComponent('project.inventory', {
   factory: function (propsSig, ctx) {
-    const root = aeditor.ui.h('div', 'inventory')
+    const root = aiditor.ui.h('div', 'inventory')
     return root
   }
 })
@@ -453,7 +453,7 @@ Built-in, app, project, and AI-created panels use the same shape.
 
 Guidance injected to AI:
 
-- Prefer `aeditor.ui.*` components when available.
+- Prefer `aiditor.ui.*` components when available.
 - Use `ctx.bus` for panel-to-panel communication.
 - Use `ctx.onCleanup` for timers/listeners/resources.
 - Use scoped overlay helpers for tooltip/popover/menu behavior.
@@ -463,7 +463,7 @@ Guidance injected to AI:
 Draft path:
 
 ```text
-aeditor.createPanel
+aiditor.createPanel
   -> session draft
   -> inspect health
   -> promote to project file when durable
@@ -625,7 +625,7 @@ Phase 8: Subagents
 
 ## 19. Fit With Existing Architecture
 
-This design fits AEditor because it does not replace the framework:
+This design fits Aiditor because it does not replace the framework:
 
 - Dock still owns layout.
 - Panel still references registered components.

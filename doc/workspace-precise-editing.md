@@ -60,7 +60,7 @@ The search result is a locator, not an edit permission. The agent should use
 ```js
 {
   path: 'src/file.js',
-  baseHash: 'aeditor-fnv1a-...',
+  baseHash: 'aiditor-fnv1a-...',
   edits: [
     {
       oldText: 'exact text copied from a recent read',

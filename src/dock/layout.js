@@ -1,13 +1,13 @@
 // createDockLayout — public entry. Builds a LayoutRuntime, drives one
 // reconcile effect, and exposes the LayoutHandle described in § 4.9 Layer 1.
 //
-// This is the only file in dock/ that touches the public aeditor surface.
-;(function (aeditor) {
+// This is the only file in dock/ that touches the public aiditor surface.
+;(function (aiditor) {
   'use strict'
 
-  const signal = aeditor.signal
-  const effect = aeditor.effect
-  const RT     = aeditor._dock
+  const signal = aiditor.signal
+  const effect = aiditor.effect
+  const RT     = aiditor._dock
 
   let _globalListenersInstalled = false
 
@@ -23,10 +23,10 @@
           e.colno != null ? String(e.colno) : '',
         ].filter(Boolean).join(':')
       }
-      aeditor.reportError({ scope: 'global', filename: e.filename || '', lineno: e.lineno || 0, colno: e.colno || 0 }, err)
+      aiditor.reportError({ scope: 'global', filename: e.filename || '', lineno: e.lineno || 0, colno: e.colno || 0 }, err)
     })
     window.addEventListener('unhandledrejection', function (e) {
-      aeditor.reportError({ scope: 'global' }, e.reason || new Error('unhandledrejection'))
+      aiditor.reportError({ scope: 'global' }, e.reason || new Error('unhandledrejection'))
     })
   }
 
@@ -35,7 +35,7 @@
     if (!config.tree) throw new Error('createDockLayout: config.tree is required')
 
     installGlobalErrorListeners()
-    container.classList.add('aeditor-root')
+    container.classList.add('aiditor-root')
 
     const tree   = signal(config.tree)
     const layout = RT.createLayoutRuntime(container, tree, {
@@ -82,14 +82,14 @@
         if (layout.disposed) return { newDockId: null, newPanelId: null }
         // § 4.1 — seed new dock from active panel component defaults.
         const seed = computeSplitSeed(tree.peek(), dockId)
-        const r = aeditor.splitDock(tree.peek(), dockId, dir, side, ratio, { seedPanels: seed })
+        const r = aiditor.splitDock(tree.peek(), dockId, dir, side, ratio, { seedPanels: seed })
         layout.setTree(r.tree)
         return { newDockId: r.newDockId, newPanelId: r.newPanelId }
       },
 
       mergeDocks: function (winnerId, loserId) {
         if (layout.disposed) return false
-        const r = aeditor.mergeDocks(tree.peek(), winnerId, loserId)
+        const r = aiditor.mergeDocks(tree.peek(), winnerId, loserId)
         if (r.discardedPanels.some(function (p) { return p.dirty })) {
           const hook = layout.hooks.onDirtyDiscard
           const choice = hook ? hook(r.discardedPanels) : 'cancel'
@@ -100,13 +100,13 @@
       },
 
       // Toggle a dock's collapsed state by id OR name. Accepts the config
-      // `name` (assigned via aeditor.dock({ name: 'log' })) as a sugar — the
+      // `name` (assigned via aiditor.dock({ name: 'log' })) as a sugar — the
       // names are more stable across layouts than framework-generated ids.
       setDockCollapsed: function (idOrName, bool) {
         if (layout.disposed) return false
         const id = resolveDockId(tree.peek(), idOrName)
         if (!id) return false
-        layout.setTree(aeditor.setCollapsed(tree.peek(), id, !!bool))
+        layout.setTree(aiditor.setCollapsed(tree.peek(), id, !!bool))
         return true
       },
 
@@ -117,8 +117,8 @@
 
     // Expose the runtime on the handle for interactions.js (private use).
     handle._runtime = layout
-    if (aeditor.extensions && aeditor.extensions.registerLayout) {
-      layout.cleanups.push(aeditor.extensions.registerLayout(config.name || 'default', handle))
+    if (aiditor.extensions && aiditor.extensions.registerLayout) {
+      layout.cleanups.push(aiditor.extensions.registerLayout(config.name || 'default', handle))
     }
     return handle
   }
@@ -145,15 +145,15 @@
   // Compute seedPanels for a split — § 4.1: same component as source's active
   // panel + that component's defaults. Empty source dock → empty new dock.
   function computeSplitSeed(tree, srcDockId) {
-    const f = aeditor.findDock(tree, srcDockId)
+    const f = aiditor.findDock(tree, srcDockId)
     if (!f || !f.node.activeId) return null
     const active = f.node.panels.find(function (p) { return p.id === f.node.activeId })
     if (!active) return null
-    const defaults = aeditor.componentDefaults(active.component)
+    const defaults = aiditor.componentDefaults(active.component)
     return [Object.assign({}, defaults, { component: active.component })]
   }
 
-  aeditor.createDockLayout = createDockLayout
-  aeditor._dock = aeditor._dock || {}
-  aeditor._dock.computeSplitSeed = computeSplitSeed
-})(window.aeditor = window.aeditor || {})
+  aiditor.createDockLayout = createDockLayout
+  aiditor._dock = aiditor._dock || {}
+  aiditor._dock.computeSplitSeed = computeSplitSeed
+})(window.aiditor = window.aiditor || {})

@@ -1,10 +1,10 @@
-# AEditor Settings System
+# Aiditor Settings System
 
 Status: final framework design.
 
 ## 1. Goal
 
-AEditor provides a standard settings panel that applications and plugins can extend without rebuilding settings UI.
+Aiditor provides a standard settings panel that applications and plugins can extend without rebuilding settings UI.
 
 The system has two layers:
 
@@ -43,10 +43,10 @@ The design combines the strongest parts of common editor systems:
 ## 4. Public Model
 
 ```js
-aeditor.settings.sections      // signal<Section[]>
-aeditor.settings.schemas       // signal<SchemaItem[]>
-aeditor.settings.pages         // signal<Page[]>
-aeditor.settings.values        // signal<object>
+aiditor.settings.sections      // signal<Section[]>
+aiditor.settings.schemas       // signal<SchemaItem[]>
+aiditor.settings.pages         // signal<Page[]>
+aiditor.settings.values        // signal<object>
 ```
 
 Section:
@@ -93,16 +93,16 @@ Page:
 ## 5. API
 
 ```js
-aeditor.settings.registerSection(id, spec)
-aeditor.settings.registerSchema(sectionId, schema)
-aeditor.settings.registerPage(id, spec)
+aiditor.settings.registerSection(id, spec)
+aiditor.settings.registerSchema(sectionId, schema)
+aiditor.settings.registerPage(id, spec)
 
-aeditor.settings.get(key)
-aeditor.settings.set(key, value)
-aeditor.settings.reset(key)
-aeditor.settings.resetSection(sectionId)
-aeditor.settings.exportValues()
-aeditor.settings.importValues(values)
+aiditor.settings.get(key)
+aiditor.settings.set(key, value)
+aiditor.settings.reset(key)
+aiditor.settings.resetSection(sectionId)
+aiditor.settings.exportValues()
+aiditor.settings.importValues(values)
 ```
 
 `registerSchema` accepts a single item or an array.
@@ -119,7 +119,7 @@ Page factories receive:
 
 ```js
 {
-  settings: aeditor.settings,
+  settings: aiditor.settings,
   section,
   page
 }
@@ -148,7 +148,7 @@ AI includes:
 Providers can contribute settings through their registration spec:
 
 ```js
-aeditor.ai.registerProvider("openai", {
+aiditor.ai.registerProvider("openai", {
   name: "OpenAI",
   models: ["gpt-5.5"],
   settings: [
@@ -164,14 +164,14 @@ The settings system renders these under the AI section.
 Provider runtime reads settings through:
 
 ```js
-aeditor.settings.get("ai.openai.apiKey")
+aiditor.settings.get("ai.openai.apiKey")
 ```
 
 ## 9. Persistence
 
 The framework store is runtime-only by default.
 
-Applications may persist settings by observing `aeditor.settings.values` and writing to localStorage, IndexedDB, project files, or host APIs.
+Applications may persist settings by observing `aiditor.settings.values` and writing to localStorage, IndexedDB, project files, or host APIs.
 
 The framework should not force a persistence backend.
 
@@ -179,7 +179,7 @@ The framework should not force a persistence backend.
 
 - Use schema settings for normal fields.
 - Use custom pages only when schema rendering is not enough.
-- Settings panel must use existing `aeditor.ui` components.
+- Settings panel must use existing `aiditor.ui` components.
 - Setting keys are stable API.
 - Plugin settings must live under plugin/provider namespaces.
 - Sensitive values are marked in schema but storage/encryption is a host concern.

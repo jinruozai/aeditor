@@ -1,8 +1,8 @@
-// aeditor.ai registries - tools, skills, context providers, templates, bundles.
-;(function (aeditor) {
+// aiditor.ai registries - tools, skills, context providers, templates, bundles.
+;(function (aiditor) {
   'use strict'
 
-  const ai = aeditor.ai = aeditor.ai || {}
+  const ai = aiditor.ai = aiditor.ai || {}
   const tools = {}
   const toolMeta = {}
   const skills = {}
@@ -11,12 +11,12 @@
   const agentTemplates = {}
   const bundles = {}
   const bundleRecords = {}
-  const matchesPrefix = aeditor.names.matchesPrefix
+  const matchesPrefix = aiditor.names.matchesPrefix
 
   function keys(obj) { return Object.keys(obj) }
 
   function normalizeMeta(meta) {
-    if (aeditor.runtime && aeditor.runtime.registrationMeta) meta = aeditor.runtime.registrationMeta(meta)
+    if (aiditor.runtime && aiditor.runtime.registrationMeta) meta = aiditor.runtime.registrationMeta(meta)
     meta = meta || {}
     const out = {}
     if (meta.owner != null) out.owner = String(meta.owner)
@@ -269,8 +269,8 @@
       const provider = contextProviders[name]
       const matched = !provider.match || provider.match(request.target || request.agent, request.event || null, ctx)
       if (matched) {
-        const captured = aeditor.safeCall
-          ? aeditor.safeCall({ scope: 'ai', provider: name }, function () {
+        const captured = aiditor.safeCall
+          ? aiditor.safeCall({ scope: 'ai', provider: name }, function () {
             return provider.capture ? provider.capture(request.target || request.agent, request.event || null, ctx) : provider(request, ctx)
           })
           : (provider.capture ? provider.capture(request.target || request.agent, request.event || null, ctx) : provider(request, ctx))
@@ -338,12 +338,12 @@
       return prefix ? names.filter(function (name) { return matchesPrefix(name, prefix) }) : names
     },
   }
-  if (aeditor.runtime && aeditor.runtime.registerOwnerCleanup) {
-    aeditor.runtime.registerOwnerCleanup(function (owner) {
+  if (aiditor.runtime && aiditor.runtime.registerOwnerCleanup) {
+    aiditor.runtime.registerOwnerCleanup(function (owner) {
       return {
         tools: unregisterToolOwner(owner),
         context: unregisterContextProviderOwner(owner),
       }
     })
   }
-})(window.aeditor = window.aeditor || {})
+})(window.aiditor = window.aiditor || {})

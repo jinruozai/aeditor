@@ -1,6 +1,6 @@
 // UI library - overlay controller.
 //
-// Single authority for all aeditor.ui overlay widgets (popover, menu, modal,
+// Single authority for all aiditor.ui overlay widgets (popover, menu, modal,
 // drawer). Owns the things that caused cross-component bugs when they were
 // rolled by hand:
 //
@@ -61,9 +61,9 @@
 //   - Components call open() right after mounting and should forward
 //     { onDismiss } through to their own `close()` function so external
 //     and internal dismissal go through the same code path.
-;(function (aeditor) {
+;(function (aiditor) {
   'use strict'
-  const ui = aeditor.ui = aeditor.ui || {}
+  const ui = aiditor.ui = aiditor.ui || {}
 
   // the stack
   // Each frame: { el, opts, prevFocus, onAnyDown, onKey, zBase }
@@ -205,11 +205,11 @@
       if (o.ariaLabel) el.setAttribute('aria-label', o.ariaLabel)
       if (o.ariaLabelledBy) el.setAttribute('aria-labelledby', o.ariaLabelledBy)
 
-      // z-index: portal root is var(--aeditor-z-popover); each overlay gets +1
+      // z-index: portal root is var(--aiditor-z-popover); each overlay gets +1
       // above the previous top of stack (nested popovers render above their
       // parents). calc() defers resolution to the browser so live theme
-      // overrides of --aeditor-z-popover take effect with no JS-side mirror.
-      el.style.zIndex = 'calc(var(--aeditor-z-popover) + ' + (stack.length + 1) + ')'
+      // overrides of --aiditor-z-popover take effect with no JS-side mirror.
+      el.style.zIndex = 'calc(var(--aiditor-z-popover) + ' + (stack.length + 1) + ')'
 
       // Start unarmed, so the very same mousedown/click that opened this
       // overlay won't immediately dismiss it. Arm on the next tick.
@@ -229,4 +229,4 @@
     // Test / advanced helper - snapshot of current stack depth.
     depth: function () { return stack.length },
   }
-})(window.aeditor = window.aeditor || {})
+})(window.aiditor = window.aiditor || {})

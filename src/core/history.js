@@ -1,8 +1,8 @@
-// aeditor.history - generic snapshot history engine.
+// aiditor.history - generic snapshot history engine.
 //
 // The framework owns only the timeline mechanics. Applications provide
 // capture/apply functions and decide which user actions create entries.
-;(function (aeditor) {
+;(function (aiditor) {
   'use strict'
 
   function clone(v) {
@@ -21,9 +21,9 @@
     const equals = options.equals || same
     const limit = Math.max(1, Number(options.limit) || 200)
 
-    const entriesSig = aeditor.signal([])
-    const indexSig = aeditor.signal(-1)
-    const applyingSig = aeditor.signal(false)
+    const entriesSig = aiditor.signal([])
+    const indexSig = aiditor.signal(-1)
+    const applyingSig = aiditor.signal(false)
 
     let pauseDepth = 0
     let txDepth = 0
@@ -194,5 +194,5 @@
     }
   }
 
-  aeditor.history = { create: create }
-})(window.aeditor = window.aeditor || {})
+  aiditor.history = { create: create }
+})(window.aiditor = window.aiditor || {})

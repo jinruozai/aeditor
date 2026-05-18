@@ -1,41 +1,41 @@
 // Theme runtime helpers.
 //
 // CSS owns the visual system; this file only provides a tiny public API for
-// choosing a theme on :root or one aeditor root and applying token
+// choosing a theme on :root or one aiditor root and applying token
 // overrides without forcing users to manipulate attributes manually.
-;(function (aeditor) {
+;(function (aiditor) {
   'use strict'
 
-  const ATTR = 'data-aeditor-theme'
-  const DENSITY_ATTR = 'data-aeditor-density'
+  const ATTR = 'data-aiditor-theme'
+  const DENSITY_ATTR = 'data-aiditor-density'
   const DEFAULT = 'dark'
   const DEFAULT_DENSITY = 'default'
 
   const authoringTokens = [
-    '--aeditor-surface-canvas',
-    '--aeditor-surface-lower',
-    '--aeditor-surface-frame',
-    '--aeditor-surface-panel',
-    '--aeditor-surface-field',
-    '--aeditor-surface-hover',
-    '--aeditor-surface-active',
-    '--aeditor-surface-raised',
-    '--aeditor-text-primary',
-    '--aeditor-text-body',
-    '--aeditor-text-label',
-    '--aeditor-text-muted',
-    '--aeditor-text-disabled',
-    '--aeditor-stroke-subtle',
-    '--aeditor-stroke-strong',
-    '--aeditor-stroke-field',
-    '--aeditor-stroke-hover',
-    '--aeditor-brand',
-    '--aeditor-brand-hover',
-    '--aeditor-brand-contrast',
-    '--aeditor-state-success',
-    '--aeditor-state-warning',
-    '--aeditor-state-danger',
-    '--aeditor-state-info',
+    '--aiditor-surface-canvas',
+    '--aiditor-surface-lower',
+    '--aiditor-surface-frame',
+    '--aiditor-surface-panel',
+    '--aiditor-surface-field',
+    '--aiditor-surface-hover',
+    '--aiditor-surface-active',
+    '--aiditor-surface-raised',
+    '--aiditor-text-primary',
+    '--aiditor-text-body',
+    '--aiditor-text-label',
+    '--aiditor-text-muted',
+    '--aiditor-text-disabled',
+    '--aiditor-stroke-subtle',
+    '--aiditor-stroke-strong',
+    '--aiditor-stroke-field',
+    '--aiditor-stroke-hover',
+    '--aiditor-brand',
+    '--aiditor-brand-hover',
+    '--aiditor-brand-contrast',
+    '--aiditor-state-success',
+    '--aiditor-state-warning',
+    '--aiditor-state-danger',
+    '--aiditor-state-info',
   ]
 
   function docEl() {
@@ -98,7 +98,7 @@
     return lines.join('\n')
   }
 
-  aeditor.theme = {
+  aiditor.theme = {
     attr: ATTR,
     densityAttr: DENSITY_ATTR,
     default: DEFAULT,
@@ -113,4 +113,4 @@
     read: read,
     exportCss: exportCss,
   }
-})(window.aeditor = window.aeditor || {})
+})(window.aiditor = window.aiditor || {})

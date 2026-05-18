@@ -1,4 +1,4 @@
-// aeditor.ui.stateButton - button whose display follows a small state set.
+// aiditor.ui.stateButton - button whose display follows a small state set.
 //
 // opts:
 //   value     : signal<any> | any
@@ -7,9 +7,9 @@
 //   next?     : (current, states, event) => any
 //   onChange? : (next, current, event) => void
 //   size/kind/disabled: button defaults
-;(function (aeditor) {
+;(function (aiditor) {
   'use strict'
-  const ui = aeditor.ui = aeditor.ui || {}
+  const ui = aiditor.ui = aiditor.ui || {}
 
   ui.stateButton = function (opts) {
     const o = opts || {}
@@ -22,26 +22,26 @@
     let currentEvent = null
 
     const initial = stateFor(value.peek(), states)
-    const iconSig = aeditor.signal(read(initial.icon) || '')
-    const textSig = aeditor.signal(stateText(initial))
-    const titleSig = aeditor.signal(read(initial.title) || stateText(initial))
-    const ariaSig = aeditor.signal(read(initial.ariaLabel) || read(initial.title) || stateText(initial))
+    const iconSig = aiditor.signal(read(initial.icon) || '')
+    const textSig = aiditor.signal(stateText(initial))
+    const titleSig = aiditor.signal(read(initial.title) || stateText(initial))
+    const ariaSig = aiditor.signal(read(initial.ariaLabel) || read(initial.title) || stateText(initial))
     const sizeSig = ui.asSig(o.size || 'md')
-    const kindSig = aeditor.signal(read(initial.kind) || read(o.kind) || 'ghost')
+    const kindSig = aiditor.signal(read(initial.kind) || read(o.kind) || 'ghost')
     const disabledSig = ui.asSig(o.disabled != null ? o.disabled : false)
 
-    const btn = ui.h('button', hasText ? 'aeditor-ui-btn aeditor-ui-state-btn' : 'aeditor-ui-icon-btn aeditor-ui-state-btn', { type: 'button' })
+    const btn = ui.h('button', hasText ? 'aiditor-ui-btn aiditor-ui-state-btn' : 'aiditor-ui-icon-btn aiditor-ui-state-btn', { type: 'button' })
     const iconEl = ui.icon({ name: iconSig, size: sizeSig })
-    const textEl = ui.h('span', 'aeditor-ui-btn-text')
+    const textEl = ui.h('span', 'aiditor-ui-btn-text')
     btn.appendChild(iconEl)
     if (hasText) btn.appendChild(textEl)
 
-    if (hasText) ui.bindClass(btn, sizeSig, 'aeditor-ui-btn-')
-    else ui.bindClass(btn, sizeSig, 'aeditor-ui-icon-btn-')
-    ui.bindClass(btn, kindSig, 'aeditor-ui-btn-')
+    if (hasText) ui.bindClass(btn, sizeSig, 'aiditor-ui-btn-')
+    else ui.bindClass(btn, sizeSig, 'aiditor-ui-icon-btn-')
+    ui.bindClass(btn, kindSig, 'aiditor-ui-btn-')
     ui.bindAttr(btn, disabledSig, 'disabled')
     ui.bind(btn, iconSig, function (v) {
-      btn.classList.toggle('aeditor-ui-state-btn-icon-empty', !v)
+      btn.classList.toggle('aiditor-ui-state-btn-icon-empty', !v)
     })
     ui.bind(btn, titleSig, function (v) {
       const s = v == null ? '' : String(v)
@@ -56,7 +56,7 @@
     if (hasText) ui.bind(btn, textSig, function (v) {
       const s = v == null ? '' : String(v)
       textEl.textContent = s
-      btn.classList.toggle('aeditor-ui-btn-text-empty', s === '')
+      btn.classList.toggle('aiditor-ui-btn-text-empty', s === '')
     })
 
     btn.addEventListener('click', function (ev) {
@@ -68,7 +68,7 @@
       currentEvent = null
     })
 
-    ui.collect(btn, aeditor.effect(function () {
+    ui.collect(btn, aiditor.effect(function () {
       const v = value()
       const state = stateFor(v, states)
       const text = stateText(state)
@@ -80,7 +80,7 @@
       kindSig.set(read(state.kind) || read(o.kind) || 'ghost')
       btn.dataset.state = String(state.value)
       const pressed = state.pressed != null ? !!read(state.pressed) : state.value === true
-      btn.classList.toggle('aeditor-ui-state-btn-on', pressed)
+      btn.classList.toggle('aiditor-ui-state-btn-on', pressed)
       if (typeof state.value === 'boolean') btn.setAttribute('aria-pressed', String(pressed))
       else btn.removeAttribute('aria-pressed')
     }))
@@ -114,4 +114,4 @@
   function read(value) {
     return ui.isSignal && ui.isSignal(value) ? value() : value
   }
-})(window.aeditor = window.aeditor || {})
+})(window.aiditor = window.aiditor || {})

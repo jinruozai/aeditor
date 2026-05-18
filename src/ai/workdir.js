@@ -1,9 +1,9 @@
-// aeditor.ai workspace - one optional bounded root shared by all agents.
-;(function (aeditor) {
+// aiditor.ai workspace - one optional bounded root shared by all agents.
+;(function (aiditor) {
   'use strict'
 
-  const ai = aeditor.ai = aeditor.ai || {}
-  const version = aeditor.signal(0)
+  const ai = aiditor.ai = aiditor.ai || {}
+  const version = aiditor.signal(0)
   let workspace = null
   let directory = null
 
@@ -43,7 +43,7 @@
   }
 
   async function selectWorkspaceDirectory() {
-    const ws = await aeditor.workspace.openDirectory({ mode: 'readwrite' })
+    const ws = await aiditor.workspace.openDirectory({ mode: 'readwrite' })
     return setWorkspace(ws)
   }
 
@@ -171,7 +171,7 @@
           })
         }
         try {
-          after = aeditor.workspace.applyTextEdits(before.text, args.baseHash, args.edits || [])
+          after = aiditor.workspace.applyTextEdits(before.text, args.baseHash, args.edits || [])
         } catch (err) {
           return editFailurePreview(args, before, err)
         }
@@ -185,7 +185,7 @@
           })
         }
         try {
-          after = aeditor.workspace.applyLinePatches(before.text, args.baseHash, args.patches || [])
+          after = aiditor.workspace.applyLinePatches(before.text, args.baseHash, args.patches || [])
         } catch (err) {
           return Object.assign(basePreview(action, args, before, before.text), {
             ok: false,
@@ -211,7 +211,7 @@
       }
       if (action === 'write' || action === 'patch' || action === 'edit') {
         try {
-          aeditor.workspace.validateText(args.path, after, args || {})
+          aiditor.workspace.validateText(args.path, after, args || {})
         } catch (err) {
           return Object.assign(basePreview(action, args, before, after), {
             ok: false,
@@ -225,7 +225,7 @@
   }
 
   function basePreview(action, args, before, after) {
-    const baseHash = before && before.exists ? before.hash : aeditor.workspace.hashText('')
+    const baseHash = before && before.exists ? before.hash : aiditor.workspace.hashText('')
     return {
       ok: true,
       risk: action === 'delete' ? 'delete' : 'edit',
@@ -240,9 +240,9 @@
         baseVersion: baseHash,
         patchCount: args.patches ? args.patches.length : null,
         editCount: args.edits ? args.edits.length : null,
-        diff: aeditor.workspace.diffSummary(before && before.text || '', after),
+        diff: aiditor.workspace.diffSummary(before && before.text || '', after),
       }],
-      diff: aeditor.workspace.diffSummary(before && before.text || '', after),
+      diff: aiditor.workspace.diffSummary(before && before.text || '', after),
       before: before && before.exists ? { hash: before.hash, size: before.text.length } : null,
     }
   }
@@ -253,7 +253,7 @@
     }).then(function (file) {
       return { exists: true, text: file.text, hash: file.hash }
     }, function () {
-      return { exists: false, text: '', hash: aeditor.workspace.hashText('') }
+      return { exists: false, text: '', hash: aiditor.workspace.hashText('') }
     })
   }
 
@@ -263,7 +263,7 @@
 
   function attachDiff(result, before, after) {
     return Object.assign({}, result, {
-      diff: aeditor.workspace.diffSummary(before, after),
+      diff: aiditor.workspace.diffSummary(before, after),
     })
   }
 
@@ -279,7 +279,7 @@
     const ws = requireWorkspace()
     return readExistingFile(args.path).then(function (before) {
       const text = String(args.text == null ? '' : args.text)
-      aeditor.workspace.validateText(args.path, text, args || {})
+      aiditor.workspace.validateText(args.path, text, args || {})
       return ws.write(args.path, text, { baseHash: args.baseHash }).then(function (result) {
         return omitWrittenText(attachDiff(result, before, result.text))
       })
@@ -291,8 +291,8 @@
     return readExistingFileState(args.path).then(function (file) {
       if (!file.exists) throw new Error('workspace.patch: file not found: ' + args.path)
       const before = file.text
-      const text = aeditor.workspace.applyLinePatches(before, args.baseHash, args.patches || [])
-      aeditor.workspace.validateText(args.path, text, args || {})
+      const text = aiditor.workspace.applyLinePatches(before, args.baseHash, args.patches || [])
+      aiditor.workspace.validateText(args.path, text, args || {})
       return ws.write(args.path, text, { baseHash: args.baseHash }).then(function (result) {
         return omitWrittenText(attachDiff(result, before, result.text))
       })
@@ -306,12 +306,12 @@
       const before = file.text
       let text
       try {
-        text = aeditor.workspace.applyTextEdits(before, args.baseHash, args.edits || [])
+        text = aiditor.workspace.applyTextEdits(before, args.baseHash, args.edits || [])
       } catch (err) {
         if (!err.hint) err.hint = recoveryHint(err.code)
         throw err
       }
-      aeditor.workspace.validateText(args.path, text, args || {})
+      aiditor.workspace.validateText(args.path, text, args || {})
       return ws.write(args.path, text, { baseHash: args.baseHash }).then(function (result) {
         return omitWrittenText(attachDiff(result, before, result.text))
       })
@@ -366,7 +366,7 @@
   }
 
   function registerTools() {
-    const owner = 'aeditor.ai.workdir'
+    const owner = 'aiditor.ai.workdir'
     ai.tools.register('workspace.listFiles', {
       title: 'List Workspace Files',
       description: 'List files under the current AI workspace.',
@@ -486,4 +486,4 @@
   ai.workspaceVersion = function () { return version() }
 
   registerTools()
-})(window.aeditor = window.aeditor || {})
+})(window.aiditor = window.aiditor || {})

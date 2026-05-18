@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import vm from 'node:vm'
 
-global.window = { aeditor: {} }
+global.window = { aiditor: {} }
 const bridgeCalls = []
 global.fetch = function (url, opts) {
   bridgeCalls.push({ url: String(url), opts: opts || {} })
@@ -56,10 +56,10 @@ for (const file of [
   vm.runInThisContext(readFileSync(file, 'utf8'), { filename: file })
 }
 
-const aeditor = window.aeditor
+const aiditor = window.aiditor
 
-const closedProjectAgent = aeditor.ai.createAgent({ name: 'Closed Project Agent' })
-const closedProjectRequest = aeditor.ai.makeRequest(closedProjectAgent, null, 'run_closed_project', 'user', 0)
+const closedProjectAgent = aiditor.ai.createAgent({ name: 'Closed Project Agent' })
+const closedProjectRequest = aiditor.ai.makeRequest(closedProjectAgent, null, 'run_closed_project', 'user', 0)
 assert.equal(closedProjectRequest.tools.some(function (tool) { return tool.indexOf('demo.project.') === 0 }), false)
 let cleaned = false
 window.CaseProject = {
@@ -98,9 +98,9 @@ window.CaseProject = {
   },
 }
 
-const ws = aeditor.workspace.memory({
-  'aeditor.project.json': JSON.stringify({
-    type: 'aeditor-project',
+const ws = aiditor.workspace.memory({
+  'aiditor.project.json': JSON.stringify({
+    type: 'aiditor-project',
     schemaVersion: 1,
     id: 'case',
     title: 'Case Project',
@@ -122,20 +122,20 @@ const ws = aeditor.workspace.memory({
   'layout.json': JSON.stringify({ root: { type: 'dock', id: 'dock-1', name: 'main', panels: [], activeId: null } }),
 })
 
-aeditor.ai.setWorkspace(ws, { id: 'memory:case', label: 'Case Folder', kind: 'memory' })
-const workspaceProjectRequest = aeditor.ai.makeRequest(closedProjectAgent, null, 'run_workspace_project', 'user', 0)
+aiditor.ai.setWorkspace(ws, { id: 'memory:case', label: 'Case Folder', kind: 'memory' })
+const workspaceProjectRequest = aiditor.ai.makeRequest(closedProjectAgent, null, 'run_workspace_project', 'user', 0)
 assert.equal(workspaceProjectRequest.tools.includes('demo.project.openWorkspace'), false)
 assert.equal(workspaceProjectRequest.tools.includes('demo.project.mountPanel'), false)
-const openedFromWorkspace = await aeditor.ai.tools.get('demo.project.openWorkspace').run({})
+const openedFromWorkspace = await aiditor.ai.tools.get('demo.project.openWorkspace').run({})
 assert.equal(openedFromWorkspace.id, 'case')
 assert.equal(window.Demo.project.current().id, 'case')
 
 const project = await window.Demo.project.open(ws, { mount: {} })
 assert.equal(project.id, 'case')
 assert.equal(window.Demo.project.current().id, 'case')
-assert.equal(aeditor.ai.currentWorkspace(), ws)
-assert.deepEqual(aeditor.ai.workspaceMeta(), { id: 'demo.project:case', label: 'Case Project', kind: 'demo-project' })
-const openProjectRequest = aeditor.ai.makeRequest(closedProjectAgent, null, 'run_open_project', 'user', 0)
+assert.equal(aiditor.ai.currentWorkspace(), ws)
+assert.deepEqual(aiditor.ai.workspaceMeta(), { id: 'demo.project:case', label: 'Case Project', kind: 'demo-project' })
+const openProjectRequest = aiditor.ai.makeRequest(closedProjectAgent, null, 'run_open_project', 'user', 0)
 assert.equal(openProjectRequest.tools.includes('demo.project.readDescriptor'), true)
 assert.equal(openProjectRequest.tools.includes('demo.project.readSource'), true)
 assert.equal(openProjectRequest.tools.includes('demo.project.inspectPanel'), true)
@@ -151,63 +151,63 @@ assert.equal(openProjectRequest.tools.includes('demo.project.reload'), false)
 assert.equal(openProjectRequest.tools.includes('demo.project.mountPanel'), false)
 assert.equal(openProjectRequest.tools.includes('workspace.writeFile'), true)
 assert.equal(openProjectRequest.tools.includes('workspace.patchFile'), true)
-assert.equal(aeditor.componentRegistration('case.panel').owner.startsWith('project:case'), true)
-assert.equal(aeditor.ai.toolMeta('case.ping').owner.startsWith('project:case'), true)
-assert.deepEqual(aeditor.ai.references.read({ uri: 'case.ref://x', resolver: 'case.ref' }), { ok: true })
+assert.equal(aiditor.componentRegistration('case.panel').owner.startsWith('project:case'), true)
+assert.equal(aiditor.ai.toolMeta('case.ping').owner.startsWith('project:case'), true)
+assert.deepEqual(aiditor.ai.references.read({ uri: 'case.ref://x', resolver: 'case.ref' }), { ok: true })
 
 const savedLayout = await project.saveLayout()
 assert.equal(savedLayout.layoutPath, 'layout.json')
 assert.equal((await ws.read('layout.json')).text.includes('saved-panel'), true)
 const savedAsLayout = await window.Demo.project.saveLayout('case', { layoutPath: 'layout-copy.json', updateDescriptor: true })
 assert.equal(savedAsLayout.layoutPath, 'layout-copy.json')
-assert.equal(JSON.parse((await ws.read('aeditor.project.json')).text).layout, 'layout-copy.json')
+assert.equal(JSON.parse((await ws.read('aiditor.project.json')).text).layout, 'layout-copy.json')
 assert.equal((await ws.read('layout-copy.json')).text.includes('saved-panel'), true)
 await project.saveLayout({ layoutPath: 'layout.json', updateDescriptor: true })
 
-const file = await aeditor.ai.tools.get('demo.project.readFile').run({ path: 'src/panel.js' })
+const file = await aiditor.ai.tools.get('demo.project.readFile').run({ path: 'src/panel.js' })
 assert.equal(file.path, 'src/panel.js')
-const ranged = await aeditor.ai.tools.get('demo.project.readFileRange').run({ path: 'src/panel.js', startLine: 2, endLine: 2 })
+const ranged = await aiditor.ai.tools.get('demo.project.readFileRange').run({ path: 'src/panel.js', startLine: 2, endLine: 2 })
 assert.equal(ranged.text.trim(), 'return 1')
-const events = await aeditor.ai.tools.get('demo.project.readSource').run({ path: 'src/panel.js', projection: 'summary' })
+const events = await aiditor.ai.tools.get('demo.project.readSource').run({ path: 'src/panel.js', projection: 'summary' })
 assert.equal(events.lines, 4)
 assert.equal(events.id, 'case')
-const large = await aeditor.ai.tools.get('demo.project.readFile').run({ path: 'src/large.js', maxChars: 120, maxLines: 5 })
+const large = await aiditor.ai.tools.get('demo.project.readFile').run({ path: 'src/large.js', maxChars: 120, maxLines: 5 })
 assert.equal(large.truncated, true)
 assert.equal(Object.hasOwn(large, 'text'), false)
-await aeditor.ai.tools.get('demo.project.patchFile').run({
+await aiditor.ai.tools.get('demo.project.patchFile').run({
   path: 'src/panel.js',
   baseHash: file.hash,
   patches: [{ startLine: 2, endLine: 2, replacement: '  return 2' }],
 })
 assert.equal((await ws.read('src/panel.js')).text.includes('return 2'), true)
 
-assert.deepEqual(aeditor.ai.tools.get('demo.project.inspectPanel').run({ panelId: 'p1' }), { panelId: 'p1', status: 'ready' })
+assert.deepEqual(aiditor.ai.tools.get('demo.project.inspectPanel').run({ panelId: 'p1' }), { panelId: 'p1', status: 'ready' })
 assert.deepEqual(window.Demo.project.current().inspectDocks(), [{ dockId: 'dock-1', name: 'main', rect: { x: 1, y: 2, width: 300, height: 200 }, panels: [] }])
-const verifyChecks = await aeditor.ai.tools.get('verify.list').run({})
+const verifyChecks = await aiditor.ai.tools.get('verify.list').run({})
 assert.deepEqual(verifyChecks, [{
   id: 'demo.project.check',
   title: 'Project Check',
   projectId: 'case',
   projectTitle: 'Case Project',
 }, { source: 'bridge', id: 'check', title: 'npm run check' }])
-assert.equal((await aeditor.ai.tools.get('verify.run').run({ check: 'demo.project.check' })).ok, true)
-assert.equal((await aeditor.ai.tools.get('verify.run').run({ check: 'check' })).output, 'checked')
-assert.deepEqual(await aeditor.ai.tools.get('verify.diagnostics').run({}), [{ source: 'bridge', message: 'ok' }])
+assert.equal((await aiditor.ai.tools.get('verify.run').run({ check: 'demo.project.check' })).ok, true)
+assert.equal((await aiditor.ai.tools.get('verify.run').run({ check: 'check' })).output, 'checked')
+assert.deepEqual(await aiditor.ai.tools.get('verify.diagnostics').run({}), [{ source: 'bridge', message: 'ok' }])
 assert.ok(bridgeCalls.some(function (call) { return call.url.endsWith('/verify/run') }))
-assert.equal(aeditor.ai.tools.get('demo.project.promotePanel'), undefined)
+assert.equal(aiditor.ai.tools.get('demo.project.promotePanel'), undefined)
 assert.equal(window.Demo.project.promotePanel, undefined)
 
 await ws.write('src/panels/equipment.panel.js', [
-  ';(function (aeditor, Demo) {',
+  ';(function (aiditor, Demo) {',
   "  'use strict'",
   "  Demo.project.component('case.equipment', {",
   "    defaults: function () { return { title: 'Equipment', icon: 'sword', props: {} } },",
   '    factory: function () { return { tagName: "DIV" } },',
   '  })',
-  '})(window.aeditor = window.aeditor || {}, window.Demo = window.Demo || {})',
+  '})(window.aiditor = window.aiditor || {}, window.Demo = window.Demo || {})',
   '',
 ].join('\n'))
-const addPanelResult = await aeditor.ai.tools.get('demo.project.addPanel').run({
+const addPanelResult = await aiditor.ai.tools.get('demo.project.addPanel').run({
   component: 'case.equipment',
   dock: 'main',
   title: 'Equipment',
@@ -216,21 +216,21 @@ const addPanelResult = await aeditor.ai.tools.get('demo.project.addPanel').run({
 })
 assert.equal(addPanelResult.component, 'case.equipment')
 assert.equal((await ws.read('layout.json')).text.includes('case.equipment'), true)
-assert.equal((await ws.read('aeditor.project.json')).text.includes('src/panels/equipment.panel.js'), true)
-assert.equal(aeditor.componentRegistration('case.equipment').owner.startsWith('project:case'), true)
+assert.equal((await ws.read('aiditor.project.json')).text.includes('src/panels/equipment.panel.js'), true)
+assert.equal(aiditor.componentRegistration('case.equipment').owner.startsWith('project:case'), true)
 
-const stableDescriptor = await ws.read('aeditor.project.json')
+const stableDescriptor = await ws.read('aiditor.project.json')
 const stableLayout = await ws.read('layout.json')
 await ws.write('src/panels/broken.panel.js', 'throw new Error("broken panel file")\n')
-await assert.rejects(() => aeditor.ai.tools.get('demo.project.addPanel').run({
+await assert.rejects(() => aiditor.ai.tools.get('demo.project.addPanel').run({
   component: 'case.broken',
   dock: 'main',
   title: 'Broken',
   entryPath: 'src/panels/broken.panel.js',
 }), /broken panel file/)
 assert.equal(window.Demo.project.current().id, 'case')
-assert.equal(aeditor.componentRegistration('case.panel').owner.startsWith('project:case'), true)
-assert.equal((await ws.read('aeditor.project.json')).text, stableDescriptor.text)
+assert.equal(aiditor.componentRegistration('case.panel').owner.startsWith('project:case'), true)
+assert.equal((await ws.read('aiditor.project.json')).text, stableDescriptor.text)
 assert.equal((await ws.read('layout.json')).text, stableLayout.text)
 await ws.write('layout.json', JSON.stringify({
   root: {
@@ -242,20 +242,20 @@ await ws.write('layout.json', JSON.stringify({
   },
 }, null, 2), { baseHash: (await ws.read('layout.json')).hash })
 
-const descriptor = await ws.read('aeditor.project.json')
-await ws.write('aeditor.project.json', '{ broken')
+const descriptor = await ws.read('aiditor.project.json')
+await ws.write('aiditor.project.json', '{ broken')
 await assert.rejects(() => window.Demo.project.reload('case'), /JSON/)
 assert.equal(window.Demo.project.current().id, 'case')
-assert.equal(aeditor.componentRegistration('case.panel').owner.startsWith('project:case'), true)
-await ws.write('aeditor.project.json', descriptor.text)
+assert.equal(aiditor.componentRegistration('case.panel').owner.startsWith('project:case'), true)
+await ws.write('aiditor.project.json', descriptor.text)
 
 assert.equal(window.Demo.project.close('case'), true)
-assert.equal(aeditor.ai.currentWorkspace(), null)
+assert.equal(aiditor.ai.currentWorkspace(), null)
 assert.equal(cleaned, true)
-assert.equal(aeditor.componentRegistration('case.panel'), null)
-assert.equal(aeditor.ai.tools.get('case.ping'), undefined)
-assert.equal(aeditor.ai.references.get('case.ref'), null)
-assert.equal(aeditor.ai.operations.get('case.op'), null)
+assert.equal(aiditor.componentRegistration('case.panel'), null)
+assert.equal(aiditor.ai.tools.get('case.ping'), undefined)
+assert.equal(aiditor.ai.references.get('case.ref'), null)
+assert.equal(aiditor.ai.operations.get('case.op'), null)
 
 window.NoWorkspaceReadProject = {
   setup: function (ctx) {
@@ -264,9 +264,9 @@ window.NoWorkspaceReadProject = {
     })
   },
 }
-const noWorkspaceReadWs = aeditor.workspace.memory({
-  'aeditor.project.json': JSON.stringify({
-    type: 'aeditor-project',
+const noWorkspaceReadWs = aiditor.workspace.memory({
+  'aiditor.project.json': JSON.stringify({
+    type: 'aiditor-project',
     id: 'noread',
     entry: { type: 'script', symbol: 'NoWorkspaceReadProject' },
     layout: 'layout.json',
@@ -278,74 +278,74 @@ const noWorkspaceReadWs = aeditor.workspace.memory({
 })
 const noWorkspaceReadProject = await window.Demo.project.open(noWorkspaceReadWs)
 assert.equal(noWorkspaceReadProject.id, 'noread')
-assert.equal((await aeditor.ai.tools.get('demo.project.readFile').run({ projectId: 'noread', path: 'layout.json' })).path, 'layout.json')
+assert.equal((await aiditor.ai.tools.get('demo.project.readFile').run({ projectId: 'noread', path: 'layout.json' })).path, 'layout.json')
 assert.throws(() => noWorkspaceReadProject.ctx.workspace.read('layout.json'), /workspace\.read/)
 window.Demo.project.close('noread')
 
-const componentOnlyWs = aeditor.workspace.memory({
-  'aeditor.project.json': JSON.stringify({
-    type: 'aeditor-project',
+const componentOnlyWs = aiditor.workspace.memory({
+  'aiditor.project.json': JSON.stringify({
+    type: 'aiditor-project',
     id: 'componentonly',
     title: 'Component Only',
     entries: [{ type: 'script', src: 'inventory.panel.js' }],
-    layout: 'aeditor.layout.json',
+    layout: 'aiditor.layout.json',
     permissions: {
       'project.code.load': true,
     },
   }),
-  'aeditor.layout.json': JSON.stringify({ root: { type: 'dock', id: 'dock-main', name: 'main', panels: [], activeId: null } }),
+  'aiditor.layout.json': JSON.stringify({ root: { type: 'dock', id: 'dock-main', name: 'main', panels: [], activeId: null } }),
   'inventory.panel.js': [
-    ';(function (aeditor, Demo) {',
+    ';(function (aiditor, Demo) {',
     "  'use strict'",
     "  Demo.project.component('componentonly.inventory', {",
     "    defaults: function () { return { title: 'Inventory', icon: 'box', props: {} } },",
     '    factory: function () { return { tagName: "DIV" } }',
     '  })',
-    '})(window.aeditor = window.aeditor || {}, window.Demo = window.Demo || {})',
+    '})(window.aiditor = window.aiditor || {}, window.Demo = window.Demo || {})',
     '',
   ].join('\n'),
 })
 await window.Demo.project.open(componentOnlyWs)
 assert.equal(window.Demo.project.current().id, 'componentonly')
-assert.equal(aeditor.componentRegistration('componentonly.inventory').owner.startsWith('project:componentonly'), true)
-const componentOnlyMount = await aeditor.ai.tools.get('demo.project.mountPanel').run({
+assert.equal(aiditor.componentRegistration('componentonly.inventory').owner.startsWith('project:componentonly'), true)
+const componentOnlyMount = await aiditor.ai.tools.get('demo.project.mountPanel').run({
   component: 'componentonly.inventory',
   entryPath: 'inventory.panel.js',
   dock: 'main',
   title: 'Inventory',
 })
 assert.equal(componentOnlyMount.mounted, true)
-assert.equal((await componentOnlyWs.read('aeditor.layout.json')).text.includes('componentonly.inventory'), true)
+assert.equal((await componentOnlyWs.read('aiditor.layout.json')).text.includes('componentonly.inventory'), true)
 window.Demo.project.close('componentonly')
 
-const bootstrapWs = aeditor.workspace.memory({
-  'aeditor.project.json': JSON.stringify({ id: 'bootstrap-demo', name: 'Bootstrap Demo' }),
+const bootstrapWs = aiditor.workspace.memory({
+  'aiditor.project.json': JSON.stringify({ id: 'bootstrap-demo', name: 'Bootstrap Demo' }),
   'panel.js': [
-    ';(function (aeditor, Demo) {',
+    ';(function (aiditor, Demo) {',
     "  'use strict'",
     "  Demo.project.component('bootstrap.panel', {",
     "    defaults: function () { return { title: 'Bootstrap', props: {} } },",
     '    factory: function () { return { tagName: "DIV" } }',
     '  })',
-    '})(window.aeditor = window.aeditor || {}, window.Demo = window.Demo || {})',
+    '})(window.aiditor = window.aiditor || {}, window.Demo = window.Demo || {})',
     '',
   ].join('\n'),
 })
-aeditor.ai.setWorkspace(bootstrapWs, { id: 'memory:bootstrap', label: 'Bootstrap', kind: 'memory' })
-const bootstrapped = await aeditor.ai.tools.get('demo.project.mountPanel').run({
+aiditor.ai.setWorkspace(bootstrapWs, { id: 'memory:bootstrap', label: 'Bootstrap', kind: 'memory' })
+const bootstrapped = await aiditor.ai.tools.get('demo.project.mountPanel').run({
   component: 'bootstrap.panel',
   entryPath: 'panel.js',
   dock: 'main',
   title: 'Bootstrap',
 })
 assert.equal(bootstrapped.mounted, true)
-assert.equal(JSON.parse((await bootstrapWs.read('aeditor.project.json')).text).type, 'aeditor-project')
-assert.equal((await bootstrapWs.read('aeditor.layout.json')).text.includes('bootstrap.panel'), true)
+assert.equal(JSON.parse((await bootstrapWs.read('aiditor.project.json')).text).type, 'aiditor-project')
+assert.equal((await bootstrapWs.read('aiditor.layout.json')).text.includes('bootstrap.panel'), true)
 window.Demo.project.close('bootstrap-demo')
 
-const malformedWs = aeditor.workspace.memory({
-  'aeditor.project.json': JSON.stringify({
-    type: 'aeditor-project',
+const malformedWs = aiditor.workspace.memory({
+  'aiditor.project.json': JSON.stringify({
+    type: 'aiditor-project',
     id: 'malformed-demo',
     title: 'Malformed Demo',
     entries: [{ type: 'script', path: 'panel.js', component: 'malformed.panel' }],
@@ -359,26 +359,26 @@ const malformedWs = aeditor.workspace.memory({
     permissions: { 'project.code.load': true },
   }),
   'panel.js': [
-    ';(function (aeditor, Demo) {',
+    ';(function (aiditor, Demo) {',
     "  'use strict'",
     "  Demo.project.component('malformed.panel', {",
     "    defaults: function () { return { title: 'Malformed', props: {} } },",
     '    factory: function () { return { tagName: "DIV" } }',
     '  })',
-    '})(window.aeditor = window.aeditor || {}, window.Demo = window.Demo || {})',
+    '})(window.aiditor = window.aiditor || {}, window.Demo = window.Demo || {})',
     '',
   ].join('\n'),
 })
-aeditor.ai.setWorkspace(malformedWs, { id: 'memory:malformed', label: 'Malformed', kind: 'memory' })
-const malformedMount = await aeditor.ai.tools.get('demo.project.mountPanel').run({
+aiditor.ai.setWorkspace(malformedWs, { id: 'memory:malformed', label: 'Malformed', kind: 'memory' })
+const malformedMount = await aiditor.ai.tools.get('demo.project.mountPanel').run({
   component: 'malformed.panel',
   entryPath: 'panel.js',
 })
 assert.equal(malformedMount.mounted, true)
-const malformedDescriptor = JSON.parse((await malformedWs.read('aeditor.project.json')).text)
-assert.equal(malformedDescriptor.layout, 'aeditor.layout.json')
+const malformedDescriptor = JSON.parse((await malformedWs.read('aiditor.project.json')).text)
+assert.equal(malformedDescriptor.layout, 'aiditor.layout.json')
 assert.equal(malformedDescriptor.entries.filter(function (entry) { return entry.src === 'panel.js' }).length, 1)
-assert.equal((await malformedWs.read('aeditor.layout.json')).text.includes('malformed.panel'), true)
+assert.equal((await malformedWs.read('aiditor.layout.json')).text.includes('malformed.panel'), true)
 assert.equal((await malformedWs.list('')).some(function (entry) { return entry.path === '[object Object]' }), false)
 window.Demo.project.close('malformed-demo')
 
@@ -390,9 +390,9 @@ window.NoApplyProject = {
     })
   },
 }
-const noApplyWs = aeditor.workspace.memory({
-  'aeditor.project.json': JSON.stringify({
-    type: 'aeditor-project',
+const noApplyWs = aiditor.workspace.memory({
+  'aiditor.project.json': JSON.stringify({
+    type: 'aiditor-project',
     id: 'noapply',
     entry: { type: 'script', symbol: 'NoApplyProject' },
     permissions: {
@@ -402,8 +402,8 @@ const noApplyWs = aeditor.workspace.memory({
   }),
 })
 await window.Demo.project.open(noApplyWs)
-const preview = aeditor.ai.operations.preview('noapply.op', {})
-assert.throws(() => aeditor.ai.operations.apply(preview), /ai\.operations\.apply/)
+const preview = aiditor.ai.operations.preview('noapply.op', {})
+assert.throws(() => aiditor.ai.operations.apply(preview), /ai\.operations\.apply/)
 window.Demo.project.close('noapply')
 
 console.log('project runtime tests ok')

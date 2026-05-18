@@ -1,4 +1,4 @@
-// aeditor.ui.layoutRect — Unity/Godot-style anchor + offset rect.
+// aiditor.ui.layoutRect — Unity/Godot-style anchor + offset rect.
 //
 // One model handles every fixed-point + stretch case mainstream UI editors
 // expose. A child's geometry inside an absolute parent is fully captured by
@@ -24,9 +24,9 @@
 // Sign convention: oMin / oMax are slot-corner offsets in the natural
 // "right-and-down is positive" direction. For a fixed-point TL anchor with
 // 80×24 box at (10, 10): oMin = (10, 10), oMax = (90, 34).
-;(function (aeditor) {
+;(function (aiditor) {
   'use strict'
-  const ui = aeditor.ui = aeditor.ui || {}
+  const ui = aiditor.ui = aiditor.ui || {}
   const LR = ui.layoutRect = {}
 
   LR.identity = function () {
@@ -167,4 +167,4 @@
     return null
   }
   function eqAnchor(a, b) { return a && b && a.x === b.x && a.y === b.y }
-})(window.aeditor = window.aeditor || {})
+})(window.aiditor = window.aiditor || {})

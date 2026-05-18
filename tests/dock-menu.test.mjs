@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import vm from 'node:vm'
 
-global.window = { aeditor: {} }
+global.window = { aiditor: {} }
 vm.runInThisContext(readFileSync('src/core/names.js', 'utf8'), { filename: 'names.js' })
 vm.runInThisContext(readFileSync('src/core/signal.js', 'utf8'), { filename: 'signal.js' })
 vm.runInThisContext(readFileSync('src/core/commands.js', 'utf8'), { filename: 'commands.js' })
@@ -10,7 +10,7 @@ vm.runInThisContext(readFileSync('src/core/registry.js', 'utf8'), { filename: 'r
 vm.runInThisContext(readFileSync('src/tree/tree.js', 'utf8'), { filename: 'tree.js' })
 vm.runInThisContext(readFileSync('src/dock/menu.js', 'utf8'), { filename: 'dock-menu.js' })
 
-const aeditor = window.aeditor
+const aiditor = window.aiditor
 
 let tree = {
   type: 'dock',
@@ -34,16 +34,16 @@ const layout = {
   promotePanel: function (id) { promoted = id },
 }
 
-aeditor._dock.installDefaultDockMenu()
-aeditor._dock.installDefaultDockMenu()
-assert.equal(aeditor.commands.list({ owner: 'aeditor:dock-menu' }).length, 10)
-aeditor.commands.unregisterOwner('aeditor:dock-menu')
-assert.equal(aeditor.commands.list({ owner: 'aeditor:dock-menu' }).length, 0)
-aeditor._dock.installDefaultDockMenu()
-assert.equal(aeditor.commands.list({ owner: 'aeditor:dock-menu' }).length, 10)
+aiditor._dock.installDefaultDockMenu()
+aiditor._dock.installDefaultDockMenu()
+assert.equal(aiditor.commands.list({ owner: 'aiditor:dock-menu' }).length, 10)
+aiditor.commands.unregisterOwner('aiditor:dock-menu')
+assert.equal(aiditor.commands.list({ owner: 'aiditor:dock-menu' }).length, 0)
+aiditor._dock.installDefaultDockMenu()
+assert.equal(aiditor.commands.list({ owner: 'aiditor:dock-menu' }).length, 10)
 
-const dock = aeditor.findDock(tree, 'dock-a').node
-const items = aeditor.commands.menuUiItems('dock.context', {
+const dock = aiditor.findDock(tree, 'dock-a').node
+const items = aiditor.commands.menuUiItems('dock.context', {
   pos: { x: 1, y: 2 },
   dockId: 'dock-a',
   layout: layout,
@@ -55,7 +55,7 @@ const items = aeditor.commands.menuUiItems('dock.context', {
 assert.deepEqual(items.map(function (item) { return item.label }), ['Add Panel', 'Focus Panel', '', 'Panel', 'Toolbar'])
 
 items.find(function (item) { return item.label === 'Focus Panel' }).onSelect()
-assert.equal(aeditor.findDock(tree, 'dock-a').node.focused, true)
+assert.equal(aiditor.findDock(tree, 'dock-a').node.focused, true)
 
 const panelMenu = items.find(function (item) { return item.label === 'Panel' })
 assert.equal(panelMenu.items.find(function (item) { return item.label === 'Pin Active' }).disabled, false)
@@ -66,10 +66,10 @@ panelMenu.items.find(function (item) { return item.label === 'Close Active' }).o
 assert.equal(removed, 'panel-a')
 
 let opened = null
-aeditor.ui = { contextMenu: function (_, menuItems) { opened = menuItems } }
-aeditor._dock.openDockMenu({ x: 0, y: 0 }, 'dock-a', Object.assign({}, layout, { dockMenu: false }))
+aiditor.ui = { contextMenu: function (_, menuItems) { opened = menuItems } }
+aiditor._dock.openDockMenu({ x: 0, y: 0 }, 'dock-a', Object.assign({}, layout, { dockMenu: false }))
 assert.equal(opened, null)
-aeditor._dock.openDockMenu({ x: 0, y: 0 }, 'dock-a', layout)
+aiditor._dock.openDockMenu({ x: 0, y: 0 }, 'dock-a', layout)
 assert.equal(opened.length, 5)
 
 console.log('dock menu tests ok')

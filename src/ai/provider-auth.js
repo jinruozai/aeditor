@@ -1,8 +1,8 @@
-// aeditor.ai built-in auth drivers.
-;(function (aeditor) {
+// aiditor.ai built-in auth drivers.
+;(function (aiditor) {
   'use strict'
 
-  const ai = aeditor.ai = aeditor.ai || {}
+  const ai = aiditor.ai = aiditor.ai || {}
   const http = ai.provider
 
   function openLoginUrl(result, opts) {
@@ -58,4 +58,4 @@
       return http.requestJson(http.joinUrl(config.baseUrl, '/connections/' + connection.id + '/logout'), { method: 'POST' })
     },
   })
-})(window.aeditor = window.aeditor || {})
+})(window.aiditor = window.aiditor || {})

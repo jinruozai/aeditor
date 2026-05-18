@@ -14,7 +14,7 @@ The protocol should preserve all portable panel state and never silently lose di
 
 - Sent panel data omits fields such as `dirty`, `badge`, `transient`, and `name`.
 - `targetOriginFor()` can return `'null'` for `file://`, which is fragile as a `postMessage` target origin.
-- Receiver binds whenever `window.opener` exists, not only when the page is an aeditor popup.
+- Receiver binds whenever `window.opener` exists, not only when the page is an aiditor popup.
 - Receiver listener is not attached to layout destroy.
 - Migration protocol is embedded in `migrate.js`; it is manageable now, but ownership should be clearer as it hardens.
 
@@ -25,14 +25,14 @@ Source:
 1. user calls `ctx.panel.popOut()` or drags outside
 2. source serializes portable `PanelData`
 3. source serializes component runtime state if `spec.serialize` exists
-4. source opens target URL with explicit `aeditor-popup=1` and transaction id
+4. source opens target URL with explicit `aiditor-popup=1` and transaction id
 5. source waits for `ready(txId)`
 6. source posts `migrate(txId, panelData, state)`
 7. source removes local panel only after `migrate-ack(txId)`
 
 Target:
 
-1. only binds receiver when `aeditor-popup=1` is present
+1. only binds receiver when `aiditor-popup=1` is present
 2. sends `ready(txId)` to opener
 3. verifies source and origin
 4. finds accepting dock
@@ -66,7 +66,7 @@ Never preserve:
 For `file://`, use a deliberate rule:
 
 - strict same-origin for http/https
-- for null-origin file mode, use `'*'` only when both windows are expected aeditor popup participants and `source` checks still match
+- for null-origin file mode, use `'*'` only when both windows are expected aiditor popup participants and `source` checks still match
 
 This keeps double-click mode working while preserving source-window checks.
 
@@ -120,7 +120,7 @@ Cleanup must remove:
 - `src/dock/migrate.js`
 - optional `src/dock/drag-session.js`
 - `tools/build.mjs`
-- `dist/aeditor.js`
+- `dist/aiditor.js`
 
 ## Acceptance criteria
 

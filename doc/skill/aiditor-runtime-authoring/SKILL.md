@@ -1,36 +1,36 @@
 ---
-name: aeditor-runtime-authoring
-description: Use when an AI agent is running inside an AEditor host and needs to create, edit, load, mount, or replace workspace-backed panels/components in the live editor dock runtime.
+name: aiditor-runtime-authoring
+description: Use when an AI agent is running inside an Aiditor host and needs to create, edit, load, mount, or replace workspace-backed panels/components in the live editor dock runtime.
 ---
 
-# AEditor Runtime Authoring
+# Aiditor Runtime Authoring
 
-Use this skill when you are already inside an AEditor-powered editor and the
+Use this skill when you are already inside an Aiditor-powered editor and the
 user asks you to make UI appear in the current editor, such as "put a panel in
 the main dock" or "replace this panel".
 
 This is not the skill for designing an app from scratch in an external code
-repo. For that, use `aeditor-library-authoring`.
+repo. For that, use `aiditor-library-authoring`.
 
 ## First Move
 
 1. Read the skill index if you are not sure this is the right workflow:
 
 ```js
-aeditor.readReference({ uri: 'aeditor://skills' })
+aiditor.readReference({ uri: 'aiditor://skills' })
 ```
 
 2. Read the generated API index when you need exact call shape:
 
 ```js
-aeditor.searchReferences({ query: 'api', limit: 50 })
-aeditor.readReference({ uri: 'aeditor://api' })
+aiditor.searchReferences({ query: 'api', limit: 50 })
+aiditor.readReference({ uri: 'aiditor://api' })
 ```
 
 3. Inspect the live dock runtime:
 
 ```js
-aeditor.inspectDocks({})
+aiditor.inspectDocks({})
 ```
 
 Use a returned dock id or panel id. Do not guess names like `main` unless the
@@ -47,7 +47,7 @@ For a new panel:
 5. Mount the component:
 
 ```js
-aeditor.addPanelToDock({
+aiditor.addPanelToDock({
   dock: 'dock-id-from-inspectDocks',
   component: 'component-id',
   path: 'component-file.js',
@@ -58,7 +58,7 @@ aeditor.addPanelToDock({
 For replacing an existing panel:
 
 ```js
-aeditor.replacePanel({
+aiditor.replacePanel({
   panelId: 'panel-id-from-inspectDocks',
   component: 'component-id',
   path: 'component-file.js',
@@ -72,7 +72,7 @@ panel.
 For refreshing the same mounted panel after editing its component file:
 
 ```js
-aeditor.reloadPanel({
+aiditor.reloadPanel({
   panelId: 'panel-id-from-inspectDocks',
   path: 'component-file.js',
 })
@@ -84,17 +84,17 @@ changing the panel to a different component.
 ## Component File Pattern
 
 ```js
-;(function (aeditor) {
+;(function (aiditor) {
   'use strict'
 
-  aeditor.registerComponent('demo.login', {
+  aiditor.registerComponent('demo.login', {
     category: 'panel',
     label: 'Login',
     defaults: function () {
       return { title: 'Login', icon: 'log-in', props: {} }
     },
     factory: function (propsSig, ctx) {
-      const ui = aeditor.ui
+      const ui = aiditor.ui
       const root = ui.h('div', 'demo-login')
       root.style.height = '100%'
       root.style.minHeight = '0'
@@ -115,11 +115,11 @@ changing the panel to a different component.
       return root
     },
   })
-})(window.aeditor = window.aeditor || {})
+})(window.aiditor = window.aiditor || {})
 ```
 
 If the host has a project wrapper such as `Demo.project.component(id, spec)`,
-use that wrapper instead of `aeditor.registerComponent`. Use one registration
+use that wrapper instead of `aiditor.registerComponent`. Use one registration
 path per file, never both.
 
 ## Rules
@@ -127,20 +127,20 @@ path per file, never both.
 - Do not hand-write layout JSON for live placement.
 - Do not pass source code inside dock/panel tool arguments.
 - Do not use React, Vue, JSX, TSX, TypeScript annotations, `import`, or
-  `export` in zero-build AEditor workspace scripts.
-- Prefer `aeditor.ui.*` controls when available.
-- Use `aeditor.ui.view` for primary scroll surfaces.
-- Use `aeditor.ui.propertyForm` for local schema-driven forms.
-- Use `aeditor.inspector` providers for shared selection inspection.
+  `export` in zero-build Aiditor workspace scripts.
+- Prefer `aiditor.ui.*` controls when available.
+- Use `aiditor.ui.view` for primary scroll surfaces.
+- Use `aiditor.ui.propertyForm` for local schema-driven forms.
+- Use `aiditor.inspector` providers for shared selection inspection.
 - If `addPanelToDock` says the component is not registered, pass the workspace
   file `path` explicitly.
 - After changing the file for an already-mounted panel, call
-  `aeditor.reloadPanel({ panelId, path })`; do not use `replacePanel` as a
+  `aiditor.reloadPanel({ panelId, path })`; do not use `replacePanel` as a
   refresh shortcut.
 - If no writable workspace is open, tell the user to open/select a workspace
   before creating durable UI.
 
 ## References
 
-- `../aeditor-authoring/references/component-patterns.md`
-- `../aeditor-authoring/references/ai-workflow.md`
+- `../aiditor-authoring/references/component-patterns.md`
+- `../aiditor-authoring/references/ai-workflow.md`

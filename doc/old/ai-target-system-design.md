@@ -1,11 +1,11 @@
 # AI Target System
 
 Status: historical background, superseded by `doc/ai-reference-operation-architecture.md`
-Scope: generic AEditor AI target protocol plus GameDataEditor target map
+Scope: generic Aiditor AI target protocol plus GameDataEditor target map
 
-New code should use `aeditor.ai.attach(...)`, `aeditor.ai.references`, and `aeditor.ai.operations`.
+New code should use `aiditor.ai.attach(...)`, `aiditor.ai.references`, and `aiditor.ai.operations`.
 
-AEditor AI is not tied to a specific editor. The framework defines how UI objects become stable AI-addressable targets; applications define how those targets resolve into domain data and tools.
+Aiditor AI is not tied to a specific editor. The framework defines how UI objects become stable AI-addressable targets; applications define how those targets resolve into domain data and tools.
 
 ## Goals
 
@@ -38,19 +38,19 @@ AEditor AI is not tied to a specific editor. The framework defines how UI object
 ## Framework API
 
 ```js
-aeditor.ai.registerTargetProvider(id, provider)
-aeditor.ai.captureTarget(source, ctx)
-aeditor.ai.normalizeTarget(target)
-aeditor.ai.addTarget(target)
-aeditor.ai.attach(el, targetOrFn, opts)
-aeditor.ai.installTargetDrop(el, opts)
-aeditor.ai.attachTargetsToAgent(agentId, targets)
+aiditor.ai.registerTargetProvider(id, provider)
+aiditor.ai.captureTarget(source, ctx)
+aiditor.ai.normalizeTarget(target)
+aiditor.ai.addTarget(target)
+aiditor.ai.attach(el, targetOrFn, opts)
+aiditor.ai.installTargetDrop(el, opts)
+aiditor.ai.attachTargetsToAgent(agentId, targets)
 ```
 
 `attach` may enable drag, context menu, or both:
 
 ```js
-aeditor.ai.attach(el, function () {
+aiditor.ai.attach(el, function () {
   return {
     resolver: "gde",
     uri: "gde://field/data/items/1001/price",
@@ -63,8 +63,8 @@ aeditor.ai.attach(el, function () {
 Framework drag MIME types:
 
 ```txt
-application/x-aeditor-ai-target
-application/x-aeditor-ai-target-list
+application/x-aiditor-ai-target
+application/x-aiditor-ai-target-list
 ```
 
 ## Runtime Context Injection

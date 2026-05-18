@@ -1,11 +1,11 @@
-;(function (aeditor) {
+;(function (aiditor) {
   'use strict'
 
-  const ui = aeditor.ui
-  const LANG_KEY = 'aeditor.lang'
-  const LAST_WORKSPACE_KEY = 'aeditor.demo.lastWorkspace'
-  const RECENT_WORKSPACES_KEY = 'aeditor.demo.recentWorkspaces'
-  const LAYOUT_PATH_KEY = 'aeditor.demo.layoutPath'
+  const ui = aiditor.ui
+  const LANG_KEY = 'aiditor.lang'
+  const LAST_WORKSPACE_KEY = 'aiditor.demo.lastWorkspace'
+  const RECENT_WORKSPACES_KEY = 'aiditor.demo.recentWorkspaces'
+  const LAYOUT_PATH_KEY = 'aiditor.demo.layoutPath'
 
   function savedLang() {
     return localStorage.getItem(LANG_KEY) || document.documentElement.lang || 'en'
@@ -15,18 +15,18 @@
     const next = lang === 'zh' ? 'zh' : 'en'
     localStorage.setItem(LANG_KEY, next)
     document.documentElement.lang = next
-    window.dispatchEvent(new CustomEvent('aeditor-language-change', { detail: { language: next } }))
+    window.dispatchEvent(new CustomEvent('aiditor-language-change', { detail: { language: next } }))
   }
 
   function report(err) {
-    if (aeditor.reportError) aeditor.reportError({ scope: 'demo', component: 'topbar' }, err)
+    if (aiditor.reportError) aiditor.reportError({ scope: 'demo', component: 'topbar' }, err)
     else console.error(err)
   }
 
   function info(message, meta) {
     let suffix = ''
     try { suffix = meta ? ' ' + JSON.stringify(meta) : '' } catch (_) { suffix = ' [unserializable meta]' }
-    if (aeditor.log && aeditor.log.push) aeditor.log.push('info', { scope: 'demo', component: 'topbar' }, message + suffix)
+    if (aiditor.log && aiditor.log.push) aiditor.log.push('info', { scope: 'demo', component: 'topbar' }, message + suffix)
   }
 
   function toast(kind, message) {
@@ -57,7 +57,7 @@
     const text = String(err && (err.message || err) || '')
     return (
       err && err.name === 'NotFoundError' ||
-      /aeditor\.project\.json|Invalid project descriptor|Project descriptor|could not be found|not found/i.test(text)
+      /aiditor\.project\.json|Invalid project descriptor|Project descriptor|could not be found|not found/i.test(text)
     )
   }
 
@@ -71,22 +71,22 @@
   }
 
   function currentWorkspace() {
-    return aeditor.ai && aeditor.ai.currentWorkspace && aeditor.ai.currentWorkspace()
+    return aiditor.ai && aiditor.ai.currentWorkspace && aiditor.ai.currentWorkspace()
   }
 
   function currentWorkspaceLayoutKey() {
-    const meta = aeditor.ai && aeditor.ai.workspaceMeta && aeditor.ai.workspaceMeta()
+    const meta = aiditor.ai && aiditor.ai.workspaceMeta && aiditor.ai.workspaceMeta()
     const ws = currentWorkspace()
     const id = meta && meta.id || ws && ws.rootId && ws.rootId() || 'workspace'
     return LAYOUT_PATH_KEY + '.' + id
   }
 
   function currentWorkspaceLayoutPath() {
-    return localStorage.getItem(currentWorkspaceLayoutKey()) || 'aeditor.layout.json'
+    return localStorage.getItem(currentWorkspaceLayoutKey()) || 'aiditor.layout.json'
   }
 
   function currentWorkspaceOwner() {
-    const meta = aeditor.ai && aeditor.ai.workspaceMeta && aeditor.ai.workspaceMeta()
+    const meta = aiditor.ai && aiditor.ai.workspaceMeta && aiditor.ai.workspaceMeta()
     return 'workspace:' + String(meta && meta.id || meta && meta.label || 'current')
   }
 
@@ -136,7 +136,7 @@
     path = String(path || '').replace(/\\/g, '/')
     const lower = path.toLowerCase()
     if (!lower || lower === 'index.html') return false
-    if (lower.indexOf('aeditor-runtime/') === 0) return false
+    if (lower.indexOf('aiditor-runtime/') === 0) return false
     if (lower.indexOf('node_modules/') === 0 || lower.indexOf('.git/') === 0) return false
     return /\.js$/.test(lower) || /\.css$/.test(lower)
   }
@@ -155,7 +155,7 @@
         if (!itemPath || seen[itemPath]) continue
         seen[itemPath] = true
         if (item.kind === 'directory') {
-          if (lower === 'aeditor-runtime' || lower === 'node_modules' || lower === '.git') continue
+          if (lower === 'aiditor-runtime' || lower === 'node_modules' || lower === '.git') continue
           await walk(itemPath)
           continue
         }
@@ -183,7 +183,7 @@
   function registrationPattern(component) {
     const escaped = String(component || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
     return new RegExp(
-      '(aeditor\\s*\\.\\s*registerComponent|registerComponent|Demo\\s*\\.\\s*project\\s*\\.\\s*component)' +
+      '(aiditor\\s*\\.\\s*registerComponent|registerComponent|Demo\\s*\\.\\s*project\\s*\\.\\s*component)' +
       '\\s*\\(\\s*[\'"]' + escaped + '[\'"]'
     )
   }
@@ -197,8 +197,8 @@
 
   async function loadWorkspaceScript(ws, path) {
     const file = await ws.read(path)
-    if (!aeditor.runtime || !aeditor.runtime.loadScript) throw new Error('aeditor.runtime.loadScript is not available')
-    await aeditor.runtime.loadScript({
+    if (!aiditor.runtime || !aiditor.runtime.loadScript) throw new Error('aiditor.runtime.loadScript is not available')
+    await aiditor.runtime.loadScript({
       id: path,
       path: path,
       source: file.text,
@@ -215,7 +215,7 @@
     const paths = {}
     walkPanels(root, function (panel) {
       const component = panel && panel.component
-      if (!component || aeditor.componentRegistration && aeditor.componentRegistration(component)) return
+      if (!component || aiditor.componentRegistration && aiditor.componentRegistration(component)) return
       needed[component] = true
       const sourcePath = panel.sourcePath || panel.path || panel.entryPath
       if (sourcePath) paths[sourcePath] = true
@@ -230,7 +230,7 @@
       loaded.push(pathList[i])
     }
     names = names.filter(function (component) {
-      return !(aeditor.componentRegistration && aeditor.componentRegistration(component))
+      return !(aiditor.componentRegistration && aiditor.componentRegistration(component))
     })
     if (!names.length) return loaded
 
@@ -242,7 +242,7 @@
       if (!file) continue
       const matches = names.filter(function (component) { return registrationPattern(component).test(file.text) })
       if (!matches.length) continue
-      await aeditor.runtime.loadScript({
+      await aiditor.runtime.loadScript({
         id: path,
         path: path,
         source: file.text,
@@ -253,7 +253,7 @@
       })
       loaded.push(path)
       names = names.filter(function (component) {
-        return !(aeditor.componentRegistration && aeditor.componentRegistration(component))
+        return !(aiditor.componentRegistration && aiditor.componentRegistration(component))
       })
     }
     return loaded
@@ -265,9 +265,9 @@
     const primaryPath = currentWorkspaceLayoutPath()
     let file = await readFileOrNull(ws, primaryPath)
     let layoutPath = primaryPath
-    if (!file && primaryPath !== 'aeditor.layout.json') {
-      file = await readFileOrNull(ws, 'aeditor.layout.json')
-      layoutPath = 'aeditor.layout.json'
+    if (!file && primaryPath !== 'aiditor.layout.json') {
+      file = await readFileOrNull(ws, 'aiditor.layout.json')
+      layoutPath = 'aiditor.layout.json'
     }
     if (!file) return false
     const root = layoutRoot(JSON.parse(file.text))
@@ -291,28 +291,28 @@
       '<html lang="en">',
       '<head>',
       '  <meta charset="UTF-8">',
-      '  <title>AEditor Workspace</title>',
+      '  <title>Aiditor Workspace</title>',
       '  <meta name="viewport" content="width=device-width, initial-scale=1">',
-      '  <link rel="stylesheet" href="./aeditor-runtime/aeditor-full.css">',
+      '  <link rel="stylesheet" href="./aiditor-runtime/aiditor-full.css">',
       styles,
       '  <style>',
-      '    html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: var(--aeditor-bg-0, #07070a); }',
+      '    html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: var(--aiditor-bg-0, #07070a); }',
       '    #app { width: 100vw; height: 100dvh; }',
       '  </style>',
       '</head>',
       '<body>',
       '  <div id="app"></div>',
-      '  <script src="./aeditor-runtime/aeditor-full.js"></script>',
+      '  <script src="./aiditor-runtime/aiditor-full.js"></script>',
       scripts,
       '  <script>',
       '    ;(function () {',
       '      var saved = ' + scriptJson({ root: root }) + ';',
-      '      var layout = aeditor.createDockLayout(document.getElementById("app"), {',
+      '      var layout = aiditor.createDockLayout(document.getElementById("app"), {',
       '        tree: saved.root,',
       '        lru: { max: -1 },',
       '        dockMenu: true',
       '      });',
-      '      window.aeditorDebug = {',
+      '      window.aiditorDebug = {',
       '        layout: layout,',
       '        tree: function () { return layout.tree(); }',
       '      };',
@@ -326,10 +326,10 @@
 
   async function writeStandaloneWorkspace(ws, root) {
     const assets = await collectStandaloneAssets(ws)
-    const css = await fetchText('./dist/aeditor-full.css?v=13')
-    const js = await fetchText('./dist/aeditor-full.js?v=13')
-    await writeTextFile(ws, 'aeditor-runtime/aeditor-full.css', css)
-    await writeTextFile(ws, 'aeditor-runtime/aeditor-full.js', js)
+    const css = await fetchText('./dist/aiditor-full.css?v=13')
+    const js = await fetchText('./dist/aiditor-full.js?v=13')
+    await writeTextFile(ws, 'aiditor-runtime/aiditor-full.css', css)
+    await writeTextFile(ws, 'aiditor-runtime/aiditor-full.js', js)
     await writeTextFile(ws, 'index.html', standaloneHtml(root, assets))
     return { ok: true, indexPath: 'index.html', scripts: assets.scripts.length, styles: assets.styles.length }
   }
@@ -351,15 +351,15 @@
     if (window.Demo && Demo.project && Demo.project.open) {
       try {
         await Demo.project.open(ws, { mount: {} })
-        info(source + ': opened as AEditor project', { label: label })
+        info(source + ': opened as Aiditor project', { label: label })
         return true
       } catch (err) {
         if (!isMissingProjectDescriptor(err)) throw err
         info(source + ': no project descriptor, using directory as AI workspace', { label: label })
       }
     }
-    if (aeditor.ai && aeditor.ai.setWorkspace) {
-      aeditor.ai.setWorkspace(ws, { id: 'workspace:' + label, label: label, kind: kind })
+    if (aiditor.ai && aiditor.ai.setWorkspace) {
+      aiditor.ai.setWorkspace(ws, { id: 'workspace:' + label, label: label, kind: kind })
       info(source + ': AI workspace set', { label: label, kind: kind })
     }
     try {
@@ -372,36 +372,36 @@
   }
 
   async function openWorkspaceFolder() {
-    if (!aeditor.workspace || !aeditor.workspace.openDirectory) return false
+    if (!aiditor.workspace || !aiditor.workspace.openDirectory) return false
     try {
       info('Open workspace folder: requesting directory permission')
       const rememberKey = LAST_WORKSPACE_KEY + '.' + Date.now().toString(36)
-      const ws = await aeditor.workspace.openDirectory({ mode: 'readwrite', rememberKey: rememberKey })
+      const ws = await aiditor.workspace.openDirectory({ mode: 'readwrite', rememberKey: rememberKey })
       rememberWorkspace(rememberKey, ws)
       return useWorkspace(ws, 'Open workspace folder')
     } catch (err) {
       report(err)
-      if (aeditor.ai && aeditor.ai.clearWorkspace) aeditor.ai.clearWorkspace()
+      if (aiditor.ai && aiditor.ai.clearWorkspace) aiditor.ai.clearWorkspace()
       return false
     }
   }
 
   async function restoreWorkspaceKey(key, source) {
-    if (!aeditor.workspace || !aeditor.workspace.restoreDirectory || !key) return false
-    const ws = await aeditor.workspace.restoreDirectory(key, { mode: 'readwrite' })
+    if (!aiditor.workspace || !aiditor.workspace.restoreDirectory || !key) return false
+    const ws = await aiditor.workspace.restoreDirectory(key, { mode: 'readwrite' })
     if (!ws) return false
     rememberWorkspace(key, ws)
     return useWorkspace(ws, source || 'Open recent workspace')
   }
 
   async function restoreWorkspaceFolder() {
-    if (!aeditor.workspace || !aeditor.workspace.restoreDirectory) return false
+    if (!aiditor.workspace || !aiditor.workspace.restoreDirectory) return false
     try {
       const recent = readRecentWorkspaces()
       for (let i = 0; i < recent.length; i++) {
         if (await restoreWorkspaceKey(recent[i].key, 'Restore recent workspace')) return true
       }
-      const ws = await aeditor.workspace.restoreDirectory(LAST_WORKSPACE_KEY, { mode: 'readwrite' })
+      const ws = await aiditor.workspace.restoreDirectory(LAST_WORKSPACE_KEY, { mode: 'readwrite' })
       if (!ws) return false
       rememberWorkspace(LAST_WORKSPACE_KEY, ws)
       return useWorkspace(ws, 'Restore workspace folder')
@@ -440,7 +440,7 @@
     const layout = window.Demo && Demo.layout
     if (!ws || !layout || !layout.tree) return null
     const o = opts || {}
-    const layoutPath = String(o.path || o.layoutPath || currentWorkspaceLayoutPath()).trim() || 'aeditor.layout.json'
+    const layoutPath = String(o.path || o.layoutPath || currentWorkspaceLayoutPath()).trim() || 'aiditor.layout.json'
     const previous = await readFileOrNull(ws, layoutPath)
     const saved = await ws.write(
       layoutPath,
@@ -477,7 +477,7 @@
         if (project && project.close) project.close()
       }
     }
-    if (aeditor.ai && aeditor.ai.clearWorkspace) aeditor.ai.clearWorkspace()
+    if (aiditor.ai && aiditor.ai.clearWorkspace) aiditor.ai.clearWorkspace()
   }
 
   function recentWorkspaceItems(refreshTitle) {
@@ -502,7 +502,7 @@
   function currentTitle() {
     const project = currentProject()
     if (project && project.title) return project.title
-    if (aeditor.ai && aeditor.ai.workspaceLabel) return aeditor.ai.workspaceLabel()
+    if (aiditor.ai && aiditor.ai.workspaceLabel) return aiditor.ai.workspaceLabel()
     return 'Untitled'
   }
 
@@ -548,23 +548,23 @@
   }
 
   function mount(host) {
-    const lang = aeditor.signal(savedLang())
+    const lang = aiditor.signal(savedLang())
     const brandMenu = { handle: null }
     const languageMenu = { handle: null }
-    const titleTick = aeditor.signal(0)
+    const titleTick = aiditor.signal(0)
     setLanguage(lang.peek())
 
     host.innerHTML = ''
 
-    const brand = ui.h('button', 'aed-brand')
+    const brand = ui.h('button', 'aid-brand')
     brand.type = 'button'
-    brand.appendChild(ui.h('span', 'aed-brand-icon'))
-    brand.appendChild(ui.h('span', 'aed-brand-name', { text: 'AEditor' }))
+    brand.appendChild(ui.h('span', 'aid-brand-icon'))
+    brand.appendChild(ui.h('span', 'aid-brand-name', { text: 'Aiditor' }))
     brand.appendChild(ui.icon({ name: 'chevron-down', size: 'sm' }))
 
-    const project = ui.h('div', 'aed-project-name')
-    const spacer = ui.h('div', 'aed-topbar-spacer')
-    const languageText = aeditor.derived(function () { return lang() === 'zh' ? 'ZH' : 'EN' })
+    const project = ui.h('div', 'aid-project-name')
+    const spacer = ui.h('div', 'aid-topbar-spacer')
+    const languageText = aiditor.derived(function () { return lang() === 'zh' ? 'ZH' : 'EN' })
     const language = ui.button({
       text: languageText,
       kind: 'ghost',
@@ -581,7 +581,7 @@
         })
       },
     })
-    language.classList.add('aed-lang-btn')
+    language.classList.add('aid-lang-btn')
 
     brand.addEventListener('click', function (ev) {
       const saveReady = canSaveLayout()
@@ -611,9 +611,9 @@
     host.appendChild(spacer)
     host.appendChild(language)
 
-    if (aeditor.ai.workspaceVersion) {
-      aeditor.effect(function () {
-        aeditor.ai.workspaceVersion()
+    if (aiditor.ai.workspaceVersion) {
+      aiditor.effect(function () {
+        aiditor.ai.workspaceVersion()
         titleTick()
         project.textContent = currentTitle()
       })
@@ -626,5 +626,5 @@
     })
   }
 
-  window.AEditorTopBar = { mount: mount }
-})(window.aeditor = window.aeditor || {})
+  window.AiditorTopBar = { mount: mount }
+})(window.aiditor = window.aiditor || {})

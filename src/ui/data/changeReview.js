@@ -1,7 +1,7 @@
-;(function (aeditor) {
+;(function (aiditor) {
   'use strict'
 
-  const ui = aeditor.ui
+  const ui = aiditor.ui
 
   function read(v) {
     return ui.isSignal(v) ? v() : v
@@ -26,11 +26,11 @@
   }
 
   function statusClass(status) {
-    return 'aeditor-change-review-status aeditor-change-review-status-' + (status || 'pending')
+    return 'aiditor-change-review-status aiditor-change-review-status-' + (status || 'pending')
   }
 
   function appendActions(parent, set, opts, root) {
-    const actions = ui.h('div', 'aeditor-change-review-actions')
+    const actions = ui.h('div', 'aiditor-change-review-actions')
     const allowApply = opts.allowApply !== false && set.status !== 'applied' && set.status !== 'rejected'
     const allowReject = opts.allowReject !== false && set.status !== 'applied' && set.status !== 'rejected'
     if (allowApply) {
@@ -38,7 +38,7 @@
         text: opts.applyText || 'Apply',
         kind: 'primary',
         size: 'sm',
-        onClick: function () { runAction(opts.onApply || function () { return aeditor.changeSet.apply(set, { type: 'all' }, 'user') }, set, { type: 'all' }, root, opts) },
+        onClick: function () { runAction(opts.onApply || function () { return aiditor.changeSet.apply(set, { type: 'all' }, 'user') }, set, { type: 'all' }, root, opts) },
       }))
     }
     if (allowReject) {
@@ -46,7 +46,7 @@
         text: opts.rejectText || 'Reject',
         kind: 'default',
         size: 'sm',
-        onClick: function () { runAction(opts.onReject || function () { return aeditor.changeSet.reject(set, { type: 'all' }, 'user') }, set, { type: 'all' }, root, opts) },
+        onClick: function () { runAction(opts.onReject || function () { return aiditor.changeSet.reject(set, { type: 'all' }, 'user') }, set, { type: 'all' }, root, opts) },
       }))
     }
     actions.appendChild(ui.copyButton({ text: JSON.stringify(set, null, 2), title: 'Copy ChangeSet', size: 'sm' }))
@@ -55,7 +55,7 @@
 
   function runAction(fn, set, scope, root, opts) {
     Promise.resolve(fn(set, scope)).then(function (next) {
-      if (next && aeditor.changeSet && aeditor.changeSet.isChangeSet(next)) renderInto(root, next, opts)
+      if (next && aiditor.changeSet && aiditor.changeSet.isChangeSet(next)) renderInto(root, next, opts)
     })
   }
 
@@ -63,10 +63,10 @@
     const validation = set.validation || {}
     const items = (validation.errors || []).concat(validation.warnings || [])
     if (!items.length) return null
-    const wrap = ui.h('div', 'aeditor-change-review-validation')
+    const wrap = ui.h('div', 'aiditor-change-review-validation')
     for (let i = 0; i < items.length; i++) {
       const item = items[i]
-      wrap.appendChild(ui.h('div', 'aeditor-change-review-validation-item', {
+      wrap.appendChild(ui.h('div', 'aiditor-change-review-validation-item', {
         text: (item.path ? item.path + ': ' : '') + (item.message || text(item)),
       }))
     }
@@ -74,16 +74,16 @@
   }
 
   function renderResource(resource, set, opts) {
-    const block = ui.h('div', 'aeditor-change-review-resource')
-    const head = ui.h('button', 'aeditor-change-review-resource-head', { type: 'button' })
-    const label = ui.h('div', 'aeditor-change-review-resource-label')
-    label.appendChild(ui.h('div', 'aeditor-change-review-resource-title', { text: resource.title || resource.uri || resource.id }))
-    label.appendChild(ui.h('div', 'aeditor-change-review-resource-subtitle', { text: resource.subtitle || resource.uri || '' }))
+    const block = ui.h('div', 'aiditor-change-review-resource')
+    const head = ui.h('button', 'aiditor-change-review-resource-head', { type: 'button' })
+    const label = ui.h('div', 'aiditor-change-review-resource-label')
+    label.appendChild(ui.h('div', 'aiditor-change-review-resource-title', { text: resource.title || resource.uri || resource.id }))
+    label.appendChild(ui.h('div', 'aiditor-change-review-resource-subtitle', { text: resource.subtitle || resource.uri || '' }))
     head.appendChild(label)
     head.appendChild(ui.h('span', statusClass(resource.status), { text: resource.status || 'pending' }))
     block.appendChild(head)
 
-    const changes = ui.h('div', 'aeditor-change-review-changes')
+    const changes = ui.h('div', 'aiditor-change-review-changes')
     for (let i = 0; i < (resource.changes || []).length; i++) {
       changes.appendChild(renderChange(resource.changes[i], resource, set, opts))
     }
@@ -92,21 +92,21 @@
   }
 
   function renderChange(change, resource, set, opts) {
-    const renderer = aeditor.changeSet && aeditor.changeSet.rendererFor
-      ? aeditor.changeSet.rendererFor(change, resource, set)
+    const renderer = aiditor.changeSet && aiditor.changeSet.rendererFor
+      ? aiditor.changeSet.rendererFor(change, resource, set)
       : null
     if (renderer && renderer.render) {
       const rendered = renderer.render(change, { resource: resource, changeSet: set, options: opts })
       if (rendered) return rendered
     }
-    const row = ui.h('div', 'aeditor-change-review-change aeditor-change-review-change-' + (change.operation || 'update'))
-    const meta = ui.h('div', 'aeditor-change-review-change-meta')
-    meta.appendChild(ui.h('span', 'aeditor-change-review-op', { text: change.operation || 'update' }))
-    meta.appendChild(ui.h('span', 'aeditor-change-review-path', { text: change.path || change.field || change.title || change.id }))
+    const row = ui.h('div', 'aiditor-change-review-change aiditor-change-review-change-' + (change.operation || 'update'))
+    const meta = ui.h('div', 'aiditor-change-review-change-meta')
+    meta.appendChild(ui.h('span', 'aiditor-change-review-op', { text: change.operation || 'update' }))
+    meta.appendChild(ui.h('span', 'aiditor-change-review-path', { text: change.path || change.field || change.title || change.id }))
     meta.appendChild(ui.h('span', statusClass(change.status), { text: change.status || 'pending' }))
     row.appendChild(meta)
-    if (change.summary) row.appendChild(ui.h('div', 'aeditor-change-review-change-summary', { text: change.summary }))
-    const diff = ui.h('div', 'aeditor-change-review-diff')
+    if (change.summary) row.appendChild(ui.h('div', 'aiditor-change-review-change-summary', { text: change.summary }))
+    const diff = ui.h('div', 'aiditor-change-review-diff')
     diff.appendChild(renderValue('Before', change.before))
     diff.appendChild(renderValue('After', change.after))
     row.appendChild(diff)
@@ -114,9 +114,9 @@
   }
 
   function renderValue(label, value) {
-    const node = ui.h('div', 'aeditor-change-review-value aeditor-change-review-value-' + label.toLowerCase())
-    node.appendChild(ui.h('span', 'aeditor-change-review-value-label', { text: label }))
-    node.appendChild(ui.h('code', 'aeditor-change-review-value-text', { text: text(value) }))
+    const node = ui.h('div', 'aiditor-change-review-value aiditor-change-review-value-' + label.toLowerCase())
+    node.appendChild(ui.h('span', 'aiditor-change-review-value-label', { text: label }))
+    node.appendChild(ui.h('code', 'aiditor-change-review-value-text', { text: text(value) }))
     return node
   }
 
@@ -126,32 +126,32 @@
       ui.dispose(child)
       child.remove()
     }
-    if (!set || !aeditor.changeSet || !aeditor.changeSet.isChangeSet(set)) {
-      root.appendChild(ui.h('div', 'aeditor-change-review-empty', { text: 'No ChangeSet' }))
+    if (!set || !aiditor.changeSet || !aiditor.changeSet.isChangeSet(set)) {
+      root.appendChild(ui.h('div', 'aiditor-change-review-empty', { text: 'No ChangeSet' }))
       return
     }
-    const head = ui.h('div', 'aeditor-change-review-head')
-    const title = ui.h('div', 'aeditor-change-review-title-block')
-    title.appendChild(ui.h('div', 'aeditor-change-review-title', { text: set.title || 'Change Set' }))
-    title.appendChild(ui.h('div', 'aeditor-change-review-summary', { text: stat(set.summary || {}) }))
+    const head = ui.h('div', 'aiditor-change-review-head')
+    const title = ui.h('div', 'aiditor-change-review-title-block')
+    title.appendChild(ui.h('div', 'aiditor-change-review-title', { text: set.title || 'Change Set' }))
+    title.appendChild(ui.h('div', 'aiditor-change-review-summary', { text: stat(set.summary || {}) }))
     head.appendChild(title)
     head.appendChild(ui.h('span', statusClass(set.status), { text: set.status || 'pending' }))
     appendActions(head, set, opts, root)
     root.appendChild(head)
-    if (set.description) root.appendChild(ui.h('div', 'aeditor-change-review-description', { text: set.description }))
+    if (set.description) root.appendChild(ui.h('div', 'aiditor-change-review-description', { text: set.description }))
     const validation = renderValidation(set)
     if (validation) root.appendChild(validation)
-    const resources = ui.h('div', 'aeditor-change-review-resources')
+    const resources = ui.h('div', 'aiditor-change-review-resources')
     for (let i = 0; i < (set.resources || []).length; i++) resources.appendChild(renderResource(set.resources[i], set, opts))
     root.appendChild(resources)
   }
 
   ui.changeReview = function changeReview(opts) {
     opts = opts || {}
-    const root = ui.h('div', 'aeditor-change-review')
-    ui.collect(root, aeditor.effect(function () {
+    const root = ui.h('div', 'aiditor-change-review')
+    ui.collect(root, aiditor.effect(function () {
       renderInto(root, read(opts.changeSet), opts)
     }))
     return root
   }
-})(window.aeditor = window.aeditor || {})
+})(window.aiditor = window.aiditor || {})

@@ -1,14 +1,14 @@
-// aeditor.ai connection/auth/transport registry.
-;(function (aeditor) {
+// aiditor.ai connection/auth/transport registry.
+;(function (aiditor) {
   'use strict'
 
-  const ai = aeditor.ai = aeditor.ai || {}
+  const ai = aiditor.ai = aiditor.ai || {}
   const connections = {}
   const authDrivers = {}
   const transportDrivers = {}
-  const connectionsSig = aeditor.signal([])
-  const modelsSig = aeditor.signal({})
-  const statusSig = aeditor.signal({})
+  const connectionsSig = aiditor.signal([])
+  const modelsSig = aiditor.signal({})
+  const statusSig = aiditor.signal({})
   const CUSTOM_KEY = 'ai.customConnections'
   let activeConnection = 'mock'
 
@@ -52,12 +52,12 @@
   }
 
   function customConnections() {
-    if (aeditor.settings && aeditor.settings.values) aeditor.settings.values()
-    return aeditor.settings && aeditor.settings.get ? (aeditor.settings.get(CUSTOM_KEY) || []) : []
+    if (aiditor.settings && aiditor.settings.values) aiditor.settings.values()
+    return aiditor.settings && aiditor.settings.get ? (aiditor.settings.get(CUSTOM_KEY) || []) : []
   }
 
   function persistCustomConnections(list) {
-    if (aeditor.settings && aeditor.settings.set) aeditor.settings.set(CUSTOM_KEY, list || [])
+    if (aiditor.settings && aiditor.settings.set) aiditor.settings.set(CUSTOM_KEY, list || [])
   }
 
   function createCustomConnection(spec) {
@@ -145,10 +145,10 @@
   function connectionConfig(id, overrides) {
     const c = getConnection(id)
     const defaults = Object.assign({}, (c && c.configDefaults) || {})
-    if (aeditor.settings && c) {
-      if (aeditor.settings.values) aeditor.settings.values()
+    if (aiditor.settings && c) {
+      if (aiditor.settings.values) aiditor.settings.values()
       Object.keys(defaults).forEach(function (key) {
-        const value = aeditor.settings.get(configKey(c.id, key))
+        const value = aiditor.settings.get(configKey(c.id, key))
         if (value !== undefined) defaults[key] = value
       })
     }
@@ -267,4 +267,4 @@
   ai.refreshModels = refreshModels
   ai.sendViaConnection = send
   ai.models = modelsSig
-})(window.aeditor = window.aeditor || {})
+})(window.aiditor = window.aiditor || {})

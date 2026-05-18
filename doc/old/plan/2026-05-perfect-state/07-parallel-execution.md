@@ -20,8 +20,8 @@ Can run partly in parallel.
 Worker A: docs authority
 
 - Owns `AGENTS.md`, `README.md`, possibly `CLAUDE.md`
-- Updates stale `aeditor.errors/error-log/errors.js` references
-- Documents `aeditor.log`
+- Updates stale `aiditor.errors/error-log/errors.js` references
+- Documents `aiditor.log`
 - Clarifies temp boundary
 
 Worker B: test scaffold
@@ -50,7 +50,7 @@ Worker D: runtime disposal and panel GC
 
 - Owns `src/dock/runtime.js`
 - Owns relevant hooks in `src/dock/render.js`
-- Adds default `aeditor.ui.dispose` fallback
+- Adds default `aiditor.ui.dispose` fallback
 - Adds GC for removed panels in surviving docks
 
 Shared dependency:
@@ -166,7 +166,7 @@ Required before declaring perfect-state milestone done:
 Start with:
 
 1. `LayoutHandle.destroy()`
-2. default `aeditor.ui.dispose` fallback in component runtime disposal
+2. default `aiditor.ui.dispose` fallback in component runtime disposal
 3. panel runtime GC after tree commits
 4. context derived cleanup
 5. syntax + bundle tests

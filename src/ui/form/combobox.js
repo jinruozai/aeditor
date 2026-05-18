@@ -1,4 +1,4 @@
-// aeditor.ui.combobox — text input + filtered dropdown.
+// aiditor.ui.combobox — text input + filtered dropdown.
 //
 // opts: {
 //   value: signal<string>, onChange?,
@@ -6,9 +6,9 @@
 //   placeholder?: string|signal,
 //   disabled?: bool|signal,
 // }
-;(function (aeditor) {
+;(function (aiditor) {
   'use strict'
-  const ui = aeditor.ui = aeditor.ui || {}
+  const ui = aiditor.ui = aiditor.ui || {}
 
   function norm(items) {
     return (items || []).map(function (it) {
@@ -23,9 +23,9 @@
     const placeholder = ui.asSig(o.placeholder != null ? o.placeholder : '')
     const disabled    = ui.asSig(o.disabled    != null ? o.disabled    : false)
     const doWrite = ui.writer(sig, o.onChange, 'ui.combobox')
-    const wrap = ui.h('div', 'aeditor-ui-field aeditor-ui-combobox')
-    const inp = ui.h('input', 'aeditor-ui-input', { type: 'text' })
-    const arrow = ui.h('span', 'aeditor-ui-field-suffix', { text: '▾' })
+    const wrap = ui.h('div', 'aiditor-ui-field aiditor-ui-combobox')
+    const inp = ui.h('input', 'aiditor-ui-input', { type: 'text' })
+    const arrow = ui.h('span', 'aiditor-ui-field-suffix', { text: '▾' })
     wrap.appendChild(inp); wrap.appendChild(arrow)
     ui.bindAttr(inp, placeholder, 'placeholder')
     ui.bindAttr(inp, disabled, 'disabled')
@@ -35,17 +35,17 @@
     function open(showAll) {
       if (pop) return
       if (disabled.peek()) return
-      const list = ui.h('div', 'aeditor-ui-menu')
+      const list = ui.h('div', 'aiditor-ui-menu')
       const term = showAll ? '' : inp.value.toLowerCase()
       const items = norm(ui.isSignal && ui.isSignal(o.options) ? o.options.peek() : o.options)
       const filtered = items.filter(function (it) { return !term || String(it.label).toLowerCase().indexOf(term) >= 0 })
       if (!filtered.length) {
-        const empty = ui.h('div', 'aeditor-ui-menu-empty', { text: 'No matches' })
+        const empty = ui.h('div', 'aiditor-ui-menu-empty', { text: 'No matches' })
         list.appendChild(empty)
       }
       for (let i = 0; i < filtered.length; i++) {
         const it = filtered[i]
-        const row = ui.h('button', 'aeditor-ui-menu-item', { type: 'button', text: it.label })
+        const row = ui.h('button', 'aiditor-ui-menu-item', { type: 'button', text: it.label })
         row.addEventListener('mousedown', function (e) { e.preventDefault(); doWrite(it.value); inp.value = it.value; close() })
         list.appendChild(row)
       }
@@ -63,4 +63,4 @@
 
     return wrap
   }
-})(window.aeditor = window.aeditor || {})
+})(window.aiditor = window.aiditor || {})

@@ -1,4 +1,4 @@
-// aeditor.ui.text — display-only styled text. Static content (props.value) or
+// aiditor.ui.text — display-only styled text. Static content (props.value) or
 // signal-bound. Use this anywhere the user shouldn't be able to edit; for
 // editing use ui.input / ui.textarea.
 //
@@ -12,9 +12,9 @@
 //   color?:  string | signal
 //   clamp?:  number | signal               max lines (CSS line-clamp)
 // }
-;(function (aeditor) {
+;(function (aiditor) {
   'use strict'
-  const ui = aeditor.ui = aeditor.ui || {}
+  const ui = aiditor.ui = aiditor.ui || {}
 
   ui.text = function (opts) {
     const o = opts || {}
@@ -27,9 +27,9 @@
     const color   = ui.asSig(o.color   != null ? o.color   : '')
     const clamp   = ui.asSig(o.clamp   != null ? o.clamp   : 0)
 
-    const el = ui.h('div', 'aeditor-ui-text')
-    ui.bindClass(el, variant, 'aeditor-ui-text-')
-    ui.bindClass(el, size,    'aeditor-ui-text-size-')
+    const el = ui.h('div', 'aiditor-ui-text')
+    ui.bindClass(el, variant, 'aiditor-ui-text-')
+    ui.bindClass(el, size,    'aiditor-ui-text-size-')
     ui.bind(el, value,  function (v) { el.textContent = v == null ? '' : String(v) })
     ui.bind(el, align,  function (v) { el.style.textAlign = v || '' })
     ui.bind(el, vAlign, function (v) {
@@ -69,7 +69,7 @@
   // weight are not passed through ui.text directly — applyTextStyle
   // drives them, so user-set values override and empty values cascade
   // to the theme.
-  aeditor.registerComponent('text', {
+  aiditor.registerComponent('text', {
     label: 'Text', icon: 'type', category: 'display',
     bindable:     ['value'],
     defaultProps: Object.assign({}, ui.BOX_STYLE_DEFAULTS, ui.TEXT_STYLE_DEFAULTS, {
@@ -90,4 +90,4 @@
       return el
     },
   })
-})(window.aeditor = window.aeditor || {})
+})(window.aiditor = window.aiditor || {})

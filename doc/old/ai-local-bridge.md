@@ -1,6 +1,6 @@
 # AI Local Bridge
 
-AEditor keeps browser AI integration split into three layers:
+Aiditor keeps browser AI integration split into three layers:
 
 1. `Connection`: provider identity, auth method, transport, model defaults.
 2. `Auth driver`: API key, local bridge, subscription bridge, or no auth.
@@ -26,12 +26,12 @@ Environment:
 
 | Variable | Default | Purpose |
 |---|---:|---|
-| `AEDITOR_AI_BRIDGE_HOST` | `127.0.0.1` | HTTP bind host. Keep loopback for local auth. |
-| `AEDITOR_AI_BRIDGE_PORT` | `8787` | HTTP port used by `openai-codex` and local bridge connections. |
-| `AEDITOR_CODEX_COMMAND` | `codex` | Command that starts the official Codex app server. |
-| `AEDITOR_CODEX_ARGS` | `app-server --listen stdio://` | Arguments for the Codex app server JSONL transport. |
-| `AEDITOR_CODEX_CHAT_COMMAND` | empty | Optional override for chat requests. The command receives JSON on stdin and returns JSON or text on stdout. |
-| `AEDITOR_CODEX_CHAT_ARGS` | empty | Arguments for `AEDITOR_CODEX_CHAT_COMMAND`. |
+| `AIDITOR_AI_BRIDGE_HOST` | `127.0.0.1` | HTTP bind host. Keep loopback for local auth. |
+| `AIDITOR_AI_BRIDGE_PORT` | `8787` | HTTP port used by `openai-codex` and local bridge connections. |
+| `AIDITOR_CODEX_COMMAND` | `codex` | Command that starts the official Codex app server. |
+| `AIDITOR_CODEX_ARGS` | `app-server --listen stdio://` | Arguments for the Codex app server JSONL transport. |
+| `AIDITOR_CODEX_CHAT_COMMAND` | empty | Optional override for chat requests. The command receives JSON on stdin and returns JSON or text on stdout. |
+| `AIDITOR_CODEX_CHAT_ARGS` | empty | Arguments for `AIDITOR_CODEX_CHAT_COMMAND`. |
 
 ## HTTP Surface
 
@@ -45,7 +45,7 @@ All endpoints return JSON and allow local browser CORS.
 | `/connections/openai-codex/login` | `POST` | Start ChatGPT device-code login through Codex. |
 | `/connections/openai-codex/logout` | `POST` | Sign out through Codex. |
 | `/connections/openai-codex/models` | `GET` | Return Codex model choices. |
-| `/connections/openai-codex/chat` | `POST` | Send an AEditor AI request through Codex. |
+| `/connections/openai-codex/chat` | `POST` | Send an Aiditor AI request through Codex. |
 | `/models` | `GET` | Generic bridge alias for model listing. |
 | `/chat` | `POST` | Generic bridge alias for chat. |
 
@@ -67,7 +67,7 @@ Projects should register their own connections or tools instead of changing fram
 - Do not pass subscription tokens into browser settings.
 - Browser API keys are allowed only for personal/local use. Shared deployments should use `local-bridge`.
 - Subscription login must use official local tooling or a documented provider API. Do not implement cookie scraping.
-- The bridge accepts AEditor request JSON, not arbitrary shell commands. `AEDITOR_CODEX_CHAT_COMMAND` is a developer override for local testing and controlled integrations.
+- The bridge accepts Aiditor request JSON, not arbitrary shell commands. `AIDITOR_CODEX_CHAT_COMMAND` is a developer override for local testing and controlled integrations.
 
 ## Current Codex Integration
 

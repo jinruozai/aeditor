@@ -1,8 +1,8 @@
-// aeditor.ai Skill reference provider.
-;(function (aeditor) {
+// aiditor.ai Skill reference provider.
+;(function (aiditor) {
   'use strict'
 
-  const ai = aeditor.ai = aeditor.ai || {}
+  const ai = aiditor.ai = aiditor.ai || {}
   if (!ai.references || !ai.references.register || !ai.skills) return
 
   function skillNames() {
@@ -15,13 +15,13 @@
 
   function skillIdFromUri(uri) {
     const text = String(uri || '')
-    if (text === 'aeditor://skills') return ''
-    if (text.indexOf('aeditor://skills/') === 0) return decodeURIComponent(text.slice('aeditor://skills/'.length))
+    if (text === 'aiditor://skills') return ''
+    if (text.indexOf('aiditor://skills/') === 0) return decodeURIComponent(text.slice('aiditor://skills/'.length))
     return ''
   }
 
   function uriFor(id) {
-    return 'aeditor://skills/' + encodeURIComponent(id)
+    return 'aiditor://skills/' + encodeURIComponent(id)
   }
 
   function compactSkill(id, skill) {
@@ -41,7 +41,7 @@
 
   function fullSkill(id, skill) {
     return Object.assign(compactSkill(id, skill), {
-      kind: 'aeditor.skill',
+      kind: 'aiditor.skill',
       systemPrompt: skill.systemPrompt || '',
       rules: skill.rules || [],
       examples: skill.examples || [],
@@ -51,12 +51,12 @@
   function indexRef() {
     return {
       resolver: 'skills',
-      uri: 'aeditor://skills',
-      kind: 'aeditor.skill.index',
-      title: 'AEditor Skills',
-      summary: 'Generated list of registered AEditor skills and when to use them.',
+      uri: 'aiditor://skills',
+      kind: 'aiditor.skill.index',
+      title: 'Aiditor Skills',
+      summary: 'Generated list of registered Aiditor skills and when to use them.',
       meta: { count: skillNames().length },
-      tools: ['aeditor.readReference'],
+      tools: ['aiditor.readReference'],
     }
   }
 
@@ -65,11 +65,11 @@
     return {
       resolver: 'skills',
       uri: compact.uri,
-      kind: 'aeditor.skill',
+      kind: 'aiditor.skill',
       title: compact.title,
       summary: compact.whenToUse || compact.description || '',
       meta: compact,
-      tools: ['aeditor.readReference'],
+      tools: ['aiditor.readReference'],
     }
   }
 
@@ -77,11 +77,11 @@
     const id = skillIdFromUri(ref && ref.uri)
     if (!id) {
       return {
-        uri: 'aeditor://skills',
-        id: 'aeditor.skills.index',
-        kind: 'aeditor.skill.index',
-        title: 'AEditor Skills',
-        summary: 'Registered AEditor skill list. Read a skill URI for full rules.',
+        uri: 'aiditor://skills',
+        id: 'aiditor.skills.index',
+        kind: 'aiditor.skill.index',
+        title: 'Aiditor Skills',
+        summary: 'Registered Aiditor skill list. Read a skill URI for full rules.',
         entries: skillNames().map(function (name) { return compactSkill(name, getSkill(name)) }),
       }
     }
@@ -115,7 +115,7 @@
   function search(query) {
     const q = String(query && (query.query || query.q || '') || '').trim().toLowerCase()
     const limit = Math.max(1, Math.min(50, Number(query && query.limit) || 10))
-    if (q && q.indexOf('skill') < 0 && q.indexOf('authoring') < 0 && q.indexOf('aeditor') < 0) return []
+    if (q && q.indexOf('skill') < 0 && q.indexOf('authoring') < 0 && q.indexOf('aiditor') < 0) return []
     const out = [indexRef()]
     const terms = q ? q.split(/\s+/).filter(function (term) { return term !== 'skills' && term !== 'skill' }) : []
     const names = skillNames()
@@ -154,5 +154,5 @@
     read: read,
     schema: schema,
     capabilities: capabilities,
-  }, { owner: 'aeditor.skills', layer: 'builtin' })
-})(window.aeditor = window.aeditor || {})
+  }, { owner: 'aiditor.skills', layer: 'builtin' })
+})(window.aiditor = window.aiditor || {})

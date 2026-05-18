@@ -1,5 +1,5 @@
-// aeditor.names - shared dotted-prefix name helpers.
-;(function (aeditor) {
+// aiditor.names - shared dotted-prefix name helpers.
+;(function (aiditor) {
   'use strict'
 
   function matchesPrefix(name, prefix) {
@@ -11,7 +11,7 @@
     return name === prefix || name.indexOf(prefix + '.') === 0 || name.indexOf(prefix + '/') === 0
   }
 
-  aeditor.names = {
+  aiditor.names = {
     matchesPrefix: matchesPrefix,
   }
-})(window.aeditor = window.aeditor || {})
+})(window.aiditor = window.aiditor || {})

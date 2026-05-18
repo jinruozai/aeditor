@@ -21,35 +21,35 @@ rules, but they do not execute actions, read context, or apply changes.
 Public API:
 
 ```js
-aeditor.ai.tools.register(name, spec, meta)
-aeditor.ai.tools.unregister(name)
-aeditor.ai.tools.unregisterOwner(owner)
-aeditor.ai.tools.unregisterPrefix(prefix)
-aeditor.ai.tools.get(name)
-aeditor.ai.tools.list(prefix)
-aeditor.ai.tools.visible(name, requestContext, explicit)
-aeditor.ai.tools.visibleList(names, requestContext, explicit)
-aeditor.ai.tools.meta(name)
+aiditor.ai.tools.register(name, spec, meta)
+aiditor.ai.tools.unregister(name)
+aiditor.ai.tools.unregisterOwner(owner)
+aiditor.ai.tools.unregisterPrefix(prefix)
+aiditor.ai.tools.get(name)
+aiditor.ai.tools.list(prefix)
+aiditor.ai.tools.visible(name, requestContext, explicit)
+aiditor.ai.tools.visibleList(names, requestContext, explicit)
+aiditor.ai.tools.meta(name)
 
-aeditor.ai.context.register(name, spec, meta)
-aeditor.ai.context.unregister(name, meta)
-aeditor.ai.context.unregisterOwner(owner)
-aeditor.ai.context.unregisterPrefix(prefix)
-aeditor.ai.context.get(name)
-aeditor.ai.context.list(prefix)
-aeditor.ai.context.meta(name)
+aiditor.ai.context.register(name, spec, meta)
+aiditor.ai.context.unregister(name, meta)
+aiditor.ai.context.unregisterOwner(owner)
+aiditor.ai.context.unregisterPrefix(prefix)
+aiditor.ai.context.get(name)
+aiditor.ai.context.list(prefix)
+aiditor.ai.context.meta(name)
 
-aeditor.ai.operations.register(name, spec, meta)
-aeditor.ai.operations.unregister(name, meta)
-aeditor.ai.operations.unregisterOwner(owner)
-aeditor.ai.operations.unregisterPrefix(prefix)
-aeditor.ai.operations.get(name)
-aeditor.ai.operations.list(prefixOrFilter)
-aeditor.ai.operations.meta(name)
-aeditor.ai.operations.risk(name, input, ctx)
-aeditor.ai.operations.preview(name, input, ctx)
-aeditor.ai.operations.apply(preview, ctx)
-aeditor.ai.operations.getPreview(id)
+aiditor.ai.operations.register(name, spec, meta)
+aiditor.ai.operations.unregister(name, meta)
+aiditor.ai.operations.unregisterOwner(owner)
+aiditor.ai.operations.unregisterPrefix(prefix)
+aiditor.ai.operations.get(name)
+aiditor.ai.operations.list(prefixOrFilter)
+aiditor.ai.operations.meta(name)
+aiditor.ai.operations.risk(name, input, ctx)
+aiditor.ai.operations.preview(name, input, ctx)
+aiditor.ai.operations.apply(preview, ctx)
+aiditor.ai.operations.getPreview(id)
 ```
 
 Dotted names are the public grouping mechanism. Owner metadata is the exact
@@ -76,19 +76,19 @@ domain code      -> domain-prefix.* tools / context / operations
 There is one tool facade:
 
 ```js
-aeditor.ai.tools.register(name, spec, meta)
-aeditor.ai.tools.unregister(name, meta)
-aeditor.ai.tools.unregisterOwner(owner)
-aeditor.ai.tools.unregisterPrefix(prefix)
-aeditor.ai.tools.get(name)
-aeditor.ai.tools.visible(name, requestContext, explicit)
-aeditor.ai.tools.visibleList(names, requestContext, explicit)
-aeditor.ai.tools.list(prefix)
-aeditor.ai.tools.meta(name)
+aiditor.ai.tools.register(name, spec, meta)
+aiditor.ai.tools.unregister(name, meta)
+aiditor.ai.tools.unregisterOwner(owner)
+aiditor.ai.tools.unregisterPrefix(prefix)
+aiditor.ai.tools.get(name)
+aiditor.ai.tools.visible(name, requestContext, explicit)
+aiditor.ai.tools.visibleList(names, requestContext, explicit)
+aiditor.ai.tools.list(prefix)
+aiditor.ai.tools.meta(name)
 ```
 
 Do not create a second tool registry. New framework code should use
-`aeditor.ai.tools.*`.
+`aiditor.ai.tools.*`.
 
 `meta.owner` and `meta.layer` may exist for diagnostics and safety checks.
 `meta.replace === true` is the only overwrite path.
@@ -103,7 +103,7 @@ workspace.*
 code.*
 git.*
 verify.*
-aeditor.*
+aiditor.*
 agent.*
 quest.*
 message.*
@@ -168,8 +168,8 @@ These are useful implementation pieces, not new architecture categories.
 
 There are two related pieces:
 
-1. `aeditor.ai.attachments` is a signal containing attached chat/session items.
-2. `aeditor.ai.references` is a provider registry for readable editor
+1. `aiditor.ai.attachments` is a signal containing attached chat/session items.
+2. `aiditor.ai.references` is a provider registry for readable editor
    references.
 
 The public runtime attachment name is `attachments`; do not reintroduce
@@ -178,30 +178,30 @@ The public runtime attachment name is `attachments`; do not reintroduce
 Public split:
 
 ```text
-aeditor.ai.attachments      // runtime attached items in chat/session
-aeditor.ai.context          // registry of readable model-context providers
-aeditor.ai.references       // normalized reference protocol
+aiditor.ai.attachments      // runtime attached items in chat/session
+aiditor.ai.context          // registry of readable model-context providers
+aiditor.ai.references       // normalized reference protocol
 ```
 
 Reference APIs:
 
 ```js
-aeditor.ai.references.register(name, provider, meta)
-aeditor.ai.references.unregister(name, meta)
-aeditor.ai.references.unregisterOwner(owner)
-aeditor.ai.references.unregisterPrefix(prefix)
-aeditor.ai.references.get(name)
-aeditor.ai.references.list(filter)
-aeditor.ai.references.meta(name)
-aeditor.ai.references.normalize(ref)
-aeditor.ai.references.normalizeAll(refs)
-aeditor.ai.references.describe(ref)
-aeditor.ai.references.read(ref, options, ctx)
-aeditor.ai.references.schema(ref, ctx)
-aeditor.ai.references.capabilities(ref, ctx)
-aeditor.ai.references.snapshot(ref, ctx)
-aeditor.ai.references.search(query, ctx)
-aeditor.ai.references.selection(ctx)
+aiditor.ai.references.register(name, provider, meta)
+aiditor.ai.references.unregister(name, meta)
+aiditor.ai.references.unregisterOwner(owner)
+aiditor.ai.references.unregisterPrefix(prefix)
+aiditor.ai.references.get(name)
+aiditor.ai.references.list(filter)
+aiditor.ai.references.meta(name)
+aiditor.ai.references.normalize(ref)
+aiditor.ai.references.normalizeAll(refs)
+aiditor.ai.references.describe(ref)
+aiditor.ai.references.read(ref, options, ctx)
+aiditor.ai.references.schema(ref, ctx)
+aiditor.ai.references.capabilities(ref, ctx)
+aiditor.ai.references.snapshot(ref, ctx)
+aiditor.ai.references.search(query, ctx)
+aiditor.ai.references.selection(ctx)
 ```
 
 Reference providers receive the current request/tool context, including actor
@@ -227,17 +227,17 @@ produce normalized references that can be read through the reference protocol.
 Public operation API:
 
 ```js
-aeditor.ai.operations.register(name, spec, meta)
-aeditor.ai.operations.unregister(name, meta)
-aeditor.ai.operations.unregisterOwner(owner)
-aeditor.ai.operations.unregisterPrefix(prefix)
-aeditor.ai.operations.get(name)
-aeditor.ai.operations.list(prefixOrFilter)
-aeditor.ai.operations.meta(name)
-aeditor.ai.operations.risk(name, input, ctx)
-aeditor.ai.operations.preview(name, input, ctx)
-aeditor.ai.operations.apply(preview, ctx)
-aeditor.ai.operations.getPreview(id)
+aiditor.ai.operations.register(name, spec, meta)
+aiditor.ai.operations.unregister(name, meta)
+aiditor.ai.operations.unregisterOwner(owner)
+aiditor.ai.operations.unregisterPrefix(prefix)
+aiditor.ai.operations.get(name)
+aiditor.ai.operations.list(prefixOrFilter)
+aiditor.ai.operations.meta(name)
+aiditor.ai.operations.risk(name, input, ctx)
+aiditor.ai.operations.preview(name, input, ctx)
+aiditor.ai.operations.apply(preview, ctx)
+aiditor.ai.operations.getPreview(id)
 ```
 
 Operations support validation, risk, preview storage, apply, and transaction
@@ -253,20 +253,20 @@ Targets are things users can add to chat.
 Implemented APIs:
 
 ```js
-aeditor.ai.registerTargetProvider(name, provider)
-aeditor.ai.getTargetProvider(name)
-aeditor.ai.listTargetProviders()
-aeditor.ai.captureTarget(input)
-aeditor.ai.normalizeTarget(input)
-aeditor.ai.addTarget(target)
-aeditor.ai.attachTargetToAgent(agentId, target)
-aeditor.ai.attachTargetsToAgent(agentId, targets)
-aeditor.ai.addTargetsToChat(targets)
-aeditor.ai.attach(el, targetOrFn, options)
-aeditor.ai.installTargetDrop(el, options)
-aeditor.ai.readTargetFromDragEvent(event)
-aeditor.ai.writeTargetDragData(event, targets)
-aeditor.ai.fileToTarget(file)
+aiditor.ai.registerTargetProvider(name, provider)
+aiditor.ai.getTargetProvider(name)
+aiditor.ai.listTargetProviders()
+aiditor.ai.captureTarget(input)
+aiditor.ai.normalizeTarget(input)
+aiditor.ai.addTarget(target)
+aiditor.ai.attachTargetToAgent(agentId, target)
+aiditor.ai.attachTargetsToAgent(agentId, targets)
+aiditor.ai.addTargetsToChat(targets)
+aiditor.ai.attach(el, targetOrFn, options)
+aiditor.ai.installTargetDrop(el, options)
+aiditor.ai.readTargetFromDragEvent(event)
+aiditor.ai.writeTargetDragData(event, targets)
+aiditor.ai.fileToTarget(file)
 ```
 
 This is the implemented "add to chat" foundation. It must stay as a first-class
@@ -275,7 +275,7 @@ Reference UX flow, not to the public five-concept model in [ai.md](./ai.md).
 
 ## Rich Prompt
 
-`aeditor.ai.richPrompt` stores inline references inside text.
+`aiditor.ai.richPrompt` stores inline references inside text.
 
 Inline reference tokens store `refId`; `resourceId` is not part of the final
 schema.
@@ -283,18 +283,18 @@ schema.
 Implemented APIs:
 
 ```js
-aeditor.ai.richPrompt.empty()
-aeditor.ai.richPrompt.normalize(draft)
-aeditor.ai.richPrompt.insertText(draft, index, text)
-aeditor.ai.richPrompt.insertRef(draft, index, reference)
-aeditor.ai.richPrompt.insertRefs(draft, index, references)
-aeditor.ai.richPrompt.deleteRange(draft, start, end)
-aeditor.ai.richPrompt.slice(draft, start, end)
-aeditor.ai.richPrompt.refs(draft)
-aeditor.ai.richPrompt.toPlainText(draft)
-aeditor.ai.richPrompt.toModelText(draft)
-aeditor.ai.richPrompt.content(draft)
-aeditor.ai.richPrompt.fromContent(value)
+aiditor.ai.richPrompt.empty()
+aiditor.ai.richPrompt.normalize(draft)
+aiditor.ai.richPrompt.insertText(draft, index, text)
+aiditor.ai.richPrompt.insertRef(draft, index, reference)
+aiditor.ai.richPrompt.insertRefs(draft, index, references)
+aiditor.ai.richPrompt.deleteRange(draft, start, end)
+aiditor.ai.richPrompt.slice(draft, start, end)
+aiditor.ai.richPrompt.refs(draft)
+aiditor.ai.richPrompt.toPlainText(draft)
+aiditor.ai.richPrompt.toModelText(draft)
+aiditor.ai.richPrompt.content(draft)
+aiditor.ai.richPrompt.fromContent(value)
 ```
 
 Rich prompt is a UI/data helper for message composition. It is not a separate
@@ -302,25 +302,25 @@ AI registry category.
 
 ## Change Set
 
-`aeditor.changeSet` provides grouped reviewable changes.
+`aiditor.changeSet` provides grouped reviewable changes.
 
 Implemented APIs:
 
 ```js
-aeditor.changeSet.items
-aeditor.changeSet.create(input)
-aeditor.changeSet.update(id, patch)
-aeditor.changeSet.find(id)
-aeditor.changeSet.list()
-aeditor.changeSet.normalize(input)
-aeditor.changeSet.isChangeSet(value)
-aeditor.changeSet.apply(idOrSet, scope, actor)
-aeditor.changeSet.reject(idOrSet, scope, actor)
-aeditor.changeSet.registerAdapter(name, adapter)
-aeditor.changeSet.getAdapter(name)
-aeditor.changeSet.registerRenderer(name, renderer)
-aeditor.changeSet.getRenderer(name)
-aeditor.changeSet.rendererFor(change, resource, set)
+aiditor.changeSet.items
+aiditor.changeSet.create(input)
+aiditor.changeSet.update(id, patch)
+aiditor.changeSet.find(id)
+aiditor.changeSet.list()
+aiditor.changeSet.normalize(input)
+aiditor.changeSet.isChangeSet(value)
+aiditor.changeSet.apply(idOrSet, scope, actor)
+aiditor.changeSet.reject(idOrSet, scope, actor)
+aiditor.changeSet.registerAdapter(name, adapter)
+aiditor.changeSet.getAdapter(name)
+aiditor.changeSet.registerRenderer(name, renderer)
+aiditor.changeSet.getRenderer(name)
+aiditor.changeSet.rendererFor(change, resource, set)
 ```
 
 Design relationship:
@@ -329,7 +329,7 @@ Design relationship:
 - ChangeSet: review UI and grouped application for many changes/targets.
 
 ChangeSet should remain because it solves grouped review and partial apply.
-When `aeditor.ai.canUseChangeSet` is available, applying a ChangeSet goes
+When `aiditor.ai.canUseChangeSet` is available, applying a ChangeSet goes
 through the unified permission resolver before the adapter runs. The permission
 target is `source.agentId`, `meta.agentId`, or the actor when no owner agent is
 recorded.

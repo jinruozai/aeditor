@@ -1,4 +1,4 @@
-// aeditor.ui._treeDnd — drag & drop layer for ui.tree.
+// aiditor.ui._treeDnd — drag & drop layer for ui.tree.
 //
 // Lives in its own file so the core tree stays readable when DnD is not
 // in use (the attach call is a no-op when opts.dnd is omitted). The layer
@@ -15,15 +15,15 @@
 //   ui._treeDnd.attach(rootEl, itemsSig, expandedSig, flatSig, dndOpts, treeCtx)
 // where treeCtx exposes the virtualizer row cache + multi-select bridge.
 // Tree.js imports no DnD code directly — this file self-registers on load.
-;(function (aeditor) {
+;(function (aiditor) {
   'use strict'
-  const ui = aeditor.ui = aeditor.ui || {}
+  const ui = aiditor.ui = aiditor.ui || {}
 
   // Drag starts after pointer moves past this distance; avoids flipping every
   // click into a drag. Read from the CSS token (same knob as dock drag in
   // dock/interactions.js) so a single theme-wide adjustment retunes both.
   function dragThreshold() {
-    return (ui.readNum && ui.readNum('--aeditor-drag-threshold', 6)) || 6
+    return (ui.readNum && ui.readNum('--aiditor-drag-threshold', 6)) || 6
   }
 
   function nearestRow(rootEl, clientX, clientY) {
@@ -32,7 +32,7 @@
     // what we want (can't drop onto a row that isn't rendered).
     let el = document.elementFromPoint(clientX, clientY)
     while (el && el !== rootEl) {
-      if (el.classList && el.classList.contains('aeditor-ui-tree-row')) return el
+      if (el.classList && el.classList.contains('aiditor-ui-tree-row')) return el
       el = el.parentNode
     }
     return null
@@ -76,7 +76,7 @@
   }
 
   function defaultGhost(nodes) {
-    const el = ui.h('div', 'aeditor-ui-tree-ghost')
+    const el = ui.h('div', 'aiditor-ui-tree-ghost')
     const first = nodes[0]
     const lab = first.label != null ? String(first.label) : String(first.id)
     el.textContent = nodes.length > 1 ? (lab + '  + ' + (nodes.length - 1)) : lab
@@ -157,7 +157,7 @@
       // not clipped by the tree's overflow:auto. We bail on the full
       // portal infrastructure: a single positioned div is enough.
       function makePortal() {
-        const p = ui.h('div', 'aeditor-ui-tree-dnd-portal')
+        const p = ui.h('div', 'aiditor-ui-tree-dnd-portal')
         p.style.cssText = 'position:fixed;inset:0;pointer-events:none;z-index:9999'
         document.body.appendChild(p)
         return p
@@ -166,16 +166,16 @@
       function startSession(ev, dragNodes, initialRow) {
         const portal = makePortal()
         const ghost = renderPreview(dragNodes)
-        ghost.classList.add('aeditor-ui-tree-ghost-wrap')
+        ghost.classList.add('aiditor-ui-tree-ghost-wrap')
         portal.appendChild(ghost)
         // Indicator has two visual modes (line vs outline) — we toggle a
         // class on the same element instead of maintaining two nodes.
-        const indicator = ui.h('div', 'aeditor-ui-tree-drop-indicator')
+        const indicator = ui.h('div', 'aiditor-ui-tree-drop-indicator')
         portal.appendChild(indicator)
 
         const dragData = getDragData
           ? getDragData(dragNodes)
-          : { types: ['aeditor.tree/node'], payload: dragNodes.map(function (n) { return n.id }) }
+          : { types: ['aiditor.tree/node'], payload: dragNodes.map(function (n) { return n.id }) }
 
         // Dim the source rows so the user can tell what's being moved.
         const sourceIds = new Set(dragNodes.map(function (n) { return n.id }))
@@ -202,10 +202,10 @@
         // brute-force toggle classes on cached rows only, and accept that
         // a row scrolling back in mid-drag won't be dimmed (edge case).
         treeCtx && treeCtx._rowCache && null  // reserved for a future pass
-        const cache = rootEl.__aeditorTree && rootEl.__aeditorTree._rowCache
+        const cache = rootEl.__aiditorTree && rootEl.__aiditorTree._rowCache
         if (!cache) return
         cache.forEach(function (entry) {
-          if (ids.has(entry.row.node.id)) entry.el.classList.toggle('aeditor-ui-tree-row-dragging', on)
+          if (ids.has(entry.row.node.id)) entry.el.classList.toggle('aiditor-ui-tree-row-dragging', on)
         })
       }
 
@@ -254,8 +254,8 @@
 
       function hideIndicator(session) {
         session.indicator.style.display = 'none'
-        session.indicator.classList.remove('aeditor-ui-tree-drop-inside')
-        session.indicator.classList.remove('aeditor-ui-tree-drop-reject')
+        session.indicator.classList.remove('aiditor-ui-tree-drop-inside')
+        session.indicator.classList.remove('aiditor-ui-tree-drop-reject')
       }
 
       function paintIndicator(session) {
@@ -264,15 +264,15 @@
         const rect = h.rowEl.getBoundingClientRect()
         const ind = session.indicator
         ind.style.display = 'block'
-        ind.classList.toggle('aeditor-ui-tree-drop-reject', !h.allowed)
+        ind.classList.toggle('aiditor-ui-tree-drop-reject', !h.allowed)
         if (h.position === 'inside') {
-          ind.classList.add('aeditor-ui-tree-drop-inside')
+          ind.classList.add('aiditor-ui-tree-drop-inside')
           ind.style.left = rect.left + 'px'
           ind.style.top = rect.top + 'px'
           ind.style.width = rect.width + 'px'
           ind.style.height = rect.height + 'px'
         } else {
-          ind.classList.remove('aeditor-ui-tree-drop-inside')
+          ind.classList.remove('aiditor-ui-tree-drop-inside')
           const y = h.position === 'before' ? rect.top : rect.bottom
           ind.style.left = rect.left + 'px'
           ind.style.top = (y - 1) + 'px'
@@ -339,4 +339,4 @@
       }
     },
   }
-})(window.aeditor = window.aeditor || {})
+})(window.aiditor = window.aiditor || {})

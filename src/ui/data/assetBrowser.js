@@ -1,11 +1,11 @@
-// aeditor.ui.assetBrowser - generic file-manager style asset browser.
+// aiditor.ui.assetBrowser - generic file-manager style asset browser.
 //
 // The component is intentionally storage-agnostic. It renders entries and
 // interactions; callers provide an adapter for listing, importing, moving,
 // renaming, deleting, preview URL resolution, and persistence side effects.
-;(function (aeditor) {
+;(function (aiditor) {
   'use strict'
-  const ui = aeditor.ui = aeditor.ui || {}
+  const ui = aiditor.ui = aiditor.ui || {}
 
   const VIEW = [
     ['sm', 'assetBrowser.view.small', 'Small icons'],
@@ -23,17 +23,17 @@
   ]
 
   function tr(key, fallback, vars) {
-    if (!aeditor.i18n) return fallback
-    const value = aeditor.i18n.t(key, vars)
+    if (!aiditor.i18n) return fallback
+    const value = aiditor.i18n.t(key, vars)
     return value === key ? fallback : value
   }
 
   ui.assetBrowser = function (opts) {
     const o = opts || {}
     const storageKey = o.storageKey || ''
-    const version = o.version || aeditor.signal(0)
-    const searchSig = aeditor.signal('')
-    const selectedSig = aeditor.signal([])
+    const version = o.version || aiditor.signal(0)
+    const searchSig = aiditor.signal('')
+    const selectedSig = aiditor.signal([])
     let dir = o.initialDir || ''
     let query = ''
     let last = -1
@@ -41,13 +41,13 @@
     let sortBy = load('sortBy', o.sortBy || 'name')
     let sortDir = load('sortDir', o.sortDir || 'asc')
 
-    const root = ui.h('div', 'aeditor-ui-asset-browser')
-    const bar = ui.h('div', 'aeditor-ui-assetbar')
-    const crumb = ui.h('div', 'aeditor-ui-assetcrumb')
-    const search = ui.searchInput({ value: searchSig, placeholder: o.placeholder || (aeditor.i18n ? aeditor.i18n.text('assetBrowser.search') : 'Search assets...') })
-    const viewBtn = ui.iconButton({ icon: 'grid', title: aeditor.i18n ? aeditor.i18n.text('assetBrowser.view') : 'View', size: 'sm', onClick: openViewMenu })
-    const sortBtn = ui.iconButton({ icon: 'arrow-up-down', title: aeditor.i18n ? aeditor.i18n.text('assetBrowser.sort') : 'Sort', size: 'sm', onClick: openSortMenu })
-    const grid = ui.h('div', 'aeditor-ui-assetgrid')
+    const root = ui.h('div', 'aiditor-ui-asset-browser')
+    const bar = ui.h('div', 'aiditor-ui-assetbar')
+    const crumb = ui.h('div', 'aiditor-ui-assetcrumb')
+    const search = ui.searchInput({ value: searchSig, placeholder: o.placeholder || (aiditor.i18n ? aiditor.i18n.text('assetBrowser.search') : 'Search assets...') })
+    const viewBtn = ui.iconButton({ icon: 'grid', title: aiditor.i18n ? aiditor.i18n.text('assetBrowser.view') : 'View', size: 'sm', onClick: openViewMenu })
+    const sortBtn = ui.iconButton({ icon: 'arrow-up-down', title: aiditor.i18n ? aiditor.i18n.text('assetBrowser.sort') : 'Sort', size: 'sm', onClick: openSortMenu })
+    const grid = ui.h('div', 'aiditor-ui-assetgrid')
     let menuHandle = null
     let suppressGridClick = false
     bar.appendChild(crumb)
@@ -63,7 +63,7 @@
       paint()
     })
     ui.bind(root, version, paint)
-    if (aeditor.i18n) ui.bind(root, aeditor.i18n.locale, paint)
+    if (aiditor.i18n) ui.bind(root, aiditor.i18n.locale, paint)
     ui.bind(root, selectedSig, paintSelection)
 
     grid.addEventListener('click', function (ev) {
@@ -71,18 +71,18 @@
         suppressGridClick = false
         return
       }
-      if (ev.target.closest && ev.target.closest('.aeditor-ui-assetitem')) return
+      if (ev.target.closest && ev.target.closest('.aiditor-ui-assetitem')) return
       closeContextMenu()
       selectedSig.set([])
       last = -1
     })
     grid.addEventListener('contextmenu', function (ev) {
-      if (ev.target.closest && ev.target.closest('.aeditor-ui-assetitem')) return
+      if (ev.target.closest && ev.target.closest('.aiditor-ui-assetitem')) return
       ev.preventDefault()
       openContextMenu(ev.clientX, ev.clientY, null)
     })
     ui.dropzone(grid, {
-      accept: ['Files', 'application/aeditor.asset.entry+json'],
+      accept: ['Files', 'application/aiditor.asset.entry+json'],
       canDrop: function () { return true },
       onDrop: function (d) { handleDrop(d, dir) },
     })
@@ -96,11 +96,11 @@
       }
       renderCrumb()
       const rows = sorted(o.children ? (o.children(dir, query) || []) : [])
-      grid.className = 'aeditor-ui-assetgrid aeditor-ui-assetgrid-' + view
+      grid.className = 'aiditor-ui-assetgrid aiditor-ui-assetgrid-' + view
       grid.dataset.view = view
       ui.disposeChildren(grid)
       if (!rows.length) {
-        grid.appendChild(ui.h('div', 'aeditor-ui-asset-empty', { text: query ? tr('assetBrowser.empty.search', 'No matching assets.') : tr('assetBrowser.empty.drop', 'Drop files here.') }))
+        grid.appendChild(ui.h('div', 'aiditor-ui-asset-empty', { text: query ? tr('assetBrowser.empty.search', 'No matching assets.') : tr('assetBrowser.empty.drop', 'Drop files here.') }))
         return
       }
       rows.forEach(function (item, idx) {
@@ -110,11 +110,11 @@
     }
 
     function tile(item, idx, rows) {
-      const el = ui.h('div', 'aeditor-ui-assetitem')
+      const el = ui.h('div', 'aiditor-ui-assetitem')
       el.dataset.key = keyFor(item)
       el.dataset.kind = item.kind || 'file'
 
-      const thumb = ui.h('div', 'aeditor-ui-assetthumb')
+      const thumb = ui.h('div', 'aiditor-ui-assetthumb')
       if (item.kind === 'folder') {
         thumb.appendChild(ui.icon({ name: 'folder', size: view === 'list' ? 'sm' : 'lg' }))
       } else if (item.kind === 'image') {
@@ -126,13 +126,13 @@
         thumb.appendChild(ui.icon({ name: item.kind === 'audio' ? 'music' : 'file', size: view === 'list' ? 'sm' : 'lg' }))
       }
 
-      const name = ui.h('div', 'aeditor-ui-assetname', { text: item.name || item.path || item.url || '' })
+      const name = ui.h('div', 'aiditor-ui-assetname', { text: item.name || item.path || item.url || '' })
       el.appendChild(thumb)
       el.appendChild(name)
       if (view === 'list') {
-        el.appendChild(ui.h('div', 'aeditor-ui-assetmeta', { text: typeLabel(item) }))
-        el.appendChild(ui.h('div', 'aeditor-ui-assetmeta', { text: sizeLabel(item.size) }))
-        el.appendChild(ui.h('div', 'aeditor-ui-assetmeta', { text: dateLabel(item.mtime || item.ctime) }))
+        el.appendChild(ui.h('div', 'aiditor-ui-assetmeta', { text: typeLabel(item) }))
+        el.appendChild(ui.h('div', 'aiditor-ui-assetmeta', { text: sizeLabel(item.size) }))
+        el.appendChild(ui.h('div', 'aiditor-ui-assetmeta', { text: dateLabel(item.mtime || item.ctime) }))
       }
 
       el.addEventListener('click', function (ev) { select(item, idx, rows, ev) })
@@ -159,19 +159,19 @@
             ? entries
             : [item]
           const data = {
-            'application/aeditor.asset.entry+json': JSON.stringify(payload.map(serializableEntry)),
+            'application/aiditor.asset.entry+json': JSON.stringify(payload.map(serializableEntry)),
             'text/plain': item.url || item.path || '',
           }
           if (item.kind !== 'folder' && item.url) {
             data['text/uri-list'] = item.url
-            data['application/aeditor.asset+json'] = JSON.stringify({ kind: item.kind, value: item.url })
-            data['application/aeditor.asset.' + (item.kind || 'file') + '+json'] = JSON.stringify({ kind: item.kind, value: item.url })
+            data['application/aiditor.asset+json'] = JSON.stringify({ kind: item.kind, value: item.url })
+            data['application/aiditor.asset.' + (item.kind || 'file') + '+json'] = JSON.stringify({ kind: item.kind, value: item.url })
           }
           if (typeof o.targets === 'function') {
             const targets = o.targets(payload, item) || []
             if (targets.length) {
-              data['application/x-aeditor-target-list'] = JSON.stringify(targets)
-              data['application/x-aeditor-target'] = JSON.stringify(targets[0])
+              data['application/x-aiditor-target-list'] = JSON.stringify(targets)
+              data['application/x-aiditor-target'] = JSON.stringify(targets[0])
             }
           }
           return data
@@ -180,7 +180,7 @@
 
       if (item.kind === 'folder') {
         ui.dropzone(el, {
-          accept: ['Files', 'application/aeditor.asset.entry+json'],
+          accept: ['Files', 'application/aiditor.asset.entry+json'],
           canDrop: function () { return true },
           onDrop: function (d) { handleDrop(d, item.path || '') },
         })
@@ -209,7 +209,7 @@
 
     function paintSelection() {
       const sel = new Set(selectedSig.peek())
-      Array.prototype.forEach.call(grid.querySelectorAll('.aeditor-ui-assetitem'), function (el) {
+      Array.prototype.forEach.call(grid.querySelectorAll('.aiditor-ui-assetitem'), function (el) {
         el.classList.toggle('is-selected', sel.has(el.dataset.key))
       })
     }
@@ -221,7 +221,7 @@
       let cur = ''
       parts(dir).forEach(function (p) {
         cur = cur ? cur + '/' + p : p
-        crumb.appendChild(ui.h('span', 'aeditor-ui-assetcrumb-sep', { text: '/' }))
+        crumb.appendChild(ui.h('span', 'aiditor-ui-assetcrumb-sep', { text: '/' }))
         crumb.appendChild(crumbButton(p, cur))
       })
     }
@@ -234,7 +234,7 @@
         paint()
       })
       ui.dropzone(b, {
-        accept: ['Files', 'application/aeditor.asset.entry+json'],
+        accept: ['Files', 'application/aiditor.asset.entry+json'],
         canDrop: function () { return true },
         onDrop: function (d) { handleDrop(d, path) },
       })
@@ -360,7 +360,7 @@
     let marqueeBase = null
     let marqueeMoved = false
     grid.addEventListener('pointerdown', function (ev) {
-      if (ev.target.closest && ev.target.closest('.aeditor-ui-assetitem')) return
+      if (ev.target.closest && ev.target.closest('.aiditor-ui-assetitem')) return
       closeContextMenu()
       if (ev.button !== 0) return
       marqueeStart = pointInGrid(ev)
@@ -376,7 +376,7 @@
       marqueeMoved = marqueeMoved || rect.width > 3 || rect.height > 3
       if (!marqueeMoved) return
       if (!marquee) {
-        marquee = ui.h('div', 'aeditor-ui-asset-marquee')
+        marquee = ui.h('div', 'aiditor-ui-asset-marquee')
         grid.appendChild(marquee)
       }
       marquee.style.left = rect.left + 'px'
@@ -385,7 +385,7 @@
       marquee.style.height = rect.height + 'px'
       const next = new Set(marqueeBase)
       const gridRect = grid.getBoundingClientRect()
-      Array.prototype.forEach.call(grid.querySelectorAll('.aeditor-ui-assetitem'), function (el) {
+      Array.prototype.forEach.call(grid.querySelectorAll('.aiditor-ui-assetitem'), function (el) {
         const r = el.getBoundingClientRect()
         const box = {
           left: r.left - gridRect.left + grid.scrollLeft,
@@ -453,4 +453,4 @@
     paint()
     return root
   }
-})(window.aeditor = window.aeditor || {})
+})(window.aiditor = window.aiditor || {})

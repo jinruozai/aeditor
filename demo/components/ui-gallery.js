@@ -1,8 +1,8 @@
 // demo component: ui-gallery
-;(function (aeditor) {
+;(function (aiditor) {
   'use strict'
 
-  const ui = aeditor.ui
+  const ui = aiditor.ui
 
   const SOURCE_OPTIONS = [
     { value: 'all', label: 'All' },
@@ -46,7 +46,7 @@
 
   function registryItems(seen) {
     const out = []
-    const regs = aeditor.listComponents()
+    const regs = aiditor.listComponents()
     for (let i = 0; i < regs.length; i++) {
       const reg = regs[i]
       if (seen[reg.name]) continue
@@ -107,14 +107,14 @@
       uri: 'editor://component/' + encodeURIComponent(item.component),
       kind: 'editor.component',
       title: item.label,
-      summary: 'Registered AEditor component ' + item.component + '.',
+      summary: 'Registered Aiditor component ' + item.component + '.',
       meta: {
         component: item.component,
         label: item.label,
         category: item.category,
         source: item.source,
       },
-      tools: ['aeditor.readReference'],
+      tools: ['aiditor.readReference'],
     }
   }
 
@@ -158,8 +158,8 @@
     const meta = ui.h('div', 'demo-ui-card-meta', { text: item.component })
     footer.appendChild(name)
     footer.appendChild(meta)
-    if (aeditor.ai && aeditor.ai.attach) {
-      aeditor.ai.attach(card, function () { return itemTarget(item) }, { contextMenu: true, dragHandle: footer })
+    if (aiditor.ai && aiditor.ai.attach) {
+      aiditor.ai.attach(card, function () { return itemTarget(item) }, { contextMenu: true, dragHandle: footer })
     }
     stage.appendChild(previewFrame)
     card.body.appendChild(stage)
@@ -176,15 +176,15 @@
     const categories = categoriesFrom(items)
     const categorySigs = {}
     const collapsedSigs = {}
-    const sourceSig = aeditor.signal('all')
-    const widthSig = aeditor.signal(128)
-    const heightSig = aeditor.signal(150)
-    const allCollapsedSig = aeditor.signal(false)
+    const sourceSig = aiditor.signal('all')
+    const widthSig = aiditor.signal(128)
+    const heightSig = aiditor.signal(150)
+    const allCollapsedSig = aiditor.signal(false)
 
     for (let i = 0; i < categories.length; i++) {
       const cat = categories[i]
-      categorySigs[cat] = aeditor.signal(cat !== 'panel')
-      collapsedSigs[cat] = aeditor.signal(false)
+      categorySigs[cat] = aiditor.signal(cat !== 'panel')
+      collapsedSigs[cat] = aiditor.signal(false)
     }
 
     const toolbar = ui.h('div', 'demo-ui-gallery-toolbar')
@@ -265,8 +265,8 @@
       }
     }
 
-    ctx.onCleanup(aeditor.effect(render))
-    ctx.onCleanup(aeditor.effect(function () {
+    ctx.onCleanup(aiditor.effect(render))
+    ctx.onCleanup(aiditor.effect(function () {
       const cats = visibleCategories()
       let allCollapsed = cats.length > 0
       for (let i = 0; i < cats.length; i++) {
@@ -277,7 +277,7 @@
     return root
   }
 
-  aeditor.registerComponent('ui-gallery', {
+  aiditor.registerComponent('ui-gallery', {
     category: 'panel',
     label: 'UI Gallery',
     icon: 'grid',
@@ -285,4 +285,4 @@
     factory: factory,
     dispose: disposeTree,
   })
-})(window.aeditor = window.aeditor || {})
+})(window.aiditor = window.aiditor || {})

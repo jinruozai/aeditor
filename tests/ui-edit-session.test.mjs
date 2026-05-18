@@ -2,18 +2,18 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import vm from 'node:vm'
 
-global.window = { aeditor: {} }
+global.window = { aiditor: {} }
 vm.runInThisContext(readFileSync('src/core/signal.js', 'utf8'), { filename: 'signal.js' })
 vm.runInThisContext(readFileSync('src/ui/_internal/_signal.js', 'utf8'), { filename: 'ui/_internal/_signal.js' })
 vm.runInThisContext(readFileSync('src/ui/_internal/_edit-session.js', 'utf8'), { filename: 'ui/_internal/_edit-session.js' })
 
-const ui = window.aeditor.ui
+const ui = window.aiditor.ui
 
 function field(value) {
   return {
     value: value || '',
     listeners: {},
-    __aeditorCleanups: [],
+    __aiditorCleanups: [],
     addEventListener: function (type, fn) { this.listeners[type] = fn },
     removeEventListener: function (type) { delete this.listeners[type] },
     focus: function () { document.activeElement = this; this.listeners.focus && this.listeners.focus({ target: this }) },

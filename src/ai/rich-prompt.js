@@ -1,8 +1,8 @@
-// aeditor.ai rich prompt draft helpers.
-;(function (aeditor) {
+// aiditor.ai rich prompt draft helpers.
+;(function (aiditor) {
   'use strict'
 
-  const ai = aeditor.ai = aeditor.ai || {}
+  const ai = aiditor.ai = aiditor.ai || {}
   const START = 0xE000
   const END = 0xF8FF
 
@@ -240,4 +240,4 @@
     fromContent: fromContent,
     isTokenChar: isTokenChar,
   }
-})(window.aeditor = window.aeditor || {})
+})(window.aiditor = window.aiditor || {})

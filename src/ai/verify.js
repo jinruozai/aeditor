@@ -1,8 +1,8 @@
-// aeditor.ai verify tools - optional host-provided verification adapter.
-;(function (aeditor) {
+// aiditor.ai verify tools - optional host-provided verification adapter.
+;(function (aiditor) {
   'use strict'
 
-  const ai = aeditor.ai = aeditor.ai || {}
+  const ai = aiditor.ai = aiditor.ai || {}
   let adapter = null
   let registered = false
 
@@ -44,7 +44,7 @@
       schema: schema || { type: 'object', properties: {} },
       permissions: ['tool.call'],
       run: function (args) { return callAdapter(method, args) },
-    }, { owner: 'aeditor.ai.verify', layer: 'builtin' })
+    }, { owner: 'aiditor.ai.verify', layer: 'builtin' })
     registered = true
   }
 
@@ -73,4 +73,4 @@
 
   ai.configureVerify = configureVerify
   ai.currentVerify = currentVerify
-})(window.aeditor = window.aeditor || {})
+})(window.aiditor = window.aiditor || {})

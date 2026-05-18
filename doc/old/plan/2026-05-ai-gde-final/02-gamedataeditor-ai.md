@@ -16,7 +16,7 @@ GameDataEditor owns project semantics:
 
 The editor uses framework AI APIs but does not reimplement framework storage, target attachment, or permission checks.
 
-Patch review UI must use the framework ChangeSet contract in `doc/change-set-review-system.md`. GDE owns conversion from `gde.patch` preview to `aeditor.changeSet`; the framework owns review rendering and approval routing.
+Patch review UI must use the framework ChangeSet contract in `doc/change-set-review-system.md`. GDE owns conversion from `gde.patch` preview to `aiditor.changeSet`; the framework owns review rendering and approval routing.
 
 ## Target Map
 
@@ -107,7 +107,7 @@ No alternate patch formats are supported.
 Patch tool semantics:
 
 - `gde.validatePatch` checks the patch without producing an applyable UI diff.
-- `gde.previewPatch` is the canonical dry-run write tool and must return or be convertible to an atomic `aeditor.changeSet`.
+- `gde.previewPatch` is the canonical dry-run write tool and must return or be convertible to an atomic `aiditor.changeSet`.
 - `gde.applyPatch` applies only an approved patch or approved preview result.
 - No alternate mutation tool IDs or compatibility envelopes are supported.
 
@@ -142,7 +142,7 @@ Patch tool semantics:
 - Dragging targetable surfaces into `ai-chatinput` attaches target chips.
 - Sending with target chips attaches them to the active agent and clears pending chips.
 - AI-generated patches appear in `ai-messages` with preview and approval controls.
-- AI-generated patches render as `aeditor.ui.changeReview` using GDE semantic renderers.
+- AI-generated patches render as `aiditor.ui.changeReview` using GDE semantic renderers.
 - Applying an approved patch records one GDE history entry.
 
 ## Implementation Tasks

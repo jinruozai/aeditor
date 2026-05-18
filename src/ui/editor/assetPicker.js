@@ -1,6 +1,6 @@
-// aeditor.ui.assetPicker - path text field + preview thumbnail, for images /
+// aiditor.ui.assetPicker - path text field + preview thumbnail, for images /
 // audio / any application asset field. The whole frame is both a drop zone
-// (accepts OS files + URLs + other aeditor asset drags) and, via the
+// (accepts OS files + URLs + other aiditor asset drags) and, via the
 // thumbnail, a drag source for carrying this asset elsewhere.
 //
 // opts:
@@ -25,11 +25,11 @@
 //
 // Layout: [thumb] [path input]. Clicking the thumb opens the picker
 // (same action the now-removed folder button used to do). Dragging the
-// thumb exports the current value as text/uri-list + aeditor.asset+json so
+// thumb exports the current value as text/uri-list + aiditor.asset+json so
 // other asset pickers / user widgets can receive it.
-;(function (aeditor) {
+;(function (aiditor) {
   'use strict'
-  const ui = aeditor.ui = aeditor.ui || {}
+  const ui = aiditor.ui = aiditor.ui || {}
 
   ui.assetPicker = function (opts) {
     const o = opts || {}
@@ -39,10 +39,10 @@
     const accept      = o.accept || ''
     const doWrite     = ui.writer(sig, o.onChange, 'ui.assetPicker')
 
-    const wrap = ui.h('div', 'aeditor-ui-asset-picker aeditor-ui-field')
+    const wrap = ui.h('div', 'aiditor-ui-asset-picker aiditor-ui-field')
 
     // Preview thumbnail. Also the visible affordance for "click to browse".
-    const thumb = ui.h('div', 'aeditor-ui-asset-preview')
+    const thumb = ui.h('div', 'aiditor-ui-asset-preview')
     function paintPreview(v) {
       thumb.innerHTML = ''
       if (kind === 'image' && v) {
@@ -68,11 +68,11 @@
     wrap.appendChild(thumb)
 
     // Path input. We reuse ui.input, which already arrives wrapped in its
-    // own .aeditor-ui-field — strip that layer's border so our outer frame
+    // own .aiditor-ui-field — strip that layer's border so our outer frame
     // stays the only visible box.
-    const pathSig = aeditor.signal(String(sig.peek() || ''))
+    const pathSig = aiditor.signal(String(sig.peek() || ''))
     const input = ui.input({ value: pathSig, placeholder: placeholder })
-    input.classList.add('aeditor-ui-asset-path')
+    input.classList.add('aiditor-ui-asset-path')
     input.style.flex = '1 1 auto'
     input.style.minWidth = '0'
     const innerInput = input.querySelector('input')
@@ -87,16 +87,16 @@
       wrap.classList.toggle('is-missing', !!s && typeof o.exists === 'function' && !o.exists(s))
       paintPreview(s)
     })
-    ui.collect(wrap, aeditor.effect(function () {
+    ui.collect(wrap, aiditor.effect(function () {
       const s = pathSig()
       if (s !== String(sig.peek() || '')) doWrite(s)
     }))
 
     // Drop target — the whole frame accepts dragged assets that match
-    // our `kind`. Files, URL drops, and other aeditor asset sources all flow
+    // our `kind`. Files, URL drops, and other aiditor asset sources all flow
     // through ui.dnd.extractUrl so the consumer just sees a final string.
     ui.dropzone(wrap, {
-      accept:  ['Files', 'text/uri-list', 'text/plain', 'application/aeditor.asset+json', 'application/aeditor.asset.' + kind + '+json'],
+      accept:  ['Files', 'text/uri-list', 'text/plain', 'application/aiditor.asset+json', 'application/aiditor.asset.' + kind + '+json'],
       canDrop: function (d) { return ui.dnd.matchesKind(d, kind) },
       onDrop:  function (d) {
         if (d.asset && d.asset.value) {
@@ -124,8 +124,8 @@
         return {
           'text/uri-list':              v,
           'text/plain':                 v,
-          'application/aeditor.asset+json':  JSON.stringify({ kind: kind, value: v }),
-          ['application/aeditor.asset.' + kind + '+json']: JSON.stringify({ kind: kind, value: v }),
+          'application/aiditor.asset+json':  JSON.stringify({ kind: kind, value: v }),
+          ['application/aiditor.asset.' + kind + '+json']: JSON.stringify({ kind: kind, value: v }),
         }
       },
     })
@@ -175,4 +175,4 @@
     paintPreview(sig.peek())
     return wrap
   }
-})(window.aeditor = window.aeditor || {})
+})(window.aiditor = window.aiditor || {})

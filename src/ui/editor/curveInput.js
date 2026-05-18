@@ -1,4 +1,4 @@
-// aeditor.ui.curveInput - animation/easing curve editor (cubic bezier 4-pt).
+// aiditor.ui.curveInput - animation/easing curve editor (cubic bezier 4-pt).
 //
 // Value : signal<[x1, y1, x2, y2]>  (control points in [0,1] like CSS bezier).
 //
@@ -8,11 +8,11 @@
 //   - Grid, guide lines, accent-stroked bezier, filled handles.
 //
 // Applying named presets is an application concern, not a UI chrome concern.
-// callers just write to the signal: `sig.set(aeditor.ui.curvePresets.ease)`. Common
-// values are exposed as `aeditor.ui.curvePresets` for convenience.
-;(function (aeditor) {
+// callers just write to the signal: `sig.set(aiditor.ui.curvePresets.ease)`. Common
+// values are exposed as `aiditor.ui.curvePresets` for convenience.
+;(function (aiditor) {
   'use strict'
-  const ui = aeditor.ui = aeditor.ui || {}
+  const ui = aiditor.ui = aiditor.ui || {}
 
   ui.curvePresets = {
     linear: [0.00, 0.00, 1.00, 1.00],
@@ -31,9 +31,9 @@
     const yMin = numOpt(o.yMin, 0)
     const yMax = numOpt(o.yMax, 1)
 
-    const el     = ui.h('div', 'aeditor-ui-curve')
-    const cvWrap = ui.h('div', 'aeditor-ui-curve-canvas-wrap')
-    const cv     = ui.h('canvas', 'aeditor-ui-curve-canvas')
+    const el     = ui.h('div', 'aiditor-ui-curve')
+    const cvWrap = ui.h('div', 'aiditor-ui-curve-canvas-wrap')
+    const cv     = ui.h('canvas', 'aiditor-ui-curve-canvas')
     cvWrap.appendChild(cv)
     el.appendChild(cvWrap)
 
@@ -86,11 +86,11 @@
       ctx.clearRect(0, 0, cssW, cssH)
 
       // backdrop
-      ctx.fillStyle = getCss('--aeditor-bg-1', '#1a1a1f')
+      ctx.fillStyle = getCss('--aiditor-bg-1', '#1a1a1f')
       ctx.fillRect(g.x, g.y, g.iw, g.ih)
 
       // grid (quarter lines)
-      ctx.strokeStyle = getCss('--aeditor-border', '#2a2a30')
+      ctx.strokeStyle = getCss('--aiditor-border', '#2a2a30')
       ctx.lineWidth = minLine(cssW, cssH)
       ctx.beginPath()
       for (let i = 1; i < 4; i++) {
@@ -101,11 +101,11 @@
       }
       ctx.stroke()
       // bounding frame
-      ctx.strokeStyle = getCss('--aeditor-border-strong', '#3a3a42')
+      ctx.strokeStyle = getCss('--aiditor-border-strong', '#3a3a42')
       ctx.strokeRect(g.x + 0.5, g.y + 0.5, g.iw, g.ih)
 
       // diagonal reference (linear curve, dimmed)
-      ctx.strokeStyle = getCss('--aeditor-fg-3', '#55555f')
+      ctx.strokeStyle = getCss('--aiditor-fg-3', '#55555f')
       ctx.setLineDash([3, 4])
       ctx.beginPath()
       ctx.moveTo(g.x, g.y + g.ih)
@@ -119,7 +119,7 @@
       const p3 = map(g, xMax, yMax)
 
       // handle guide lines
-      ctx.strokeStyle = getCss('--aeditor-fg-3', '#55555f')
+      ctx.strokeStyle = getCss('--aiditor-fg-3', '#55555f')
       ctx.lineWidth = minLine(cssW, cssH)
       ctx.beginPath()
       ctx.moveTo(p0[0], p0[1]); ctx.lineTo(p1[0], p1[1])
@@ -127,7 +127,7 @@
       ctx.stroke()
 
       // bezier curve: glow pass + main stroke
-      const accent = getCss('--aeditor-accent', '#7b6ef6')
+      const accent = getCss('--aiditor-accent', '#7b6ef6')
       ctx.save()
       ctx.shadowColor = accent
       ctx.shadowBlur = 8
@@ -141,7 +141,7 @@
       ctx.restore()
 
       // endpoint dots
-      ctx.fillStyle = getCss('--aeditor-fg-2', '#8a8a95')
+      ctx.fillStyle = getCss('--aiditor-fg-2', '#8a8a95')
       ;[p0, p3].forEach(function (p) {
         ctx.beginPath(); ctx.arc(p[0], p[1], Math.max(2, g.handle * 0.6), 0, Math.PI * 2); ctx.fill()
       })
@@ -158,7 +158,7 @@
           ctx.restore()
         }
         ctx.fillStyle = accent
-        ctx.strokeStyle = getCss('--aeditor-fg-0', '#f0f0f5')
+        ctx.strokeStyle = getCss('--aiditor-fg-0', '#f0f0f5')
         ctx.lineWidth = Math.max(1.25, Math.min(2, Math.min(cssW, cssH) * 0.02))
         ctx.beginPath(); ctx.arc(p[0], p[1], r, 0, Math.PI * 2)
         ctx.fill(); ctx.stroke()
@@ -281,4 +281,4 @@
 
     return el
   }
-})(window.aeditor = window.aeditor || {})
+})(window.aiditor = window.aiditor || {})

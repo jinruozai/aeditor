@@ -1,4 +1,4 @@
-// aeditor.ui TypeConfig: schema-driven property editing.
+// aiditor.ui TypeConfig: schema-driven property editing.
 //
 // TypeConfig is a two-level registry:
 //   1. Builtin types        (int, float, string, enum, bool, color, ...)
@@ -8,13 +8,13 @@
 // presentation via `type_agv` (args). Resolution layers the three, with
 // the field's own agv winning over overrides over builtin.
 //
-//   aeditor.ui.setTypeConfig(builtin, { overrides })
-//   aeditor.ui.getTypeConfig()                  -> { [name]: TypeDef }
-//   aeditor.ui.resolveType(typeName)            -> merged TypeDef or null
-//   aeditor.ui.resolveFieldDef(fieldDef)        -> TypeDef + field overrides merged
-//   aeditor.ui.registerRenderer(kind, fn)       -> extend the render kind table
-//   aeditor.ui.getRenderer(kind)                -> fn or null
-//   aeditor.ui.listRenderKinds()                -> [name, ...] (for picker UIs)
+//   aiditor.ui.setTypeConfig(builtin, { overrides })
+//   aiditor.ui.getTypeConfig()                  -> { [name]: TypeDef }
+//   aiditor.ui.resolveType(typeName)            -> merged TypeDef or null
+//   aiditor.ui.resolveFieldDef(fieldDef)        -> TypeDef + field overrides merged
+//   aiditor.ui.registerRenderer(kind, fn)       -> extend the render kind table
+//   aiditor.ui.getRenderer(kind)                -> fn or null
+//   aiditor.ui.listRenderKinds()                -> [name, ...] (for picker UIs)
 //
 // See propertyForm.js for consumption.
 //
@@ -35,9 +35,9 @@
 // The merge in resolveFieldDef is shallow on the top level but DEEP on
 // type_agv, so a field that sets `type_agv: { max: 60 }` doesn't erase
 // the type's baseline `type_agv: { min: 1 }`.
-;(function (aeditor) {
+;(function (aiditor) {
   'use strict'
-  const ui = aeditor.ui = aeditor.ui || {}
+  const ui = aiditor.ui = aiditor.ui || {}
 
   // Default builtin TypeConfig.
   // Fields not overridden by user's setTypeConfig() fall back to these.
@@ -154,4 +154,4 @@
   ui.registerRenderer = registerRenderer
   ui.getRenderer      = getRenderer
   ui.listRenderKinds  = listRenderKinds
-})(window.aeditor = window.aeditor || {})
+})(window.aiditor = window.aiditor || {})

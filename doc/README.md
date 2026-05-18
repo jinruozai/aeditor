@@ -1,20 +1,20 @@
-# AEditor Design
+# Aiditor Design
 
-AEditor is a zero-dependency frontend editor framework with optional upper
+Aiditor is a zero-dependency frontend editor framework with optional upper
 layers. Its goal is simple: keep the kernel small, then let host apps build
 powerful editors and AI workflows on top of that small kernel.
 
 ```text
-AEditor Kernel              core services, component registry, tree, dock runtime
-AEditor UI                  optional widget and built-in panel layer
-AEditor AI Host             optional agent/runtime layer
-AEditor Extension Runtime   optional packaging/lifecycle layer
+Aiditor Kernel              core services, component registry, tree, dock runtime
+Aiditor UI                  optional widget and built-in panel layer
+Aiditor AI Host             optional agent/runtime layer
+Aiditor Extension Runtime   optional packaging/lifecycle layer
 Host Adapters               privileged bridges owned by the host app
 ```
 
-Applications built with AEditor, including Demo Project Runtime, sit outside
+Applications built with Aiditor, including Demo Project Runtime, sit outside
 the framework. They may load workspace files, register components, and mount
-panels, but they are examples of host code rather than AEditor architecture.
+panels, but they are examples of host code rather than Aiditor architecture.
 
 ## Authority
 
@@ -35,13 +35,13 @@ explicitly references one.
 | Area | Responsibility | Does Not Own |
 | --- | --- | --- |
 | Kernel | Shared infrastructure: signals, log, bus, history, settings, commands, theme, i18n, workspace contracts, component registry, dock tree, and dock runtime. | Editor business rules, product project formats, or widget catalog breadth. |
-| UI | `aeditor.ui.*` widgets, schema-driven `propertyForm`, generic Inspector selection/providers, settings UI, built-in tab/log/inspector panel components, and theme consumption. | AI execution or domain data semantics. |
+| UI | `aiditor.ui.*` widgets, schema-driven `propertyForm`, generic Inspector selection/providers, settings UI, built-in tab/log/inspector panel components, and theme consumption. | AI execution or domain data semantics. |
 | AI Host | Agents, providers, streaming, permissions, tools, context references, operations, ChangeSet, compaction, and memory. | Product data models or hidden host privileges. |
 | Extension Runtime | Package, review, install, disable, and uninstall contributions through existing registries. | A second component/tool/context model. |
 | Host Adapters | File-system bridges, provider transports, git, verification, and other privileged integrations. | Framework policy bypasses. |
 
 Domain-specific editors, demos, project loaders, app menus, app shortcuts, and
-workflow decisions are host code. They use AEditor; they are not AEditor layers.
+workflow decisions are host code. They use Aiditor; they are not Aiditor layers.
 
 ## Distribution Contract
 
@@ -49,19 +49,19 @@ The repository may contain source, tests, demos, internal handoff files, and
 archived notes. The published runtime package should stay small and public:
 
 ```text
-dist/aeditor-core.js
-dist/aeditor-core.css
-dist/aeditor-full.js
-dist/aeditor-full.css
-dist/aeditor-kernel.js
-dist/aeditor-kernel.css
-dist/aeditor-ui.js
-dist/aeditor-ui.css
-dist/aeditor-ai.js
-dist/aeditor-ai.css
-dist/aeditor.js
-dist/aeditor.css
-dist/aeditor-api.json
+dist/aiditor-core.js
+dist/aiditor-core.css
+dist/aiditor-full.js
+dist/aiditor-full.css
+dist/aiditor-kernel.js
+dist/aiditor-kernel.css
+dist/aiditor-ui.js
+dist/aiditor-ui.css
+dist/aiditor-ai.js
+dist/aiditor-ai.css
+dist/aiditor.js
+dist/aiditor.css
+dist/aiditor-api.json
 README.md
 LICENSE
 ```
@@ -74,15 +74,15 @@ Optional layers must be optional in distribution as well as in architecture. The
 runtime distribution should provide:
 
 ```text
-aeditor-kernel    Core services + tree + dock runtime
-aeditor-ui        UI widget and built-in panel add-on
-aeditor-ai        AI Host + Extension Runtime add-on
-aeditor-core      classic Kernel + UI bundle
-aeditor-full      Kernel + UI + AI Host + Extension Runtime
+aiditor-kernel    Core services + tree + dock runtime
+aiditor-ui        UI widget and built-in panel add-on
+aiditor-ai        AI Host + Extension Runtime add-on
+aiditor-core      classic Kernel + UI bundle
+aiditor-full      Kernel + UI + AI Host + Extension Runtime
 ```
 
 Host apps that only need dock layout should be able to load the kernel bundle.
-Apps that need the classic UI framework can load `aeditor-core` without AI,
+Apps that need the classic UI framework can load `aiditor-core` without AI,
 extension runtime, AI panels, or AI-specific styles.
 
 ## Core Principles
@@ -147,8 +147,8 @@ extension runtime, AI panels, or AI-specific styles.
 - [agent-workspace-editing.md](./agent-workspace-editing.md): recommended file-first agent workflow for demo workspace code edits.
 - [extensions.md](./extensions.md): extension packaging, trust tiers, and lifecycle.
 - [api/index.md](./api/index.md): generated API reference built from structured source comments.
-- [skill/aeditor-runtime-authoring/SKILL.md](./skill/aeditor-runtime-authoring/SKILL.md): copyable AI skill for live AEditor agents that edit workspace files and mount panels into current docks.
-- [skill/aeditor-library-authoring/SKILL.md](./skill/aeditor-library-authoring/SKILL.md): copyable AI skill for Codex-like agents using AEditor as a library in a repository or host app.
-- [skill/aeditor-authoring/SKILL.md](./skill/aeditor-authoring/SKILL.md): compatibility umbrella for the older combined authoring guidance.
+- [skill/aiditor-runtime-authoring/SKILL.md](./skill/aiditor-runtime-authoring/SKILL.md): copyable AI skill for live Aiditor agents that edit workspace files and mount panels into current docks.
+- [skill/aiditor-library-authoring/SKILL.md](./skill/aiditor-library-authoring/SKILL.md): copyable AI skill for Codex-like agents using Aiditor as a library in a repository or host app.
+- [skill/aiditor-authoring/SKILL.md](./skill/aiditor-authoring/SKILL.md): compatibility umbrella for the older combined authoring guidance.
 - [implementation-map.md](./implementation-map.md): source-file coverage map for current implementation.
 - [architecture-notes.md](./architecture-notes.md): intentional implementation notes for review-sensitive areas.

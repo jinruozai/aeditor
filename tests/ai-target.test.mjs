@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import vm from 'node:vm'
 
-global.window = { aeditor: {} }
+global.window = { aiditor: {} }
 vm.runInThisContext(readFileSync('src/core/signal.js', 'utf8'), { filename: 'signal.js' })
 vm.runInThisContext(readFileSync('src/core/names.js', 'utf8'), { filename: 'names.js' })
 vm.runInThisContext(readFileSync('src/ai/name-generator.js', 'utf8'), { filename: 'ai/name-generator.js' })
@@ -14,7 +14,7 @@ vm.runInThisContext(readFileSync('src/ai/reference.js', 'utf8'), { filename: 'ai
 vm.runInThisContext(readFileSync('src/ai/request.js', 'utf8'), { filename: 'ai/request.js' })
 vm.runInThisContext(readFileSync('src/ai/target.js', 'utf8'), { filename: 'ai/target.js' })
 
-const ai = window.aeditor.ai
+const ai = window.aiditor.ai
 
 ai.registerTargetProvider('case', {
   match: function (source) { return source && source.kind === 'case-source' },
@@ -59,11 +59,11 @@ const dragEvent = {
     effectAllowed: '',
     setData: function (type, value) { dragPayload[type] = value },
     getData: function (type) { return dragPayload[type] || '' },
-    types: ['application/x-aeditor-target-list'],
+    types: ['application/x-aiditor-target-list'],
   },
 }
 ai.writeTargetDragData(dragEvent, [captured])
-assert.equal(JSON.parse(dragPayload['application/x-aeditor-target']).uri, captured.uri)
+assert.equal(JSON.parse(dragPayload['application/x-aiditor-target']).uri, captured.uri)
 assert.equal(ai.readTargetFromDragEvent(dragEvent)[0].uri, captured.uri)
 
 function mockElement(tag) {
@@ -85,8 +85,8 @@ function mockElement(tag) {
       for (let i = 0; i < parts.length; i++) {
         if (parts[i] === this.tagName) return true
         if (parts[i] === '[role="slider"]' && this.attrs.role === 'slider') return true
-        if (parts[i] === '[data-aeditor-ai-drag-ignore]' && this.attrs['data-aeditor-ai-drag-ignore'] != null) return true
-        if (parts[i] === '[data-aeditor-ai-drag-handle]' && this.attrs['data-aeditor-ai-drag-handle'] != null) return true
+        if (parts[i] === '[data-aiditor-ai-drag-ignore]' && this.attrs['data-aiditor-ai-drag-ignore'] != null) return true
+        if (parts[i] === '[data-aiditor-ai-drag-handle]' && this.attrs['data-aiditor-ai-drag-handle'] != null) return true
       }
       return false
     },
@@ -111,7 +111,7 @@ handleEl.listeners.dragstart({
   },
   preventDefault: function () { this.prevented = true },
 })
-assert.equal(JSON.parse(handleDragPayload['application/x-aeditor-target']).uri, captured.uri)
+assert.equal(JSON.parse(handleDragPayload['application/x-aiditor-target']).uri, captured.uri)
 
 const rootEl = mockElement('div')
 const sliderEl = mockElement('div')

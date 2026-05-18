@@ -1,8 +1,8 @@
-// aeditor.ai provider shared helpers.
-;(function (aeditor) {
+// aiditor.ai provider shared helpers.
+;(function (aiditor) {
   'use strict'
 
-  const ai = aeditor.ai = aeditor.ai || {}
+  const ai = aiditor.ai = aiditor.ai || {}
 
   function normalizeModels(models) {
     const list = Array.isArray(models) ? models : []
@@ -195,4 +195,4 @@
     requestMaybeStream: requestMaybeStream,
   }
   ai.estimateUsageCost = estimateUsageCost
-})(window.aeditor = window.aeditor || {})
+})(window.aiditor = window.aiditor || {})

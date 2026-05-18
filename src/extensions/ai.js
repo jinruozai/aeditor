@@ -1,10 +1,10 @@
-// aeditor.extensions AI bridge - exposes extension lifecycle operations/tools.
-;(function (aeditor) {
+// aiditor.extensions AI bridge - exposes extension lifecycle operations/tools.
+;(function (aiditor) {
   'use strict'
 
-  const ai = aeditor.ai
-  const ext = aeditor.extensions
-  const OWNER = 'aeditor.extensions'
+  const ai = aiditor.ai
+  const ext = aiditor.extensions
+  const OWNER = 'aiditor.extensions'
   const META = { owner: OWNER, layer: 'builtin' }
 
   if (!ai || !ext) return
@@ -34,21 +34,21 @@
 
   function registerOperations() {
     if (!ai.operations) return
-    ai.operations.register('aeditor.installExtension', {
+    ai.operations.register('aiditor.installExtension', {
       title: 'Install Editor Extension',
       risk: 'edit',
       exposeToModel: false,
       preview: function (input, ctx) { return ext.review(input, actorOptions(ctx)) },
       apply: function (preview, ctx) { return ext.install(preview.manifest || preview.input, actorOptions(ctx)) },
     }, META)
-    ai.operations.register('aeditor.removeExtension', {
+    ai.operations.register('aiditor.removeExtension', {
       title: 'Remove Editor Extension',
       risk: 'edit',
       exposeToModel: false,
       preview: function (input) { return extensionPreview(input, 'remove', 'Remove extension') },
       apply: function (preview, ctx) { return ext.uninstall(preview.input.id, Object.assign({ force: true }, actorOptions(ctx))) },
     }, META)
-    ai.operations.register('aeditor.updateExtension', {
+    ai.operations.register('aiditor.updateExtension', {
       title: 'Update Editor Extension',
       risk: 'edit',
       exposeToModel: false,
@@ -58,42 +58,42 @@
         return ext.update(manifest.id, manifest, actorOptions(ctx))
       },
     }, META)
-    ai.operations.register('aeditor.promoteExtensionLayer', {
+    ai.operations.register('aiditor.promoteExtensionLayer', {
       title: 'Promote Extension Layer',
       risk: 'edit',
       exposeToModel: false,
       preview: function (input) { return extensionPreview(input, 'setLayer', 'Promote extension') },
       apply: function (preview, ctx) { return ext.setLayer(preview.input.id, preview.input.layer, actorOptions(ctx)) },
     }, META)
-    ai.operations.register('aeditor.enableExtension', {
+    ai.operations.register('aiditor.enableExtension', {
       title: 'Enable Editor Extension',
       risk: 'edit',
       exposeToModel: false,
       preview: function (input) { return extensionPreview(input, 'enable', 'Enable extension') },
       apply: function (preview, ctx) { return ext.enable(preview.input.id, actorOptions(ctx)) },
     }, META)
-    ai.operations.register('aeditor.disableExtension', {
+    ai.operations.register('aiditor.disableExtension', {
       title: 'Disable Editor Extension',
       risk: 'edit',
       exposeToModel: false,
       preview: function (input) { return extensionPreview(input, 'disable', 'Disable extension') },
       apply: function (preview, ctx) { return ext.disable(preview.input.id, actorOptions(ctx)) },
     }, META)
-    ai.operations.register('aeditor.addPanelToDock', {
+    ai.operations.register('aiditor.addPanelToDock', {
       title: 'Add Panel To Dock',
       risk: 'edit',
       exposeToModel: false,
       preview: ext.previewAddPanelToDock,
       apply: ext.applyAddPanelToDock,
     }, META)
-    ai.operations.register('aeditor.reloadPanel', {
+    ai.operations.register('aiditor.reloadPanel', {
       title: 'Reload Panel',
       risk: 'edit',
       exposeToModel: false,
       preview: ext.previewReloadPanel,
       apply: ext.applyReloadPanel,
     }, META)
-    ai.operations.register('aeditor.removePanelFromDock', {
+    ai.operations.register('aiditor.removePanelFromDock', {
       title: 'Remove Panel From Dock',
       risk: 'edit',
       exposeToModel: false,
@@ -114,20 +114,20 @@
   function registerTools() {
     if (!ai.tools) return
     /**
-     * @aeditorApi aeditor.inspectDocks
+     * @aiditorApi aiditor.inspectDocks
      * @group ai-tools
      * @layer ai-host
      * @kind ai-tool
-     * @signature aeditor.inspectDocks({ layout? })
+     * @signature aiditor.inspectDocks({ layout? })
      * @summary List current dock ids, names, viewport rects, panels, active panel, and accept rules so agents can choose a real runtime dock.
      * @param {object} input - Tool input.
      * @param {string} input.layout - Optional registered layout name; omit for all layouts.
      * @returns {object[]} Dock summaries.
      * @example
-     * aeditor.inspectDocks({})
-     * @related aeditor.addPanelToDock,aeditor.replacePanel
+     * aiditor.inspectDocks({})
+     * @related aiditor.addPanelToDock,aiditor.replacePanel
      */
-    ai.tools.register('aeditor.inspectDocks', {
+    ai.tools.register('aiditor.inspectDocks', {
       title: 'Inspect Editor Docks',
       description: 'List registered editor docks with id, name, viewport rect, active panel, panel summaries, and accept rules. Use this before adding a panel so the dock id comes from runtime state rather than a guessed name.',
       schema: {
@@ -138,9 +138,9 @@
       },
       run: function (input) { return ext.inspectDocks(input || {}) },
     }, META)
-    ai.tools.register('aeditor.installExtension', {
+    ai.tools.register('aiditor.installExtension', {
       title: 'Install Editor Extension',
-      description: 'Install a low-level AEditor extension manifest for commands, menus, references, context, operations, settings, dock panels, or pre-registered component contributions. Agent-authored panels must be written as workspace files and added by registered component name.',
+      description: 'Install a low-level Aiditor extension manifest for commands, menus, references, context, operations, settings, dock panels, or pre-registered component contributions. Agent-authored panels must be written as workspace files and added by registered component name.',
       schema: {
         type: 'object',
         required: ['manifest'],
@@ -157,11 +157,11 @@
       },
     }, META)
     /**
-     * @aeditorApi aeditor.addPanelToDock
+     * @aiditorApi aiditor.addPanelToDock
      * @group ai-tools
      * @layer ai-host
      * @kind ai-tool
-     * @signature aeditor.addPanelToDock({ dock, component, path?, title?, props?, transient? })
+     * @signature aiditor.addPanelToDock({ dock, component, path?, title?, props?, transient? })
      * @summary Add a registered or workspace-file component as a new panel in a runtime dock. If path is provided, the script is loaded before adding the panel.
      * @param {object} input - Tool input.
      * @param {string} input.dock - Dock id/name from inspectDocks.
@@ -172,17 +172,17 @@
      * @param {boolean} input.transient - Optional transient panel flag.
      * @returns {object} Applied operation result.
      * @example
-     * aeditor.addPanelToDock({
+     * aiditor.addPanelToDock({
      *   dock: 'dock-2',
      *   component: 'three-scene',
      *   path: 'three-scene.js',
      *   title: '3D Scene',
      * })
-     * @related aeditor.inspectDocks,aeditor.runtime.loadScript,aeditor.reloadPanel,aeditor.replacePanel
+     * @related aiditor.inspectDocks,aiditor.runtime.loadScript,aiditor.reloadPanel,aiditor.replacePanel
      */
-    ai.tools.register('aeditor.addPanelToDock', {
+    ai.tools.register('aiditor.addPanelToDock', {
       title: 'Add Panel To Dock',
-      description: 'Add a component as a runtime panel in a dock, equivalent to choosing that component from the dock Add Panel menu. For a newly written workspace component file, pass path so the runtime loads the script before adding the panel. This tool never accepts source code; inspect docks first, then pass a dock id returned by aeditor.inspectDocks.',
+      description: 'Add a component as a runtime panel in a dock, equivalent to choosing that component from the dock Add Panel menu. For a newly written workspace component file, pass path so the runtime loads the script before adding the panel. This tool never accepts source code; inspect docks first, then pass a dock id returned by aiditor.inspectDocks.',
       schema: {
         type: 'object',
         required: ['dock', 'component'],
@@ -203,25 +203,25 @@
       apply: ext.applyAddPanelToDock,
     }, META)
     /**
-     * @aeditorApi aeditor.reloadPanel
+     * @aiditorApi aiditor.reloadPanel
      * @group ai-tools
      * @layer ai-host
      * @kind ai-tool
-     * @signature aeditor.reloadPanel({ panelId, path?, component? })
+     * @signature aiditor.reloadPanel({ panelId, path?, component? })
      * @summary Reload one existing panel instance after its component file changes. Keeps the same panel id, dock position, title, props, and component.
      * @param {object} input - Tool input.
-     * @param {string} input.panelId - Existing panel instance id returned by aeditor.inspectDocks.
+     * @param {string} input.panelId - Existing panel instance id returned by aiditor.inspectDocks.
      * @param {string} input.path - Optional workspace JS file to load with replace semantics before rebuilding the panel.
      * @param {string} input.component - Optional safety check; must match the current panel component. Use replacePanel to change component.
      * @returns {object} Applied operation result.
      * @example
-     * aeditor.reloadPanel({
+     * aiditor.reloadPanel({
      *   panelId: 'panel-12',
      *   path: 'login-panel.js',
      * })
-     * @related aeditor.inspectDocks,aeditor.addPanelToDock,aeditor.replacePanel
+     * @related aiditor.inspectDocks,aiditor.addPanelToDock,aiditor.replacePanel
      */
-    ai.tools.register('aeditor.reloadPanel', {
+    ai.tools.register('aiditor.reloadPanel', {
       title: 'Reload Panel',
       description: 'Reload an existing panel after editing its component file. Keeps the same panelId and dock position. Use this after changing the same component file; use replacePanel only when changing to a different component.',
       schema: {
@@ -229,7 +229,7 @@
         required: ['panelId'],
         properties: {
           layout: { type: 'string', description: 'Registered layout name; omit for the default layout.' },
-          panelId: { type: 'string', description: 'Existing panel instance id returned by aeditor.inspectDocks.' },
+          panelId: { type: 'string', description: 'Existing panel instance id returned by aiditor.inspectDocks.' },
           path: { type: 'string', description: 'Optional workspace JS file to reload with replace semantics before rebuilding the panel.' },
           component: { type: 'string', description: 'Optional safety check; must match the current panel component.' },
           owner: { type: 'string', description: 'Optional owner for registrations created while loading path. Defaults to the current workspace id.' },
@@ -240,11 +240,11 @@
       apply: ext.applyReloadPanel,
     }, META)
     /**
-     * @aeditorApi aeditor.replacePanel
+     * @aiditorApi aiditor.replacePanel
      * @group ai-tools
      * @layer ai-host
      * @kind ai-tool
-     * @signature aeditor.replacePanel({ panelId, component, path?, title?, props?, transient?, discardDirty? })
+     * @signature aiditor.replacePanel({ panelId, component, path?, title?, props?, transient?, discardDirty? })
      * @summary Replace one existing panel instance with another component while keeping its dock position. Use reloadPanel after editing the same component file.
      * @param {object} input - Tool input.
      * @param {string} input.panelId - Existing panel instance id.
@@ -255,22 +255,22 @@
      * @param {boolean} input.discardDirty - Must be true to replace a dirty panel.
      * @returns {object} Applied operation result.
      * @example
-     * aeditor.replacePanel({
+     * aiditor.replacePanel({
      *   panelId: 'panel-12',
      *   component: 'cube-inspector',
      *   path: 'cube-inspector.js',
      * })
-     * @related aeditor.inspectDocks,aeditor.addPanelToDock,aeditor.reloadPanel
+     * @related aiditor.inspectDocks,aiditor.addPanelToDock,aiditor.reloadPanel
      */
-    ai.tools.register('aeditor.replacePanel', {
+    ai.tools.register('aiditor.replacePanel', {
       title: 'Replace Panel',
-      description: 'Replace one existing panel instance by panelId while keeping its dock position. Parameters match aeditor.addPanelToDock except panelId replaces dock. For a newly written workspace component file, pass path so the runtime loads the script before replacing the panel.',
+      description: 'Replace one existing panel instance by panelId while keeping its dock position. Parameters match aiditor.addPanelToDock except panelId replaces dock. For a newly written workspace component file, pass path so the runtime loads the script before replacing the panel.',
       schema: {
         type: 'object',
         required: ['panelId', 'component'],
         properties: {
           layout: { type: 'string', description: 'Registered layout name; omit for the default layout.' },
-          panelId: { type: 'string', description: 'Existing panel instance id returned by aeditor.inspectDocks.' },
+          panelId: { type: 'string', description: 'Existing panel instance id returned by aiditor.inspectDocks.' },
           component: { type: 'string', description: 'Registered component id.' },
           path: { type: 'string', description: 'Optional workspace JS file to load first when the component is not registered yet.' },
           owner: { type: 'string', description: 'Optional owner for registrations created while loading path. Defaults to the current workspace id.' },
@@ -289,4 +289,4 @@
 
   registerOperations()
   registerTools()
-})(window.aeditor = window.aeditor || {})
+})(window.aiditor = window.aiditor || {})

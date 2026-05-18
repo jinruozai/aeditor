@@ -2,12 +2,12 @@
 
 Generated from structured API comments in `src/`.
 
-## `aeditor.runtime.loadScript`
+## `aiditor.runtime.loadScript`
 
 Execute a workspace or host script with default owner/layer metadata so its registrations can be cleaned up as one contribution group.
 
 ```js
-aeditor.runtime.loadScript({ id?, source?, url?, path?, owner?, layer?, type? })
+aiditor.runtime.loadScript({ id?, source?, url?, path?, owner?, layer?, type? })
 ```
 
 | Param | Type | Description |
@@ -22,7 +22,7 @@ aeditor.runtime.loadScript({ id?, source?, url?, path?, owner?, layer?, type? })
 Returns: `Promise<object>` Load result with ok/id/owner/layer/type.
 
 ```js
-aeditor.runtime.loadScript({
+aiditor.runtime.loadScript({
   path: 'three-scene.js',
   source: text,
   owner: 'workspace:game',
@@ -30,6 +30,6 @@ aeditor.runtime.loadScript({
 })
 ```
 
-Related: `aeditor.registerComponent`, `aeditor.addPanelToDock`
+Related: `aiditor.registerComponent`, `aiditor.addPanelToDock`
 
 Source: `src/core/runtime.js`

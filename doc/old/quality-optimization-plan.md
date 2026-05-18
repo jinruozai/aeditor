@@ -1,6 +1,6 @@
 # Quality Optimization Plan
 
-This plan keeps AEditor aligned with the product principles: simple, elegant, efficient, visually consistent, and cleanly separated from project code.
+This plan keeps Aiditor aligned with the product principles: simple, elegant, efficient, visually consistent, and cleanly separated from project code.
 
 ## 1. Security And Permission Boundaries
 
@@ -17,10 +17,10 @@ This plan keeps AEditor aligned with the product principles: simple, elegant, ef
 
 ## 3. UI Consistency
 
-- No browser-native `prompt/confirm/alert` in editor workflows; use `aeditor.ui.prompt`, `aeditor.ui.confirm`, or callback-provided dialogs.
+- No browser-native `prompt/confirm/alert` in editor workflows; use `aiditor.ui.prompt`, `aiditor.ui.confirm`, or callback-provided dialogs.
 - All user-visible text in GDE goes through `t()` / `I18N`.
 - User-facing strings must be valid UTF-8 and free of mojibake.
-- CSS color must use `--aeditor-*` semantic tokens or project-level `--gde-*` tokens derived from them.
+- CSS color must use `--aiditor-*` semantic tokens or project-level `--gde-*` tokens derived from them.
 
 ## 4. CSS Structure
 
@@ -46,6 +46,6 @@ Before delivery:
 - `npm run check`
 - `npm run check:dist`
 - `npm run check:gde`
-- Rebuild `dist/aeditor.js` and `dist/aeditor.css`.
-- Sync `temp/GameDataEditor/vendor/aeditor.js` and `aeditor.css`.
+- Rebuild `dist/aiditor.js` and `dist/aiditor.css`.
+- Sync `temp/GameDataEditor/vendor/aiditor.js` and `aiditor.css`.
 

@@ -1,8 +1,8 @@
-// aeditor.ai git tools - optional host-provided git adapter.
-;(function (aeditor) {
+// aiditor.ai git tools - optional host-provided git adapter.
+;(function (aiditor) {
   'use strict'
 
-  const ai = aeditor.ai = aeditor.ai || {}
+  const ai = aiditor.ai = aiditor.ai || {}
   let adapter = null
   let registered = false
 
@@ -65,7 +65,7 @@
       schema: schema || { type: 'object', properties: {} },
       permissions: ['tool.call'],
       run: function (args) { return callAdapter(method, args) },
-    }, { owner: 'aeditor.ai.git', layer: 'builtin' })
+    }, { owner: 'aiditor.ai.git', layer: 'builtin' })
   }
 
   function registerApplyTool(name, method, title, description, schema) {
@@ -77,7 +77,7 @@
       preview: function (args) { return previewGitChange(name, args) },
       apply: function (preview) { return applyGit(method, preview) },
       run: function (args) { return callAdapter(method, args) },
-    }, { owner: 'aeditor.ai.git', layer: 'builtin' })
+    }, { owner: 'aiditor.ai.git', layer: 'builtin' })
   }
 
   function registerTools() {
@@ -122,4 +122,4 @@
 
   ai.configureGit = configureGit
   ai.currentGit = currentGit
-})(window.aeditor = window.aeditor || {})
+})(window.aiditor = window.aiditor || {})

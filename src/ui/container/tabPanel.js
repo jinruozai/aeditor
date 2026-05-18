@@ -1,7 +1,7 @@
-// aeditor.ui.tabPanel — tab strip + content pane composite.
+// aiditor.ui.tabPanel — tab strip + content pane composite.
 //
 // This is the in-panel "paged view" primitive. It's built on top of
-// aeditor.ui.tab (for the strip) and owns a body element that swaps which
+// aiditor.ui.tab (for the strip) and owns a body element that swaps which
 // pane is currently mounted as the active tab changes.
 //
 // Panes are **caller-owned HTML elements** passed in via `panes: { id → el }`.
@@ -16,9 +16,9 @@
 //   direction: 'horizontal' | 'vertical'        — 'vertical' = strip on the side
 //   closable / addable / minShowCount           (forwarded to ui.tab)
 //   onActivate / onClose / onAdd / onReorder    (forwarded to ui.tab)
-;(function (aeditor) {
+;(function (aiditor) {
   'use strict'
-  const ui = aeditor.ui = aeditor.ui || {}
+  const ui = aiditor.ui = aiditor.ui || {}
 
   ui.tabPanel = function (opts) {
     const o = opts || {}
@@ -27,15 +27,15 @@
     const panes = o.panes || {}
 
     const layoutDir = o.direction === 'vertical' ? 'vertical' : 'horizontal'
-    const root = ui.h('div', 'aeditor-ui-tabpanel aeditor-ui-tabpanel-' + layoutDir)
+    const root = ui.h('div', 'aiditor-ui-tabpanel aiditor-ui-tabpanel-' + layoutDir)
 
-    // Strip is a regular aeditor.ui.tab — we let it own its own subscriptions.
+    // Strip is a regular aiditor.ui.tab — we let it own its own subscriptions.
     // For sidebar variant, default layout to 'vertical' so the strip lives
     // on the left. Caller can still override via direction.
     const stripVariant = o.variant || 'bar'
     if (o.direction == null && stripVariant === 'sidebar') {
-      root.classList.remove('aeditor-ui-tabpanel-horizontal')
-      root.classList.add('aeditor-ui-tabpanel-vertical')
+      root.classList.remove('aiditor-ui-tabpanel-horizontal')
+      root.classList.add('aiditor-ui-tabpanel-vertical')
     }
 
     const strip = ui.tab({
@@ -53,7 +53,7 @@
       onDragStart:  o.onDragStart,
     })
 
-    const body = ui.h('div', 'aeditor-ui-tabpanel-body')
+    const body = ui.h('div', 'aiditor-ui-tabpanel-body')
 
     root.appendChild(strip)
     root.appendChild(body)
@@ -62,7 +62,7 @@
     // items and active on each tick so the pane stays in sync with its
     // (possibly reordered) tab.
     let mounted = null
-    ui.collect(root, aeditor.effect(function () {
+    ui.collect(root, aiditor.effect(function () {
       const active = activeSig()
       if (active === mounted) return
       // detach previous (preserves its DOM state because we don't recreate)
@@ -78,4 +78,4 @@
     root.bodyEl  = body
     return root
   }
-})(window.aeditor = window.aeditor || {})
+})(window.aiditor = window.aiditor || {})

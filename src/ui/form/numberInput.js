@@ -1,4 +1,4 @@
-// aeditor.ui.numberInput — Blender-style numeric input with drag-to-scrub.
+// aiditor.ui.numberInput — Blender-style numeric input with drag-to-scrub.
 //
 // Interaction model (unified pointer session):
 //   • Hover shows an ew-resize cursor on the entire control body.
@@ -26,9 +26,9 @@
 //
 // Note: min/max/step are live signals — changing them at runtime re-clamps
 // the displayed value and re-quantizes future scrub/nudge sessions.
-;(function (aeditor) {
+;(function (aiditor) {
   'use strict'
-  const ui = aeditor.ui = aeditor.ui || {}
+  const ui = aiditor.ui = aiditor.ui || {}
 
   ui.numberInput = function (opts) {
     const o = opts || {}
@@ -43,13 +43,13 @@
     const percent = !!o.percent
     const doWrite = ui.writer(sig, o.onChange, 'ui.numberInput')
 
-    const el  = ui.h('div', 'aeditor-ui-num')
-    const lab = ui.h('span', 'aeditor-ui-num-label')
-    const body = ui.h('span', 'aeditor-ui-num-body')
-    const dec = ui.h('button', 'aeditor-ui-num-step aeditor-ui-num-step-l', { type: 'button', text: '‹' })
-    const txt = ui.h('input', 'aeditor-ui-num-text', { type: 'text' })
-    const inc = ui.h('button', 'aeditor-ui-num-step aeditor-ui-num-step-r', { type: 'button', text: '›' })
-    const sfx = ui.h('span', 'aeditor-ui-num-suffix')
+    const el  = ui.h('div', 'aiditor-ui-num')
+    const lab = ui.h('span', 'aiditor-ui-num-label')
+    const body = ui.h('span', 'aiditor-ui-num-body')
+    const dec = ui.h('button', 'aiditor-ui-num-step aiditor-ui-num-step-l', { type: 'button', text: '‹' })
+    const txt = ui.h('input', 'aiditor-ui-num-text', { type: 'text' })
+    const inc = ui.h('button', 'aiditor-ui-num-step aiditor-ui-num-step-r', { type: 'button', text: '›' })
+    const sfx = ui.h('span', 'aiditor-ui-num-suffix')
     txt.readOnly = true
     body.appendChild(dec); body.appendChild(txt); body.appendChild(inc); body.appendChild(sfx)
     el.appendChild(lab); el.appendChild(body)
@@ -134,13 +134,13 @@
       if (editing) return
       editing = true
       txt.readOnly = false
-      el.classList.add('aeditor-ui-num-editing')
+      el.classList.add('aiditor-ui-num-editing')
       requestAnimationFrame(function () { txt.focus(); txt.select() })
     }
     function exitEdit(commitFlag) {
       if (!editing) return
       editing = false
-      el.classList.remove('aeditor-ui-num-editing')
+      el.classList.remove('aiditor-ui-num-editing')
       if (commitFlag) commit(txt.value)
       txt.readOnly = true
       txt.value = fmt(sig.peek())
@@ -163,7 +163,7 @@
         if (!scrubbing) {
           if (Math.abs(dx) < SCRUB_THRESHOLD) return
           scrubbing = true
-          el.classList.add('aeditor-ui-num-scrubbing')
+          el.classList.add('aiditor-ui-num-scrubbing')
         }
         let mul = stepS.peek()
         if (ev.shiftKey) mul *= 10
@@ -175,7 +175,7 @@
         el.removeEventListener('pointerup', onUp)
         el.removeEventListener('pointercancel', onUp)
         try { el.releasePointerCapture(ev.pointerId) } catch (_) {}
-        if (scrubbing) el.classList.remove('aeditor-ui-num-scrubbing')
+        if (scrubbing) el.classList.remove('aiditor-ui-num-scrubbing')
         else if (targetWasText) enterEdit()
       }
       el.addEventListener('pointermove', onMove)
@@ -203,4 +203,4 @@
 
     return el
   }
-})(window.aeditor = window.aeditor || {})
+})(window.aiditor = window.aiditor || {})

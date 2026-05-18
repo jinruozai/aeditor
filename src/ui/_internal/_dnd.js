@@ -1,4 +1,4 @@
-// aeditor.ui.dropzone / aeditor.ui.dragsource — HTML5-native DnD primitives.
+// aiditor.ui.dropzone / aiditor.ui.dragsource — HTML5-native DnD primitives.
 //
 // Two small helpers that any component can opt into. Both rely on the native
 // DataTransfer API, which means OS file drops work out of the box and
@@ -13,20 +13,20 @@
 //   Files                            virtual type — DataTransfer.files
 //   text/uri-list                    single URL (image/audio/doc paths)
 //   text/plain                       fallback for plain strings
-//   application/aeditor.asset+json        { kind:'image'|'audio'|'file', value, meta? }
-//   application/aeditor.asset.<kind>+json  same payload, hover-readable kind hint
-//   application/aeditor.asset.entry+json   [{ kind, path?, url?, name? }]
-//   application/aeditor.entity+json       { id, pathKey }  — game-entity reference
+//   application/aiditor.asset+json        { kind:'image'|'audio'|'file', value, meta? }
+//   application/aiditor.asset.<kind>+json  same payload, hover-readable kind hint
+//   application/aiditor.asset.entry+json   [{ kind, path?, url?, name? }]
+//   application/aiditor.entity+json       { id, pathKey }  — game-entity reference
 //
 // dropzone unpacks all of the above into a flat `data` object so handlers
 // don't have to know which MIME the source used. dragsource takes a
 // type→string map and writes them all at dragstart.
-;(function (aeditor) {
+;(function (aiditor) {
   'use strict'
-  const ui = aeditor.ui = aeditor.ui || {}
+  const ui = aiditor.ui = aiditor.ui || {}
 
-  const CLASS_ACTIVE = 'aeditor-ui-dropzone-active'
-  const CLASS_REJECT = 'aeditor-ui-dropzone-reject'
+  const CLASS_ACTIVE = 'aiditor-ui-dropzone-active'
+  const CLASS_REJECT = 'aiditor-ui-dropzone-reject'
 
   // Browser rules at dragover time:
   //   dt.types        — readable (list of MIMEs + the 'Files' virtual type)
@@ -71,11 +71,11 @@
     const text = safeRead(dt, 'text/plain')
     if (text && !data.uri) data.text = text
     if (full) {
-      const asset = safeRead(dt, 'application/aeditor.asset+json')
+      const asset = safeRead(dt, 'application/aiditor.asset+json')
       if (asset) { try { data.asset = JSON.parse(asset) } catch (_) {} }
-      const assetEntries = safeRead(dt, 'application/aeditor.asset.entry+json')
+      const assetEntries = safeRead(dt, 'application/aiditor.asset.entry+json')
       if (assetEntries) { try { data.assetEntries = JSON.parse(assetEntries) } catch (_) {} }
-      const entity = safeRead(dt, 'application/aeditor.entity+json')
+      const entity = safeRead(dt, 'application/aiditor.entity+json')
       if (entity) { try { data.entity = JSON.parse(entity) } catch (_) {} }
     }
     return data
@@ -193,9 +193,9 @@
           setTimeout(function () { if (img.parentNode) img.parentNode.removeChild(img) }, 0)
         }
       }
-      el.classList.add('aeditor-ui-dragging')
+      el.classList.add('aiditor-ui-dragging')
     }
-    function onEnd() { el.classList.remove('aeditor-ui-dragging') }
+    function onEnd() { el.classList.remove('aiditor-ui-dragging') }
 
     el.addEventListener('dragstart', onStart)
     el.addEventListener('dragend',   onEnd)
@@ -204,7 +204,7 @@
       el.removeAttribute('draggable')
       el.removeEventListener('dragstart', onStart)
       el.removeEventListener('dragend',   onEnd)
-      el.classList.remove('aeditor-ui-dragging')
+      el.classList.remove('aiditor-ui-dragging')
     }
     ui.collect(el, detach)
     return detach
@@ -237,7 +237,7 @@
     // Prefer the most specific signal that's actually readable at this
     // phase: files (drop) → fileMimes (hover via dt.items) → uri/text → asset.
     if (kind === 'image') {
-      if (data.types && data.types.indexOf('application/aeditor.asset.image+json') >= 0) return true
+      if (data.types && data.types.indexOf('application/aiditor.asset.image+json') >= 0) return true
       if (anyFileMatches(data.files, /^image\//))      return true
       if (anyMimeMatches(data.fileMimes, /^image\//))  return true
       if (urlMatches(data.uri, IMG_RE))  return true
@@ -246,7 +246,7 @@
       return false
     }
     if (kind === 'audio') {
-      if (data.types && data.types.indexOf('application/aeditor.asset.audio+json') >= 0) return true
+      if (data.types && data.types.indexOf('application/aiditor.asset.audio+json') >= 0) return true
       if (anyFileMatches(data.files, /^audio\//))      return true
       if (anyMimeMatches(data.fileMimes, /^audio\//))  return true
       if (urlMatches(data.uri, AUD_RE))  return true
@@ -271,4 +271,4 @@
   }
 
   ui.dnd = { matchesKind: matchesKind, extractUrl: extractUrl }
-})(window.aeditor = window.aeditor || {})
+})(window.aiditor = window.aiditor || {})

@@ -1,9 +1,9 @@
-// aeditor.workspace - bounded file access adapters.
-;(function (aeditor) {
+// aiditor.workspace - bounded file access adapters.
+;(function (aiditor) {
   'use strict'
 
   const workspace = {}
-  const HANDLE_DB = 'aeditor.workspace.handles'
+  const HANDLE_DB = 'aiditor.workspace.handles'
   const HANDLE_STORE = 'handles'
 
   function hashText(text) {
@@ -13,7 +13,7 @@
       h ^= text.charCodeAt(i)
       h = Math.imul(h, 16777619) >>> 0
     }
-    return 'aeditor-fnv1a-' + h.toString(16)
+    return 'aiditor-fnv1a-' + h.toString(16)
   }
 
   function normalizePath(path) {
@@ -413,7 +413,7 @@
   }
 
   async function openDirectory(opts) {
-    if (!window.showDirectoryPicker) throw new Error('aeditor.workspace.openDirectory: File System Access API is not available')
+    if (!window.showDirectoryPicker) throw new Error('aiditor.workspace.openDirectory: File System Access API is not available')
     opts = opts || {}
     const pickerOpts = Object.assign({}, opts)
     const rememberKey = pickerOpts.rememberKey || ''
@@ -564,5 +564,5 @@
   workspace.fromHandle = fromHandle
   workspace.fromBridge = fromBridge
 
-  aeditor.workspace = workspace
-})(window.aeditor = window.aeditor || {})
+  aiditor.workspace = workspace
+})(window.aiditor = window.aiditor || {})

@@ -2,7 +2,7 @@
 
 ## Goal
 
-Make aeditor's AI system a reusable editor capability, then make GameDataEditor a first-class example of precise AI-assisted editing.
+Make aiditor's AI system a reusable editor capability, then make GameDataEditor a first-class example of precise AI-assisted editing.
 
 The final model is:
 
@@ -10,7 +10,7 @@ The final model is:
 editor object -> AI Target -> resource resolver -> tool/patch -> ChangeSet -> approval -> history
 ```
 
-The framework-level review contract is defined in `doc/change-set-review-system.md`. GDE patch previews must convert to `aeditor.changeSet` instead of inventing a private diff UI.
+The framework-level review contract is defined in `doc/change-set-review-system.md`. GDE patch previews must convert to `aiditor.changeSet` instead of inventing a private diff UI.
 
 The framework owns the generic protocol, UI panels, agent/group store, connection/auth/transport runtime, permissions, target transport, tool-call lifecycle, and settings integration.
 
@@ -20,7 +20,7 @@ GameDataEditor owns game-data semantics: tables, type config, entity IDs, asset 
 
 - **Precise**: AI never guesses where to edit. It receives stable target URIs and calls tools for full data.
 - **Safe**: Every mutation goes through ChangeSet preview/approval/history unless explicitly configured otherwise by the host.
-- **Composable**: Any editor built on aeditor can register targets, tools, skills, and plugins without modifying framework internals.
+- **Composable**: Any editor built on aiditor can register targets, tools, skills, and plugins without modifying framework internals.
 - **Low ceremony**: Adding AI to a panel should usually mean binding targets and registering a few tools.
 - **No compatibility baggage**: final IDs and schemas only. No legacy aliases or silent format adapters.
 
@@ -94,8 +94,8 @@ Main gaps:
    - Ensure every write returns a preview that can be rendered in `ai-messages`.
 
 4. **Approval And History Loop**
-   - Render GDE patch previews through `aeditor.ui.changeReview`.
-   - Convert GDE patch previews to `aeditor.changeSet`.
+   - Render GDE patch previews through `aiditor.ui.changeReview`.
+   - Convert GDE patch previews to `aiditor.changeSet`.
    - Apply only after explicit approval.
    - Capture one history entry per approved patch.
    - Provide clear failure output when validation or permission fails.
@@ -106,7 +106,7 @@ Main gaps:
    - Keep delegation shallow by default: main agent can create child agents; child agents do not create deeper children unless user explicitly requests it.
 
 6. **Final UI Polish**
-   - Make AI panels visually consistent with the rest of aeditor.
+   - Make AI panels visually consistent with the rest of aiditor.
    - Keep Chat in the lower dock, Message in the right dock, AgentList in the left dock for GDE.
    - Ensure settings, connection selection, model loading, permission selection, target chips, and tool blocks are compact and readable.
 

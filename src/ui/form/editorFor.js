@@ -1,6 +1,6 @@
-// aeditor.ui.editorFor — FieldDef → editor-element dispatcher.
+// aiditor.ui.editorFor — FieldDef → editor-element dispatcher.
 //
-//   aeditor.ui.editorFor(fieldDef, value, onChange, [ctx]) → HTMLElement
+//   aiditor.ui.editorFor(fieldDef, value, onChange, [ctx]) → HTMLElement
 //     fieldDef: FieldDef (raw or already-resolved TypeDef)
 //     value   : current value (plain) OR a signal — plain values are wrapped
 //     onChange: (nv) => void   callback invoked when the picked renderer commits
@@ -16,9 +16,9 @@
 // HTMLElement. Built-ins: input_string | textarea | input_int | input_float
 // | range | enum | toggle | color | date | img | snd | id | ref_id | struct
 // | array.
-;(function (aeditor) {
+;(function (aiditor) {
   'use strict'
-  const ui = aeditor.ui = aeditor.ui || {}
+  const ui = aiditor.ui = aiditor.ui || {}
 
   function editorFor(fieldDef, value, onChange, ctx) {
     const resolved = fieldDef && fieldDef._resolved
@@ -26,7 +26,7 @@
       : ui.resolveFieldDef(fieldDef || {})
     if (resolved) resolved._resolved = true
 
-    const sig = ui.isSignal(value) ? value : aeditor.signal(value)
+    const sig = ui.isSignal(value) ? value : aiditor.signal(value)
     const write = function (nv) {
       if (typeof onChange === 'function') onChange(nv)
       else if (typeof sig.set === 'function') sig.set(nv)
@@ -45,14 +45,14 @@
   ui.registerRenderer('input_string', function (a) {
     const agv = a.fieldDef.type_agv || {}
     if (a.fieldDef.commit === 'blur') {
-      const local = aeditor.signal(asPlain(a.sig))
+      const local = aiditor.signal(asPlain(a.sig))
       const el = ui.input({
         value: local,
         onChange: function (v) { local.set(v) },
         onCommit: a.write,
         type: agv.password ? 'password' : 'text',
       })
-      ui.collect(el, aeditor.effect(function () { local.set(asPlain(a.sig)) }))
+      ui.collect(el, aiditor.effect(function () { local.set(asPlain(a.sig)) }))
       return el
     }
     return ui.input({ value: a.sig, onChange: a.write, type: agv.password ? 'password' : 'text' })
@@ -67,8 +67,8 @@
   function toNumOr(v, fb) { const n = Number(v); return Number.isFinite(n) ? n : fb }
   function asNumericSig(sig, fallback) {
     const fb  = fallback != null ? fallback : 0
-    const tap = aeditor.signal(toNumOr(asPlain(sig), fb))
-    tap.dispose = aeditor.effect(function () { tap.set(toNumOr(sig(), fb)) })
+    const tap = aiditor.signal(toNumOr(asPlain(sig), fb))
+    tap.dispose = aiditor.effect(function () { tap.set(toNumOr(sig(), fb)) })
     return tap
   }
 
@@ -121,8 +121,8 @@
   })
   ui.registerRenderer('toggle', function (a) {
     const isInt  = a.fieldDef.base_type === 'int'
-    const shimSig = aeditor.signal(!!asPlain(a.sig))
-    shimSig.dispose = aeditor.effect(function () { shimSig.set(!!a.sig()) })
+    const shimSig = aiditor.signal(!!asPlain(a.sig))
+    shimSig.dispose = aiditor.effect(function () { shimSig.set(!!a.sig()) })
     return collectSignal(ui.switch({
       value: shimSig,
       onChange: function (v) { a.write(isInt ? (v ? 1 : 0) : !!v) },
@@ -172,7 +172,7 @@
   ui.registerRenderer('struct', function (a) {
     const def = normalizeStructDef(a.fieldDef.struct_def)
     if (!def) {
-      const err = ui.h('div', 'aeditor-ui-struct-input', { text: '(invalid struct_def)' })
+      const err = ui.h('div', 'aiditor-ui-struct-input', { text: '(invalid struct_def)' })
       return err
     }
     const fields = Object.keys(def).map(function (fname) {
@@ -246,4 +246,4 @@
     }
     return def
   }
-})(window.aeditor = window.aeditor || {})
+})(window.aiditor = window.aiditor || {})

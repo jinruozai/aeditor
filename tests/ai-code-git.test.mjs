@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import vm from 'node:vm'
 
-global.window = { aeditor: {} }
+global.window = { aiditor: {} }
 
 for (const file of [
   'src/core/signal.js',
@@ -22,11 +22,11 @@ for (const file of [
   vm.runInThisContext(readFileSync(file, 'utf8'), { filename: file })
 }
 
-const aeditor = window.aeditor
-const ai = aeditor.ai
-const workspace = aeditor.workspace.memory({
+const aiditor = window.aiditor
+const ai = aiditor.ai
+const workspace = aiditor.workspace.memory({
   'src/app.js': [
-    'aeditor.registerComponent("demo.card", {',
+    'aiditor.registerComponent("demo.card", {',
     '  factory: function (propsSig, ctx) {',
     '    const root = document.createElement("div")',
     '    root.addEventListener("click", function () { ctx.bus.emit("demo.click", {}) })',
@@ -49,9 +49,9 @@ ai.setWorkspace(workspace, { id: 'memory:code', label: 'Code Workspace', kind: '
 
 const outline = await ai.tools.get('code.outline').run({ path: 'src/app.js' })
 assert.equal(outline.path, 'src/app.js')
-assert.equal(outline.hash, aeditor.workspace.hashText((await workspace.read('src/app.js')).text))
+assert.equal(outline.hash, aiditor.workspace.hashText((await workspace.read('src/app.js')).text))
 assert.ok(outline.symbols.some(function (item) { return item.name === 'root' }))
-assert.ok(outline.calls.some(function (item) { return item.name === 'aeditor.registerComponent' }))
+assert.ok(outline.calls.some(function (item) { return item.name === 'aiditor.registerComponent' }))
 assert.ok(outline.events.some(function (item) { return item.text.indexOf('addEventListener') >= 0 }))
 
 const map = await ai.tools.get('code.map').run({ path: 'src', maxFiles: 10 })

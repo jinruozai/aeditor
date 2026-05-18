@@ -1,24 +1,24 @@
-// aeditor.ui.absolute — container component for free-form layout. Children are
+// aiditor.ui.absolute — container component for free-form layout. Children are
 // positioned via their `layout` field which is a LayoutRect (see
 // _layout-rect.js for the data shape and CSS expansion).
-;(function (aeditor) {
+;(function (aiditor) {
   'use strict'
-  const ui = aeditor.ui = aeditor.ui || {}
+  const ui = aiditor.ui = aiditor.ui || {}
 
   ui.absolute = function (opts) {
     const o = opts || {}
-    const propsSig = ui.isSignal(o.value) ? o.value : aeditor.signal(o)
+    const propsSig = ui.isSignal(o.value) ? o.value : aiditor.signal(o)
     return buildAbsolute(propsSig)
   }
 
   function buildAbsolute(propsSig) {
-    const el = ui.h('div', 'aeditor-ui-absolute')
+    const el = ui.h('div', 'aiditor-ui-absolute')
     el.style.position = 'relative'
-    // Default overflow lives in the .aeditor-ui-absolute CSS rule (hidden) so
+    // Default overflow lives in the .aiditor-ui-absolute CSS rule (hidden) so
     // editor surfaces can override via specificity (the cardStyle editor
     // wants resize handles to escape the card frame). We only write
     // inline overflow if the user explicitly sets one.
-    aeditor.effect(function () {
+    aiditor.effect(function () {
       const p = propsSig() || {}
       el.style.width  = p.width  != null ? toCssLen(p.width)  : ''
       el.style.height = p.height != null ? toCssLen(p.height) : ''
@@ -30,7 +30,7 @@
 
   function toCssLen(v) { return typeof v === 'number' ? v + 'px' : String(v) }
 
-  aeditor.registerComponent('absolute', {
+  aiditor.registerComponent('absolute', {
     label:           'Absolute',
     icon:            'maximize',
     category:        'layout',
@@ -42,10 +42,10 @@
     }),
     factory: function (propsSig) { return buildAbsolute(propsSig) },
     appendChild: function (parent, child, layout) {
-      const slot = ui.h('div', 'aeditor-ui-abs-slot')
+      const slot = ui.h('div', 'aiditor-ui-abs-slot')
       ui.layoutRect.applyToSlot(slot, layout)
       slot.appendChild(child)
       parent.appendChild(slot)
     },
   })
-})(window.aeditor = window.aeditor || {})
+})(window.aiditor = window.aiditor || {})

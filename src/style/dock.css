@@ -1,88 +1,88 @@
-/* aeditor — Dock styles
+/* aiditor — Dock styles
  *
  * All tokens come from theme.css (Layer 2 roles). Literals are forbidden in
  * this file; if you need a new color/size/duration, add it as a token there
- * and reference it here as var(--aeditor-*).
+ * and reference it here as var(--aiditor-*).
  */
 
 /* ── root container ─────────────────────────────────── */
-.aeditor-root {
+.aiditor-root {
   display: flex;
   width: 100%; height: 100%;
-  background: var(--aeditor-bg-0);
-  color: var(--aeditor-fg-0);
-  font-family: var(--aeditor-font-ui);
-  font-size: var(--aeditor-fs-md);
+  background: var(--aiditor-bg-0);
+  color: var(--aiditor-fg-0);
+  font-family: var(--aiditor-font-ui);
+  font-size: var(--aiditor-fs-md);
   overflow: hidden;
 }
 
 /* ── split (flex container) ─────────────────────────── */
-.aeditor-split {
+.aiditor-split {
   display: flex;
   flex: 1 1 0;
   min-width: 0; min-height: 0;
 }
-.aeditor-split-horizontal { flex-direction: row; }
-.aeditor-split-vertical   { flex-direction: column; }
+.aiditor-split-horizontal { flex-direction: row; }
+.aiditor-split-vertical   { flex-direction: column; }
 
-.aeditor-split-child {
+.aiditor-split-child {
   display: flex;
   min-width: 0; min-height: 0;
   overflow: hidden;
 }
-.aeditor-split-child > * { flex: 1 1 0; min-width: 0; min-height: 0; }
+.aiditor-split-child > * { flex: 1 1 0; min-width: 0; min-height: 0; }
 
 /* ── splitter ───────────────────────────────────────── */
-.aeditor-splitter {
+.aiditor-splitter {
   flex: 0 0 1px;
-  background: var(--aeditor-splitter-bg);
+  background: var(--aiditor-splitter-bg);
   position: relative;
-  z-index: var(--aeditor-z-sticky);
-  transition: background var(--aeditor-dur-fast) var(--aeditor-ease);
+  z-index: var(--aiditor-z-sticky);
+  transition: background var(--aiditor-dur-fast) var(--aiditor-ease);
 }
-.aeditor-splitter::after {
+.aiditor-splitter::after {
   /* widened hit area */
   content: ''; position: absolute;
 }
-.aeditor-splitter-horizontal { cursor: ew-resize; }
-.aeditor-splitter-horizontal::after { top: 0; bottom: 0; left: -3px; right: -3px; }
-.aeditor-splitter-vertical   { cursor: ns-resize; }
-.aeditor-splitter-vertical::after { left: 0; right: 0; top: -3px; bottom: -3px; }
-.aeditor-splitter:hover,
-.aeditor-splitter-active { background: var(--aeditor-splitter-active-bg); }
+.aiditor-splitter-horizontal { cursor: ew-resize; }
+.aiditor-splitter-horizontal::after { top: 0; bottom: 0; left: -3px; right: -3px; }
+.aiditor-splitter-vertical   { cursor: ns-resize; }
+.aiditor-splitter-vertical::after { left: 0; right: 0; top: -3px; bottom: -3px; }
+.aiditor-splitter:hover,
+.aiditor-splitter-active { background: var(--aiditor-splitter-active-bg); }
 
 /* ── dock (leaf) ────────────────────────────────────── */
-.aeditor-dock {
+.aiditor-dock {
   position: relative;
   flex: 1 1 0;
   display: flex;
   flex-direction: column;
   min-width: 0; min-height: 0;
-  background: var(--aeditor-bg-0);
-  border: 1px solid var(--aeditor-dock-border);
+  background: var(--aiditor-bg-0);
+  border: 1px solid var(--aiditor-dock-border);
   contain: layout style paint;
   overflow: hidden;
 }
-.aeditor-dock-toolbar-top    { flex-direction: column; }
-.aeditor-dock-toolbar-bottom { flex-direction: column-reverse; }
-.aeditor-dock-toolbar-left   { flex-direction: row; }
-.aeditor-dock-toolbar-right  { flex-direction: row-reverse; }
+.aiditor-dock-toolbar-top    { flex-direction: column; }
+.aiditor-dock-toolbar-bottom { flex-direction: column-reverse; }
+.aiditor-dock-toolbar-left   { flex-direction: row; }
+.aiditor-dock-toolbar-right  { flex-direction: row-reverse; }
 
-.aeditor-dock-focused {
+.aiditor-dock-focused {
   position: fixed;
   inset: 0;
-  z-index: var(--aeditor-z-dock-overlay);
+  z-index: var(--aiditor-z-dock-overlay);
   border: 0;
 }
-.aeditor-dock-collapsed > .aeditor-dock-content { display: none; }
-.aeditor-dock-content {
+.aiditor-dock-collapsed > .aiditor-dock-content { display: none; }
+.aiditor-dock-content {
   flex: 1 1 auto;
   min-width: 0; min-height: 0;
   overflow: hidden;
   position: relative;
-  background: var(--aeditor-bg-1);
+  background: var(--aiditor-bg-1);
 }
-.aeditor-panel {
+.aiditor-panel {
   flex: 1 1 auto;
   width: 100%;
   height: 100%;
@@ -90,87 +90,87 @@
   min-height: 0;
   box-sizing: border-box;
 }
-.aeditor-panel-error {
-  padding: var(--aeditor-space-3) var(--aeditor-space-4);
-  color: var(--aeditor-error);
-  background: var(--aeditor-error-bg);
-  border: 1px solid var(--aeditor-error);
-  border-radius: var(--aeditor-r-2);
-  margin: var(--aeditor-space-2);
-  font: var(--aeditor-fs-md)/var(--aeditor-lh-tight) var(--aeditor-font-mono);
+.aiditor-panel-error {
+  padding: var(--aiditor-space-3) var(--aiditor-space-4);
+  color: var(--aiditor-error);
+  background: var(--aiditor-error-bg);
+  border: 1px solid var(--aiditor-error);
+  border-radius: var(--aiditor-r-2);
+  margin: var(--aiditor-space-2);
+  font: var(--aiditor-fs-md)/var(--aiditor-lh-tight) var(--aiditor-font-mono);
 }
-.aeditor-dock-dragging { outline: 1px solid var(--aeditor-accent); outline-offset: -1px; }
+.aiditor-dock-dragging { outline: 1px solid var(--aiditor-accent); outline-offset: -1px; }
 
 /* ── corner handles ─────────────────────────────────── */
-.aeditor-corner {
+.aiditor-corner {
   position: absolute;
   width: 14px; height: 14px;
   z-index: 20;
   opacity: 0;
-  transition: opacity var(--aeditor-dur-fast) var(--aeditor-ease);
+  transition: opacity var(--aiditor-dur-fast) var(--aiditor-ease);
 }
-.aeditor-dock-c-tl > .aeditor-corner-tl,
-.aeditor-dock-c-tr > .aeditor-corner-tr,
-.aeditor-dock-c-bl > .aeditor-corner-bl,
-.aeditor-dock-c-br > .aeditor-corner-br { opacity: 1; }
-.aeditor-corner::before {
+.aiditor-dock-c-tl > .aiditor-corner-tl,
+.aiditor-dock-c-tr > .aiditor-corner-tr,
+.aiditor-dock-c-bl > .aiditor-corner-bl,
+.aiditor-dock-c-br > .aiditor-corner-br { opacity: 1; }
+.aiditor-corner::before {
   content: ''; position: absolute; inset: 0;
-  background: var(--aeditor-fg-2);
-  transition: background var(--aeditor-dur-fast) var(--aeditor-ease);
+  background: var(--aiditor-fg-2);
+  transition: background var(--aiditor-dur-fast) var(--aiditor-ease);
 }
-.aeditor-corner:hover::before { background: var(--aeditor-accent-soft); }
+.aiditor-corner:hover::before { background: var(--aiditor-accent-soft); }
 
-.aeditor-corner-tl { top: 0;    left: 0;    cursor: nwse-resize; }
-.aeditor-corner-tl::before { clip-path: polygon(0 0, 100% 0, 0 100%); }
-.aeditor-corner-tr { top: 0;    right: 0;   cursor: nesw-resize; }
-.aeditor-corner-tr::before { clip-path: polygon(0 0, 100% 0, 100% 100%); }
-.aeditor-corner-bl { bottom: 0; left: 0;    cursor: nesw-resize; }
-.aeditor-corner-bl::before { clip-path: polygon(0 0, 100% 100%, 0 100%); }
-.aeditor-corner-br { bottom: 0; right: 0;   cursor: nwse-resize; }
-.aeditor-corner-br::before { clip-path: polygon(100% 0, 100% 100%, 0 100%); }
+.aiditor-corner-tl { top: 0;    left: 0;    cursor: nwse-resize; }
+.aiditor-corner-tl::before { clip-path: polygon(0 0, 100% 0, 0 100%); }
+.aiditor-corner-tr { top: 0;    right: 0;   cursor: nesw-resize; }
+.aiditor-corner-tr::before { clip-path: polygon(0 0, 100% 0, 100% 100%); }
+.aiditor-corner-bl { bottom: 0; left: 0;    cursor: nesw-resize; }
+.aiditor-corner-bl::before { clip-path: polygon(0 0, 100% 100%, 0 100%); }
+.aiditor-corner-br { bottom: 0; right: 0;   cursor: nwse-resize; }
+.aiditor-corner-br::before { clip-path: polygon(100% 0, 100% 100%, 0 100%); }
 
 /* ── global drag state ──────────────────────────────── */
-body.aeditor-dragging { user-select: none; }
-body.aeditor-dragging-horizontal, body.aeditor-dragging-horizontal * { cursor: ew-resize !important; }
-body.aeditor-dragging-vertical,   body.aeditor-dragging-vertical *   { cursor: ns-resize !important; }
+body.aiditor-dragging { user-select: none; }
+body.aiditor-dragging-horizontal, body.aiditor-dragging-horizontal * { cursor: ew-resize !important; }
+body.aiditor-dragging-vertical,   body.aiditor-dragging-vertical *   { cursor: ns-resize !important; }
 
 /* ── preview overlay ────────────────────────────────── */
-.aeditor-overlay {
+.aiditor-overlay {
   position: fixed;
   pointer-events: none;
-  z-index: var(--aeditor-z-popover);
+  z-index: var(--aiditor-z-popover);
   display: none;
 }
-.aeditor-overlay-split {
-  background: color-mix(in srgb, var(--aeditor-accent) 7%, transparent);
-  border: 1px solid color-mix(in srgb, var(--aeditor-accent) 45%, transparent);
+.aiditor-overlay-split {
+  background: color-mix(in srgb, var(--aiditor-accent) 7%, transparent);
+  border: 1px solid color-mix(in srgb, var(--aiditor-accent) 45%, transparent);
 }
-.aeditor-overlay-merge {
-  background: color-mix(in srgb, var(--aeditor-accent) 18%, transparent);
-  border: 2px solid var(--aeditor-accent);
+.aiditor-overlay-merge {
+  background: color-mix(in srgb, var(--aiditor-accent) 18%, transparent);
+  border: 2px solid var(--aiditor-accent);
 }
-.aeditor-preview-line-v {
+.aiditor-preview-line-v {
   position: absolute;
   top: 0; bottom: 0; width: 2px;
   margin-left: -1px;
-  background: var(--aeditor-accent);
-  box-shadow: 0 0 8px color-mix(in srgb, var(--aeditor-accent) 70%, transparent);
+  background: var(--aiditor-accent);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--aiditor-accent) 70%, transparent);
 }
-.aeditor-preview-line-h {
+.aiditor-preview-line-h {
   position: absolute;
   left: 0; right: 0; height: 2px;
   margin-top: -1px;
-  background: var(--aeditor-accent);
-  box-shadow: 0 0 8px color-mix(in srgb, var(--aeditor-accent) 70%, transparent);
+  background: var(--aiditor-accent);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--aiditor-accent) 70%, transparent);
 }
-.aeditor-merge-label {
+.aiditor-merge-label {
   position: absolute;
   inset: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--aeditor-fg-0);
-  font-size: var(--aeditor-fs-xl);
+  color: var(--aiditor-fg-0);
+  font-size: var(--aiditor-fs-xl);
   font-weight: 500;
   letter-spacing: .04em;
   text-shadow: 0 1px 2px rgba(0,0,0,.5);
@@ -178,5 +178,5 @@ body.aeditor-dragging-vertical,   body.aeditor-dragging-vertical *   { cursor: n
 
 /* ── reduced motion ─────────────────────────────────── */
 @media (prefers-reduced-motion: reduce) {
-  .aeditor-corner, .aeditor-splitter, .aeditor-corner::before { transition: none; }
+  .aiditor-corner, .aiditor-splitter, .aiditor-corner::before { transition: none; }
 }

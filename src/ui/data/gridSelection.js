@@ -1,7 +1,7 @@
-// aeditor.ui.gridSelection — pointer selection, marquee, and reorder for grid-like collections.
-;(function (aeditor) {
+// aiditor.ui.gridSelection — pointer selection, marquee, and reorder for grid-like collections.
+;(function (aiditor) {
   'use strict'
-  const ui = aeditor.ui = aeditor.ui || {}
+  const ui = aiditor.ui = aiditor.ui || {}
 
   ui.gridSelection = function (container, opts) {
     const o = opts || {}
@@ -122,7 +122,7 @@
       const x2 = Math.max(state.marqueeStart.x, cur.x)
       const y2 = Math.max(state.marqueeStart.y, cur.y)
       if (!state.marquee) {
-        state.marquee = ui.h('div', 'aeditor-ui-grid-marquee')
+        state.marquee = ui.h('div', 'aiditor-ui-grid-marquee')
         container.appendChild(state.marquee)
       }
       state.marquee.style.left = x1 + 'px'
@@ -152,9 +152,9 @@
       itemsList().forEach(function (el) {
         if (state.selected.has(idFor(el))) el.classList.add(draggingClass)
       })
-      state.ghost = ui.h('div', 'aeditor-ui-grid-drag-ghost', { text: ghostText() })
+      state.ghost = ui.h('div', 'aiditor-ui-grid-drag-ghost', { text: ghostText() })
       document.body.appendChild(state.ghost)
-      state.dropIndicator = ui.h('div', 'aeditor-ui-grid-drop-indicator')
+      state.dropIndicator = ui.h('div', 'aiditor-ui-grid-drop-indicator')
       container.appendChild(state.dropIndicator)
     }
 
@@ -282,4 +282,4 @@
       },
     }
   }
-})(window.aeditor = window.aeditor || {})
+})(window.aiditor = window.aiditor || {})

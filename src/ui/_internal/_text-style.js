@@ -4,9 +4,9 @@
 //
 // Empty / null → no inline write → CSS cascade (theme) wins. User-typed
 // values are inline and override.
-;(function (aeditor) {
+;(function (aiditor) {
   'use strict'
-  const ui = aeditor.ui = aeditor.ui || {}
+  const ui = aiditor.ui = aiditor.ui || {}
 
   ui.TEXT_STYLE_SCHEMA = {
     color:          { type: 'color', type_agv: { valueKind: 'hex' }, group: 'text',
@@ -49,7 +49,7 @@
     const setPx  = ui._styleSetters.setPx
     const setNum = ui._styleSetters.setNum
     let hadVerticalAlign = false
-    ui.collect(el, aeditor.effect(function () {
+    ui.collect(el, aiditor.effect(function () {
       const p = propsSig() || {}
       setStr(el, 'color',          p.color)
       setStr(el, 'fontFamily',     p.fontFamily)
@@ -75,4 +75,4 @@
       setStr(el, 'textDecoration', p.textDecoration)
     }))
   }
-})(window.aeditor = window.aeditor || {})
+})(window.aiditor = window.aiditor || {})

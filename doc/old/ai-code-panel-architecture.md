@@ -9,14 +9,14 @@ it is not the primary authoring surface for AI-generated editor panels.
 After review, the final direction is stricter:
 
 ```txt
-AI-created visible UI uses aeditor.createPanel.
-aeditor.createPanel accepts one factory function source.
+AI-created visible UI uses aiditor.createPanel.
+aiditor.createPanel accepts one factory function source.
 The extension manifest remains an internal implementation detail.
 ```
 
-AI should not normally call `aeditor.installExtension` for new UI. That tool is
+AI should not normally call `aiditor.installExtension` for new UI. That tool is
 still available for advanced full-extension work, but the stable path for new
-panels is `aeditor.createPanel`.
+panels is `aiditor.createPanel`.
 
 The primary authoring surface should be the same one used by built-in panels:
 
@@ -33,7 +33,7 @@ The goal is one mental model for everyone:
 
 All of them are registered components with a `factory(propsSig, ctx)` function.
 AI does not need to learn a private template language. It writes normal
-JavaScript panel code and uses the same `aeditor.ui.*`, `ctx`, `aeditor.bus`, and DOM APIs
+JavaScript panel code and uses the same `aiditor.ui.*`, `ctx`, `aiditor.bus`, and DOM APIs
 as built-in panel authors.
 
 ## Problem With The Declarative-First Route
@@ -61,7 +61,7 @@ tree, the model tends to invent template syntax:
 {{items.map(...)}}
 ```
 
-`aeditor.ui.renderUITree` does not execute such templates, so the UI can install
+`aiditor.ui.renderUITree` does not execute such templates, so the UI can install
 successfully while rendering nonsense. This is a contract failure, not a model
 failure.
 
@@ -73,7 +73,7 @@ the same kind of panel code the framework already understands.
 There is only one best path for generated UI:
 
 ```txt
-aeditor.createPanel(input)
+aiditor.createPanel(input)
   -> wraps input as an extension manifest
   -> registers a factory component
   -> places it in a dock
@@ -93,7 +93,7 @@ These rules keep the design simple and stable.
    "AI panel" model.
 
 2. **One AI entry point for visible UI**
-   AI uses `aeditor.createPanel` for a new visible panel. It should not handcraft
+   AI uses `aiditor.createPanel` for a new visible panel. It should not handcraft
    dock panel manifests for normal UI generation.
 
 3. **No template language**
@@ -106,7 +106,7 @@ These rules keep the design simple and stable.
 
 5. **Extension runtime owns lifecycle**
    Owner, layer, uninstall, update, recovery, rollback, and safe mode stay in
-   `aeditor.extensions`.
+   `aiditor.extensions`.
 
 6. **Preview never runs untrusted code**
    Preview may parse and inspect source text, but does not execute the factory.
@@ -125,7 +125,7 @@ These rules keep the design simple and stable.
 AI should primarily use a high-level operation/tool:
 
 ```js
-aeditor.createPanel({
+aiditor.createPanel({
   id: 'game-inventory',
   title: 'Inventory',
   icon: 'package',
@@ -137,7 +137,7 @@ aeditor.createPanel({
       const root = document.createElement('div')
       root.className = 'demo-inventory-panel'
 
-      const title = aeditor.ui.text({ value: 'Inventory', variant: 'h2' })
+      const title = aiditor.ui.text({ value: 'Inventory', variant: 'h2' })
       root.appendChild(title)
 
       return root
@@ -186,7 +186,7 @@ component id. Dock does not learn about AI.
 Built-in panel:
 
 ```js
-aeditor.registerComponent('inventory-panel', {
+aiditor.registerComponent('inventory-panel', {
   title: 'Inventory',
   icon: 'package',
   defaults: function () {
@@ -198,7 +198,7 @@ aeditor.registerComponent('inventory-panel', {
     return root
   },
   dispose: function (el) {
-    if (aeditor.ui && aeditor.ui.dispose) aeditor.ui.dispose(el)
+    if (aiditor.ui && aiditor.ui.dispose) aiditor.ui.dispose(el)
   },
 })
 ```
@@ -221,7 +221,7 @@ wrapper, owner, layer, default dispose, dock placement, and health checks.
 The AI tool should describe this contract bluntly:
 
 ```txt
-Use aeditor.createPanel for new UI panels.
+Use aiditor.createPanel for new UI panels.
 Write a JavaScript function expression:
 
 function (propsSig, ctx) {
@@ -231,23 +231,23 @@ function (propsSig, ctx) {
 
 Rules:
 - Return one HTMLElement.
-- Use aeditor.ui.* where useful; prefer framework components over hand-built
+- Use aiditor.ui.* where useful; prefer framework components over hand-built
   controls when the library already has a suitable component.
-- Use aeditor.ui.scrollArea for scrollable content instead of raw native overflow
-  scrollbars so the panel matches AEditor styling.
-- Use aeditor.ui.tooltip/popover/menu for anchored floating UI. Scoped aeditor.ui overlays
+- Use aiditor.ui.scrollArea for scrollable content instead of raw native overflow
+  scrollbars so the panel matches Aiditor styling.
+- Use aiditor.ui.tooltip/popover/menu for anchored floating UI. Scoped aiditor.ui overlays
   close automatically when the panel is no longer active. If a panel manually
   appends floating DOM outside its root, register it with
-  `aeditor.ui.registerScopedOverlay(anchor, close)`.
+  `aiditor.ui.registerScopedOverlay(anchor, close)`.
 - Make the panel root responsive inside a resizable dock: height 100%,
   minHeight 0, boxSizing border-box, no viewport-sized or fixed-width layout.
 - Use flex/grid with minmax(), auto-fit, and container-relative sizing for card
   grids.
 - Use normal JavaScript for loops, conditions, state, events, canvas, and animation.
 - Do not use template syntax such as {{value}}.
-- Do not call aeditor.registerComponent; the runtime registers the component.
+- Do not call aiditor.registerComponent; the runtime registers the component.
 - Do not mutate unrelated editor state except through approved tools or ctx APIs.
-- Clean timers/listeners with aeditor.ui.collect(root, cleanup) or ctx.onCleanup when available.
+- Clean timers/listeners with aiditor.ui.collect(root, cleanup) or ctx.onCleanup when available.
 ```
 
 The schema should require `id`, `title`, `dock`, and `source`:
@@ -273,11 +273,11 @@ The schema should require `id`, `title`, `dock`, and `source`:
 
 Reusing the same `id` always replaces the previous generated panel. There is no
 separate replace option in the AI contract; repair cycles stay clean by calling
-`aeditor.createPanel` again with the same stable id.
+`aiditor.createPanel` again with the same stable id.
 
 ## Operation Semantics
 
-`aeditor.createPanel` is both an operation and a tool.
+`aiditor.createPanel` is both an operation and a tool.
 
 Preview output:
 
@@ -324,7 +324,7 @@ Failure output:
 }
 ```
 
-The model can repair by calling `aeditor.createPanel` again with the same id.
+The model can repair by calling `aiditor.createPanel` again with the same id.
 
 ## Permissions
 
@@ -339,13 +339,13 @@ Recommended policy:
 - `custom` follows explicit operation/tool permission rules.
 - Project/user layer promotion should always be reviewable.
 
-Internally, `aeditor.createPanel` sets:
+Internally, `aiditor.createPanel` sets:
 
 ```js
 allowCode: true
 ```
 
-and routes through the same permission checks as `aeditor.installExtension`.
+and routes through the same permission checks as `aiditor.installExtension`.
 
 Security posture:
 
@@ -370,11 +370,11 @@ Create panel preview should check:
 3. The requested dock exists.
 4. The component id does not conflict outside the extension owner.
 5. The source does not call registration or extension lifecycle APIs directly:
-   - `aeditor.registerComponent`
-   - `aeditor.unregisterComponent`
-   - `aeditor.extensions.install`
-   - `aeditor.extensions.uninstall`
-   - `aeditor.installExtension`
+   - `aiditor.registerComponent`
+   - `aiditor.unregisterComponent`
+   - `aiditor.extensions.install`
+   - `aiditor.extensions.uninstall`
+   - `aiditor.installExtension`
 6. The source does not contain common unsupported declarative mistakes:
    - `{{`
    - `v-for`
@@ -403,7 +403,7 @@ and safe mode are the real security boundary for same-page code.
 Current extension runtime already supports `kind: 'factory'`:
 
 ```js
-const maker = Function('aeditor', '"use strict"; return (' + source + ')')(aeditor)
+const maker = Function('aiditor', '"use strict"; return (' + source + ')')(aiditor)
 return maker(propsSig, ctx || {})
 ```
 
@@ -412,7 +412,7 @@ new execution engine. The important change is the AI-facing operation and its
 validation/feedback.
 
 Future sandboxing can be added later through `kind: 'iframe'`, but iframe should
-not be the primary authoring model because it makes using `aeditor.ui.*` and `ctx`
+not be the primary authoring model because it makes using `aiditor.ui.*` and `ctx`
 less direct.
 
 Factory source constraints:
@@ -423,7 +423,7 @@ Factory source constraints:
 - Async factories are not supported in the primary path. If async data is
   needed, return a root element immediately, render a loading state, then update
   it later.
-- The factory should not call `aeditor.registerComponent`; the runtime has already
+- The factory should not call `aiditor.registerComponent`; the runtime has already
   registered the wrapper component.
 
 Async factories are intentionally excluded because they add lifecycle ambiguity:
@@ -439,7 +439,7 @@ AI-generated panels should rely on the same cleanup rules as built-ins:
 function (propsSig, ctx) {
   const root = document.createElement('div')
   const timer = setInterval(function () {}, 1000)
-  if (aeditor.ui && aeditor.ui.collect) aeditor.ui.collect(root, function () { clearInterval(timer) })
+  if (aiditor.ui && aiditor.ui.collect) aiditor.ui.collect(root, function () { clearInterval(timer) })
   return root
 }
 ```
@@ -448,11 +448,11 @@ The extension wrapper should provide default disposal:
 
 ```js
 dispose: function (el) {
-  if (aeditor.ui && aeditor.ui.dispose) aeditor.ui.dispose(el)
+  if (aiditor.ui && aiditor.ui.dispose) aiditor.ui.dispose(el)
 }
 ```
 
-Generated docs and prompt examples should teach `aeditor.ui.collect(root, cleanup)`
+Generated docs and prompt examples should teach `aiditor.ui.collect(root, cleanup)`
 for timers, animation frames, DOM listeners not attached through owned elements,
 and external resources.
 
@@ -468,8 +468,8 @@ function (propsSig, ctx) {
   }
   frame = requestAnimationFrame(tick)
 
-  if (aeditor.ui && aeditor.ui.collect) {
-    aeditor.ui.collect(root, function () {
+  if (aiditor.ui && aiditor.ui.collect) {
+    aiditor.ui.collect(root, function () {
       cancelAnimationFrame(frame)
     })
   }
@@ -478,14 +478,14 @@ function (propsSig, ctx) {
 }
 ```
 
-The runtime default dispose calls `aeditor.ui.dispose(root)`, so collected cleanups
+The runtime default dispose calls `aiditor.ui.dispose(root)`, so collected cleanups
 run exactly like built-in components.
 
 ## Feedback Loop
 
 The agent must see whether the panel really worked.
 
-`aeditor.createPanel` result should include:
+`aiditor.createPanel` result should include:
 
 ```js
 {
@@ -540,8 +540,8 @@ Declarative UI is not removed. It becomes a secondary capability:
 - good for future visual editors
 - not the default AI generation path
 
-AI should prefer `aeditor.createPanel` over `aeditor.installExtension` for new UI.
-`aeditor.installExtension` remains the low-level escape hatch for full extension
+AI should prefer `aiditor.createPanel` over `aiditor.installExtension` for new UI.
+`aiditor.installExtension` remains the low-level escape hatch for full extension
 manifests, commands, references, settings, and operations.
 
 The host reference should say this explicitly. The AI should not need to infer
@@ -565,8 +565,8 @@ Likely additions:
 - `validateFactorySource(source)`
 - `detectUnresolvedTemplateText(rootEl)`
 - `createPanelToolDescription`
-- AI tool registration: `aeditor.createPanel`
-- AI operation registration: `aeditor.createPanel`
+- AI tool registration: `aiditor.createPanel`
+- AI operation registration: `aiditor.createPanel`
 
 Small demo update:
 
@@ -575,7 +575,7 @@ demo/ai-targets.js
 ```
 
 Change host capability guidance from "write a declarative manifest" to "use
-aeditor.createPanel for new UI panels".
+aiditor.createPanel for new UI panels".
 
 Tests:
 
@@ -589,7 +589,7 @@ Add coverage for:
 - panel source matches built-in factory shape
 - auto dock placement
 - invalid source rejected
-- direct `aeditor.registerComponent` in source rejected
+- direct `aiditor.registerComponent` in source rejected
 - unresolved template text rejected
 - failed render rolls back
 - repeated same id replaces instead of duplicating
@@ -598,7 +598,7 @@ Add coverage for:
 Bundle:
 
 ```txt
-dist/aeditor.js
+dist/aiditor.js
 ```
 
 Rebuild after source changes.
@@ -656,13 +656,13 @@ phase: smoke
 error: Rendered panel contains unresolved template text: {{icon}}
 
 Repair:
-Call aeditor.createPanel again with the same id.
+Call aiditor.createPanel again with the same id.
 Replace template strings with normal JavaScript loops and textContent.
 ```
 
 ## Why This Is The Best Fit
 
-This design keeps aeditor simple:
+This design keeps aiditor simple:
 
 ```txt
 Component registry remains the UI registry.
@@ -676,7 +676,7 @@ It is also the strongest option:
 - It can build simple panels.
 - It can build complex editor tools.
 - It can build visual experiments and mini games.
-- It can use existing `aeditor.ui.*`.
+- It can use existing `aiditor.ui.*`.
 - It can use normal JavaScript instead of a private DSL.
 - It keeps generated code uninstallable and permission-gated.
 
@@ -687,14 +687,14 @@ The architecture does not need more layers. It needs one clear authoring model.
 Simplicity:
 
 - One mental model: `factory(propsSig, ctx)`.
-- One AI UI tool: `aeditor.createPanel`.
+- One AI UI tool: `aiditor.createPanel`.
 - Existing extension runtime remains the lifecycle shell.
 
 Power:
 
 - Normal JavaScript can express loops, conditions, events, canvas, animation,
   local state, drag/drop, and data transforms.
-- Existing `aeditor.ui.*` components remain available.
+- Existing `aiditor.ui.*` components remain available.
 - Built-in and generated panels share code style.
 
 Stability:

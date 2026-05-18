@@ -1,8 +1,8 @@
-// aeditor.ai semantic context compaction runtime service.
-;(function (aeditor) {
+// aiditor.ai semantic context compaction runtime service.
+;(function (aiditor) {
   'use strict'
 
-  const ai = aeditor.ai = aeditor.ai || {}
+  const ai = aiditor.ai = aiditor.ai || {}
 
   const config = {
     enabled: true,
@@ -392,8 +392,8 @@
   }
 
   function registerCommands() {
-    if (!aeditor.commands || aeditor.commands.get && aeditor.commands.get('ai.compactCurrentAgent')) return
-    aeditor.commands.register('ai.compactCurrentAgent', {
+    if (!aiditor.commands || aiditor.commands.get && aiditor.commands.get('ai.compactCurrentAgent')) return
+    aiditor.commands.register('ai.compactCurrentAgent', {
       title: 'Compact Current Agent Context',
       run: function (input, ctx) {
         const agent = commandAgent(input, ctx)
@@ -404,22 +404,22 @@
           ? { compacted: true, record: record, records: records(agent.id) }
           : { compacted: false, reason: 'No compactable closed range', records: records(agent.id) }
       },
-    }, { owner: 'aeditor.ai', layer: 'builtin' })
-    aeditor.commands.register('ai.clearCurrentAgentCompactions', {
+    }, { owner: 'aiditor.ai', layer: 'builtin' })
+    aiditor.commands.register('ai.clearCurrentAgentCompactions', {
       title: 'Clear Current Agent Compactions',
       danger: true,
       run: function (input, ctx) {
         const agent = commandAgent(input, ctx)
         return agent ? clear(agent.id, input || {}) : []
       },
-    }, { owner: 'aeditor.ai', layer: 'builtin' })
-    aeditor.commands.register('ai.listCurrentAgentCompactions', {
+    }, { owner: 'aiditor.ai', layer: 'builtin' })
+    aiditor.commands.register('ai.listCurrentAgentCompactions', {
       title: 'List Current Agent Compactions',
       run: function (input, ctx) {
         const agent = commandAgent(input, ctx)
         return agent ? records(agent.id) : []
       },
-    }, { owner: 'aeditor.ai', layer: 'builtin' })
+    }, { owner: 'aiditor.ai', layer: 'builtin' })
   }
 
   ai.compaction = {
@@ -434,4 +434,4 @@
     estimateTokens: estimateTokens,
   }
   registerCommands()
-})(window.aeditor = window.aeditor || {})
+})(window.aiditor = window.aiditor || {})

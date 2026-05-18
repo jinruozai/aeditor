@@ -2,7 +2,7 @@
 
 ## Goal
 
-AEditor AI uses one canonical runtime pipeline. API-key models, Codex Auth,
+Aiditor AI uses one canonical runtime pipeline. API-key models, Codex Auth,
 local bridge, Ollama, and future desktop hosts are all provider transports behind
 the same request/response contract.
 
@@ -15,7 +15,7 @@ the same request/response contract.
 - `src/ai/adapter.js` owns provider protocol conversion when the provider lacks
   native framework semantics. The current text-tool adapter converts canonical
   messages and tool specs into a Codex-compatible text prompt and parses
-  `aeditor_tool_calls` back into framework tool calls.
+  `aiditor_tool_calls` back into framework tool calls.
 - `src/ai/provider.js` owns registered auth drivers, transports, and built-in
   connection definitions.
 - `tools/ai-bridge.mjs` is transport-only. It handles local auth/CLI/process

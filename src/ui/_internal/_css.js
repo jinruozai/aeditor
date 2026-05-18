@@ -10,9 +10,9 @@
 // JS constants (DRAG_THRESHOLD, zIndex magic numbers, duration literals) that
 // could drift from the CSS tokens a theme override would actually change. One
 // reader = one judge of "what's the current value" for both layers.
-;(function (aeditor) {
+;(function (aiditor) {
   'use strict'
-  const ui = aeditor.ui = aeditor.ui || {}
+  const ui = aiditor.ui = aiditor.ui || {}
 
   // readNum(name, fallback) — read a numeric CSS custom property off :root.
   // parseFloat handles the 'px' / 'ms' suffix transparently; unset variables
@@ -25,4 +25,4 @@
       .getPropertyValue(name).trim()
     return v ? parseFloat(v) : fallback
   }
-})(window.aeditor = window.aeditor || {})
+})(window.aiditor = window.aiditor || {})

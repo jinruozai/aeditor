@@ -1,14 +1,14 @@
-// aeditor.i18n - small reactive localization core.
+// aiditor.i18n - small reactive localization core.
 //
 // It provides only generic mechanics: locale signal, dictionaries, fallback,
 // interpolation, and DOM binding helpers. Applications own their language
 // packs and decide how users switch language.
-;(function (aeditor) {
+;(function (aiditor) {
   'use strict'
 
   const DEFAULT_LOCALE = 'en'
   const dictionaries = {}
-  const localeSig = aeditor.signal(DEFAULT_LOCALE)
+  const localeSig = aiditor.signal(DEFAULT_LOCALE)
   let fallbackLocale = DEFAULT_LOCALE
 
   function register(locale, dict) {
@@ -53,18 +53,18 @@
   }
 
   function text(key, vars) {
-    return aeditor.derived(function () { return t(key, typeof vars === 'function' ? vars() : vars) })
+    return aiditor.derived(function () { return t(key, typeof vars === 'function' ? vars() : vars) })
   }
 
   function bindText(el, key, vars) {
     const sig = text(key, vars)
-    const stop = aeditor.effect(function () { el.textContent = sig() })
+    const stop = aiditor.effect(function () { el.textContent = sig() })
     return function () { stop(); sig.dispose() }
   }
 
   function onChange(fn) {
     let first = true
-    return aeditor.effect(function () {
+    return aiditor.effect(function () {
       const loc = localeSig()
       if (first) { first = false; return }
       fn(loc)
@@ -84,5 +84,5 @@
     onChange: onChange,
   }
 
-  aeditor.i18n = api
-})(window.aeditor = window.aeditor || {})
+  aiditor.i18n = api
+})(window.aiditor = window.aiditor || {})

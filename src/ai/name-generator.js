@@ -1,8 +1,8 @@
-// aeditor.ai agent name generator.
-;(function (aeditor) {
+// aiditor.ai agent name generator.
+;(function (aiditor) {
   'use strict'
 
-  const ai = aeditor.ai = aeditor.ai || {}
+  const ai = aiditor.ai = aiditor.ai || {}
 
   const AGENT_NAMES = [
     'Aria', 'Atlas', 'Aster', 'Astra', 'Aurora', 'Blake', 'Briar', 'Calder', 'Calla', 'Cedar',
@@ -61,4 +61,4 @@
   }
 
   ai.generateAgentName = generateAgentName
-})(window.aeditor = window.aeditor || {})
+})(window.aiditor = window.aiditor || {})

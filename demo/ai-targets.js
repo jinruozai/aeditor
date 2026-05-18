@@ -65,7 +65,7 @@
       capabilities: Object.keys(props).map(function (prop) {
         return { op: 'demo.setProp', risk: 'edit', input: { componentId: entry.id, prop: prop } }
       }),
-      tools: ['aeditor.readReference', 'aeditor.applyOperation', 'demo.setProp'],
+      tools: ['aiditor.readReference', 'aiditor.applyOperation', 'demo.setProp'],
     }
   }
 
@@ -85,7 +85,7 @@
         options: optionsOf(spec),
       },
       capabilities: [{ op: 'demo.setProp', risk: 'edit' }],
-      tools: ['aeditor.readReference', 'aeditor.applyOperation', 'demo.setProp'],
+      tools: ['aiditor.readReference', 'aiditor.applyOperation', 'demo.setProp'],
     }
   }
 
@@ -162,8 +162,8 @@
 
   const themeTokens = {}
   let themeModeSig = null
-  const THEME_STORAGE_KEY = 'aeditor-theme-overrides-v3'
-  const THEME_MODE_KEY = 'aeditor-theme-mode'
+  const THEME_STORAGE_KEY = 'aiditor-theme-overrides-v3'
+  const THEME_MODE_KEY = 'aiditor-theme-mode'
 
   function themeMode() {
     return themeModeSig ? themeModeSig.peek() : (localStorage.getItem(THEME_MODE_KEY) || 'dark')
@@ -192,7 +192,7 @@
       uri: 'demo://theme/token/' + encodeURIComponent(name),
       kind: 'demo.themeToken',
       title: 'Theme / ' + spec.label,
-      summary: 'Editable AEditor demo theme token ' + name + '.',
+      summary: 'Editable Aiditor demo theme token ' + name + '.',
       meta: {
         token: name,
         label: spec.label,
@@ -205,7 +205,7 @@
         mode: themeMode(),
       },
       capabilities: [{ op: 'demo.setThemeToken', risk: 'edit' }, { op: 'demo.setThemeMode', risk: 'edit' }],
-      tools: ['aeditor.readReference', 'aeditor.applyOperation', 'demo.setThemeToken', 'demo.setThemeMode'],
+      tools: ['aiditor.readReference', 'aiditor.applyOperation', 'demo.setThemeToken', 'demo.setThemeMode'],
     }
   }
 
@@ -215,13 +215,13 @@
       uri: 'demo://theme/mode',
       kind: 'demo.themeMode',
       title: 'Theme / Mode',
-      summary: 'Current AEditor demo theme mode.',
+      summary: 'Current Aiditor demo theme mode.',
       meta: {
         value: themeMode(),
         options: ['dark', 'dracula', 'harbor', 'light'],
       },
       capabilities: [{ op: 'demo.setThemeMode', risk: 'edit' }],
-      tools: ['aeditor.readReference', 'aeditor.applyOperation', 'demo.setThemeMode'],
+      tools: ['aiditor.readReference', 'aiditor.applyOperation', 'demo.setThemeMode'],
     }
   }
 
@@ -293,7 +293,7 @@
   function applySetThemeMode(preview) {
     if (themeModeSig) themeModeSig.set(preview.after)
     else {
-      aeditor.theme.set(preview.after)
+      aiditor.theme.set(preview.after)
       localStorage.setItem(THEME_MODE_KEY, preview.after)
     }
     return {
@@ -340,7 +340,7 @@
   }
 
   function recentErrors() {
-    const list = aeditor.log && aeditor.log.peek ? aeditor.log.peek() : []
+    const list = aiditor.log && aiditor.log.peek ? aiditor.log.peek() : []
     return list.filter(function (entry) { return entry.level === 'error' }).slice(-10).map(function (entry) {
       return {
         time: entry.time,
@@ -352,16 +352,16 @@
 
   function hostTarget() {
     const project = window.Demo && Demo.project && Demo.project.current ? Demo.project.current() : null
-    const workspace = aeditor.ai && aeditor.ai.currentWorkspace && aeditor.ai.currentWorkspace()
+    const workspace = aiditor.ai && aiditor.ai.currentWorkspace && aiditor.ai.currentWorkspace()
     const projectWorkflow = project ? [
       'This demo has an open workspace-backed editor project.',
       'For durable UI, inspect and edit files with workspace.* and code.* tools; demo.project.* is only for demo-specific descriptor and health checks.',
       'Project panel files should call Demo.project.component(componentId, spec).',
-      'After writing a panel file, inspect docks with aeditor.inspectDocks, then call aeditor.addPanelToDock with component, dock, and path so the runtime loads it before adding the panel. To replace one existing panel, use aeditor.replacePanel with the returned panelId and the same component/path/title/icon/props shape. If path is omitted, the tool can infer one matching JS file and will ask for an explicit path when ambiguous.',
+      'After writing a panel file, inspect docks with aiditor.inspectDocks, then call aiditor.addPanelToDock with component, dock, and path so the runtime loads it before adding the panel. To replace one existing panel, use aiditor.replacePanel with the returned panelId and the same component/path/title/icon/props shape. If path is omitted, the tool can infer one matching JS file and will ask for an explicit path when ambiguous.',
       'Runtime panel placement is separate from descriptor/layout persistence; the host Save command decides when to persist layout.',
     ] : workspace ? [
       'An AI workspace is selected, but it is not opened as a demo project yet.',
-      'A valid demo workspace contains aeditor.project.json with type "aeditor-project", id, entries, layout, and project.code.load permission.',
+      'A valid demo workspace contains aiditor.project.json with type "aiditor-project", id, entries, layout, and project.code.load permission.',
       'Ask the user to open the workspace as a demo project before adding panels; do not edit descriptor/layout JSON as a mounting shortcut.',
       'Do not guess dock/panel operation names such as dock.addPanel, panel.create, or panel.add.',
     ] : [
@@ -372,14 +372,14 @@
     ]
     return {
       resolver: 'editor',
-      uri: 'aeditor://host',
-      kind: 'aeditor.host',
-      title: 'AEditor Demo Host',
+      uri: 'aiditor://host',
+      kind: 'aiditor.host',
+      title: 'Aiditor Demo Host',
       summary: project
-        ? 'Current AEditor demo shell with an open workspace-backed editor project. Durable UI should be created as project files, then placed by registered component name.'
+        ? 'Current Aiditor demo shell with an open workspace-backed editor project. Durable UI should be created as project files, then placed by registered component name.'
         : (workspace
-          ? 'Current AEditor demo shell with an AI workspace selected, but no demo project opened. Open the workspace project before mounting panels.'
-          : 'Current AEditor demo shell. No workspace project is open, so the agent should inspect the shell but not generate panels.'),
+          ? 'Current Aiditor demo shell with an AI workspace selected, but no demo project opened. Open the workspace project before mounting panels.'
+          : 'Current Aiditor demo shell. No workspace project is open, so the agent should inspect the shell but not generate panels.'),
       meta: {
         project: project ? {
           id: project.id,
@@ -391,30 +391,30 @@
         recentErrors: recentErrors(),
         preferredDockForNewMainPanels: 'editor',
         generatedPanelGuidelines: projectWorkflow.concat([
-          'Prefer aeditor.ui.* components when they fit the requested UI.',
-          'Use aeditor.ui.view for view surfaces and scrollable panel content instead of raw overflow scrollbars; do not put raw overflowY/overflow:auto on the main panel content when aeditor.ui.view fits.',
-          'Use aeditor.ui.button/iconButton/card/list/tree/table/form controls before hand-building equivalent controls.',
-          'Use aeditor.ui.tooltip/popover/menu for floating UI; scoped aeditor.ui overlays close automatically when the panel is no longer active. If you manually append floating DOM outside the root, register it with aeditor.ui.registerScopedOverlay(anchor, close).',
+          'Prefer aiditor.ui.* components when they fit the requested UI.',
+          'Use aiditor.ui.view for view surfaces and scrollable panel content instead of raw overflow scrollbars; do not put raw overflowY/overflow:auto on the main panel content when aiditor.ui.view fits.',
+          'Use aiditor.ui.button/iconButton/card/list/tree/table/form controls before hand-building equivalent controls.',
+          'Use aiditor.ui.tooltip/popover/menu for floating UI; scoped aiditor.ui overlays close automatically when the panel is no longer active. If you manually append floating DOM outside the root, register it with aiditor.ui.registerScopedOverlay(anchor, close).',
           'Make the panel root responsive to dock resize: height 100%, minHeight 0, boxSizing border-box, and avoid fixed viewport dimensions.',
           'Use flex/grid with minmax(), auto-fit, and container-relative sizing for card grids.',
         ]),
         projectPanelPattern: project ? {
           file: 'src/panels/main-panel.js',
           component: project.id + '.mainPanel',
-          registration: "Demo.project.component('" + project.id + ".mainPanel', { defaults: function () { return { title: 'Main Panel', icon: 'columns', props: {} } }, factory: function (propsSig, ctx) { const root = document.createElement('div'); root.style.cssText = 'height:100%;min-height:0;box-sizing:border-box;display:flex;flex-direction:column;'; const view = aeditor.ui.view({ children: [] }); view.style.flex = '1 1 auto'; view.style.minHeight = '0'; root.appendChild(view); return root } })",
-          inspectTool: 'aeditor.inspectDocks',
-          addPanelTool: 'aeditor.addPanelToDock',
-          replacePanelTool: 'aeditor.replacePanel',
+          registration: "Demo.project.component('" + project.id + ".mainPanel', { defaults: function () { return { title: 'Main Panel', icon: 'columns', props: {} } }, factory: function (propsSig, ctx) { const root = document.createElement('div'); root.style.cssText = 'height:100%;min-height:0;box-sizing:border-box;display:flex;flex-direction:column;'; const view = aiditor.ui.view({ children: [] }); view.style.flex = '1 1 auto'; view.style.minHeight = '0'; root.appendChild(view); return root } })",
+          inspectTool: 'aiditor.inspectDocks',
+          addPanelTool: 'aiditor.addPanelToDock',
+          replacePanelTool: 'aiditor.replacePanel',
         } : null,
       },
       capabilities: [
         project
-          ? { op: 'aeditor.addPanelToDock', risk: 'edit', purpose: 'Place a component into a runtime dock; pass path for newly written workspace files, or let the tool infer one unique matching JS file. Use aeditor.replacePanel when replacing an existing panelId.' }
+          ? { op: 'aiditor.addPanelToDock', risk: 'edit', purpose: 'Place a component into a runtime dock; pass path for newly written workspace files, or let the tool infer one unique matching JS file. Use aiditor.replacePanel when replacing an existing panelId.' }
           : null
       ].filter(Boolean),
       tools: project
-        ? ['aeditor.readReference', 'aeditor.getCapabilities', 'workspace.fileSummary', 'workspace.searchFiles', 'workspace.readFile', 'workspace.readFileRange', 'workspace.editFile', 'workspace.patchFile', 'workspace.writeFile', 'code.map', 'code.outline', 'aeditor.inspectDocks', 'aeditor.addPanelToDock', 'aeditor.replacePanel', 'demo.project.readDescriptor', 'demo.project.readSource', 'demo.project.inspectPanel', 'demo.project.runCheck']
-        : ['aeditor.readReference', 'aeditor.getCapabilities'],
+        ? ['aiditor.readReference', 'aiditor.getCapabilities', 'workspace.fileSummary', 'workspace.searchFiles', 'workspace.readFile', 'workspace.readFileRange', 'workspace.editFile', 'workspace.patchFile', 'workspace.writeFile', 'code.map', 'code.outline', 'aiditor.inspectDocks', 'aiditor.addPanelToDock', 'aiditor.replacePanel', 'demo.project.readDescriptor', 'demo.project.readSource', 'demo.project.inspectPanel', 'demo.project.runCheck']
+        : ['aiditor.readReference', 'aiditor.getCapabilities'],
     }
   }
 
@@ -445,7 +445,7 @@
     themeMode: themeModeTarget,
   }
 
-  aeditor.ai.references.register('demo', {
+  aiditor.ai.references.register('demo', {
     read: function (ref) {
       if (ref.kind === 'demo.themeToken' || ref.kind === 'demo.themeMode') return resolveTheme(ref)
       return resolveRef(ref)
@@ -483,12 +483,12 @@
     },
   })
 
-  aeditor.ai.references.register('editor', {
+  aiditor.ai.references.register('editor', {
     read: function (ref) {
-      return ref.uri === 'aeditor://host' ? readHost(ref) : ref
+      return ref.uri === 'aiditor://host' ? readHost(ref) : ref
     },
     schema: function (ref) {
-      if (ref.uri !== 'aeditor://host') return null
+      if (ref.uri !== 'aiditor://host') return null
       return {
         type: 'object',
         properties: {
@@ -499,7 +499,7 @@
       }
     },
     capabilities: function (ref) {
-      return ref.uri === 'aeditor://host' ? hostTarget().capabilities : []
+      return ref.uri === 'aiditor://host' ? hostTarget().capabilities : []
     },
     search: function (query) {
       const text = String(query && (query.query || query.kind || '') || '').toLowerCase()
@@ -509,7 +509,7 @@
     },
   })
 
-  aeditor.ai.operations.register('demo.setProp', {
+  aiditor.ai.operations.register('demo.setProp', {
     title: 'Set Demo Property',
     schema: {
       type: 'object',
@@ -525,7 +525,7 @@
     apply: applySetProp,
   })
 
-  aeditor.ai.operations.register('demo.setThemeToken', {
+  aiditor.ai.operations.register('demo.setThemeToken', {
     title: 'Set Demo Theme Token',
     schema: {
       type: 'object',
@@ -540,7 +540,7 @@
     apply: applySetThemeToken,
   })
 
-  aeditor.ai.operations.register('demo.setThemeMode', {
+  aiditor.ai.operations.register('demo.setThemeMode', {
     title: 'Set Demo Theme Mode',
     schema: {
       type: 'object',
@@ -552,9 +552,9 @@
     apply: applySetThemeMode,
   })
 
-  aeditor.ai.tools.register('demo.setProp', {
+  aiditor.ai.tools.register('demo.setProp', {
     title: 'Set Demo Property',
-    description: 'Change an editable property in the AEditor component explorer demo. Use only prop keys returned by demo.property refs or by component meta.props; never invent keys such as children if they are not listed.',
+    description: 'Change an editable property in the Aiditor component explorer demo. Use only prop keys returned by demo.property refs or by component meta.props; never invent keys such as children if they are not listed.',
     schema: {
       type: 'object',
       required: ['componentId', 'prop', 'value'],
@@ -568,14 +568,14 @@
     apply: applySetProp,
   })
 
-  aeditor.ai.tools.register('demo.setThemeToken', {
+  aiditor.ai.tools.register('demo.setThemeToken', {
     title: 'Set Demo Theme Token',
-    description: 'Change an AEditor component explorer theme token such as --aeditor-brand or --aeditor-surface-panel.',
+    description: 'Change an Aiditor component explorer theme token such as --aiditor-brand or --aiditor-surface-panel.',
     schema: {
       type: 'object',
       required: ['token', 'value'],
       properties: {
-        token: { type: 'string', description: 'CSS custom property name, for example --aeditor-brand.' },
+        token: { type: 'string', description: 'CSS custom property name, for example --aiditor-brand.' },
         value: { description: 'New token value. Use hex colors for palette tokens, numbers for px/ms tokens, or strings for font tokens.' },
       },
     },
@@ -583,9 +583,9 @@
     apply: applySetThemeToken,
   })
 
-  aeditor.ai.tools.register('demo.setThemeMode', {
+  aiditor.ai.tools.register('demo.setThemeMode', {
     title: 'Set Demo Theme Mode',
-    description: 'Switch the AEditor component explorer theme mode.',
+    description: 'Switch the Aiditor component explorer theme mode.',
     schema: {
       type: 'object',
       required: ['mode'],

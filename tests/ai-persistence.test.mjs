@@ -11,13 +11,13 @@ function storage() {
   }
 }
 
-global.window = { aeditor: {}, localStorage: storage() }
+global.window = { aiditor: {}, localStorage: storage() }
 vm.runInThisContext(readFileSync('src/core/signal.js', 'utf8'), { filename: 'signal.js' })
 vm.runInThisContext(readFileSync('src/ai/name-generator.js', 'utf8'), { filename: 'ai/name-generator.js' })
 vm.runInThisContext(readFileSync('src/ai/permission.js', 'utf8'), { filename: 'ai/permission.js' })
 vm.runInThisContext(readFileSync('src/ai/store.js', 'utf8'), { filename: 'ai/store.js' })
 
-let ai = window.aeditor.ai
+let ai = window.aiditor.ai
 ai.configurePersistence({ key: 'test.ai', load: false })
 const parent = ai.createAgent({ name: 'Saved Parent' })
 const agent = ai.createAgent({
@@ -52,12 +52,12 @@ assert.equal('groupId' in stored.agents[1], false)
 assert.deepEqual(stored.agents[1].contextRefs, [])
 assert.equal(stored.agents[1].messages[1].toolCalls[0].args.text.length < 13000, true)
 
-global.window.aeditor = {}
+global.window.aiditor = {}
 vm.runInThisContext(readFileSync('src/core/signal.js', 'utf8'), { filename: 'signal.js#2' })
 vm.runInThisContext(readFileSync('src/ai/name-generator.js', 'utf8'), { filename: 'ai/name-generator.js#2' })
 vm.runInThisContext(readFileSync('src/ai/permission.js', 'utf8'), { filename: 'ai/permission.js#2' })
 vm.runInThisContext(readFileSync('src/ai/store.js', 'utf8'), { filename: 'ai/store.js#2' })
-ai = window.aeditor.ai
+ai = window.aiditor.ai
 ai.configurePersistence({ key: 'test.ai' })
 
 const restored = ai.agents().find(function (item) { return item.id === agent.id })

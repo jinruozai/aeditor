@@ -4,20 +4,20 @@ import { spawn } from 'node:child_process'
 import { existsSync, readFileSync } from 'node:fs'
 import { delimiter, join, relative, resolve, sep } from 'node:path'
 
-const HOST = process.env.AEDITOR_AI_BRIDGE_HOST || '127.0.0.1'
-const PORT = Number(process.env.AEDITOR_AI_BRIDGE_PORT || 8787)
+const HOST = process.env.AIDITOR_AI_BRIDGE_HOST || '127.0.0.1'
+const PORT = Number(process.env.AIDITOR_AI_BRIDGE_PORT || 8787)
 const WINDOWS_SHELL = process.platform === 'win32'
-const CODEX_COMMAND = process.env.AEDITOR_CODEX_COMMAND || resolveCodexCommand()
-const CODEX_ARGS = (process.env.AEDITOR_CODEX_ARGS || 'app-server --listen stdio://').split(/\s+/).filter(Boolean)
-const CODEX_CHAT_COMMAND = process.env.AEDITOR_CODEX_CHAT_COMMAND || ''
-const CODEX_CHAT_ARGS = (process.env.AEDITOR_CODEX_CHAT_ARGS || '').split(/\s+/).filter(Boolean)
-const VERIFY_CWD = resolve(process.env.AEDITOR_VERIFY_CWD || process.cwd())
-const VERIFY_ROOTS = (process.env.AEDITOR_VERIFY_ROOTS || VERIFY_CWD)
+const CODEX_COMMAND = process.env.AIDITOR_CODEX_COMMAND || resolveCodexCommand()
+const CODEX_ARGS = (process.env.AIDITOR_CODEX_ARGS || 'app-server --listen stdio://').split(/\s+/).filter(Boolean)
+const CODEX_CHAT_COMMAND = process.env.AIDITOR_CODEX_CHAT_COMMAND || ''
+const CODEX_CHAT_ARGS = (process.env.AIDITOR_CODEX_CHAT_ARGS || '').split(/\s+/).filter(Boolean)
+const VERIFY_CWD = resolve(process.env.AIDITOR_VERIFY_CWD || process.cwd())
+const VERIFY_ROOTS = (process.env.AIDITOR_VERIFY_ROOTS || VERIFY_CWD)
   .split(delimiter)
   .filter(Boolean)
   .map(item => resolve(item))
-const VERIFY_TIMEOUT_MS = Number(process.env.AEDITOR_VERIFY_TIMEOUT_MS || 120000)
-const VERIFY_MAX_OUTPUT = Number(process.env.AEDITOR_VERIFY_MAX_OUTPUT || 24000)
+const VERIFY_TIMEOUT_MS = Number(process.env.AIDITOR_VERIFY_TIMEOUT_MS || 120000)
+const VERIFY_MAX_OUTPUT = Number(process.env.AIDITOR_VERIFY_MAX_OUTPUT || 24000)
 let lastDebugRequest = null
 let lastVerifyResult = null
 
@@ -98,8 +98,8 @@ function npmCommand() {
 }
 
 function configuredVerifyChecks(cwd) {
-  if (!process.env.AEDITOR_VERIFY_CHECKS) return null
-  const raw = JSON.parse(process.env.AEDITOR_VERIFY_CHECKS)
+  if (!process.env.AIDITOR_VERIFY_CHECKS) return null
+  const raw = JSON.parse(process.env.AIDITOR_VERIFY_CHECKS)
   const list = Array.isArray(raw) ? raw : Object.keys(raw || {}).map(id => Object.assign({ id }, raw[id]))
   return list.map(item => normalizeVerifyCheck(item, cwd))
 }
@@ -283,7 +283,7 @@ class JsonRpcProcess {
     this.child.stdout.on('data', chunk => this.onData(chunk))
     this.child.stderr.setEncoding('utf8')
     this.child.stderr.on('data', chunk => {
-      if (process.env.AEDITOR_AI_BRIDGE_DEBUG) process.stderr.write(chunk)
+      if (process.env.AIDITOR_AI_BRIDGE_DEBUG) process.stderr.write(chunk)
     })
     this.child.on('exit', () => {
       this.child = null
@@ -303,8 +303,8 @@ class JsonRpcProcess {
     if (this.initialized) return this.initialized
     this.initialized = this.request('initialize', {
       clientInfo: {
-        name: 'aeditor_ai_bridge',
-        title: 'AEditor AI Bridge',
+        name: 'aiditor_ai_bridge',
+        title: 'Aiditor AI Bridge',
         version: '0.1.0',
       },
       capabilities: {
@@ -471,7 +471,7 @@ async function codexChat(request) {
       text: item.text ? item.text.slice(0, 4000) : item.text,
     })),
   }
-  if (process.env.AEDITOR_AI_BRIDGE_DEBUG_PROMPT) {
+  if (process.env.AIDITOR_AI_BRIDGE_DEBUG_PROMPT) {
     console.log('[prompt]', JSON.stringify(input).slice(0, 4000))
   }
   await codex.request('turn/start', {
@@ -506,7 +506,7 @@ async function readBody(req) {
 async function route(req, res) {
   if (req.method === 'OPTIONS') return json(res, 204, {})
   const url = new URL(req.url, 'http://localhost')
-  if (url.pathname === '/health' || url.pathname === '/healthz') return json(res, 200, { ok: true, id: 'aeditor-ai-bridge' })
+  if (url.pathname === '/health' || url.pathname === '/healthz') return json(res, 200, { ok: true, id: 'aiditor-ai-bridge' })
   if (url.pathname === '/debug/last-request' && req.method === 'GET') return json(res, 200, lastDebugRequest || {})
   if (url.pathname === '/verify/list' && req.method === 'GET') return json(res, 200, { checks: await verifyList({ cwd: url.searchParams.get('cwd') || '' }) })
   if (url.pathname === '/verify/list' && req.method === 'POST') return json(res, 200, { checks: await verifyList(await readBody(req)) })
@@ -537,12 +537,12 @@ async function route(req, res) {
 const server = http.createServer((req, res) => {
   route(req, res).catch(err => json(res, 500, {
     error: err && err.message || String(err),
-    hint: 'Make sure Codex CLI is installed, accessible, and authenticated. Override command with AEDITOR_CODEX_COMMAND / AEDITOR_CODEX_ARGS if needed.',
+    hint: 'Make sure Codex CLI is installed, accessible, and authenticated. Override command with AIDITOR_CODEX_COMMAND / AIDITOR_CODEX_ARGS if needed.',
   }))
 })
 
 server.listen(PORT, HOST, () => {
-  console.log('AEditor AI Bridge listening on http://' + HOST + ':' + PORT)
+  console.log('Aiditor AI Bridge listening on http://' + HOST + ':' + PORT)
   console.log('Codex app-server command: ' + [CODEX_COMMAND].concat(CODEX_ARGS).join(' '))
   if (CODEX_CHAT_COMMAND) console.log('Codex chat command override: ' + [CODEX_CHAT_COMMAND].concat(CODEX_CHAT_ARGS).join(' '))
 })

@@ -1,4 +1,4 @@
-// aeditor.ui.colorInput - compact swatch + rich ARGB color picker.
+// aiditor.ui.colorInput - compact swatch + rich ARGB color picker.
 //
 // opts:
 //   value:     string|int|signal   "#rrggbb", "#aarrggbb", or 24-bit int
@@ -10,10 +10,10 @@
 // public value preserves the existing contract: valueKind:'int' remains 24-bit
 // RGB, while hex values stay #RRGGBB unless alpha is edited or the input already
 // carried alpha.
-;(function (aeditor) {
+;(function (aiditor) {
   'use strict'
-  const ui = aeditor.ui = aeditor.ui || {}
-  const FAVORITES_KEY = 'aeditor-color-picker-favorites'
+  const ui = aiditor.ui = aiditor.ui || {}
+  const FAVORITES_KEY = 'aiditor-color-picker-favorites'
 
   ui.colorInput = function (opts) {
     const o = opts || {}
@@ -29,9 +29,9 @@
       rawWrite(next)
     }
 
-    const el = ui.h('div', 'aeditor-ui-color')
-    const swatch = ui.h('button', 'aeditor-ui-color-swatch', { type: 'button', title: 'Pick color', 'aria-label': 'Pick color' })
-    const swatchFill = ui.h('span', 'aeditor-ui-color-swatch-fill')
+    const el = ui.h('div', 'aiditor-ui-color')
+    const swatch = ui.h('button', 'aiditor-ui-color-swatch', { type: 'button', title: 'Pick color', 'aria-label': 'Pick color' })
+    const swatchFill = ui.h('span', 'aiditor-ui-color-swatch-fill')
     const text = ui.input({
       value: '',
       disabled: disabled,
@@ -40,13 +40,13 @@
         if (parsed) writeArgb(parsed, alphaOf(parsed) < 255)
       },
     })
-    text.classList.add('aeditor-ui-color-text')
+    text.classList.add('aiditor-ui-color-text')
     swatch.appendChild(swatchFill)
     el.appendChild(swatch)
     el.appendChild(text)
 
     ui.bindAttr(swatch, disabled, 'disabled')
-    ui.bind(el, disabled, function (v) { el.classList.toggle('aeditor-ui-color-disabled', !!v) })
+    ui.bind(el, disabled, function (v) { el.classList.toggle('aiditor-ui-color-disabled', !!v) })
     ui.bind(el, sig, function (v) {
       lastExternal = v
       const argb = normalizeColor(v, valueKind)
@@ -69,20 +69,20 @@
   function openPicker(anchor, initialArgb, doWrite, onClose) {
     const state = {
       argb: normalizeColor(initialArgb, 'hex'),
-      mode: aeditor.signal('hex'),
+      mode: aiditor.signal('hex'),
       favorites: readFavorites(),
       valueInputs: [],
       valueFills: [],
     }
-    const wrap = ui.h('div', 'aeditor-ui-color-picker')
-    const main = ui.h('div', 'aeditor-ui-color-picker-main')
-    const sv = ui.h('div', 'aeditor-ui-color-sv')
-    const svDot = ui.h('div', 'aeditor-ui-color-sv-dot')
-    const hue = ui.h('div', 'aeditor-ui-color-hue')
-    const hueInput = ui.h('input', 'aeditor-ui-color-range', { type: 'range', min: '0', max: '360' })
-    const alpha = ui.h('div', 'aeditor-ui-color-alpha')
-    const alphaInput = ui.h('input', 'aeditor-ui-color-range', { type: 'range', min: '0', max: '1', step: '0.01' })
-    const values = ui.h('div', 'aeditor-ui-color-values')
+    const wrap = ui.h('div', 'aiditor-ui-color-picker')
+    const main = ui.h('div', 'aiditor-ui-color-picker-main')
+    const sv = ui.h('div', 'aiditor-ui-color-sv')
+    const svDot = ui.h('div', 'aiditor-ui-color-sv-dot')
+    const hue = ui.h('div', 'aiditor-ui-color-hue')
+    const hueInput = ui.h('input', 'aiditor-ui-color-range', { type: 'range', min: '0', max: '360' })
+    const alpha = ui.h('div', 'aiditor-ui-color-alpha')
+    const alphaInput = ui.h('input', 'aiditor-ui-color-range', { type: 'range', min: '0', max: '1', step: '0.01' })
+    const values = ui.h('div', 'aiditor-ui-color-values')
     const mode = ui.segmented({
       value: state.mode,
       options: [
@@ -91,8 +91,8 @@
         { value: 'hsl', label: 'HSL' },
       ],
     })
-    const valueRow = ui.h('div', 'aeditor-ui-color-value-row')
-    const favorites = ui.h('div', 'aeditor-ui-color-favorites')
+    const valueRow = ui.h('div', 'aiditor-ui-color-value-row')
+    const favorites = ui.h('div', 'aiditor-ui-color-favorites')
 
     sv.appendChild(svDot)
     hue.appendChild(hueInput)
@@ -140,7 +140,7 @@
       const rgb = argbToRgb(state.argb)
       const hsl = argbToHsl(state.argb)
       if (currentMode === 'hex') {
-        const preview = colorPreview(state.argb, 'aeditor-ui-color-current')
+        const preview = colorPreview(state.argb, 'aiditor-ui-color-current')
         const hex = ui.input({
           value: state.argb,
           onChange: function (v) {
@@ -148,8 +148,8 @@
             if (parsed) setArgb(parsed, hasAlpha(v))
           },
         })
-        hex.classList.add('aeditor-ui-color-hex-field')
-        state.valueFills.push(preview.querySelector('.aeditor-ui-color-preview-fill'))
+        hex.classList.add('aiditor-ui-color-hex-field')
+        state.valueFills.push(preview.querySelector('.aiditor-ui-color-preview-fill'))
         state.valueInputs.push({ kind: 'hex', el: hex.querySelector('input') })
         valueRow.appendChild(preview)
         valueRow.appendChild(hex)
@@ -200,7 +200,7 @@
           }
         }))
       }
-      state.valueInputs = Array.prototype.slice.call(valueRow.querySelectorAll('.aeditor-ui-color-channel-input')).map(function (el, index) {
+      state.valueInputs = Array.prototype.slice.call(valueRow.querySelectorAll('.aiditor-ui-color-channel-input')).map(function (el, index) {
         return { kind: currentMode, channel: channels[index][0], step: channels[index][4], el: el }
       })
       updateValueControls()
@@ -231,17 +231,17 @@
         return
       }
       favorites.style.display = ''
-      favorites.appendChild(ui.h('div', 'aeditor-ui-color-favorites-title', { text: 'FAVORITES' }))
-      const grid = ui.h('div', 'aeditor-ui-color-favorites-grid')
+      favorites.appendChild(ui.h('div', 'aiditor-ui-color-favorites-title', { text: 'FAVORITES' }))
+      const grid = ui.h('div', 'aiditor-ui-color-favorites-grid')
       for (let i = 0; i < state.favorites.length; i++) {
         const fav = state.favorites[i]
-        const btn = ui.h('button', 'aeditor-ui-color-favorite', {
+        const btn = ui.h('button', 'aiditor-ui-color-favorite', {
           type: 'button',
           title: 'Left click to use, right click to remove',
           'aria-label': fav,
         })
-        btn.appendChild(colorPreview(fav, 'aeditor-ui-color-favorite-fill'))
-        btn.classList.toggle('aeditor-ui-color-favorite-active', fav.toUpperCase() === state.argb.toUpperCase())
+        btn.appendChild(colorPreview(fav, 'aiditor-ui-color-favorite-fill'))
+        btn.classList.toggle('aiditor-ui-color-favorite-active', fav.toUpperCase() === state.argb.toUpperCase())
         btn.addEventListener('click', function () { setArgb(fav, alphaOf(fav) < 255) })
         btn.addEventListener('contextmenu', function (e) {
           e.preventDefault()
@@ -290,17 +290,17 @@
   }
 
   function colorPreview(argb, cls) {
-    const el = ui.h('span', cls || 'aeditor-ui-color-preview')
-    const fill = ui.h('span', 'aeditor-ui-color-preview-fill')
+    const el = ui.h('span', cls || 'aiditor-ui-color-preview')
+    const fill = ui.h('span', 'aiditor-ui-color-preview-fill')
     fill.style.background = argbToRgba(normalizeColor(argb, 'hex'))
     el.appendChild(fill)
     return el
   }
 
   function channelInput(label, value, min, max, step, onChange) {
-    const wrap = ui.h('label', 'aeditor-ui-color-channel')
-    const lab = ui.h('span', 'aeditor-ui-color-channel-label', { text: label })
-    const input = ui.h('input', 'aeditor-ui-color-channel-input', {
+    const wrap = ui.h('label', 'aiditor-ui-color-channel')
+    const lab = ui.h('span', 'aiditor-ui-color-channel-label', { text: label })
+    const input = ui.h('input', 'aiditor-ui-color-channel-input', {
       type: 'number',
       min: String(min),
       max: String(max),
@@ -452,4 +452,4 @@
   function hex2(v) { return pad(Math.max(0, Math.min(255, Math.round(Number(v) || 0))).toString(16).toUpperCase(), 2) }
   function clamp01(v) { return Math.max(0, Math.min(1, Number(v) || 0)) }
   function round2(v) { return Math.round((Number(v) || 0) * 100) / 100 }
-})(window.aeditor = window.aeditor || {})
+})(window.aiditor = window.aiditor || {})

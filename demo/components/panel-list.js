@@ -1,8 +1,8 @@
 // demo component: panel-list
-;(function (aeditor) {
+;(function (aiditor) {
   'use strict'
 
-  const ui = aeditor.ui
+  const ui = aiditor.ui
 
   function disposeTree(el) {
     if (!el) return
@@ -15,15 +15,15 @@
   }
 
   function iconOf(item) {
-    const defaults = aeditor.componentDefaults(item.name)
+    const defaults = aiditor.componentDefaults(item.name)
     return item.icon || defaults.icon || 'columns'
   }
 
   function panelItems() {
-    return aeditor.listComponents()
+    return aiditor.listComponents()
       .filter(function (item) { return item.category === 'panel' })
       .map(function (item) {
-        const defaults = aeditor.componentDefaults(item.name)
+        const defaults = aiditor.componentDefaults(item.name)
         return {
           name: item.name,
           label: titleOf(item),
@@ -50,15 +50,15 @@
   }
 
   function beginDrag(ev, item) {
-    if (!Demo.layout || !aeditor._dock || !aeditor._dock.beginExternalPanelDrag) return
-    aeditor._dock.beginExternalPanelDrag(ev, panelData(item), Demo.layout, { label: item.label })
+    if (!Demo.layout || !aiditor._dock || !aiditor._dock.beginExternalPanelDrag) return
+    aiditor._dock.beginExternalPanelDrag(ev, panelData(item), Demo.layout, { label: item.label })
   }
 
   function factory() {
     const root = ui.h('div', 'demo-panel-list')
-    const querySig = aeditor.signal('')
-    const itemsSig = aeditor.signal(panelItems())
-    const filteredSig = aeditor.signal(itemsSig.peek())
+    const querySig = aiditor.signal('')
+    const itemsSig = aiditor.signal(panelItems())
+    const filteredSig = aiditor.signal(itemsSig.peek())
 
     const toolbar = ui.h('div', 'demo-panel-list-toolbar')
     toolbar.appendChild(ui.searchInput({
@@ -86,11 +86,11 @@
       },
     })
     root.appendChild(list)
-    ui.collect(root, aeditor.effect(function () {
-      if (aeditor.componentRegistryVersion) aeditor.componentRegistryVersion()
+    ui.collect(root, aiditor.effect(function () {
+      if (aiditor.componentRegistryVersion) aiditor.componentRegistryVersion()
       itemsSig.set(panelItems())
     }))
-    ui.collect(root, aeditor.effect(function () {
+    ui.collect(root, aiditor.effect(function () {
       const q = String(querySig() || '').trim().toLowerCase()
       const items = itemsSig()
       if (!q) {
@@ -110,7 +110,7 @@
     return root
   }
 
-  aeditor.registerComponent('panel-list', {
+  aiditor.registerComponent('panel-list', {
     category: 'panel',
     label: 'Panels',
     icon: 'columns',
@@ -118,4 +118,4 @@
     factory: factory,
     dispose: disposeTree,
   })
-})(window.aeditor = window.aeditor || {})
+})(window.aiditor = window.aiditor || {})

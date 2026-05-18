@@ -10,11 +10,11 @@
 //   1. updateDockRuntime — fresh dataSig + refresh panel-runtime data signals
 //   2. syncActivePanel  — detach old / attach new active panel + dynamic toolbar
 //   3. syncDockClasses  — focused / collapsed visual classes
-;(function (aeditor) {
+;(function (aiditor) {
   'use strict'
 
   const CORNERS = ['tl', 'tr', 'bl', 'br']
-  const RT = aeditor._dock
+  const RT = aiditor._dock
 
   function reconcile(layout, newTree) {
     const used = new Set()
@@ -55,12 +55,12 @@
 
   function createSplit(node, path, layout, used, tree) {
     const el = document.createElement('div')
-    el.className = 'aeditor-split aeditor-split-' + node.direction
+    el.className = 'aiditor-split aiditor-split-' + node.direction
 
     for (let i = 0; i < node.children.length; i++) {
       const child = node.children[i]
       const wrap = document.createElement('div')
-      wrap.className = 'aeditor-split-child'
+      wrap.className = 'aiditor-split-child'
       // Collapsed dock in a compatible parent split → its slot shrinks to
       // the intrinsic size of the visible toolbar, and sibling grow factors
       // (still their original ratios) absorb the freed space. Compatibility
@@ -77,15 +77,15 @@
       // proportions. The splitter-drag code uses the same ×100 so live
       // resize stays consistent with the initial render.
       const isCollapsed = child.type === 'dock' && child.collapsed &&
-                          aeditor.canCollapseDock(tree, child.id)
+                          aiditor.canCollapseDock(tree, child.id)
       wrap.style.flex = isCollapsed ? '0 0 auto' : ((node.sizes[i] * 100) + ' 0 0')
       wrap.appendChild(build(child, path.concat(i), layout, used, tree))
       el.appendChild(wrap)
 
       if (i < node.children.length - 1) {
         const sp = document.createElement('div')
-        sp.className = 'aeditor-splitter aeditor-splitter-' + node.direction
-        aeditor._dock.attachSplitterDrag(sp, el, node, path, i, layout)
+        sp.className = 'aiditor-splitter aiditor-splitter-' + node.direction
+        aiditor._dock.attachSplitterDrag(sp, el, node, path, i, layout)
         el.appendChild(sp)
       }
     }
@@ -101,36 +101,36 @@
 
     // Fresh dock: build DOM + runtime + (optionally) toolbar components.
     const dockEl = document.createElement('div')
-    dockEl.className = 'aeditor-dock'
+    dockEl.className = 'aiditor-dock'
     if (dockData.toolbar) {
-      dockEl.classList.add('aeditor-dock-with-toolbar')
-      dockEl.classList.add('aeditor-dock-toolbar-' + dockData.toolbar.direction)
+      dockEl.classList.add('aiditor-dock-with-toolbar')
+      dockEl.classList.add('aiditor-dock-toolbar-' + dockData.toolbar.direction)
     }
     dockEl.dataset.dockId = dockData.id
 
     let toolbarEl = null, toolbarStartEl = null, toolbarEndEl = null
     if (dockData.toolbar) {
       toolbarEl = document.createElement('div')
-      toolbarEl.className = 'aeditor-toolbar aeditor-toolbar-' + dockData.toolbar.direction
+      toolbarEl.className = 'aiditor-toolbar aiditor-toolbar-' + dockData.toolbar.direction
       toolbarStartEl = document.createElement('div')
-      toolbarStartEl.className = 'aeditor-toolbar-start'
+      toolbarStartEl.className = 'aiditor-toolbar-start'
       toolbarEndEl = document.createElement('div')
-      toolbarEndEl.className = 'aeditor-toolbar-end'
+      toolbarEndEl.className = 'aiditor-toolbar-end'
       toolbarEl.appendChild(toolbarStartEl)
       toolbarEl.appendChild(toolbarEndEl)
       dockEl.appendChild(toolbarEl)
     }
 
     const content = document.createElement('div')
-    content.className = 'aeditor-dock-content'
+    content.className = 'aiditor-dock-content'
     dockEl.appendChild(content)
 
     for (let i = 0; i < CORNERS.length; i++) {
       const c = CORNERS[i]
       const h = document.createElement('div')
-      h.className = 'aeditor-corner aeditor-corner-' + c
+      h.className = 'aiditor-corner aiditor-corner-' + c
       h.dataset.corner = c
-      aeditor._dock.attachCornerDrag(h, dockData.id, c, layout)
+      aiditor._dock.attachCornerDrag(h, dockData.id, c, layout)
       dockEl.appendChild(h)
     }
     attachCornerHover(dockEl)
@@ -154,12 +154,12 @@
   // 3×3 grid hover: only the corner whose grid cell the cursor is in becomes
   // visible. Center / edge cells → no corner shown.
   function attachCornerHover(dockEl) {
-    const CLS = ['aeditor-dock-c-tl', 'aeditor-dock-c-tr', 'aeditor-dock-c-bl', 'aeditor-dock-c-br']
+    const CLS = ['aiditor-dock-c-tl', 'aiditor-dock-c-tr', 'aiditor-dock-c-bl', 'aiditor-dock-c-br']
     function clear() {
       for (let i = 0; i < CLS.length; i++) dockEl.classList.remove(CLS[i])
     }
     dockEl.addEventListener('pointermove', function (e) {
-      if (e.target.closest('.aeditor-dock') !== dockEl) {
+      if (e.target.closest('.aiditor-dock') !== dockEl) {
         clear()
         return
       }
@@ -169,7 +169,7 @@
       const col = x < 1 / 3 ? 'l' : x > 2 / 3 ? 'r' : null
       const row = y < 1 / 3 ? 't' : y > 2 / 3 ? 'b' : null
       if (row && col) {
-        const want = 'aeditor-dock-c-' + row + col
+        const want = 'aiditor-dock-c-' + row + col
         if (!dockEl.classList.contains(want)) { clear(); dockEl.classList.add(want) }
       } else {
         clear()
@@ -178,6 +178,6 @@
     dockEl.addEventListener('pointerleave', clear)
   }
 
-  aeditor._dock = aeditor._dock || {}
-  aeditor._dock.reconcile = reconcile
-})(window.aeditor = window.aeditor || {})
+  aiditor._dock = aiditor._dock || {}
+  aiditor._dock.reconcile = reconcile
+})(window.aiditor = window.aiditor || {})

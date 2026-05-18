@@ -1,12 +1,12 @@
 # Extension Runtime
 
-Load this reference when the task packages AEditor capabilities as an extension.
+Load this reference when the task packages Aiditor capabilities as an extension.
 
 ## When To Use An Extension
 
 Use an extension when the contribution should be reviewable, installable,
-disableable, and uninstallable as a package. The host must load `aeditor-ai` or
-`aeditor-full` for the Extension Runtime. Use normal host source files when the
+disableable, and uninstallable as a package. The host must load `aiditor-ai` or
+`aiditor-full` for the Extension Runtime. Use normal host source files when the
 task is simply building editor UI for one app.
 
 ## Boundary

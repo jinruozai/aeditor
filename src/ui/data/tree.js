@@ -1,4 +1,4 @@
-// aeditor.ui.tree — virtualized tree with slots, search, multi-select, DnD.
+// aiditor.ui.tree — virtualized tree with slots, search, multi-select, DnD.
 //
 // The component is architected in three rendering tiers — callers pick the
 // one that matches their complexity budget, without changing the rest of
@@ -31,9 +31,9 @@
 //   select). `multi` defaults to true; `multi: false` collapses ctrl/shift
 //   click to plain replace. `onSelect: (ids[]) => void` receives the new
 //   selection array.
-;(function (aeditor) {
+;(function (aiditor) {
   'use strict'
-  const ui = aeditor.ui = aeditor.ui || {}
+  const ui = aiditor.ui = aiditor.ui || {}
 
   // ── constants & tiny utils ─────────────────────────────────────────
   const DEFAULT_ROW_H  = 24
@@ -139,7 +139,7 @@
         if (hit < 0) { frag.appendChild(document.createTextNode(s.slice(i))); break }
         if (hit > i) frag.appendChild(document.createTextNode(s.slice(i, hit)))
         const mark = document.createElement('mark')
-        mark.className = 'aeditor-ui-tree-match'
+        mark.className = 'aiditor-ui-tree-match'
         mark.textContent = s.slice(hit, hit + q.length)
         frag.appendChild(mark)
         i = hit + q.length
@@ -150,16 +150,16 @@
 
   // ── default row renderer (Tier 1 — slots) ──────────────────────────
   // Builds:
-  //   <div class="aeditor-ui-tree-row" role="treeitem" data-depth="N">
-  //     <span class="aeditor-ui-tree-arrow">▸</span>   (or nothing if no arrow)
-  //     <span class="aeditor-ui-tree-leading">…</span> (leadingSlot result)
-  //     <span class="aeditor-ui-tree-icon">…</span>    (default icon if no slot)
-  //     <span class="aeditor-ui-tree-label">…</span>
-  //     <span class="aeditor-ui-tree-trailing">…</span>(trailingSlot result)
-  //     <span class="aeditor-ui-tree-actions">…</span> (actions result)
+  //   <div class="aiditor-ui-tree-row" role="treeitem" data-depth="N">
+  //     <span class="aiditor-ui-tree-arrow">▸</span>   (or nothing if no arrow)
+  //     <span class="aiditor-ui-tree-leading">…</span> (leadingSlot result)
+  //     <span class="aiditor-ui-tree-icon">…</span>    (default icon if no slot)
+  //     <span class="aiditor-ui-tree-label">…</span>
+  //     <span class="aiditor-ui-tree-trailing">…</span>(trailingSlot result)
+  //     <span class="aiditor-ui-tree-actions">…</span> (actions result)
   //   </div>
   function buildDefaultRow(opts, row, ctx) {
-    const el = ui.h('div', 'aeditor-ui-tree-row')
+    const el = ui.h('div', 'aiditor-ui-tree-row')
     el.setAttribute('role', 'treeitem')
     el.setAttribute('data-depth', String(row.depth))
     el.style.paddingLeft = (4 + row.depth * opts._indent) + 'px'
@@ -173,7 +173,7 @@
         : typeof arrowMode === 'function'
           ? !!arrowMode(row.node, row)
           : row.hasKids
-    const arrow = ui.h('span', 'aeditor-ui-tree-arrow')
+    const arrow = ui.h('span', 'aiditor-ui-tree-arrow')
     if (arrowShown && row.hasKids) {
       arrow.textContent = row.expanded ? '▾' : '▸'
       arrow.addEventListener('click', function (e) {
@@ -189,19 +189,19 @@
     if (opts.leadingSlot) {
       const node = opts.leadingSlot(row.node, ctx)
       if (node) {
-        const w = ui.h('span', 'aeditor-ui-tree-leading')
+        const w = ui.h('span', 'aiditor-ui-tree-leading')
         w.appendChild(node)
         stopInteractionPropagation(w)
         el.appendChild(w)
       }
     } else if (row.node.icon) {
-      const ic = ui.h('span', 'aeditor-ui-tree-icon')
+      const ic = ui.h('span', 'aiditor-ui-tree-icon')
       ic.appendChild(ui.icon({ name: row.node.icon, size: 'sm' }))
       el.appendChild(ic)
     }
 
     // Label (with search highlight if query active)
-    const lab = ui.h('span', 'aeditor-ui-tree-label')
+    const lab = ui.h('span', 'aiditor-ui-tree-label')
     const labelText = row.node.label != null ? String(row.node.label) : String(row.node.id)
     if (opts.labelSlot && !ctx.query) {
       const node = opts.labelSlot(row.node, ctx)
@@ -219,7 +219,7 @@
     if (opts.trailingSlot) {
       const node = opts.trailingSlot(row.node, ctx)
       if (node) {
-        const w = ui.h('span', 'aeditor-ui-tree-trailing')
+        const w = ui.h('span', 'aiditor-ui-tree-trailing')
         w.appendChild(node)
         stopInteractionPropagation(w)
         el.appendChild(w)
@@ -230,7 +230,7 @@
     if (opts.actions) {
       const list = opts.actions(row.node, ctx) || []
       if (list.length) {
-        const ac = ui.h('span', 'aeditor-ui-tree-actions')
+        const ac = ui.h('span', 'aiditor-ui-tree-actions')
         ac.setAttribute('data-visibility', opts.actionsVisibility || 'hover')
         for (let i = 0; i < list.length; i++) {
           const a = list[i]
@@ -289,7 +289,7 @@
     function writeSelSet(set) { if (writeSel) writeSel(Array.from(set)) }
 
     // Expansion signal — internal by default, caller may own it externally.
-    const expanded = o.expanded || aeditor.signal(new Set())
+    const expanded = o.expanded || aiditor.signal(new Set())
     const writeExpanded = o.expanded ? ui.writer(o.expanded, null, 'ui.tree') : function (s) { expanded.set(s) }
     if (!o.expanded && o.defaultExpanded != null) {
       const init = o.defaultExpanded
@@ -299,7 +299,7 @@
     }
 
     // Search signal — may be absent, plain string, or signal.
-    const searchSig = o.search != null ? ui.asSig(o.search) : aeditor.signal('')
+    const searchSig = o.search != null ? ui.asSig(o.search) : aiditor.signal('')
     const matchFn = typeof o.matchNode === 'function' ? o.matchNode : defaultMatch
 
     // Focus/anchor tracked internally (non-reactive — only kbd cares).
@@ -307,16 +307,16 @@
     let anchorId = null
 
     // Root element. Role + aria-multiselectable announce the tree to AT.
-    const el = ui.h('div', 'aeditor-ui-tree aeditor-ui-scrollarea')
+    const el = ui.h('div', 'aiditor-ui-tree aiditor-ui-scrollarea')
     el.setAttribute('role', 'tree')
     if (multiMode) el.setAttribute('aria-multiselectable', 'true')
     if (keyboardOn) el.tabIndex = 0
-    const spacer = ui.h('div', 'aeditor-ui-tree-spacer')
-    const win = ui.h('div', 'aeditor-ui-tree-window')
+    const spacer = ui.h('div', 'aiditor-ui-tree-spacer')
+    const win = ui.h('div', 'aiditor-ui-tree-window')
     el.appendChild(spacer); spacer.appendChild(win)
     if (writeSel) {
       el.addEventListener('pointerdown', function (ev) {
-        if (ev.target.closest && ev.target.closest('.aeditor-ui-tree-row')) return
+        if (ev.target.closest && ev.target.closest('.aiditor-ui-tree-row')) return
         focusedId = null
         anchorId = null
         writeSelSet(new Set())
@@ -324,7 +324,7 @@
     }
 
     // Derived flat list; recomputed whenever items / expanded / search change.
-    const flatSig = aeditor.derived(function () {
+    const flatSig = aiditor.derived(function () {
       return flatten(items(), expanded(), searchSig(), matchFn, searchBehavior)
     })
     ui.collect(el, flatSig.dispose)
@@ -370,7 +370,7 @@
       if (tier3) {
         const tpl = tpool.pop() || tier3()
         tpl.update(row.node, row, ctx)
-        tpl.root.classList.add('aeditor-ui-tree-row')
+        tpl.root.classList.add('aiditor-ui-tree-row')
         tpl.root.setAttribute('role', 'treeitem')
         tpl.root.setAttribute('data-depth', String(row.depth))
         tpl.root.style.paddingLeft = (4 + row.depth * indent) + 'px'
@@ -378,7 +378,7 @@
       }
       if (tier2) {
         const rel = tier2(row.node, row, ctx)
-        rel.classList.add('aeditor-ui-tree-row')
+        rel.classList.add('aiditor-ui-tree-row')
         if (!rel.getAttribute('role')) rel.setAttribute('role', 'treeitem')
         rel.setAttribute('data-depth', String(row.depth))
         rel.style.paddingLeft = (4 + row.depth * indent) + 'px'
@@ -391,10 +391,10 @@
       const id = row.node.id
       const sel = readSelSet().has(id)
       const can = !!selectable(row.node, row)
-      rowEl.classList.toggle('aeditor-ui-tree-row-active', sel)
-      rowEl.classList.toggle('aeditor-ui-tree-row-focused', id === focusedId)
-      rowEl.classList.toggle('aeditor-ui-tree-row-matched', !!row.matched)
-      rowEl.classList.toggle('aeditor-ui-tree-row-disabled', !can)
+      rowEl.classList.toggle('aiditor-ui-tree-row-active', sel)
+      rowEl.classList.toggle('aiditor-ui-tree-row-focused', id === focusedId)
+      rowEl.classList.toggle('aiditor-ui-tree-row-matched', !!row.matched)
+      rowEl.classList.toggle('aiditor-ui-tree-row-disabled', !can)
       rowEl.setAttribute('aria-selected', sel ? 'true' : 'false')
       rowEl.setAttribute('aria-level', String(row.depth + 1))
       if (row.hasKids) rowEl.setAttribute('aria-expanded', row.expanded ? 'true' : 'false')
@@ -684,7 +684,7 @@
     }
 
     // Public imperative handle for one-shot ops signals don't suit.
-    el.__aeditorTree = {
+    el.__aiditorTree = {
       scrollToId: function (id) {
         const flat = flatSig.peek()
         const i = flat.findIndex(function (r) { return r.node.id === id })
@@ -720,4 +720,4 @@
     requestAnimationFrame(paint)
     return el
   }
-})(window.aeditor = window.aeditor || {})
+})(window.aiditor = window.aiditor || {})

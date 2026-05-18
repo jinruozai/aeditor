@@ -1,8 +1,8 @@
 // Built-in settings panel: schema pages + custom pages.
-;(function (aeditor) {
+;(function (aiditor) {
   'use strict'
 
-  const ui = aeditor.ui
+  const ui = aiditor.ui
 
   function disposeTree(el) {
     if (!el) return
@@ -19,9 +19,9 @@
   }
 
   function sectionNodes() {
-    const sections = aeditor.settings.sections()
-    const pages = aeditor.settings.pages()
-    const schemas = aeditor.settings.schemas()
+    const sections = aiditor.settings.sections()
+    const pages = aiditor.settings.pages()
+    const schemas = aiditor.settings.schemas()
     const out = []
     for (let i = 0; i < sections.length; i++) {
       const section = sections[i]
@@ -69,7 +69,7 @@
   }
 
   function schemaFor(sectionId) {
-    const schemas = aeditor.settings.schemas().filter(function (s) { return s.section === sectionId })
+    const schemas = aiditor.settings.schemas().filter(function (s) { return s.section === sectionId })
     schemas.sort(function (a, b) { return (a.order || 0) - (b.order || 0) })
     const out = {}
     for (let i = 0; i < schemas.length; i++) {
@@ -88,7 +88,7 @@
       label: setting.label,
       type: 'enum_string',
       mem: setting.description,
-      type_agv: { options: aeditor.settings.resolveOptions(setting.options) || [] },
+      type_agv: { options: aiditor.settings.resolveOptions(setting.options) || [] },
     }
     if (t === 'color') return Object.assign(base, { type: 'color' })
     if (t === 'text') return Object.assign(base, { type: 'string', type_render: 'textarea' })
@@ -98,27 +98,27 @@
 
   function valuesForSection(sectionId) {
     const values = {}
-    const schemas = aeditor.settings.schemas().filter(function (s) { return s.section === sectionId })
-    for (let i = 0; i < schemas.length; i++) values[schemas[i].key] = aeditor.settings.get(schemas[i].key)
+    const schemas = aiditor.settings.schemas().filter(function (s) { return s.section === sectionId })
+    for (let i = 0; i < schemas.length; i++) values[schemas[i].key] = aiditor.settings.get(schemas[i].key)
     return values
   }
 
   function renderSchemaPage(sectionId) {
-    const root = ui.view({ scroll: 'auto', className: 'aeditor-settings-page' })
+    const root = ui.view({ scroll: 'auto', className: 'aiditor-settings-page' })
     const section = findSection(sectionId)
     root.appendChild(pageHeader(section ? section.title : 'Settings', section ? section.description : ''))
-    const schemaSig = aeditor.signal(schemaFor(sectionId))
-    const targetsSig = aeditor.signal([valuesForSection(sectionId)])
+    const schemaSig = aiditor.signal(schemaFor(sectionId))
+    const targetsSig = aiditor.signal([valuesForSection(sectionId)])
     const panel = ui.propertyForm({
       targets: targetsSig,
       schema: schemaSig,
       onChange: function (key, value) {
-        aeditor.settings.set(key, value)
+        aiditor.settings.set(key, value)
         targetsSig.set([valuesForSection(sectionId)])
       },
     })
     root.appendChild(panel)
-    ui.collect(root, aeditor.effect(function () {
+    ui.collect(root, aiditor.effect(function () {
       schemaSig.set(schemaFor(sectionId))
       targetsSig.set([valuesForSection(sectionId)])
     }))
@@ -126,14 +126,14 @@
   }
 
   function pageHeader(title, desc) {
-    const head = ui.h('div', 'aeditor-settings-page-head')
-    head.appendChild(ui.h('div', 'aeditor-settings-page-title', { text: title || 'Settings' }))
-    if (desc) head.appendChild(ui.h('div', 'aeditor-settings-page-desc', { text: desc }))
+    const head = ui.h('div', 'aiditor-settings-page-head')
+    head.appendChild(ui.h('div', 'aiditor-settings-page-title', { text: title || 'Settings' }))
+    if (desc) head.appendChild(ui.h('div', 'aiditor-settings-page-desc', { text: desc }))
     return head
   }
 
   function findPage(id) {
-    const pages = aeditor.settings.pages.peek()
+    const pages = aiditor.settings.pages.peek()
     for (let i = 0; i < pages.length; i++) {
       if (pages[i].id === id) return pages[i]
     }
@@ -141,7 +141,7 @@
   }
 
   function findSection(id) {
-    const sections = aeditor.settings.sections.peek()
+    const sections = aiditor.settings.sections.peek()
     for (let i = 0; i < sections.length; i++) {
       if (sections[i].id === id) return sections[i]
     }
@@ -149,16 +149,16 @@
   }
 
   function factory(propsSig, ctx) {
-    const root = ui.h('div', 'aeditor-settings-panel')
-    const savedNavWidth = Number(aeditor.settings.get('settings.navWidth') || 240)
-    root.style.setProperty('--aeditor-settings-nav-w', Math.max(132, Math.min(420, savedNavWidth)) + 'px')
-    const navItems = aeditor.signal([])
-    const selected = aeditor.signal([])
-    const expanded = aeditor.signal(new Set())
-    const search = aeditor.signal('')
-    const content = ui.view({ children: [], className: 'aeditor-settings-content' })
+    const root = ui.h('div', 'aiditor-settings-panel')
+    const savedNavWidth = Number(aiditor.settings.get('settings.navWidth') || 240)
+    root.style.setProperty('--aiditor-settings-nav-w', Math.max(132, Math.min(420, savedNavWidth)) + 'px')
+    const navItems = aiditor.signal([])
+    const selected = aiditor.signal([])
+    const expanded = aiditor.signal(new Set())
+    const search = aiditor.signal('')
+    const content = ui.view({ children: [], className: 'aiditor-settings-content' })
 
-    const navWrap = ui.h('div', 'aeditor-settings-nav')
+    const navWrap = ui.h('div', 'aiditor-settings-nav')
     navWrap.appendChild(ui.searchInput({
       value: search,
       placeholder: 'Search settings...',
@@ -182,9 +182,9 @@
         mount(ids[0])
       },
     })
-    nav.classList.add('aeditor-settings-tree')
-    navWrap.appendChild(ui.view({ children: nav, scroll: 'hidden', className: 'aeditor-settings-tree-view' }))
-    const splitter = ui.h('div', 'aeditor-settings-splitter aeditor-splitter aeditor-splitter-horizontal')
+    nav.classList.add('aiditor-settings-tree')
+    navWrap.appendChild(ui.view({ children: nav, scroll: 'hidden', className: 'aiditor-settings-tree-view' }))
+    const splitter = ui.h('div', 'aiditor-settings-splitter aiditor-splitter aiditor-splitter-horizontal')
     root.appendChild(navWrap)
     root.appendChild(splitter)
     root.appendChild(content)
@@ -193,19 +193,19 @@
       ev.preventDefault()
       const rect = root.getBoundingClientRect()
       splitter.setPointerCapture(ev.pointerId)
-      splitter.classList.add('aeditor-splitter-active')
-      document.body.classList.add('aeditor-dragging', 'aeditor-dragging-horizontal')
+      splitter.classList.add('aiditor-splitter-active')
+      document.body.classList.add('aiditor-dragging', 'aiditor-dragging-horizontal')
       function move(e) {
         const max = Math.max(132, Math.min(420, rect.width - 320))
         const w = Math.max(132, Math.min(max, e.clientX - rect.left))
-        root.style.setProperty('--aeditor-settings-nav-w', w + 'px')
+        root.style.setProperty('--aiditor-settings-nav-w', w + 'px')
       }
       function up(e) {
         move(e)
         splitter.releasePointerCapture(ev.pointerId)
-        splitter.classList.remove('aeditor-splitter-active')
-        document.body.classList.remove('aeditor-dragging', 'aeditor-dragging-horizontal')
-        aeditor.settings.set('settings.navWidth', Math.round(parseFloat(root.style.getPropertyValue('--aeditor-settings-nav-w')) || 240))
+        splitter.classList.remove('aiditor-splitter-active')
+        document.body.classList.remove('aiditor-dragging', 'aiditor-dragging-horizontal')
+        aiditor.settings.set('settings.navWidth', Math.round(parseFloat(root.style.getPropertyValue('--aiditor-settings-nav-w')) || 240))
         splitter.removeEventListener('pointermove', move)
         splitter.removeEventListener('pointerup', up)
         splitter.removeEventListener('pointercancel', up)
@@ -226,7 +226,7 @@
       else {
         const page = findPage(node.pageId)
         const section = findSection(node.sectionId)
-        pageEl = page && page.factory ? page.factory({ settings: aeditor.settings, section: section, page: page }) : ui.h('div')
+        pageEl = page && page.factory ? page.factory({ settings: aiditor.settings, section: section, page: page }) : ui.h('div')
       }
       content.appendChild(pageEl)
     }
@@ -240,7 +240,7 @@
       return null
     }
 
-    ui.collect(root, aeditor.effect(function () {
+    ui.collect(root, aiditor.effect(function () {
       const items = sectionNodes()
       navItems.set(items)
       const exp = new Set()
@@ -256,7 +256,7 @@
     return root
   }
 
-  aeditor.registerComponent('settings', {
+  aiditor.registerComponent('settings', {
     category: 'panel',
     label: 'Settings',
     icon: 'settings',
@@ -264,4 +264,4 @@
     factory: factory,
     dispose: disposeTree,
   })
-})(window.aeditor = window.aeditor || {})
+})(window.aiditor = window.aiditor || {})

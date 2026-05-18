@@ -1,11 +1,11 @@
-// aeditor.extensions owner-aware extension runtime.
-;(function (aeditor) {
+// aiditor.extensions owner-aware extension runtime.
+;(function (aiditor) {
   'use strict'
 
   const extensions = {}
   const layouts = {}
   const adapters = {}
-  const DEFAULT_STORAGE_KEY = 'aeditor.extensions.v1'
+  const DEFAULT_STORAGE_KEY = 'aiditor.extensions.v1'
   let storageKey = DEFAULT_STORAGE_KEY
   let storage = null
   let safeModeEnabled = false
@@ -14,8 +14,8 @@
   const disabledLayers = {}
   let permissionPolicy = null
 
-  const Manifest = aeditor._extensionsManifest
-  const Install = aeditor._extensionsInstall
+  const Manifest = aiditor._extensionsManifest
+  const Install = aiditor._extensionsInstall
   const clone = Manifest.clone
   const keys = Manifest.keys
   const ownerFor = Manifest.ownerFor
@@ -27,7 +27,7 @@
   const resolveComponentRef = Manifest.resolveComponentRef
   const hasCodeContribution = Manifest.hasCodeContribution
   const extensionPermissions = Manifest.extensionPermissions
-  const matchesPrefix = aeditor.names.matchesPrefix
+  const matchesPrefix = aiditor.names.matchesPrefix
 
   function defaultStorage() {
     try { return window.localStorage || null } catch (_) { return null }
@@ -59,8 +59,8 @@
     }
     if (permissionPolicy && permissionPolicy[action]) return permissionPolicy[action](details) === true
     if (permissionPolicy && permissionPolicy.can) return permissionPolicy.can(details) === true
-    if (aeditor.ai && aeditor.ai.decidePermission) {
-      return aeditor.ai.decidePermission(details.actor, details.agentId, 'extension.' + action, {
+    if (aiditor.ai && aiditor.ai.decidePermission) {
+      return aiditor.ai.decidePermission(details.actor, details.agentId, 'extension.' + action, {
         extensionId: manifest.id,
         entry: 'extension.' + action,
         phase: action === 'preview' ? 'preview' : action,
@@ -100,7 +100,7 @@
       if ((list[i].kind === 'factory' || list[i].kind === 'iframe') && list[i].hash && list[i].hash !== sourceHash(list[i].source || list[i].srcdoc || '')) {
         errors.push({ path: 'contributes.components[' + i + '].hash', message: 'Code panel hash mismatch: ' + list[i].publicId })
       }
-      const existing = aeditor.componentRegistration && aeditor.componentRegistration(list[i].publicId)
+      const existing = aiditor.componentRegistration && aiditor.componentRegistration(list[i].publicId)
       if (existing && existing.owner !== owner) {
         errors.push({ path: 'contributes.components[' + i + '].id', message: 'Component already registered: ' + list[i].publicId })
       }
@@ -114,7 +114,7 @@
   }
 
   function validateRegistryConflicts(manifest, owner, errors) {
-    const ai = aeditor.ai
+    const ai = aiditor.ai
     function check(listName, registry, label) {
       const list = manifest.contributes[listName] || []
       for (let i = 0; i < list.length; i++) {
@@ -130,12 +130,12 @@
     check('context', ai && ai.context, 'Context provider')
     check('references', ai && ai.references, 'Reference provider')
     check('operations', ai && ai.operations, 'Operation')
-    check('commands', aeditor.commands, 'Command')
+    check('commands', aiditor.commands, 'Command')
     const menus = manifest.contributes.menus || []
     for (let j = 0; j < menus.length; j++) {
       const id = menus[j].publicId
-      const exists = aeditor.commands && aeditor.commands.listMenus && aeditor.commands.listMenus().indexOf(id) >= 0
-      const meta = aeditor.commands && aeditor.commands.menuMeta && aeditor.commands.menuMeta(id) || {}
+      const exists = aiditor.commands && aiditor.commands.listMenus && aiditor.commands.listMenus().indexOf(id) >= 0
+      const meta = aiditor.commands && aiditor.commands.menuMeta && aiditor.commands.menuMeta(id) || {}
       if (exists && meta.owner !== owner) {
         errors.push({ path: 'contributes.menus[' + j + '].id', message: 'Menu already registered: ' + id })
       }
@@ -193,7 +193,7 @@
         errors.push({ path: 'contributes.dockPanels[' + i + '].dock', message: 'Dock not found: ' + dockName })
       }
       const component = resolveComponentRef(map, docks[i].component)
-      if (!map[docks[i].component] && !(aeditor.componentRegistration && aeditor.componentRegistration(component))) {
+      if (!map[docks[i].component] && !(aiditor.componentRegistration && aiditor.componentRegistration(component))) {
         errors.push({ path: 'contributes.dockPanels[' + i + '].component', message: 'Component not registered: ' + component })
       }
     }
@@ -294,12 +294,12 @@
 
   function runtimeScriptOwner(input) {
     if (input.owner) return String(input.owner)
-    const meta = aeditor.ai && aeditor.ai.workspaceMeta && aeditor.ai.workspaceMeta()
+    const meta = aiditor.ai && aiditor.ai.workspaceMeta && aiditor.ai.workspaceMeta()
     return 'workspace:' + String(meta && meta.id || meta && meta.label || 'current')
   }
 
   function currentWorkspace() {
-    return aeditor.ai && aeditor.ai.currentWorkspace && aeditor.ai.currentWorkspace()
+    return aiditor.ai && aiditor.ai.currentWorkspace && aiditor.ai.currentWorkspace()
   }
 
   function escapeRegExp(text) {
@@ -308,7 +308,7 @@
 
   function registrationPattern(component) {
     return new RegExp(
-      '(aeditor\\s*\\.\\s*registerComponent|registerComponent|Demo\\s*\\.\\s*project\\s*\\.\\s*component)' +
+      '(aiditor\\s*\\.\\s*registerComponent|registerComponent|Demo\\s*\\.\\s*project\\s*\\.\\s*component)' +
       '\\s*\\(\\s*[\'"]' + escapeRegExp(component) + '[\'"]'
     )
   }
@@ -321,7 +321,7 @@
       const lower = path.toLowerCase()
       if (!path || seen[path]) continue
       if (!/\.js$/.test(lower)) continue
-      if (lower.indexOf('node_modules/') === 0 || lower.indexOf('.git/') === 0 || lower.indexOf('aeditor-runtime/') === 0) continue
+      if (lower.indexOf('node_modules/') === 0 || lower.indexOf('.git/') === 0 || lower.indexOf('aiditor-runtime/') === 0) continue
       seen[path] = true
       out.push(path)
     }
@@ -335,7 +335,7 @@
     return ws.search(component, {
       limit: 50,
       include: ['*.js', '**/*.js'],
-      exclude: ['node_modules/**', '.git/**', 'aeditor-runtime/**'],
+      exclude: ['node_modules/**', '.git/**', 'aiditor-runtime/**'],
     }).then(function (results) {
       const paths = uniqueJsPaths(results)
       const matches = []
@@ -356,13 +356,13 @@
 
   function loadRuntimeScriptForPanel(input, preview) {
     const path = runtimeScriptPath(input)
-    if (!path || aeditor.componentRegistration && aeditor.componentRegistration(input.component)) return Promise.resolve(null)
+    if (!path || aiditor.componentRegistration && aiditor.componentRegistration(input.component)) return Promise.resolve(null)
     const ws = currentWorkspace()
-    if (!ws) return Promise.reject(new Error('aeditor.addPanelToDock: current workspace is required to load ' + path))
-    if (!aeditor.runtime || !aeditor.runtime.loadScript) return Promise.reject(new Error('aeditor.runtime.loadScript is not available'))
+    if (!ws) return Promise.reject(new Error('aiditor.addPanelToDock: current workspace is required to load ' + path))
+    if (!aiditor.runtime || !aiditor.runtime.loadScript) return Promise.reject(new Error('aiditor.runtime.loadScript is not available'))
     return ws.read(path).then(function (file) {
-      if (preview && preview.hash && file.hash !== preview.hash) throw new Error('aeditor.addPanelToDock: script changed since preview')
-      return aeditor.runtime.loadScript({
+      if (preview && preview.hash && file.hash !== preview.hash) throw new Error('aiditor.addPanelToDock: script changed since preview')
+      return aiditor.runtime.loadScript({
         id: input.id || path,
         path: path,
         source: file.text,
@@ -377,11 +377,11 @@
     const path = runtimeScriptPath(input)
     if (!path) return Promise.resolve(null)
     const ws = currentWorkspace()
-    if (!ws) return Promise.reject(new Error('aeditor.reloadPanel: current workspace is required to load ' + path))
-    if (!aeditor.runtime || !aeditor.runtime.loadScript) return Promise.reject(new Error('aeditor.runtime.loadScript is not available'))
+    if (!ws) return Promise.reject(new Error('aiditor.reloadPanel: current workspace is required to load ' + path))
+    if (!aiditor.runtime || !aiditor.runtime.loadScript) return Promise.reject(new Error('aiditor.runtime.loadScript is not available'))
     return ws.read(path).then(function (file) {
-      if (preview && preview.hash && file.hash !== preview.hash) throw new Error('aeditor.reloadPanel: script changed since preview')
-      return aeditor.runtime.loadScript({
+      if (preview && preview.hash && file.hash !== preview.hash) throw new Error('aiditor.reloadPanel: script changed since preview')
+      return aiditor.runtime.loadScript({
         id: input.id || path,
         path: path,
         source: file.text,
@@ -682,14 +682,14 @@
     const review = reviewInstall(input, opts)
     if (!review.canInstall) return Promise.resolve(Object.assign({}, review, { installed: false, error: 'Permission denied' }))
     if (review.canApply && !opts.confirm) return Promise.resolve(installExtension(review.manifest, opts))
-    if (!aeditor.ui || !aeditor.ui.confirm) return Promise.resolve(review)
+    if (!aiditor.ui || !aiditor.ui.confirm) return Promise.resolve(review)
     const lines = [
       review.title,
       review.summary,
       review.permissions.length ? 'Permissions: ' + review.permissions.join(', ') : '',
       review.requiredConsent ? 'Requires explicit consent: ' + review.requiredConsent : '',
     ].filter(Boolean)
-    return aeditor.ui.confirm(lines.join('\n')).then(function (ok) {
+    return aiditor.ui.confirm(lines.join('\n')).then(function (ok) {
       if (!ok) return Object.assign({}, review, { installed: false, cancelled: true })
       return installExtension(review.manifest, Object.assign({}, opts, { allowCode: opts.allowCode || review.requiredConsent === 'allowCode' }))
     })
@@ -723,13 +723,13 @@
     const owner = entry.owner
     if (opts.replaceExternal !== false) replaceExternalPanels(entry)
     const removedPanels = removeExtensionPanels(entry)
-    unregisterOwned(aeditor.ai && aeditor.ai.tools, owner)
-    unregisterOwned(aeditor.ai && aeditor.ai.context, owner)
-    unregisterOwned(aeditor.ai && aeditor.ai.references, owner)
-    unregisterOwned(aeditor.ai && aeditor.ai.operations, owner)
-    unregisterOwned(aeditor.commands, owner)
-    unregisterOwned(aeditor.settings, owner)
-    aeditor.unregisterComponentOwner(owner)
+    unregisterOwned(aiditor.ai && aiditor.ai.tools, owner)
+    unregisterOwned(aiditor.ai && aiditor.ai.context, owner)
+    unregisterOwned(aiditor.ai && aiditor.ai.references, owner)
+    unregisterOwned(aiditor.ai && aiditor.ai.operations, owner)
+    unregisterOwned(aiditor.commands, owner)
+    unregisterOwned(aiditor.settings, owner)
+    aiditor.unregisterComponentOwner(owner)
     entry.active = false
     entry.panels = []
     return removedPanels
@@ -1036,8 +1036,8 @@
   }
 
   function registerRecoveryComponent() {
-    if (aeditor.componentRegistration && aeditor.componentRegistration('extension-disabled')) return
-    aeditor.registerComponent('extension-disabled', {
+    if (aiditor.componentRegistration && aiditor.componentRegistration('extension-disabled')) return
+    aiditor.registerComponent('extension-disabled', {
       palette: false,
       title: 'Extension Disabled',
       icon: 'alert-triangle',
@@ -1046,19 +1046,19 @@
       },
       factory: function (propsSig) {
         const el = document.createElement('div')
-        el.className = 'aeditor-extension-disabled'
+        el.className = 'aiditor-extension-disabled'
         const title = document.createElement('div')
-        title.className = 'aeditor-extension-disabled-title'
+        title.className = 'aiditor-extension-disabled-title'
         const body = document.createElement('div')
-        body.className = 'aeditor-extension-disabled-body'
+        body.className = 'aiditor-extension-disabled-body'
         el.appendChild(title)
         el.appendChild(body)
-        const stop = aeditor.effect(function () {
+        const stop = aiditor.effect(function () {
           const p = propsSig() || {}
           title.textContent = 'Extension disabled'
           body.textContent = (p.extensionTitle || p.extensionId || 'Extension') + ' is disabled or unavailable. Component: ' + (p.component || 'unknown')
         })
-        if (aeditor.ui && aeditor.ui.collect) aeditor.ui.collect(el, stop)
+        if (aiditor.ui && aiditor.ui.collect) aiditor.ui.collect(el, stop)
         return el
       },
     })
@@ -1106,7 +1106,7 @@
     if (!layout) errors.push({ path: 'layout', message: 'Layout not registered: ' + layoutName })
     else if (!dockExists(layout.tree(), dockName)) errors.push({ path: 'dock', message: 'Dock not found: ' + dockName })
     if (!component) errors.push({ path: 'component', message: 'Component is required' })
-    else if (!(aeditor.componentRegistration && aeditor.componentRegistration(component)) && !path) {
+    else if (!(aiditor.componentRegistration && aiditor.componentRegistration(component)) && !path) {
       return previewAddPanelAutoScript(input, errors, dockName, component)
     }
     if (path) return previewAddPanelScript(input, errors, dockName, component, path)
@@ -1176,7 +1176,7 @@
     if (preview && preview.ok === false) return { applied: false, ok: false, errors: preview.errors || [], preview: preview }
     const input = preview.input || {}
     return loadRuntimeScriptForPanel(input, preview).then(function () {
-      if (input.component && aeditor.componentRegistration && !aeditor.componentRegistration(input.component)) {
+      if (input.component && aiditor.componentRegistration && !aiditor.componentRegistration(input.component)) {
         throw new Error('Component not registered after loading script: ' + input.component)
       }
       const placed = placePanel(input)
@@ -1197,7 +1197,7 @@
     let target = null
     if (!layout) errors.push({ path: 'layout', message: 'Layout not registered: ' + layoutName })
     else {
-      target = aeditor.findPanel(layout.tree(), panelId)
+      target = aiditor.findPanel(layout.tree(), panelId)
       if (!target) errors.push({ path: 'panelId', message: 'Panel not found: ' + panelId })
       else if (target.panel && target.panel.dirty && !input.discardDirty) {
         errors.push({ path: 'discardDirty', message: 'Panel is dirty. Pass discardDirty: true to replace it.' })
@@ -1205,7 +1205,7 @@
     }
     if (!panelId) errors.push({ path: 'panelId', message: 'panelId is required' })
     if (!component) errors.push({ path: 'component', message: 'Component is required' })
-    else if (!(aeditor.componentRegistration && aeditor.componentRegistration(component)) && !path) {
+    else if (!(aiditor.componentRegistration && aiditor.componentRegistration(component)) && !path) {
       return previewReplacePanelAutoScript(input, errors, panelId, target, component)
     }
     if (path) return previewReplacePanelScript(input, errors, panelId, target, component, path)
@@ -1276,9 +1276,9 @@
 
   function restorePanelData(layout, panelId, panelData) {
     const tree = layout.tree()
-    const found = aeditor.findPanel(tree, panelId)
+    const found = aiditor.findPanel(tree, panelId)
     if (!found) return false
-    const dockNode = aeditor.getAt(tree, found.path)
+    const dockNode = aiditor.getAt(tree, found.path)
     const idx = dockNode.panels.findIndex(function (p) { return p.id === panelId })
     if (idx < 0) return false
     const panels = dockNode.panels.slice()
@@ -1287,7 +1287,7 @@
       panels: panels,
       activeId: dockNode.activeId === panelId ? panelData.id : dockNode.activeId,
     })
-    layout.setTree(aeditor.replaceAt(tree, found.path, dock))
+    layout.setTree(aiditor.replaceAt(tree, found.path, dock))
     return true
   }
 
@@ -1295,12 +1295,12 @@
     if (preview && preview.ok === false) return { applied: false, ok: false, errors: preview.errors || [], preview: preview }
     const input = preview.input || {}
     return loadRuntimeScriptForPanel(input, preview).then(function () {
-      if (input.component && aeditor.componentRegistration && !aeditor.componentRegistration(input.component)) {
+      if (input.component && aiditor.componentRegistration && !aiditor.componentRegistration(input.component)) {
         throw new Error('Component not registered after loading script: ' + input.component)
       }
       const layout = resolveLayout(input.layout)
       if (!layout) throw new Error('Layout not registered: ' + (input.layout || 'default'))
-      const target = aeditor.findPanel(layout.tree(), input.panelId)
+      const target = aiditor.findPanel(layout.tree(), input.panelId)
       if (!target) throw new Error('Panel not found: ' + input.panelId)
       if (target.panel && target.panel.dirty && !input.discardDirty) throw new Error('Panel is dirty. Pass discardDirty: true to replace it.')
       const result = layout.replacePanel(input.panelId, panelPartialFromInput(input), { transient: !!input.transient })
@@ -1326,7 +1326,7 @@
     let target = null
     if (!layout) errors.push({ path: 'layout', message: 'Layout not registered: ' + layoutName })
     else {
-      target = aeditor.findPanel(layout.tree(), panelId)
+      target = aiditor.findPanel(layout.tree(), panelId)
       if (!target) errors.push({ path: 'panelId', message: 'Panel not found: ' + panelId })
     }
     if (!panelId) errors.push({ path: 'panelId', message: 'panelId is required' })
@@ -1387,12 +1387,12 @@
     if (preview && preview.ok === false) return { applied: false, ok: false, errors: preview.errors || [], preview: preview }
     const input = preview.input || {}
     return loadRuntimeScriptForReload(input, preview).then(function () {
-      if (input.component && aeditor.componentRegistration && !aeditor.componentRegistration(input.component)) {
+      if (input.component && aiditor.componentRegistration && !aiditor.componentRegistration(input.component)) {
         throw new Error('Component not registered after loading script: ' + input.component)
       }
       const layout = resolveLayout(input.layout)
       if (!layout) throw new Error('Layout not registered: ' + (input.layout || 'default'))
-      const target = aeditor.findPanel(layout.tree(), input.panelId)
+      const target = aiditor.findPanel(layout.tree(), input.panelId)
       if (!target) throw new Error('Panel not found: ' + input.panelId)
       if (input.component && target.panel && target.panel.component !== input.component) {
         throw new Error('reloadPanel keeps the existing panel component. Use replacePanel to change component from ' + target.panel.component + ' to ' + input.component + '.')
@@ -1407,7 +1407,7 @@
     })
   }
 
-  aeditor.extensions = {
+  aiditor.extensions = {
     preview: previewExtension,
     review: reviewInstall,
     installWithReview: installWithReview,
@@ -1444,4 +1444,4 @@
   }
 
   registerRecoveryComponent()
-})(window.aeditor = window.aeditor || {})
+})(window.aiditor = window.aiditor || {})

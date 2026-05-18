@@ -2,15 +2,15 @@
 //
 // Protocol — direct window.postMessage between source and target:
 //
-//   1. Source: ctx.panel.popOut() → window.open(url+?aeditor-popup=1) → returns w
+//   1. Source: ctx.panel.popOut() → window.open(url+?aiditor-popup=1) → returns w
 //   2. Source: window.addEventListener('message', onMessage)
 //   3. Target (popup): createDockLayout runs → layout.bindMigrationReceiver()
-//      sends { aeditorAction:'ready' } to window.opener
+//      sends { aiditorAction:'ready' } to window.opener
 //   4. Source: receives 'ready' (matched by ev.source === w) → posts
-//      { aeditorAction:'migrate', txId, panelData, state } to w
+//      { aiditorAction:'migrate', txId, panelData, state } to w
 //   5. Target: receives 'migrate' → finds an accepting dock → addPanel with
 //      panelData.props → if component.deserialize exists, applies state →
-//      posts { aeditorAction:'migrate-ack', txId } back to opener
+//      posts { aiditorAction:'migrate-ack', txId } back to opener
 //   6. Source: on 'migrate-ack', calls layout.removePanel(panelId)
 //
 // The two-phase ack ensures the panel never exists in both windows. If the
@@ -19,7 +19,7 @@
 //
 // Component contract — § 4.8 spec.serialize / spec.deserialize are optional.
 // Components that don't implement them migrate with props only (a fresh create).
-;(function (aeditor) {
+;(function (aiditor) {
   'use strict'
 
   let _txCounter = 0
@@ -38,7 +38,7 @@
 
   function safePost(target, msg) {
     try { target.postMessage(msg, targetOriginFor(target)) }
-    catch (e) { aeditor.reportError({ scope: 'global' }, e) }
+    catch (e) { aiditor.reportError({ scope: 'global' }, e) }
   }
 
   function isTrustedEvent(ev, expectedSource) {
@@ -49,15 +49,15 @@
   }
 
   function popOutPanel(panelId, layout, screenX, screenY) {
-    const pr = aeditor._dock.findPanelRuntime(layout, panelId)
+    const pr = aiditor._dock.findPanelRuntime(layout, panelId)
     if (!pr) return
     const panelData = pr.data.peek()
 
     // Serialize component state if supported.
     let state = null
-    const spec = aeditor.resolveComponent(panelData.component)
+    const spec = aiditor.resolveComponent(panelData.component)
     if (spec.serialize && pr.contentEl) {
-      state = aeditor.safeCall(
+      state = aiditor.safeCall(
         { scope: 'component', component: panelData.component, panelId: panelId },
         function () { return spec.serialize(pr.contentEl) }
       )
@@ -66,15 +66,15 @@
     const txId = 'tx-' + (++_txCounter)
 
     // Open a popup. The target side strips its initial layout to a single
-    // empty dock when it sees ?aeditor-popup=1 (responsibility of the demo HTML).
+    // empty dock when it sees ?aiditor-popup=1 (responsibility of the demo HTML).
     const url = window.location.href.indexOf('?') >= 0
-      ? window.location.href + '&aeditor-popup=1'
-      : window.location.href + '?aeditor-popup=1'
+      ? window.location.href + '&aiditor-popup=1'
+      : window.location.href + '?aiditor-popup=1'
     const features = 'popup,width=600,height=400'
       + ',left=' + (screenX || 100) + ',top=' + (screenY || 100)
     const w = window.open(url, '_blank', features)
     if (!w) {
-      aeditor.reportError({ scope: 'global' },
+      aiditor.reportError({ scope: 'global' },
         new Error('popOut: window.open returned null (popup blocked?)'))
       return
     }
@@ -95,8 +95,8 @@
     function onMessage(ev) {
       if (!isTrustedEvent(ev, w)) return
       const msg = ev.data
-      if (!msg || !msg.aeditorAction) return
-      if (msg.aeditorAction === 'ready') {
+      if (!msg || !msg.aiditorAction) return
+      if (msg.aiditorAction === 'ready') {
         // Strip the panel data we send across to JSON-safe content. PanelData
         // is structurally clone-safe by contract (§ 4.8 props), so this is
         // already fine, but we also drop framework-internal id so the target
@@ -112,17 +112,17 @@
           toolbarItems: panelData.toolbarItems,
         }
         safePost(w, {
-          aeditorAction:  'migrate',
+          aiditorAction:  'migrate',
           txId:      txId,
           panelData: cleanData,
           state:     state,
         })
-      } else if (msg.aeditorAction === 'migrate-ack' && msg.txId === txId) {
+      } else if (msg.aiditorAction === 'migrate-ack' && msg.txId === txId) {
         cleanup()
         layout.removePanel(panelId)
-      } else if (msg.aeditorAction === 'migrate-reject' && msg.txId === txId) {
+      } else if (msg.aiditorAction === 'migrate-reject' && msg.txId === txId) {
         cleanup()
-        aeditor.reportError({ scope: 'global' },
+        aiditor.reportError({ scope: 'global' },
           new Error('popOut: target window rejected migration (no accepting dock)'))
       }
     }
@@ -134,12 +134,12 @@
   // popup-side of the protocol: announce ready, then accept migrations.
   function bindMigrationReceiver(layout) {
     if (!window.opener) return // not a popup, nothing to do
-    if (window.location.search.indexOf('aeditor-popup=1') < 0) return
+    if (window.location.search.indexOf('aiditor-popup=1') < 0) return
 
     function onMessage(ev) {
       if (!isTrustedEvent(ev, window.opener)) return
       const msg = ev.data
-      if (!msg || msg.aeditorAction !== 'migrate') return
+      if (!msg || msg.aiditorAction !== 'migrate') return
       acceptMigration(layout, msg, window.opener)
     }
 
@@ -151,7 +151,7 @@
     // Tell opener we're ready to receive. postMessage queues if no listener
     // yet, but the source registers its listener synchronously before this
     // runs in the popup, so ordering is fine.
-    safePost(window.opener, { aeditorAction: 'ready' })
+    safePost(window.opener, { aiditorAction: 'ready' })
   }
 
   function acceptMigration(layout, msg, opener) {
@@ -168,7 +168,7 @@
     })
 
     if (!targetId) {
-      safePost(opener, { aeditorAction: 'migrate-reject', txId: msg.txId })
+      safePost(opener, { aiditorAction: 'migrate-reject', txId: msg.txId })
       return
     }
 
@@ -186,18 +186,18 @@
     // layout.addPanel triggered reconcile synchronously, which materialized
     // the component's contentEl. Now apply serialized state if both sides
     // implement it.
-    const pr = aeditor._dock.findPanelRuntime(layout, panelId)
+    const pr = aiditor._dock.findPanelRuntime(layout, panelId)
     if (msg.state != null && pr && pr.contentEl) {
-      const spec = aeditor.resolveComponent(component)
+      const spec = aiditor.resolveComponent(component)
       if (spec.deserialize) {
-        aeditor.safeCall(
+        aiditor.safeCall(
           { scope: 'component', component: component, panelId: panelId },
           function () { spec.deserialize(pr.contentEl, msg.state) }
         )
       }
     }
 
-    safePost(opener, { aeditorAction: 'migrate-ack', txId: msg.txId })
+    safePost(opener, { aiditorAction: 'migrate-ack', txId: msg.txId })
   }
 
   function walkDocks(node, fn) {
@@ -205,7 +205,7 @@
     for (let i = 0; i < node.children.length; i++) walkDocks(node.children[i], fn)
   }
 
-  aeditor._dock = aeditor._dock || {}
-  aeditor._dock.popOutPanel           = popOutPanel
-  aeditor._dock.bindMigrationReceiver = bindMigrationReceiver
-})(window.aeditor = window.aeditor || {})
+  aiditor._dock = aiditor._dock || {}
+  aiditor._dock.popOutPanel           = popOutPanel
+  aiditor._dock.bindMigrationReceiver = bindMigrationReceiver
+})(window.aiditor = window.aiditor || {})

@@ -1,5 +1,5 @@
-// aeditor.commands - owner-aware command and menu seam registry.
-;(function (aeditor) {
+// aiditor.commands - owner-aware command and menu seam registry.
+;(function (aiditor) {
   'use strict'
 
   const commands = {}
@@ -14,7 +14,7 @@
   function keys(obj) { return Object.keys(obj) }
 
   function normalizeMeta(meta) {
-    if (aeditor.runtime && aeditor.runtime.registrationMeta) meta = aeditor.runtime.registrationMeta(meta)
+    if (aiditor.runtime && aiditor.runtime.registrationMeta) meta = aiditor.runtime.registrationMeta(meta)
     meta = meta || {}
     const out = {}
     if (meta.owner != null) out.owner = String(meta.owner)
@@ -29,7 +29,7 @@
     return true
   }
 
-  const matchesPrefix = aeditor.names.matchesPrefix
+  const matchesPrefix = aiditor.names.matchesPrefix
 
   function register(id, spec, meta) {
     if (!id) throw new Error('commands.register: id is required')
@@ -184,7 +184,7 @@
     })
   }
 
-  aeditor.commands = {
+  aiditor.commands = {
     register: register,
     unregister: unregister,
     unregisterOwner: unregisterOwner,
@@ -200,4 +200,4 @@
     meta: function (id) { return clone(commandMeta[id] || {}) },
     menuMeta: function (id) { return clone(menuMeta[id] || {}) },
   }
-})(window.aeditor = window.aeditor || {})
+})(window.aiditor = window.aiditor || {})

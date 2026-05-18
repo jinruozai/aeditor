@@ -1,12 +1,12 @@
 # Agent Workspace Editing
 
 This document describes the recommended workflow for agents that edit files
-through AEditor. The framework has no project concept: it only knows registered
+through Aiditor. The framework has no project concept: it only knows registered
 tools, a bounded workspace, and optional host adapters.
 
 ## Principle
 
-AEditor framework stays simple:
+Aiditor framework stays simple:
 
 ```text
 component registry -> panel data references component name -> dock runtime mounts component
@@ -20,7 +20,7 @@ write component file -> add panel by component name, loading the file when neede
 ```
 
 The workspace-backed path is the only agent authoring path. Agents write or
-patch files first, then call `aeditor.addPanelToDock` with the registered
+patch files first, then call `aiditor.addPanelToDock` with the registered
 component name. If the component file has not been loaded yet, pass its
 workspace `path`; the runtime loads it before placing the panel. If `path` is
 omitted, the tool attempts to infer one unique matching JS file and uses that;
@@ -28,7 +28,7 @@ ambiguous or missing matches are reported as retry errors.
 
 ## Framework Tool Groups
 
-All coding abilities are ordinary `aeditor.ai.tools` entries. There is no second
+All coding abilities are ordinary `aiditor.ai.tools` entries. There is no second
 permission model and no capability layer.
 
 ```text
@@ -49,12 +49,12 @@ before apply.
 returns compact outlines: symbols, call names, and event/registration-looking
 lines. It helps the model decide what to read next without loading whole files.
 
-`git.*` is optional. A host may call `aeditor.ai.configureGit(adapter)` to expose
+`git.*` is optional. A host may call `aiditor.ai.configureGit(adapter)` to expose
 status, diff, log, show, stage, restore, and commit through the same tool
-registry. AEditor does not run shell commands itself.
+registry. Aiditor does not run shell commands itself.
 
-`verify.*` is optional. A host may call `aeditor.ai.configureVerify(adapter)` to
-expose list, run, and diagnostics tools through the same registry. AEditor does
+`verify.*` is optional. A host may call `aiditor.ai.configureVerify(adapter)` to
+expose list, run, and diagnostics tools through the same registry. Aiditor does
 not run tests, shell commands, linters, or typecheckers itself; it only calls the
 host adapter when present.
 
@@ -70,8 +70,8 @@ POST /verify/diagnostics
 By default it reads `package.json` in the bridge working directory and exposes
 common npm scripts such as `check`, `check:dist`, `test`, `lint`, and
 `typecheck`. Hosts can override the working directory and allowed roots with
-`AEDITOR_VERIFY_CWD` and `AEDITOR_VERIFY_ROOTS`, or provide explicit checks with
-`AEDITOR_VERIFY_CHECKS`.
+`AIDITOR_VERIFY_CWD` and `AIDITOR_VERIFY_ROOTS`, or provide explicit checks with
+`AIDITOR_VERIFY_CHECKS`.
 
 Permissions are unchanged:
 
@@ -98,7 +98,7 @@ ani.timeline.insertKeyframes
 
 Those tools are domain-specific. They must not leak into framework APIs.
 
-The AEditor demo also wires its project `check` hook into the optional
+The Aiditor demo also wires its project `check` hook into the optional
 `verify.*` adapter. That keeps model guidance generic: after editing files, the
 agent can call `verify.run` when available instead of learning a second
 demo-only check path.
@@ -133,7 +133,7 @@ demo.project.readSource
 Project panel files register components through the demo loader:
 
 ```js
-;(function (aeditor, Demo) {
+;(function (aiditor, Demo) {
   'use strict'
 
   Demo.project.component('sample.panel', {
@@ -143,25 +143,25 @@ Project panel files register components through the demo loader:
     factory: function (propsSig, ctx) {
       const root = document.createElement('div')
       root.style.cssText = 'height:100%;min-height:0;box-sizing:border-box;display:flex;flex-direction:column;'
-      const scroll = aeditor.ui.view({ children: [] })
+      const scroll = aiditor.ui.view({ children: [] })
       scroll.style.flex = '1 1 auto'
       scroll.style.minHeight = '0'
       root.appendChild(scroll)
       return root
     },
     dispose: function (el) {
-      if (aeditor.ui && aeditor.ui.dispose) aeditor.ui.dispose(el)
+      if (aiditor.ui && aiditor.ui.dispose) aiditor.ui.dispose(el)
     },
   })
-})(window.aeditor = window.aeditor || {}, window.Demo = window.Demo || {})
+})(window.aiditor = window.aiditor || {}, window.Demo = window.Demo || {})
 ```
 
 3. Add the registered component to a runtime dock:
 
 ```text
-aeditor.inspectDocks({})
+aiditor.inspectDocks({})
 
-aeditor.addPanelToDock({
+aiditor.addPanelToDock({
   dock: "dock id returned by inspectDocks",
   component: "sample.panel",
   path: "src/panels/sample.panel.js",
@@ -169,7 +169,7 @@ aeditor.addPanelToDock({
   icon: "box"
 })
 
-aeditor.replacePanel({
+aiditor.replacePanel({
   panelId: "panel id returned by inspectDocks",
   component: "sample.panel",
   path: "src/panels/sample.panel.js",
@@ -181,7 +181,7 @@ aeditor.replacePanel({
 `path` is only needed for newly written or not-yet-loaded workspace scripts.
 Use `replacePanel` when the user asks to turn one existing panel into another;
 it keeps the dock position and creates a fresh panel instance id.
-`aeditor.inspectDocks` returns the current dock ids, viewport rects, active
+`aiditor.inspectDocks` returns the current dock ids, viewport rects, active
 panels, and panel summaries. Choose a returned `dockId` from that runtime state;
 do not guess names such as `main`, and do not hand-write layout JSON. Runtime
 panel placement and later layout persistence are separate host concerns.

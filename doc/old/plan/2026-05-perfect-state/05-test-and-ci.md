@@ -20,7 +20,7 @@ Checks:
 
 - every `src/**/*.js`
 - every `demo/**/*.js`
-- `dist/aeditor.js`
+- `dist/aiditor.js`
 - `tools/build.mjs`
 
 Implementation can use `node --check`.
@@ -38,7 +38,7 @@ Checks:
 - every `src/**/*.js` appears in `JS_ORDER`
 - every `src/**/*.css` appears in `CSS_ORDER`
 - every ordered file exists
-- running build would produce the committed `dist/aeditor.js` and `dist/aeditor.css`
+- running build would produce the committed `dist/aiditor.js` and `dist/aiditor.css`
 
 This protects the zero-build promise.
 
@@ -65,7 +65,7 @@ Scope:
 - `findPanel`
 - `findByName`
 
-These can run in Node with a minimal `global.window = { aeditor: {} }` shim or by evaluating IIFE sources in order.
+These can run in Node with a minimal `global.window = { aiditor: {} }` shim or by evaluating IIFE sources in order.
 
 ### 4. Reactive core tests
 

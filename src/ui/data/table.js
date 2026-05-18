@@ -1,12 +1,12 @@
-// aeditor.ui.table — virtualized fixed-row table with column headers.
+// aiditor.ui.table — virtualized fixed-row table with column headers.
 //
 // opts:
 //   rows      : signal<object[]>
 //   columns   : [{ key, label, width?, render?(value, row) }]
 //   rowHeight?: number  default 24
-;(function (aeditor) {
+;(function (aiditor) {
   'use strict'
-  const ui = aeditor.ui = aeditor.ui || {}
+  const ui = aiditor.ui = aiditor.ui || {}
 
   ui.table = function (opts) {
     const o = opts || {}
@@ -14,11 +14,11 @@
     const cols = o.columns || []
     const rowH = o.rowHeight || 24
 
-    const el = ui.h('div', 'aeditor-ui-table')
-    const head = ui.h('div', 'aeditor-ui-table-head')
+    const el = ui.h('div', 'aiditor-ui-table')
+    const head = ui.h('div', 'aiditor-ui-table-head')
     for (let i = 0; i < cols.length; i++) {
       const c = cols[i]
-      const h = ui.h('div', 'aeditor-ui-table-th', { text: c.label || c.key })
+      const h = ui.h('div', 'aiditor-ui-table-th', { text: c.label || c.key })
       if (c.width) h.style.width = (typeof c.width === 'number' ? c.width + 'px' : c.width)
       else h.style.flex = '1 1 0'
       head.appendChild(h)
@@ -29,10 +29,10 @@
       items: rows,
       rowHeight: rowH,
       render: function (row) {
-        const r = ui.h('div', 'aeditor-ui-table-row')
+        const r = ui.h('div', 'aiditor-ui-table-row')
         for (let i = 0; i < cols.length; i++) {
           const c = cols[i]
-          const cell = ui.h('div', 'aeditor-ui-table-td')
+          const cell = ui.h('div', 'aiditor-ui-table-td')
           if (c.width) cell.style.width = (typeof c.width === 'number' ? c.width + 'px' : c.width)
           else cell.style.flex = '1 1 0'
           const v = row[c.key]
@@ -48,8 +48,8 @@
         return r
       },
     })
-    body.classList.add('aeditor-ui-table-body')
+    body.classList.add('aiditor-ui-table-body')
     el.appendChild(body)
     return el
   }
-})(window.aeditor = window.aeditor || {})
+})(window.aiditor = window.aiditor || {})

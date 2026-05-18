@@ -1,151 +1,151 @@
-/* aeditor — built-in component styles
+/* aiditor — built-in component styles
  *
  * Only contains toolbar + panel-drag visuals now. Tabs moved to
- * ui-form.css (.aeditor-ui-tab*) and are visually owned by aeditor.ui.tab; the
- * dock-tabs thin shell adds the `.aeditor-dock-tabs` marker class for
+ * ui-form.css (.aiditor-ui-tab*) and are visually owned by aiditor.ui.tab; the
+ * dock-tabs thin shell adds the `.aiditor-dock-tabs` marker class for
  * interactions.js hit-testing. Error-log moved to ui-data.css
- * (.aeditor-ui-errlog*) and is built from ui.card + ui.view.
+ * (.aiditor-ui-errlog*) and is built from ui.card + ui.view.
  */
 
 /* ── toolbar container ─────────────────────────── */
-.aeditor-toolbar {
+.aiditor-toolbar {
   display: flex;
   flex-shrink: 0;
-  background: var(--aeditor-toolbar-bg);
+  background: var(--aiditor-toolbar-bg);
   align-items: stretch;
   user-select: none;
-  min-height: var(--aeditor-toolbar-h);
+  min-height: var(--aiditor-toolbar-h);
 }
-.aeditor-toolbar[hidden] { display: none; }
-.aeditor-toolbar-top    { border-bottom: var(--aeditor-toolbar-border-w) solid var(--aeditor-toolbar-border); }
-.aeditor-toolbar-bottom { border-top:    var(--aeditor-toolbar-border-w) solid var(--aeditor-toolbar-border); }
-.aeditor-toolbar-left {
+.aiditor-toolbar[hidden] { display: none; }
+.aiditor-toolbar-top    { border-bottom: var(--aiditor-toolbar-border-w) solid var(--aiditor-toolbar-border); }
+.aiditor-toolbar-bottom { border-top:    var(--aiditor-toolbar-border-w) solid var(--aiditor-toolbar-border); }
+.aiditor-toolbar-left {
   flex-direction: column;
-  border-right: var(--aeditor-toolbar-border-w) solid var(--aeditor-toolbar-border);
-  min-width: var(--aeditor-toolbar-h);
+  border-right: var(--aiditor-toolbar-border-w) solid var(--aiditor-toolbar-border);
+  min-width: var(--aiditor-toolbar-h);
   min-height: 0;
 }
-.aeditor-toolbar-right {
+.aiditor-toolbar-right {
   flex-direction: column;
-  border-left: var(--aeditor-toolbar-border-w) solid var(--aeditor-toolbar-border);
-  min-width: var(--aeditor-toolbar-h);
+  border-left: var(--aiditor-toolbar-border-w) solid var(--aiditor-toolbar-border);
+  min-width: var(--aiditor-toolbar-h);
   min-height: 0;
 }
-.aeditor-toolbar-start {
+.aiditor-toolbar-start {
   display: flex;
   flex: 1 1 auto;
   min-width: 0;
   align-items: stretch;
   overflow: hidden;
 }
-.aeditor-toolbar-end {
+.aiditor-toolbar-end {
   display: flex;
   flex: 0 0 auto;
   align-items: stretch;
 }
-.aeditor-toolbar-left  > .aeditor-toolbar-start,
-.aeditor-toolbar-left  > .aeditor-toolbar-end,
-.aeditor-toolbar-right > .aeditor-toolbar-start,
-.aeditor-toolbar-right > .aeditor-toolbar-end { flex-direction: column; }
-.aeditor-toolbar-item { display: inline-flex; align-items: center; }
+.aiditor-toolbar-left  > .aiditor-toolbar-start,
+.aiditor-toolbar-left  > .aiditor-toolbar-end,
+.aiditor-toolbar-right > .aiditor-toolbar-start,
+.aiditor-toolbar-right > .aiditor-toolbar-end { flex-direction: column; }
+.aiditor-toolbar-item { display: inline-flex; align-items: center; }
 
 /* ── panel drag visuals ─────────────── */
-.aeditor-drag-ghost {
+.aiditor-drag-ghost {
   position: fixed;
   pointer-events: none;
-  z-index: var(--aeditor-z-drag);
+  z-index: var(--aiditor-z-drag);
   top: 0; left: 0;
-  padding: var(--aeditor-space-1) var(--aeditor-space-3);
-  background: var(--aeditor-bg-1);
-  border: 1px solid var(--aeditor-accent);
-  border-radius: var(--aeditor-r-2);
-  color: var(--aeditor-fg-0);
-  font: var(--aeditor-fs-md) var(--aeditor-font-ui);
-  box-shadow: var(--aeditor-shadow-3);
+  padding: var(--aiditor-space-1) var(--aiditor-space-3);
+  background: var(--aiditor-bg-1);
+  border: 1px solid var(--aiditor-accent);
+  border-radius: var(--aiditor-r-2);
+  color: var(--aiditor-fg-0);
+  font: var(--aiditor-fs-md) var(--aiditor-font-ui);
+  box-shadow: var(--aiditor-shadow-3);
   will-change: transform;
 }
-.aeditor-drop-target {
-  outline: 2px solid var(--aeditor-accent);
+.aiditor-drop-target {
+  outline: 2px solid var(--aiditor-accent);
   outline-offset: -2px;
-  background: var(--aeditor-accent-bg);
+  background: var(--aiditor-accent-bg);
 }
-.aeditor-drop-reject {
-  outline: 2px solid var(--aeditor-error);
+.aiditor-drop-reject {
+  outline: 2px solid var(--aiditor-error);
   outline-offset: -2px;
   cursor: not-allowed;
 }
-.aeditor-panel-drop-overlay {
+.aiditor-panel-drop-overlay {
   position: fixed;
   pointer-events: none;
-  z-index: calc(var(--aeditor-z-drag) - 1);
-  background: color-mix(in srgb, var(--aeditor-bg-0) 18%, transparent);
-  outline: 1px solid color-mix(in srgb, var(--aeditor-accent) 38%, transparent);
+  z-index: calc(var(--aiditor-z-drag) - 1);
+  background: color-mix(in srgb, var(--aiditor-bg-0) 18%, transparent);
+  outline: 1px solid color-mix(in srgb, var(--aiditor-accent) 38%, transparent);
   outline-offset: -1px;
   box-shadow:
-    inset 0 0 0 1px color-mix(in srgb, var(--aeditor-bg-4) 34%, transparent),
-    inset 0 0 40px color-mix(in srgb, var(--aeditor-bg-0) 46%, transparent);
+    inset 0 0 0 1px color-mix(in srgb, var(--aiditor-bg-4) 34%, transparent),
+    inset 0 0 40px color-mix(in srgb, var(--aiditor-bg-0) 46%, transparent);
 }
-.aeditor-panel-drop-map {
+.aiditor-panel-drop-map {
   position: absolute;
-  left: var(--aeditor-space-3);
-  top: var(--aeditor-space-3);
-  width: calc(100% - var(--aeditor-space-3) * 2);
-  height: calc(100% - var(--aeditor-space-3) * 2);
+  left: var(--aiditor-space-3);
+  top: var(--aiditor-space-3);
+  width: calc(100% - var(--aiditor-space-3) * 2);
+  height: calc(100% - var(--aiditor-space-3) * 2);
   display: block;
   overflow: visible;
 }
-.aeditor-panel-drop-shape {
-  fill: color-mix(in srgb, var(--aeditor-bg-1) 4%, transparent);
-  stroke: color-mix(in srgb, var(--aeditor-accent) 52%, transparent);
+.aiditor-panel-drop-shape {
+  fill: color-mix(in srgb, var(--aiditor-bg-1) 4%, transparent);
+  stroke: color-mix(in srgb, var(--aiditor-accent) 52%, transparent);
   stroke-width: 0.65;
   stroke-linejoin: round;
   vector-effect: non-scaling-stroke;
   shape-rendering: geometricPrecision;
   transition:
-    fill var(--aeditor-dur-fast) var(--aeditor-ease),
-    stroke var(--aeditor-dur-fast) var(--aeditor-ease);
+    fill var(--aiditor-dur-fast) var(--aiditor-ease),
+    stroke var(--aiditor-dur-fast) var(--aiditor-ease);
 }
-.aeditor-panel-drop-shape-center {
+.aiditor-panel-drop-shape-center {
   rx: 1;
   ry: 1;
 }
-.aeditor-panel-drop-shape.aeditor-panel-drop-active {
-  fill: color-mix(in srgb, var(--aeditor-accent) 20%, transparent);
-  stroke: color-mix(in srgb, var(--aeditor-accent) 92%, white 8%);
+.aiditor-panel-drop-shape.aiditor-panel-drop-active {
+  fill: color-mix(in srgb, var(--aiditor-accent) 20%, transparent);
+  stroke: color-mix(in srgb, var(--aiditor-accent) 92%, white 8%);
   stroke-width: 1.05;
   filter:
-    drop-shadow(0 0 7px color-mix(in srgb, var(--aeditor-accent) 28%, transparent))
-    drop-shadow(0 10px 24px color-mix(in srgb, var(--aeditor-bg-0) 55%, transparent));
+    drop-shadow(0 0 7px color-mix(in srgb, var(--aiditor-accent) 28%, transparent))
+    drop-shadow(0 10px 24px color-mix(in srgb, var(--aiditor-bg-0) 55%, transparent));
 }
 
-.aeditor-extension-disabled {
+.aiditor-extension-disabled {
   min-height: 100%;
   display: grid;
   align-content: center;
   justify-items: center;
-  gap: var(--aeditor-space-2);
-  padding: var(--aeditor-space-6);
-  color: var(--aeditor-fg-1);
+  gap: var(--aiditor-space-2);
+  padding: var(--aiditor-space-6);
+  color: var(--aiditor-fg-1);
   text-align: center;
 }
-.aeditor-extension-disabled-title {
-  color: var(--aeditor-warning);
+.aiditor-extension-disabled-title {
+  color: var(--aiditor-warning);
   font-weight: 600;
 }
-.aeditor-extension-disabled-body {
+.aiditor-extension-disabled-body {
   max-width: 42rem;
-  color: var(--aeditor-fg-2);
+  color: var(--aiditor-fg-2);
   line-height: 1.45;
 }
-.aeditor-extension-iframe {
+.aiditor-extension-iframe {
   display: block;
   width: 100%;
   height: 100%;
   min-height: 12rem;
   border: 0;
-  background: var(--aeditor-bg-0);
+  background: var(--aiditor-bg-0);
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .aeditor-tab, .aeditor-tab-close, .aeditor-tab-add { transition: none; }
+  .aiditor-tab, .aiditor-tab-close, .aiditor-tab-add { transition: none; }
 }

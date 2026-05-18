@@ -1,7 +1,7 @@
 # Research: Mainstream AI Coding Agent Workflows
 
 This document summarizes what is worth borrowing from modern AI coding tools
-for AEditor. The goal is not to copy any one project. The goal is to distill
+for Aiditor. The goal is not to copy any one project. The goal is to distill
 the mechanics that make AI modify real projects reliably.
 
 Primary sources:
@@ -42,7 +42,7 @@ make the model ask for the right slices.
 ## 2. OpenCode
 
 OpenCode is useful for us because it is close to the terminal-agent shape we
-want inside AEditor.
+want inside Aiditor.
 
 Important observations:
 
@@ -58,7 +58,7 @@ Important observations:
 - It supports granular patterns such as allowing `git status` while asking for
   broader `git *`, and treats external directories as a separate permission.
 
-What AEditor should borrow:
+What Aiditor should borrow:
 
 - Agent modes should be permission profiles, not separate implementations.
 - Project rules should live in the project directory and be loaded every time.
@@ -67,9 +67,9 @@ What AEditor should borrow:
 - Tool calls need typed results and enough UI observability that the user can
   see whether the agent is exploring, patching, checking, or blocked.
 
-What AEditor should not copy directly:
+What Aiditor should not copy directly:
 
-- A terminal-first UI. AEditor should use panels, dock state, selected UI
+- A terminal-first UI. Aiditor should use panels, dock state, selected UI
   references, and live previews as first-class context.
 - A separate extension format for project UI. Our UI runtime already has one
   component model.
@@ -80,14 +80,14 @@ Aider's key contribution is the repository map. It sends a compact view of the
 repository containing files, important symbols, and critical definition lines.
 This gives the model architectural awareness without sending every file.
 
-What AEditor should borrow:
+What Aiditor should borrow:
 
 - Maintain a cheap project map that includes files, component registrations,
   panel ids, bus topics, operations, references, exports, and important symbols.
 - Send the map by default, but keep it compact and budgeted.
 - Let the model request exact ranges after it finds the relevant file.
 
-What AEditor should adapt:
+What Aiditor should adapt:
 
 - Editor projects contain non-code artifacts: layout trees, panel descriptors,
   data tables, assets, themes, and domain resources. The project map must cover
@@ -99,7 +99,7 @@ Cline emphasizes direct editor context and explicit user-chosen context. Its
 docs recommend adding files, folders, problems, terminal output, git changes,
 URLs, and drag/drop references through the chat UI.
 
-What AEditor should borrow:
+What Aiditor should borrow:
 
 - "Right context, not more context" should be a product rule.
 - `add to chat` should feed structured references, not pasted text only.
@@ -107,9 +107,9 @@ What AEditor should borrow:
   errors, console output, git diffs, and screenshots as typed context.
 - The context UI should reveal what the agent knows and what it is missing.
 
-What AEditor should adapt:
+What Aiditor should adapt:
 
-- AEditor has richer runtime objects than a normal code editor: docks, panels,
+- Aiditor has richer runtime objects than a normal code editor: docks, panels,
   UI components, property rows, selected resources, and domain data. Context
   should preserve these types so tools can modify them precisely.
 
@@ -129,7 +129,7 @@ Important observations:
 - Skills are split into always-on repository context and optional on-demand
   skills that reveal full content only when needed.
 
-What AEditor should borrow:
+What Aiditor should borrow:
 
 - Workspace must be an adapter. Browser File System Access, local bridge, memory
   tests, and possible future sandboxed execution should share one interface.
@@ -140,9 +140,9 @@ What AEditor should borrow:
 - Optional skills are a better fit than stuffing every guideline into the system
   prompt.
 
-What AEditor should avoid:
+What Aiditor should avoid:
 
-- A backend-first architecture as the only path. AEditor must still work as a
+- A backend-first architecture as the only path. Aiditor must still work as a
   local frontend editor where possible.
 
 ## 6. Claude Code / Codex CLI
@@ -155,7 +155,7 @@ Claude Code and Codex CLI reinforce two points that matter to us:
   conversation. They keep high-volume reads, logs, and search results out of the
   main context and return compact summaries.
 
-What AEditor should borrow:
+What Aiditor should borrow:
 
 - Permission evaluation must be deterministic: deny rules first, then mode, then
   allow rules, then runtime approval.
@@ -165,7 +165,7 @@ What AEditor should borrow:
 
 ## 7. Common Failure Modes
 
-The failures we have seen in AEditor match common agent pitfalls:
+The failures we have seen in Aiditor match common agent pitfalls:
 
 1. The model sees too much generated source and loses the exact contract.
 2. It receives runtime failure after the fact but has no structured repair loop.
@@ -179,7 +179,7 @@ The failures we have seen in AEditor match common agent pitfalls:
 
 ## 8. Research Verdict
 
-The strongest architecture for AEditor is not a larger prompt. It is a smaller
+The strongest architecture for Aiditor is not a larger prompt. It is a smaller
 and sharper runtime:
 
 ```text

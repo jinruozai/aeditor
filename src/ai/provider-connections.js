@@ -1,8 +1,8 @@
-// aeditor.ai built-in connection definitions.
-;(function (aeditor) {
+// aiditor.ai built-in connection definitions.
+;(function (aiditor) {
   'use strict'
 
-  const ai = aeditor.ai = aeditor.ai || {}
+  const ai = aiditor.ai = aiditor.ai || {}
 
   const openAiDefaults = {
     baseUrl: 'https://api.openai.com/v1',
@@ -53,4 +53,4 @@
 
   if (ai.loadCustomConnections) ai.loadCustomConnections()
   ai.setActiveConnection('mock')
-})(window.aeditor = window.aeditor || {})
+})(window.aiditor = window.aiditor || {})

@@ -1,12 +1,12 @@
-// aeditor.ai API reference provider.
-;(function (aeditor) {
+// aiditor.ai API reference provider.
+;(function (aiditor) {
   'use strict'
 
-  const ai = aeditor.ai = aeditor.ai || {}
+  const ai = aiditor.ai = aiditor.ai || {}
   if (!ai.references || !ai.references.register) return
 
   function payload() {
-    return aeditor.apiDocs || { entries: [] }
+    return aiditor.apiDocs || { entries: [] }
   }
 
   function entries() {
@@ -15,14 +15,14 @@
 
   function apiIdFromUri(uri) {
     const text = String(uri || '')
-    if (text === 'aeditor://api' || text === 'api://') return ''
-    if (text.indexOf('aeditor://api/') === 0) return decodeURIComponent(text.slice('aeditor://api/'.length))
+    if (text === 'aiditor://api' || text === 'api://') return ''
+    if (text.indexOf('aiditor://api/') === 0) return decodeURIComponent(text.slice('aiditor://api/'.length))
     if (text.indexOf('api://') === 0) return decodeURIComponent(text.slice('api://'.length))
     return ''
   }
 
   function uriFor(entry) {
-    return 'aeditor://api/' + encodeURIComponent(entry.id)
+    return 'aiditor://api/' + encodeURIComponent(entry.id)
   }
 
   function findEntry(id) {
@@ -37,7 +37,7 @@
     return {
       resolver: 'api',
       uri: uriFor(entry),
-      kind: 'aeditor.api',
+      kind: 'aiditor.api',
       title: entry.id,
       summary: entry.summary || '',
       meta: {
@@ -52,19 +52,19 @@
         related: entry.related || [],
         source: entry.source,
       },
-      tools: ['aeditor.readReference'],
+      tools: ['aiditor.readReference'],
     }
   }
 
   function indexRef() {
     return {
       resolver: 'api',
-      uri: 'aeditor://api',
-      kind: 'aeditor.api.index',
-      title: 'AEditor API Index',
-      summary: 'Generated list of documented AEditor APIs.',
+      uri: 'aiditor://api',
+      kind: 'aiditor.api.index',
+      title: 'Aiditor API Index',
+      summary: 'Generated list of documented Aiditor APIs.',
       meta: { count: entries().length },
-      tools: ['aeditor.readReference'],
+      tools: ['aiditor.readReference'],
     }
   }
 
@@ -113,10 +113,10 @@
     const id = apiIdFromUri(ref && ref.uri)
     if (!id) {
       return {
-        uri: 'aeditor://api',
-        id: 'aeditor.api.index',
-        kind: 'aeditor.api.index',
-        title: 'AEditor API Index',
+        uri: 'aiditor://api',
+        id: 'aiditor.api.index',
+        kind: 'aiditor.api.index',
+        title: 'Aiditor API Index',
         summary: 'Generated API list from structured source comments.',
         entries: entries().map(function (entry) {
           return {
@@ -165,5 +165,5 @@
     read: read,
     schema: schema,
     capabilities: capabilities,
-  }, { owner: 'aeditor.api', layer: 'builtin' })
-})(window.aeditor = window.aeditor || {})
+  }, { owner: 'aiditor.api', layer: 'builtin' })
+})(window.aiditor = window.aiditor || {})

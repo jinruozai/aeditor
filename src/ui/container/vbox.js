@@ -1,17 +1,17 @@
-// aeditor.ui.vbox / hbox - flex containers. Children stack vertically (vbox)
+// aiditor.ui.vbox / hbox - flex containers. Children stack vertically (vbox)
 // or horizontally (hbox). Visual chrome (background / border / radius /
 // padding) flows from the shared BOX_STYLE fragment so the same vocabulary
 // applies to every component. Layout-y props (gap / align / justify /
 // width / height) are flex-specific and stay local.
-;(function (aeditor) {
+;(function (aiditor) {
   'use strict'
-  const ui = aeditor.ui = aeditor.ui || {}
+  const ui = aiditor.ui = aiditor.ui || {}
 
   function build(propsSig, direction) {
-    const el = ui.h('div', 'aeditor-ui-' + direction)
+    const el = ui.h('div', 'aiditor-ui-' + direction)
     el.style.display = 'flex'
     el.style.flexDirection = direction === 'vbox' ? 'column' : 'row'
-    aeditor.effect(function () {
+    aiditor.effect(function () {
       const p = propsSig() || {}
       el.style.gap            = p.gap != null ? p.gap + 'px' : ''
       el.style.alignItems     = p.align   || ''
@@ -41,7 +41,7 @@
   const SCHEMA   = Object.assign({}, ui.BOX_STYLE_SCHEMA, FLEX_SCHEMA)
   const DEFAULTS = Object.assign({}, ui.BOX_STYLE_DEFAULTS, { gap: 4 })
 
-  aeditor.registerComponent('vbox', {
+  aiditor.registerComponent('vbox', {
     label: 'V Box', icon: 'columns', category: 'layout',
     bindable: [],
     defaultProps: DEFAULTS, schema: SCHEMA,
@@ -49,11 +49,11 @@
     appendChild: function (parent, child, layout) { applyChildLayout(child, layout); parent.appendChild(child) },
   })
 
-  aeditor.registerComponent('hbox', {
+  aiditor.registerComponent('hbox', {
     label: 'H Box', icon: 'columns', category: 'layout',
     bindable: [],
     defaultProps: DEFAULTS, schema: SCHEMA,
     factory: function (propsSig) { return build(propsSig, 'hbox') },
     appendChild: function (parent, child, layout) { applyChildLayout(child, layout); parent.appendChild(child) },
   })
-})(window.aeditor = window.aeditor || {})
+})(window.aiditor = window.aiditor || {})

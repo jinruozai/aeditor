@@ -1,9 +1,9 @@
-// aeditor.ai permissions - resolver, audit, and access helpers.
-;(function (aeditor) {
+// aiditor.ai permissions - resolver, audit, and access helpers.
+;(function (aiditor) {
   'use strict'
 
-  const ai = aeditor.ai = aeditor.ai || {}
-  const permissionAuditSig = aeditor.signal([])
+  const ai = aiditor.ai = aiditor.ai || {}
+  const permissionAuditSig = aiditor.signal([])
   const MAX_PERMISSION_AUDIT = 500
   let permissionResolver = null
   let nextPermissionAuditId = 1
@@ -180,4 +180,4 @@
   ai.clearPermissionAudit = function () { permissionAuditSig.set([]) }
   ai.setPermissionResolver = setPermissionResolver
   ai.getPermissionResolver = function () { return permissionResolver }
-})(window.aeditor = window.aeditor || {})
+})(window.aiditor = window.aiditor || {})

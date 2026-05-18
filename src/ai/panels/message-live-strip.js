@@ -1,8 +1,8 @@
-;(function (aeditor) {
+;(function (aiditor) {
   'use strict'
 
-  const ui = aeditor.ui
-  const ai = aeditor.ai = aeditor.ai || {}
+  const ui = aiditor.ui
+  const ai = aiditor.ai = aiditor.ai || {}
 
   function usageNumber(usage, keys) {
     if (!usage) return 0
@@ -73,10 +73,10 @@
   }
 
   function createMessageLiveStrip() {
-    const root = ui.h('div', 'aeditor-ai-live-run')
-    const plate = ui.h('div', 'aeditor-ai-live-run-plate')
-    const dot = ui.h('span', 'aeditor-ai-live-run-dot')
-    const expandedSig = aeditor.signal(false)
+    const root = ui.h('div', 'aiditor-ai-live-run')
+    const plate = ui.h('div', 'aiditor-ai-live-run-plate')
+    const dot = ui.h('span', 'aiditor-ai-live-run-dot')
+    const expandedSig = aiditor.signal(false)
     const arrow = ui.stateButton({
       value: expandedSig,
       off: { icon: 'chevron-right', title: 'Expand run preview', pressed: false },
@@ -89,10 +89,10 @@
         update(lastState)
       },
     })
-    arrow.classList.add('aeditor-ai-live-run-arrow')
-    const label = ui.h('span', 'aeditor-ai-live-run-label')
-    const preview = ui.h('span', 'aeditor-ai-live-run-preview')
-    const metrics = ui.h('div', 'aeditor-ai-live-run-metrics')
+    arrow.classList.add('aiditor-ai-live-run-arrow')
+    const label = ui.h('span', 'aiditor-ai-live-run-label')
+    const preview = ui.h('span', 'aiditor-ai-live-run-preview')
+    const metrics = ui.h('div', 'aiditor-ai-live-run-metrics')
     let lastState = null
     let idleExpanded = false
 
@@ -128,4 +128,4 @@
   }
 
   ai.createMessageLiveStrip = createMessageLiveStrip
-})(window.aeditor = window.aeditor || {})
+})(window.aiditor = window.aiditor || {})

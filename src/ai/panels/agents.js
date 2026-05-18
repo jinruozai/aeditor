@@ -1,7 +1,7 @@
-;(function (aeditor) {
+;(function (aiditor) {
   'use strict'
 
-  const ui = aeditor.ui
+  const ui = aiditor.ui
 
   function read(v) { return ui.isSignal(v) ? v() : v }
   function readList(v) { return read(v) || [] }
@@ -37,20 +37,20 @@
   }
 
   function makeAgentLabel(node) {
-    const wrap = ui.h('span', 'aeditor-ai-agent-label')
+    const wrap = ui.h('span', 'aiditor-ai-agent-label')
     const tip = 'Status: ' + statusLabel(node.status)
-    const dot = ui.h('span', 'aeditor-ai-agent-dot aeditor-ai-agent-dot-' + node.statusClass)
+    const dot = ui.h('span', 'aiditor-ai-agent-dot aiditor-ai-agent-dot-' + node.statusClass)
     dot.setAttribute('aria-label', tip)
     ui.tooltip(dot, { text: tip, side: 'right', delay: 250 })
     wrap.appendChild(dot)
-    wrap.appendChild(ui.h('span', 'aeditor-ai-agent-name', { text: node.label, title: node.label }))
+    wrap.appendChild(ui.h('span', 'aiditor-ai-agent-name', { text: node.label, title: node.label }))
     return wrap
   }
 
   function makeStatus(node) {
-    const wrap = ui.h('span', 'aeditor-ai-agent-meta')
+    const wrap = ui.h('span', 'aiditor-ai-agent-meta')
     const count = Number(node.queuedCount || 0) + Number(node.unreadInboxCount || 0)
-    if (count) wrap.appendChild(ui.h('span', 'aeditor-ai-group-count', { text: String(count) }))
+    if (count) wrap.appendChild(ui.h('span', 'aiditor-ai-group-count', { text: String(count) }))
     return wrap
   }
 
@@ -65,7 +65,7 @@
   }
 
   function toTreeItems(agents) {
-    const activeId = read(aeditor.ai.activeAgentId)
+    const activeId = read(aiditor.ai.activeAgentId)
     const roots = []
     const byId = {}
     for (let i = 0; i < agents.length; i++) {
@@ -127,7 +127,7 @@
   }
 
   function activeNodeId() {
-    const id = read(aeditor.ai.activeAgentId)
+    const id = read(aiditor.ai.activeAgentId)
     return id ? agentNodeId(id) : null
   }
 
@@ -141,28 +141,28 @@
   }
 
   function createAgent(parentAgentId) {
-    aeditor.ai.createAgent({ parentAgentId: parentAgentId || null })
+    aiditor.ai.createAgent({ parentAgentId: parentAgentId || null })
   }
 
   function renameNode(node) {
     ui.prompt({ title: 'Rename Agent', message: 'Name', default: node.label }).then(function (name) {
       if (!name || name === node.label) return
-      aeditor.ai.renameAgent(node.agentId, name)
+      aiditor.ai.renameAgent(node.agentId, name)
     })
   }
 
   function deleteNode(node) {
-    aeditor.ai.deleteAgent(node.agentId)
+    aiditor.ai.deleteAgent(node.agentId)
   }
 
   function commitDrop(target, position, data) {
     const source = data.nodes[0]
     if (!source || source.id === target.id) return
     if (position === 'inside') {
-      aeditor.ai.reparentAgent(source.agentId, target.agentId)
+      aiditor.ai.reparentAgent(source.agentId, target.agentId)
       return
     }
-    aeditor.ai.reparentAgent(source.agentId, target.parentAgentId || null, target.sortOrder + (position === 'after' ? 1 : -1))
+    aiditor.ai.reparentAgent(source.agentId, target.parentAgentId || null, target.sortOrder + (position === 'after' ? 1 : -1))
   }
 
   function rootMenu() {
@@ -170,20 +170,20 @@
   }
 
   function openRootMenu(ev) {
-    if (ev.target.closest && ev.target.closest('.aeditor-ui-tree-row')) return
+    if (ev.target.closest && ev.target.closest('.aiditor-ui-tree-row')) return
     ev.preventDefault()
     ui.contextMenu({ x: ev.clientX, y: ev.clientY }, rootMenu())
   }
 
   function factory() {
-    const root = ui.h('div', 'aeditor-ai-panel aeditor-ai-agents')
-    const itemsSig = aeditor.signal([])
-    const selectedSig = aeditor.signal([])
-    const expandedSig = aeditor.signal(new Set())
+    const root = ui.h('div', 'aiditor-ai-panel aiditor-ai-agents')
+    const itemsSig = aiditor.signal([])
+    const selectedSig = aiditor.signal([])
+    const expandedSig = aiditor.signal(new Set())
     let expansionSeeded = false
     let knownAgentIds = new Set()
 
-    const toolbar = ui.h('div', 'aeditor-ai-toolbar')
+    const toolbar = ui.h('div', 'aiditor-ai-toolbar')
     toolbar.appendChild(ui.button({
       text: 'New Chat',
       kind: 'default',
@@ -205,7 +205,7 @@
       onSelect: function (ids) {
         if (!ids.length) return
         const node = findNode(itemsSig.peek(), ids[0])
-        if (node) aeditor.ai.selectAgent(node.agentId)
+        if (node) aiditor.ai.selectAgent(node.agentId)
       },
       trailingSlot: makeStatus,
       leadingSlot: function () { return null },
@@ -226,24 +226,24 @@
       },
       dnd: {
         canDrag: function () { return true },
-        getDragData: function (nodes) { return { types: ['aeditor.ai/agent'], nodes: nodes } },
+        getDragData: function (nodes) { return { types: ['aiditor.ai/agent'], nodes: nodes } },
         dropZones: function () { return ['before', 'inside', 'after'] },
         canDrop: function (node, position, data) {
           const source = data.nodes[0]
           if (!source || source.id === node.id) return false
-          if (position === 'inside') return !aeditor.ai.isDescendant(source.agentId, node.agentId)
+          if (position === 'inside') return !aiditor.ai.isDescendant(source.agentId, node.agentId)
           return true
         },
         onDrop: commitDrop,
       },
     })
-    tree.classList.add('aeditor-ai-agent-tree')
-    const treeView = ui.view({ children: tree, scroll: 'hidden', className: 'aeditor-ai-agent-tree-view' })
+    tree.classList.add('aiditor-ai-agent-tree')
+    const treeView = ui.view({ children: tree, scroll: 'hidden', className: 'aiditor-ai-agent-tree-view' })
     treeView.addEventListener('contextmenu', openRootMenu)
     root.appendChild(treeView)
 
     function syncTree() {
-      const agents = readList(aeditor.ai.agents)
+      const agents = readList(aiditor.ai.agents)
       const items = toTreeItems(agents)
       itemsSig.set(items)
       if (!expansionSeeded) {
@@ -265,11 +265,11 @@
       if (selected !== active) selectedSig.set(active ? [active] : [])
     }
 
-    ui.collect(root, aeditor.effect(syncTree))
+    ui.collect(root, aiditor.effect(syncTree))
     return root
   }
 
-  aeditor.registerComponent('ai-agents-list', {
+  aiditor.registerComponent('ai-agents-list', {
     category: 'panel',
     label: 'AI Agents',
     icon: 'user',
@@ -277,4 +277,4 @@
     factory: factory,
     dispose: disposeTree,
   })
-})(window.aeditor = window.aeditor || {})
+})(window.aiditor = window.aiditor || {})

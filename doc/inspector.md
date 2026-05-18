@@ -35,7 +35,7 @@ the primary target's value, but the editor is disabled.
 Targets are lightweight references. They must keep user selection order.
 
 ```js
-aeditor.inspector.select([
+aiditor.inspector.select([
   {
     type: 'game.achievement',
     id: 'first-blood',
@@ -49,14 +49,14 @@ aeditor.inspector.select([
 Target shape is intentionally open. The required field is `type` (or `kind` for
 host compatibility). Providers decide how to resolve `id`, `uri`, and `meta`.
 
-Call `aeditor.inspector.refresh()` when the selected object changed outside the
+Call `aiditor.inspector.refresh()` when the selected object changed outside the
 form and no provider `subscribe(refresh)` hook exists. It re-runs the current
 selection through the active provider without changing selection.
 
 ## Provider
 
 ```js
-aeditor.inspector.registerProvider('game.achievement', {
+aiditor.inspector.registerProvider('game.achievement', {
   accept: function (targets) {
     return targets.every(function (target) { return target.type === 'game.achievement' })
   },
@@ -99,7 +99,7 @@ const cube = {
   color: '#ff6a00',
 }
 
-aeditor.inspector.registerProvider('three.cube', {
+aiditor.inspector.registerProvider('three.cube', {
   inspect: function () {
     return {
       title: 'Cube',
@@ -118,13 +118,13 @@ aeditor.inspector.registerProvider('three.cube', {
       values: [cube],
       write: function (field, change, ctx) {
         cube[field] = ctx.valueForChange(change, ctx.primary, 0, ctx)
-        aeditor.inspector.refresh()
+        aiditor.inspector.refresh()
       },
     }
   },
 })
 
-aeditor.inspector.select({ type: 'three.cube', id: 'cube', title: 'Cube' })
+aiditor.inspector.select({ type: 'three.cube', id: 'cube', title: 'Cube' })
 ```
 
 `inspect(targets, ctx)` returns an Inspection object:
@@ -169,7 +169,7 @@ The framework does not define a formula language yet and does not `eval`
 expressions. Hosts can later install a formula evaluator with:
 
 ```js
-aeditor.inspector.setFormulaEvaluator(function (change, target, index, ctx) {
+aiditor.inspector.setFormulaEvaluator(function (change, target, index, ctx) {
   // return the value for this target
 })
 ```
@@ -188,7 +188,7 @@ The built-in dock component is:
 
 The panel is generic. It never listens to DOM clicks and never knows about game
 data, animation tracks, scene nodes, assets, or demo projects. Editor surfaces
-select objects explicitly with `aeditor.inspector.select(...)`.
+select objects explicitly with `aiditor.inspector.select(...)`.
 
 ## Boundaries
 

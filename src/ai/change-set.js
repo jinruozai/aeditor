@@ -1,8 +1,8 @@
-;(function (aeditor) {
+;(function (aiditor) {
   'use strict'
 
-  const ai = aeditor.ai = aeditor.ai || {}
-  const itemsSig = aeditor.signal([])
+  const ai = aiditor.ai = aiditor.ai || {}
+  const itemsSig = aiditor.signal([])
   const adapters = {}
   const renderers = {}
 
@@ -19,7 +19,7 @@
   }
 
   function isChangeSet(value) {
-    return !!(value && typeof value === 'object' && value.type === 'aeditor.changeSet')
+    return !!(value && typeof value === 'object' && value.type === 'aiditor.changeSet')
   }
 
   function normalizeStatus(status) {
@@ -94,7 +94,7 @@
     const validation = spec.validation || { ok: true, warnings: [], errors: [] }
     const resources = (spec.resources || []).map(normalizeResource)
     const out = {
-      type: 'aeditor.changeSet',
+      type: 'aiditor.changeSet',
       id: spec.id || nextId(),
       title: spec.title || 'Change Set',
       description: spec.description || '',
@@ -307,7 +307,7 @@
     })
   }
 
-  aeditor.changeSet = {
+  aiditor.changeSet = {
     items: itemsSig,
     create: create,
     update: update,
@@ -323,4 +323,4 @@
     getRenderer: getRenderer,
     rendererFor: rendererFor,
   }
-})(window.aeditor = window.aeditor || {})
+})(window.aiditor = window.aiditor || {})

@@ -1,4 +1,4 @@
-// aeditor.ui.list — virtualized fixed-row list with multi-select.
+// aiditor.ui.list — virtualized fixed-row list with multi-select.
 //
 // opts:
 //   items     : signal<any[]>            row data (signal so updates auto-render)
@@ -17,9 +17,9 @@
 //
 // Selection identity is by reference (===). Callers with positional duplicates
 // or recreated rows should map to stable values upstream.
-;(function (aeditor) {
+;(function (aiditor) {
   'use strict'
-  const ui = aeditor.ui = aeditor.ui || {}
+  const ui = aiditor.ui = aiditor.ui || {}
 
   ui.list = function (opts) {
     const o = opts || {}
@@ -31,9 +31,9 @@
     const writeSelected = selected ? ui.writer(selected, o.onSelect, 'ui.list') : null
     let anchor = -1
 
-    const el = ui.h('div', 'aeditor-ui-list aeditor-ui-scrollarea')
-    const spacer = ui.h('div', 'aeditor-ui-list-spacer')
-    const win = ui.h('div', 'aeditor-ui-list-window')
+    const el = ui.h('div', 'aiditor-ui-list aiditor-ui-scrollarea')
+    const spacer = ui.h('div', 'aiditor-ui-list-spacer')
+    const win = ui.h('div', 'aiditor-ui-list-window')
     el.appendChild(spacer)
     spacer.appendChild(win)
 
@@ -91,9 +91,9 @@
         if (!cache.has(i)) {
           const row = render(arr[i], i)
           row.style.height = rowH + 'px'
-          row.classList.add('aeditor-ui-list-row')
+          row.classList.add('aiditor-ui-list-row')
           row.dataset.idx = i
-          if (sel && sel.has(arr[i])) row.classList.add('aeditor-ui-list-row-active')
+          if (sel && sel.has(arr[i])) row.classList.add('aiditor-ui-list-row-active')
           row.addEventListener('mousedown', function (ev) { handleClick(ev, arr[i], i) })
           if (o.onActivate) row.addEventListener('dblclick', function () { o.onActivate(arr[i], i) })
           cache.set(i, row)
@@ -113,9 +113,9 @@
     if (selected) ui.bind(el, selected, function () {
       const arr = items.peek()
       const sel = selectedSet()
-      cache.forEach(function (row, i) { row.classList.toggle('aeditor-ui-list-row-active', sel.has(arr[i])) })
+      cache.forEach(function (row, i) { row.classList.toggle('aiditor-ui-list-row-active', sel.has(arr[i])) })
     })
     requestAnimationFrame(paint)
     return el
   }
-})(window.aeditor = window.aeditor || {})
+})(window.aiditor = window.aiditor || {})

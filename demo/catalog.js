@@ -22,7 +22,7 @@
 // property form flow automatically into every mounted component.
 ;(function () {
   'use strict'
-  const ui = aeditor.ui
+  const ui = aiditor.ui
 
   // ── shared option lists ─────────────────────────────────────────────
   const BUTTON_KINDS = [
@@ -65,17 +65,17 @@
       description: 'Text button. Supports kinds, sizes, disabled, click.',
       signals: function () {
         return {
-          text:     aeditor.signal('Click me'),
-          kind:     aeditor.signal('default'),
-          size:     aeditor.signal('md'),
-          disabled: aeditor.signal(false),
+          text:     aiditor.signal('Click me'),
+          kind:     aiditor.signal('default'),
+          size:     aiditor.signal('md'),
+          disabled: aiditor.signal(false),
         }
       },
       mount: function (s) {
         let clicks = 0
         return ui.button({ text: s.text, kind: s.kind, size: s.size, disabled: s.disabled, onClick: function () {
           clicks++
-          aeditor.log.push('info', { scope: 'component', component: 'button' }, 'clicked (' + clicks + ')')
+          aiditor.log.push('info', { scope: 'component', component: 'button' }, 'clicked (' + clicks + ')')
         }})
       },
       editFor: function (s) { return {
@@ -90,10 +90,10 @@
       id: 'iconButton', name: 'Icon Button', category: 'base',
       description: 'Compact icon-only button. Title is required for a11y.',
       signals: function () { return {
-        icon:     aeditor.signal('★'),
-        size:     aeditor.signal('md'),
-        kind:     aeditor.signal('default'),
-        disabled: aeditor.signal(false),
+        icon:     aiditor.signal('★'),
+        size:     aiditor.signal('md'),
+        kind:     aiditor.signal('default'),
+        disabled: aiditor.signal(false),
       }},
       mount: function (s) {
         return ui.iconButton({ icon: s.icon, size: s.size, kind: s.kind, disabled: s.disabled, title: 'Favorite' })
@@ -110,8 +110,8 @@
       id: 'icon', name: 'Icon', category: 'base',
       description: 'Glyph or monospace icon token. Size-aware.',
       signals: function () { return {
-        glyph: aeditor.signal('◆'),
-        size:  aeditor.signal('md'),
+        glyph: aiditor.signal('◆'),
+        size:  aiditor.signal('md'),
       }},
       mount: function (s) { return ui.icon({ glyph: s.glyph, size: s.size }) },
       editFor: function (s) { return { glyph: s.glyph, size: { signal: s.size, options: SIZES } } },
@@ -120,7 +120,7 @@
     {
       id: 'tooltip', name: 'Tooltip', category: 'base',
       description: 'Hover tooltip. Wraps any target element.',
-      signals: function () { return { text: aeditor.signal('This is a tooltip') } },
+      signals: function () { return { text: aiditor.signal('This is a tooltip') } },
       mount: function (s) {
         const wrap = ui.h('div', null, { style: 'display:inline-block' })
         const target = ui.button({ text: 'Hover me', kind: 'ghost' })
@@ -134,7 +134,7 @@
     {
       id: 'kbd', name: 'Keyboard Hint', category: 'base',
       description: 'Styled keycap — decorative only.',
-      signals: function () { return { text: aeditor.signal('Ctrl+K') } },
+      signals: function () { return { text: aiditor.signal('Ctrl+K') } },
       mount: function (s) { return ui.kbd({ text: s.text }) },
       editFor: function (s) { return { text: s.text } },
     },
@@ -143,9 +143,9 @@
       id: 'badge', name: 'Badge', category: 'base',
       description: 'Small tag label. Supports dot mode and variants.',
       signals: function () { return {
-        text: aeditor.signal('NEW'),
-        kind: aeditor.signal('accent'),
-        dot:  aeditor.signal(false),
+        text: aiditor.signal('NEW'),
+        kind: aiditor.signal('accent'),
+        dot:  aiditor.signal(false),
       }},
       mount: function (s) { return ui.badge({ text: s.text, kind: s.kind, dot: s.dot }) },
       editFor: function (s) { return {
@@ -159,12 +159,12 @@
       id: 'tag', name: 'Tag', category: 'base',
       description: 'Chip with color + optional close button.',
       signals: function () { return {
-        text:  aeditor.signal('javascript'),
-        color: aeditor.signal('accent'),
+        text:  aiditor.signal('javascript'),
+        color: aiditor.signal('accent'),
       }},
       mount: function (s) {
         return ui.tag({ text: s.text, color: s.color, onClose: function () {
-          aeditor.log.push('info', { scope: 'component', component: 'tag' }, 'tag close clicked')
+          aiditor.log.push('info', { scope: 'component', component: 'tag' }, 'tag close clicked')
         }})
       },
       editFor: function (s) { return {
@@ -176,7 +176,7 @@
     {
       id: 'spinner', name: 'Spinner', category: 'base',
       description: 'Indeterminate loading spinner.',
-      signals: function () { return { size: aeditor.signal('md') } },
+      signals: function () { return { size: aiditor.signal('md') } },
       mount: function (s) { return ui.spinner({ size: s.size }) },
       editFor: function (s) { return { size: { signal: s.size, options: SIZES } } },
     },
@@ -185,8 +185,8 @@
       id: 'divider', name: 'Divider', category: 'base',
       description: 'Horizontal or vertical rule with optional label.',
       signals: function () { return {
-        label:    aeditor.signal('Section'),
-        vertical: aeditor.signal(false),
+        label:    aiditor.signal('Section'),
+        vertical: aiditor.signal(false),
       }},
       mount: function (s) {
         const wrap = ui.h('div', null, { style: 'width:200px' })
@@ -221,9 +221,9 @@
       id: 'input', name: 'Input', category: 'form',
       description: 'Single-line text input. Binds to a signal.',
       signals: function () { return {
-        value:       aeditor.signal('hello world'),
-        placeholder: aeditor.signal('Type here…'),
-        disabled:    aeditor.signal(false),
+        value:       aiditor.signal('hello world'),
+        placeholder: aiditor.signal('Type here…'),
+        disabled:    aiditor.signal(false),
       }},
       mount: function (s) { return ui.input({ value: s.value, placeholder: s.placeholder, disabled: s.disabled }) },
       editFor: function (s) { return { value: s.value, placeholder: s.placeholder, disabled: s.disabled } },
@@ -233,10 +233,10 @@
       id: 'textarea', name: 'Textarea', category: 'form',
       description: 'Multi-line text input. Tab indents, signal-bound.',
       signals: function () { return {
-        value:       aeditor.signal('line one\nline two\nline three'),
-        placeholder: aeditor.signal('Type…'),
-        disabled:    aeditor.signal(false),
-        mono:        aeditor.signal(true),
+        value:       aiditor.signal('line one\nline two\nline three'),
+        placeholder: aiditor.signal('Type…'),
+        disabled:    aiditor.signal(false),
+        mono:        aiditor.signal(true),
       }},
       mount: function (s) { return ui.textarea({ value: s.value, placeholder: s.placeholder, disabled: s.disabled, mono: s.mono, rows: 4 }) },
       editFor: function (s) { return { value: s.value, placeholder: s.placeholder, mono: s.mono, disabled: s.disabled } },
@@ -246,12 +246,12 @@
       id: 'numberInput', name: 'Number Input', category: 'form',
       description: 'Blender-style scrub + edit number. Min/max/step live.',
       signals: function () { return {
-        value:  aeditor.signal(42),
-        min:    aeditor.signal(0),
-        max:    aeditor.signal(100),
-        step:   aeditor.signal(1),
-        label:  aeditor.signal('Value'),
-        suffix: aeditor.signal('px'),
+        value:  aiditor.signal(42),
+        min:    aiditor.signal(0),
+        max:    aiditor.signal(100),
+        step:   aiditor.signal(1),
+        label:  aiditor.signal('Value'),
+        suffix: aiditor.signal('px'),
       }},
       mount: function (s) { return ui.numberInput({ value: s.value, min: s.min, max: s.max, step: s.step, label: s.label, suffix: s.suffix }) },
       editFor: function (s) { return { value: s.value, min: s.min, max: s.max, step: s.step, label: s.label, suffix: s.suffix } },
@@ -260,7 +260,7 @@
     {
       id: 'vectorInput', name: 'Vector Input', category: 'form',
       description: 'XYZ vector of linked number inputs.',
-      signals: function () { return { value: aeditor.signal([0, 0, 0]), layout: aeditor.signal('column') } },
+      signals: function () { return { value: aiditor.signal([0, 0, 0]), layout: aiditor.signal('column') } },
       mount: function (s) { return ui.vectorInput({ value: s.value, layout: s.layout, step: 0.1, precision: 2 }) },
       editFor: function (s) { return { layout: { signal: s.layout, options: [{ value: 'row', label: 'Row' }, { value: 'column', label: 'Column' }] } } },
     },
@@ -269,12 +269,12 @@
       id: 'slider', name: 'Slider', category: 'form',
       description: 'Horizontal numeric slider with optional value bubble.',
       signals: function () { return {
-        value:     aeditor.signal(0.5),
-        min:       aeditor.signal(0),
-        max:       aeditor.signal(1),
-        step:      aeditor.signal(0.01),
-        showValue: aeditor.signal(true),
-        suffix:    aeditor.signal(''),
+        value:     aiditor.signal(0.5),
+        min:       aiditor.signal(0),
+        max:       aiditor.signal(1),
+        step:      aiditor.signal(0.01),
+        showValue: aiditor.signal(true),
+        suffix:    aiditor.signal(''),
       }},
       mount: function (s) { return ui.slider({ value: s.value, min: s.min, max: s.max, step: s.step, showValue: s.showValue, suffix: s.suffix }) },
       editFor: function (s) { return { value: s.value, min: s.min, max: s.max, step: s.step, showValue: s.showValue, suffix: s.suffix } },
@@ -284,10 +284,10 @@
       id: 'rangeSlider', name: 'Range Slider', category: 'form',
       description: 'Two-thumb slider for [min, max] ranges.',
       signals: function () { return {
-        value: aeditor.signal([0.2, 0.8]),
-        min:   aeditor.signal(0),
-        max:   aeditor.signal(1),
-        step:  aeditor.signal(0.01),
+        value: aiditor.signal([0.2, 0.8]),
+        min:   aiditor.signal(0),
+        max:   aiditor.signal(1),
+        step:  aiditor.signal(0.01),
       }},
       mount: function (s) { return ui.rangeSlider({ value: s.value, min: s.min, max: s.max, step: s.step }) },
       editFor: function (s) { return { min: s.min, max: s.max, step: s.step } },
@@ -297,9 +297,9 @@
       id: 'checkbox', name: 'Checkbox', category: 'form',
       description: 'Boolean toggle with label.',
       signals: function () { return {
-        value:    aeditor.signal(true),
-        label:    aeditor.signal('Enable feature'),
-        disabled: aeditor.signal(false),
+        value:    aiditor.signal(true),
+        label:    aiditor.signal('Enable feature'),
+        disabled: aiditor.signal(false),
       }},
       mount: function (s) { return ui.checkbox({ value: s.value, label: s.label, disabled: s.disabled }) },
       editFor: function (s) { return { value: s.value, label: s.label, disabled: s.disabled } },
@@ -309,9 +309,9 @@
       id: 'switch', name: 'Switch', category: 'form',
       description: 'Toggle switch — same semantics as checkbox, different look.',
       signals: function () { return {
-        value:    aeditor.signal(false),
-        label:    aeditor.signal('Dark mode'),
-        disabled: aeditor.signal(false),
+        value:    aiditor.signal(false),
+        label:    aiditor.signal('Dark mode'),
+        disabled: aiditor.signal(false),
       }},
       mount: function (s) { return ui['switch']({ value: s.value, label: s.label, disabled: s.disabled }) },
       editFor: function (s) { return { value: s.value, label: s.label, disabled: s.disabled } },
@@ -321,8 +321,8 @@
       id: 'radio', name: 'Radio Group', category: 'form',
       description: 'Single-choice radio group.',
       signals: function () { return {
-        value:    aeditor.signal('b'),
-        disabled: aeditor.signal(false),
+        value:    aiditor.signal('b'),
+        disabled: aiditor.signal(false),
       }},
       mount: function (s) {
         return ui.radio({
@@ -346,8 +346,8 @@
       id: 'segmented', name: 'Segmented', category: 'form',
       description: 'Segmented button group — single selection.',
       signals: function () { return {
-        value:    aeditor.signal('center'),
-        disabled: aeditor.signal(false),
+        value:    aiditor.signal('center'),
+        disabled: aiditor.signal(false),
       }},
       mount: function (s) {
         return ui.segmented({
@@ -371,9 +371,9 @@
       id: 'select', name: 'Select', category: 'form',
       description: 'Dropdown with custom menu (no native <select>).',
       signals: function () { return {
-        value:       aeditor.signal('ts'),
-        placeholder: aeditor.signal('Pick a language…'),
-        disabled:    aeditor.signal(false),
+        value:       aiditor.signal('ts'),
+        placeholder: aiditor.signal('Pick a language…'),
+        disabled:    aiditor.signal(false),
       }},
       mount: function (s) {
         return ui.select({
@@ -394,9 +394,9 @@
       id: 'combobox', name: 'Combobox', category: 'form',
       description: 'Text input with filtered suggestions.',
       signals: function () { return {
-        value:       aeditor.signal(''),
-        placeholder: aeditor.signal('Search fruit…'),
-        disabled:    aeditor.signal(false),
+        value:       aiditor.signal(''),
+        placeholder: aiditor.signal('Search fruit…'),
+        disabled:    aiditor.signal(false),
       }},
       mount: function (s) {
         return ui.combobox({
@@ -410,7 +410,7 @@
     {
       id: 'colorInput', name: 'Color Input', category: 'form',
       description: 'Swatch + HSV picker popover.',
-      signals: function () { return { value: aeditor.signal('#7b6ef6') } },
+      signals: function () { return { value: aiditor.signal('#7b6ef6') } },
       mount: function (s) { return ui.colorInput({ value: s.value }) },
       editFor: function (s) { return { value: s.value } },
     },
@@ -418,7 +418,7 @@
     {
       id: 'enumInput', name: 'Enum (bitmask)', category: 'form',
       description: 'Multi-flag bitmask toggle.',
-      signals: function () { return { value: aeditor.signal(5) } },
+      signals: function () { return { value: aiditor.signal(5) } },
       mount: function (s) {
         return ui.enumInput({
           value: s.value,
@@ -437,9 +437,9 @@
       id: 'tagInput', name: 'Tag Input', category: 'form',
       description: 'Editable chip list — Enter adds, Backspace removes.',
       signals: function () { return {
-        value:       aeditor.signal(['alpha', 'beta', 'gamma']),
-        placeholder: aeditor.signal('add tag…'),
-        disabled:    aeditor.signal(false),
+        value:       aiditor.signal(['alpha', 'beta', 'gamma']),
+        placeholder: aiditor.signal('add tag…'),
+        disabled:    aiditor.signal(false),
       }},
       mount: function (s) { return ui.tagInput({ value: s.value, placeholder: s.placeholder, disabled: s.disabled }) },
       editFor: function (s) { return { placeholder: s.placeholder, disabled: s.disabled } },
@@ -448,7 +448,7 @@
     {
       id: 'dateInput', name: 'Date Input', category: 'form',
       description: 'Native date picker, framed like ui.input.',
-      signals: function () { return { value: aeditor.signal('2026-04-24'), disabled: aeditor.signal(false) } },
+      signals: function () { return { value: aiditor.signal('2026-04-24'), disabled: aiditor.signal(false) } },
       mount: function (s) { return ui.dateInput({ value: s.value, disabled: s.disabled }) },
       editFor: function (s) { return { value: s.value, disabled: s.disabled } },
     },
@@ -457,12 +457,12 @@
       id: 'tab', name: 'Tab Strip', category: 'form',
       description: 'General-purpose tab bar (three visual variants).',
       signals: function () { return {
-        active:  aeditor.signal('overview'),
-        variant: aeditor.signal('bar'),
+        active:  aiditor.signal('overview'),
+        variant: aiditor.signal('bar'),
       }},
       mount: function (s) {
         return ui.tab({
-          items: aeditor.signal([
+          items: aiditor.signal([
             { id: 'overview', title: 'Overview', icon: 'eye' },
             { id: 'files',    title: 'Files',    icon: 'folder' },
             { id: 'settings', title: 'Settings', icon: 'settings', badge: '2' },
@@ -486,7 +486,7 @@
       stageSize: 'lg',
       description: 'Linear gradient color stop editor.',
       signals: function () { return {
-        value: aeditor.signal({ stops: [
+        value: aiditor.signal({ stops: [
           { pos: 0,    color: '#7b6ef6' },
           { pos: 0.5,  color: '#34d399' },
           { pos: 1,    color: '#fbbf24' },
@@ -500,7 +500,7 @@
       id: 'curveInput', name: 'Curve Input', category: 'editor',
       stageSize: 'lg',
       description: 'Cubic bezier easing curve editor.',
-      signals: function () { return { value: aeditor.signal([0.42, 0, 0.58, 1]) } },
+      signals: function () { return { value: aiditor.signal([0.42, 0, 0.58, 1]) } },
       mount: function (s) {
         const wrap = ui.h('div', null, { style: 'width:100%;height:100%;min-width:0;min-height:0;display:grid;place-items:center' })
         wrap.appendChild(ui.curveInput({ value: s.value }))
@@ -513,7 +513,7 @@
       id: 'codeInput', name: 'Code Input', category: 'editor',
       stageSize: 'lg',
       description: 'Monospace text editor with line numbers.',
-      signals: function () { return { value: aeditor.signal('function greet(name) {\n  return "Hello, " + name\n}') } },
+      signals: function () { return { value: aiditor.signal('function greet(name) {\n  return "Hello, " + name\n}') } },
       mount: function (s) { return ui.codeInput({ value: s.value, language: 'js', rows: 5 }) },
       editFor: function () { return {} },
     },
@@ -522,10 +522,10 @@
       id: 'pathInput', name: 'Path Input', category: 'editor',
       description: 'File/folder path with browse button.',
       signals: function () { return {
-        value:       aeditor.signal('/usr/local/bin/node'),
-        placeholder: aeditor.signal('Select a file…'),
-        mode:        aeditor.signal('file'),
-        disabled:    aeditor.signal(false),
+        value:       aiditor.signal('/usr/local/bin/node'),
+        placeholder: aiditor.signal('Select a file…'),
+        mode:        aiditor.signal('file'),
+        disabled:    aiditor.signal(false),
       }},
       mount: function (s) { return ui.pathInput({ value: s.value, placeholder: s.placeholder, mode: s.mode, disabled: s.disabled, useFileInput: true }) },
       editFor: function (s) { return {
@@ -540,7 +540,7 @@
       id: 'fileInput', name: 'File Input', category: 'editor',
       stageSize: 'lg',
       description: 'Drop zone + click-to-pick file input.',
-      signals: function () { return { value: aeditor.signal(null) } },
+      signals: function () { return { value: aiditor.signal(null) } },
       mount: function (s) { return ui.fileInput({ value: s.value }) },
       editFor: function () { return {} },
     },
@@ -549,8 +549,8 @@
       id: 'assetPicker', name: 'Asset Picker', category: 'editor',
       description: 'Path + preview thumbnail. Drag in files / URLs; drag out to export.',
       signals: function () { return {
-        value: aeditor.signal('https://picsum.photos/seed/aeditor/120'),
-        kind:  aeditor.signal('image'),
+        value: aiditor.signal('https://picsum.photos/seed/aiditor/120'),
+        kind:  aiditor.signal('image'),
       }},
       mount: function (s) { return ui.assetPicker({ value: s.value, kind: s.kind.peek() }) },
       editFor: function (s) { return {
@@ -567,7 +567,7 @@
       id: 'arrayInput', name: 'Array Input', category: 'editor',
       stageSize: 'lg',
       description: 'Generic list editor — add / remove / edit per-row.',
-      signals: function () { return { value: aeditor.signal(['red', 'green', 'blue']) } },
+      signals: function () { return { value: aiditor.signal(['red', 'green', 'blue']) } },
       mount: function (s) { return ui.arrayInput({ value: s.value }) },
       editFor: function () { return {} },
     },
@@ -577,7 +577,7 @@
       stageSize: 'lg',
       description: 'Fixed-shape object editor; caller supplies per-field renderer.',
       signals: function () { return {
-        value: aeditor.signal({ title: 'Iron Sword', level: 3, equipped: true }),
+        value: aiditor.signal({ title: 'Iron Sword', level: 3, equipped: true }),
       }},
       mount: function (s) {
         return ui.structInput({
@@ -597,8 +597,8 @@
       stageSize: 'lg',
       description: 'Schema-driven form — resolves FieldDef / TypeDef via type_config.',
       signals: function () { return {
-        value:  aeditor.signal({ name: 'Aria', hp: 120, active: true, tint: '#7b6ef6' }),
-        schema: aeditor.signal({
+        value:  aiditor.signal({ name: 'Aria', hp: 120, active: true, tint: '#7b6ef6' }),
+        schema: aiditor.signal({
           name:   { type: 'string' },
           hp:     { type: 'int',   type_agv: { min: 0, max: 999 } },
           active: { type: 'bool' },
@@ -606,7 +606,7 @@
         }),
       }},
       mount: function (s) {
-        const targets = aeditor.derived(function () { return [s.value()] })
+        const targets = aiditor.derived(function () { return [s.value()] })
         const form = ui.propertyForm({
           targets: targets,
           schema: s.schema,
@@ -627,8 +627,8 @@
       id: 'section', name: 'Section', category: 'container',
       description: 'Collapsible labeled section.',
       signals: function () { return {
-        title:     aeditor.signal('Collapsible Section'),
-        collapsed: aeditor.signal(false),
+        title:     aiditor.signal('Collapsible Section'),
+        collapsed: aiditor.signal(false),
       }},
       mount: function (s) {
         const content = ui.h('div', null, { text: 'Section body - anything goes here.' })
@@ -641,9 +641,9 @@
       id: 'propRow', name: 'Prop Row', category: 'container',
       description: 'Blender-style label + control row.',
       signals: function () { return {
-        label:    aeditor.signal('Opacity'),
-        hint:     aeditor.signal('0 means fully transparent'),
-        valueSig: aeditor.signal(0.75),
+        label:    aiditor.signal('Opacity'),
+        hint:     aiditor.signal('0 means fully transparent'),
+        valueSig: aiditor.signal(0.75),
       }},
       mount: function (s) {
         return ui.propRow({ label: s.label, hint: s.hint, control: ui.slider({ value: s.valueSig, showValue: true }) })
@@ -654,7 +654,7 @@
     {
       id: 'card', name: 'Card', category: 'container',
       description: 'Bordered container with optional title bar.',
-      signals: function () { return { title: aeditor.signal('Card title') } },
+      signals: function () { return { title: aiditor.signal('Card title') } },
       mount: function (s) {
         const body = ui.h('div', null, { style: 'display:flex;flex-direction:column;gap:8px' })
         body.appendChild(ui.h('div', null, { text: 'Card body content.' }))
@@ -668,13 +668,13 @@
       id: 'view', name: 'View', category: 'container',
       description: 'Themed view surface. Scrolls only when content overflows.',
       signals: function () { return {
-        padded: aeditor.signal(true),
-        scroll: aeditor.signal('auto'),
+        padded: aiditor.signal(true),
+        scroll: aiditor.signal('auto'),
       }},
       mount: function (s) {
         const content = ui.h('div')
         for (let i = 0; i < 18; i++) {
-          content.appendChild(ui.h('div', null, { text: 'View item ' + (i + 1), style: 'padding:4px 0;border-bottom:1px solid var(--aeditor-border)' }))
+          content.appendChild(ui.h('div', null, { text: 'View item ' + (i + 1), style: 'padding:4px 0;border-bottom:1px solid var(--aiditor-border)' }))
         }
         return ui.view({ children: content, maxHeight: 140, padded: s.padded, scroll: s.scroll })
       },
@@ -688,7 +688,7 @@
       mount: function () {
         const content = ui.h('div', null, { style: 'padding:8px' })
         for (let i = 0; i < 30; i++) {
-          content.appendChild(ui.h('div', null, { text: 'Line ' + (i + 1), style: 'padding:4px 0;border-bottom:1px solid var(--aeditor-border)' }))
+          content.appendChild(ui.h('div', null, { text: 'Line ' + (i + 1), style: 'padding:4px 0;border-bottom:1px solid var(--aiditor-border)' }))
         }
         return ui.scrollArea({ children: content, maxHeight: 140 })
       },
@@ -699,12 +699,12 @@
       id: 'tabPanel', name: 'Tab Panel', category: 'container',
       description: 'In-panel paged view with tab strip + body.',
       signals: function () { return {
-        items:  aeditor.signal([
+        items:  aiditor.signal([
           { id: 'one',   title: 'One' },
           { id: 'two',   title: 'Two' },
           { id: 'three', title: 'Three' },
         ]),
-        active: aeditor.signal('one'),
+        active: aiditor.signal('one'),
       }},
       mount: function (s) {
         const panes = {
@@ -712,7 +712,7 @@
           two:   ui.h('div', null, { text: 'Second pane', style: 'padding:12px' }),
           three: ui.h('div', null, { text: 'Third pane',  style: 'padding:12px' }),
         }
-        const wrap = ui.h('div', null, { style: 'height:140px;width:280px;border:1px solid var(--aeditor-border);border-radius:4px' })
+        const wrap = ui.h('div', null, { style: 'height:140px;width:280px;border:1px solid var(--aiditor-border);border-radius:4px' })
         wrap.appendChild(ui.tabPanel({ items: s.items, active: s.active, panes: panes, variant: 'compact' }))
         return wrap
       },
@@ -724,8 +724,8 @@
       id: 'list', name: 'List', category: 'data',
       description: 'Virtualized fixed-row list. Multi-select with ctrl/shift.',
       signals: function () { return {
-        items:    aeditor.signal(Array.from({ length: 200 }, function (_, i) { return 'Item #' + (i + 1) })),
-        selected: aeditor.signal([]),
+        items:    aiditor.signal(Array.from({ length: 200 }, function (_, i) { return 'Item #' + (i + 1) })),
+        selected: aiditor.signal([]),
       }},
       mount: function (s) {
         const wrap = ui.h('div', 'demo-data-preview-box', { style: 'height:180px;width:240px' })
@@ -742,7 +742,7 @@
       id: 'tree', name: 'Tree', category: 'data',
       description: 'Virtualized tree with expand / collapse.',
       signals: function () { return {
-        items: aeditor.signal([
+        items: aiditor.signal([
           { id: 'src', label: 'src', icon: '📁', children: [
             { id: 'core', label: 'core', icon: '📁', children: [
               { id: 'signal', label: 'signal.js', icon: '📄' },
@@ -757,7 +757,7 @@
             { id: 'catalog', label: 'catalog.js', icon: '📄' },
           ]},
         ]),
-        selected: aeditor.signal([]),
+        selected: aiditor.signal([]),
       }},
       mount: function (s) {
         const wrap = ui.h('div', 'demo-data-preview-box', { style: 'height:200px;width:240px' })
@@ -771,12 +771,12 @@
       id: 'table', name: 'Table', category: 'data',
       description: 'Virtualized fixed-row table with column headers.',
       signals: function () { return {
-        rows: aeditor.signal(Array.from({ length: 100 }, function (_, i) {
+        rows: aiditor.signal(Array.from({ length: 100 }, function (_, i) {
           return { id: i + 1, name: 'Item ' + (i + 1), qty: Math.round(Math.random() * 100), active: i % 2 === 0 }
         })),
       }},
       mount: function (s) {
-        const wrap = ui.h('div', null, { style: 'height:200px;width:320px;border:1px solid var(--aeditor-border);border-radius:4px;display:flex;flex-direction:column' })
+        const wrap = ui.h('div', null, { style: 'height:200px;width:320px;border:1px solid var(--aiditor-border);border-radius:4px;display:flex;flex-direction:column' })
         wrap.appendChild(ui.table({
           rows: s.rows,
           columns: [
@@ -795,7 +795,7 @@
       id: 'breadcrumbs', name: 'Breadcrumbs', category: 'data',
       description: 'Path crumbs with click handlers.',
       signals: function () { return {
-        items: aeditor.signal([
+        items: aiditor.signal([
           { label: 'Home', onClick: function () {} },
           { label: 'Docs', onClick: function () {} },
           { label: 'Getting Started' },
@@ -809,17 +809,17 @@
       id: 'progressBar', name: 'Progress Bar', category: 'data',
       description: 'Linear / circle, three sizes, four kinds, determinate or indeterminate.',
       signals: function () { return {
-        value:         aeditor.signal(0.42),
-        indeterminate: aeditor.signal(false),
-        label:         aeditor.signal('42%'),
-        shape:         aeditor.signal('linear'),
-        size:          aeditor.signal('md'),
-        kind:          aeditor.signal('default'),
+        value:         aiditor.signal(0.42),
+        indeterminate: aiditor.signal(false),
+        label:         aiditor.signal('42%'),
+        shape:         aiditor.signal('linear'),
+        size:          aiditor.signal('md'),
+        kind:          aiditor.signal('default'),
       }},
       mount: function (s) {
         const wrap = ui.h('div', null, { style: 'width:100%;display:flex;align-items:center;justify-content:center;min-height:0' })
         // Shape is picked once per instance (see component note); remount on swap.
-        aeditor.effect(function () {
+        aiditor.effect(function () {
           const sh = s.shape()
           wrap.innerHTML = ''
           wrap.appendChild(ui.progressBar({
@@ -850,16 +850,16 @@
             anchor: btn,
             items: [
               { type: 'header', label: 'File' },
-              { label: 'New',   icon: '＋', kbd: 'Ctrl+N', onSelect: function () { aeditor.log.push('info', { scope: 'demo' }, 'menu: New') } },
-              { label: 'Open…', icon: '📂', kbd: 'Ctrl+O', onSelect: function () { aeditor.log.push('info', { scope: 'demo' }, 'menu: Open') } },
-              { label: 'Save',  icon: '💾', kbd: 'Ctrl+S', onSelect: function () { aeditor.log.push('info', { scope: 'demo' }, 'menu: Save') } },
+              { label: 'New',   icon: '＋', kbd: 'Ctrl+N', onSelect: function () { aiditor.log.push('info', { scope: 'demo' }, 'menu: New') } },
+              { label: 'Open…', icon: '📂', kbd: 'Ctrl+O', onSelect: function () { aiditor.log.push('info', { scope: 'demo' }, 'menu: Open') } },
+              { label: 'Save',  icon: '💾', kbd: 'Ctrl+S', onSelect: function () { aiditor.log.push('info', { scope: 'demo' }, 'menu: Save') } },
               { type: 'divider' },
               { label: 'Recent', items: [
                 { label: 'alpha.txt', onSelect: function () {} },
                 { label: 'beta.txt',  onSelect: function () {} },
               ]},
               { type: 'divider' },
-              { label: 'Delete', icon: '🗑', danger: true, onSelect: function () { aeditor.log.push('warn', { scope: 'demo' }, 'menu: Delete') } },
+              { label: 'Delete', icon: '🗑', danger: true, onSelect: function () { aiditor.log.push('warn', { scope: 'demo' }, 'menu: Delete') } },
             ],
           })
         })
@@ -879,7 +879,7 @@
         btn.addEventListener('click', function () {
           const body = ui.h('div', null, { style: 'display:flex;flex-direction:column;gap:8px;min-width:280px' })
           body.appendChild(ui.h('p', null, { text: 'This is a modal dialog. Click backdrop or press ESC to close.' }))
-          body.appendChild(ui.input({ value: aeditor.signal(''), placeholder: 'Type something…' }))
+          body.appendChild(ui.input({ value: aiditor.signal(''), placeholder: 'Type something…' }))
           const footer = ui.h('div', null, { style: 'display:flex;gap:8px;justify-content:flex-end' })
           const okBtn = ui.button({ text: 'OK', kind: 'primary' })
           const cxBtn = ui.button({ text: 'Cancel', kind: 'ghost' })
@@ -904,7 +904,7 @@
         btn.addEventListener('click', function () {
           const body = ui.h('div', null, { style: 'display:flex;flex-direction:column;gap:12px;padding:12px' })
           body.appendChild(ui.h('p', null, { text: 'Drawer content slides in from the right.' }))
-          body.appendChild(ui.textarea({ value: aeditor.signal('Editable scratch area'), rows: 6 }))
+          body.appendChild(ui.textarea({ value: aiditor.signal('Editable scratch area'), rows: 6 }))
           ui.drawer({ side: 'right', title: 'Settings', content: body })
         })
         wrap.appendChild(btn)
@@ -917,9 +917,9 @@
       id: 'banner', name: 'Banner', category: 'overlay',
       description: 'Inline banner — info / success / warn / error.',
       signals: function () { return {
-        kind:    aeditor.signal('info'),
-        title:   aeditor.signal('Heads up!'),
-        message: aeditor.signal('This is an inline status banner.'),
+        kind:    aiditor.signal('info'),
+        title:   aiditor.signal('Heads up!'),
+        message: aiditor.signal('This is an inline status banner.'),
       }},
       mount: function (s) {
         const wrap = ui.h('div', null, { style: 'width:100%;min-width:0' })

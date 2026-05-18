@@ -1,5 +1,5 @@
-// aeditor extension manifest normalization and validation helpers.
-;(function (aeditor) {
+// aiditor extension manifest normalization and validation helpers.
+;(function (aiditor) {
   'use strict'
 
   function clone(value) {
@@ -42,7 +42,7 @@
       h ^= source.charCodeAt(i)
       h = Math.imul(h, 16777619) >>> 0
     }
-    return 'aeditor-fnv1a-' + h.toString(16)
+    return 'aiditor-fnv1a-' + h.toString(16)
   }
 
   function normalizeManifest(input) {
@@ -197,7 +197,7 @@
     if (!source.trim()) return { ok: false, error: 'Panel source is required' }
     if (!/^\s*function\b/.test(source)) return { ok: false, error: 'Panel source must be a function expression: function (propsSig, ctx) { return HTMLElement }' }
     try {
-      Function('aeditor', '"use strict"; return (' + source + ')')
+      Function('aiditor', '"use strict"; return (' + source + ')')
     } catch (err) {
       return { ok: false, error: String(err && err.message || err) }
     }
@@ -234,7 +234,7 @@
       return
     }
     const component = resolveComponentRef(map, node.component)
-    if (!map[node.component] && !(aeditor.componentRegistration && aeditor.componentRegistration(component))) {
+    if (!map[node.component] && !(aiditor.componentRegistration && aiditor.componentRegistration(component))) {
       errors.push({ path: path + '.component', message: 'UI component not registered: ' + component })
     }
     for (let i = 0; node.children && i < node.children.length; i++) {
@@ -242,7 +242,7 @@
     }
   }
 
-  aeditor._extensionsManifest = {
+  aiditor._extensionsManifest = {
     clone: clone,
     keys: keys,
     ownerFor: ownerFor,
@@ -261,4 +261,4 @@
     validatePublicNames: validatePublicNames,
     validateComponentUi: validateComponentUi,
   }
-})(window.aeditor = window.aeditor || {})
+})(window.aiditor = window.aiditor || {})

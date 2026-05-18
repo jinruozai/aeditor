@@ -2,28 +2,28 @@
 
 ## Problem
 
-aeditor.ui components use a local cleanup model:
+aiditor.ui components use a local cleanup model:
 
 ```js
-el.__aeditorCleanups = [fn, fn, ...]
-aeditor.ui.dispose(el)
+el.__aiditorCleanups = [fn, fn, ...]
+aiditor.ui.dispose(el)
 ```
 
 This is a good zero-dependency pattern, but it is only reliable if every component and composite component follows it.
 
 Current gaps:
 
-- Some helpers create `aeditor.effect()` without `ui.collect()`.
-- Some composite components append child aeditor.ui components without disposing them.
+- Some helpers create `aiditor.effect()` without `ui.collect()`.
+- Some composite components append child aiditor.ui components without disposing them.
 - Virtualized rows are removed instead of disposed.
 - Overlay content is unmounted but not always disposed.
-- Registered panel components return aeditor.ui components but do not expose `dispose`.
+- Registered panel components return aiditor.ui components but do not expose `dispose`.
 
 ## Target rule
 
-Every aeditor.ui component must obey this invariant:
+Every aiditor.ui component must obey this invariant:
 
-> If an aeditor.ui component creates an effect, derived signal, DOM event listener, timer, overlay, portal, or child aeditor.ui component, disposing the component root with `aeditor.ui.dispose(root)` must release it.
+> If an aiditor.ui component creates an effect, derived signal, DOM event listener, timer, overlay, portal, or child aiditor.ui component, disposing the component root with `aiditor.ui.dispose(root)` must release it.
 
 ## Implementation rules
 
@@ -32,13 +32,13 @@ Every aeditor.ui component must obey this invariant:
 Bad:
 
 ```js
-aeditor.effect(function () { ... })
+aiditor.effect(function () { ... })
 ```
 
 Good:
 
 ```js
-ui.collect(root, aeditor.effect(function () { ... }))
+ui.collect(root, aiditor.effect(function () { ... }))
 ```
 
 If the effect belongs to a child control, collect it on the child root or collect child disposal on the parent.
@@ -48,17 +48,17 @@ If the effect belongs to a child control, collect it on the child root or collec
 Bad:
 
 ```js
-const value = aeditor.derived(...)
+const value = aiditor.derived(...)
 ```
 
 Good:
 
 ```js
-const value = aeditor.derived(...)
+const value = aiditor.derived(...)
 ui.collect(root, value.dispose)
 ```
 
-### Child aeditor.ui components
+### Child aiditor.ui components
 
 If a parent creates a child component:
 
@@ -177,7 +177,7 @@ Move reusable visual constants into `theme.css`:
 
 ## Acceptance criteria
 
-- Running a repeated create/destroy smoke with representative aeditor.ui components leaves no active component effects.
+- Running a repeated create/destroy smoke with representative aiditor.ui components leaves no active component effects.
 - Virtualized list/tree scrolling through thousands of rows does not grow active cleanup/effect counts indefinitely.
 - Opening/closing popover, modal, drawer, menu, and toast repeatedly does not leave portal children.
-- Registered built-in panel components can rely on runtime default `aeditor.ui.dispose` fallback or have explicit dispose definitions.
+- Registered built-in panel components can rely on runtime default `aiditor.ui.dispose` fallback or have explicit dispose definitions.

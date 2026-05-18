@@ -22,41 +22,41 @@ class FakeEl {
 const root = new FakeEl()
 const scoped = new FakeEl()
 
-global.window = { aeditor: {} }
+global.window = { aiditor: {} }
 global.document = { documentElement: root }
 global.getComputedStyle = function (el) {
   return {
     getPropertyValue: function (name) {
-      return el.style.getPropertyValue(name) || (name === '--aeditor-brand' ? '#569eff' : '')
+      return el.style.getPropertyValue(name) || (name === '--aiditor-brand' ? '#569eff' : '')
     },
   }
 }
 
 vm.runInThisContext(readFileSync('src/core/theme.js', 'utf8'), { filename: 'theme.js' })
 
-const aeditor = window.aeditor
+const aiditor = window.aiditor
 
-assert.equal(aeditor.theme.get(), 'dark')
-aeditor.theme.set('light')
-assert.equal(root.getAttribute('data-aeditor-theme'), 'light')
-assert.equal(aeditor.theme.get(), 'light')
-aeditor.theme.set('dark')
-assert.equal(root.getAttribute('data-aeditor-theme'), null)
-assert.equal(aeditor.theme.get(), 'dark')
+assert.equal(aiditor.theme.get(), 'dark')
+aiditor.theme.set('light')
+assert.equal(root.getAttribute('data-aiditor-theme'), 'light')
+assert.equal(aiditor.theme.get(), 'light')
+aiditor.theme.set('dark')
+assert.equal(root.getAttribute('data-aiditor-theme'), null)
+assert.equal(aiditor.theme.get(), 'dark')
 
-aeditor.theme.set('dark', scoped)
-assert.equal(scoped.getAttribute('data-aeditor-theme'), 'dark')
-aeditor.theme.set('light', scoped)
-assert.equal(scoped.getAttribute('data-aeditor-theme'), 'light')
+aiditor.theme.set('dark', scoped)
+assert.equal(scoped.getAttribute('data-aiditor-theme'), 'dark')
+aiditor.theme.set('light', scoped)
+assert.equal(scoped.getAttribute('data-aiditor-theme'), 'light')
 
-aeditor.theme.apply({ '--aeditor-brand': '#123456', '--aeditor-surface-panel': '#222222' })
-assert.equal(root.style.getPropertyValue('--aeditor-brand'), '#123456')
-assert.equal(aeditor.theme.read('--aeditor-brand'), '#123456')
-aeditor.theme.reset(null, ['--aeditor-brand'])
-assert.equal(root.style.getPropertyValue('--aeditor-brand'), '')
-assert.equal(aeditor.theme.read('--aeditor-brand'), '#569eff')
+aiditor.theme.apply({ '--aiditor-brand': '#123456', '--aiditor-surface-panel': '#222222' })
+assert.equal(root.style.getPropertyValue('--aiditor-brand'), '#123456')
+assert.equal(aiditor.theme.read('--aiditor-brand'), '#123456')
+aiditor.theme.reset(null, ['--aiditor-brand'])
+assert.equal(root.style.getPropertyValue('--aiditor-brand'), '')
+assert.equal(aiditor.theme.read('--aiditor-brand'), '#569eff')
 
-const css = aeditor.theme.exportCss(null, ['--aeditor-brand'])
-assert.equal(css, ':root {\n  --aeditor-brand: #569eff;\n}')
+const css = aiditor.theme.exportCss(null, ['--aiditor-brand'])
+assert.equal(css, ':root {\n  --aiditor-brand: #569eff;\n}')
 
 console.log('theme tests ok')

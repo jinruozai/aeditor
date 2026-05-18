@@ -1,6 +1,6 @@
 // UI library — signal helper.
 //
-// All input widgets in aeditor.ui take a caller-owned signal as `value`. This file
+// All input widgets in aiditor.ui take a caller-owned signal as `value`. This file
 // provides four small helpers that every component reuses:
 //
 //   asSig(v)             → returns v if it's a signal, or wraps a constant
@@ -13,17 +13,17 @@
 //                          Runtime write sites call this once and reuse the
 //                          returned function — no per-event typeof checks.
 //   bind(el, sig, fn)    → run fn(value) immediately + every time sig changes;
-//                          auto-cleanup is registered on el.__aeditorCleanups
-//   collect(el, fn)      → push a cleanup callback onto el.__aeditorCleanups
+//                          auto-cleanup is registered on el.__aiditorCleanups
+//   collect(el, fn)      → push a cleanup callback onto el.__aiditorCleanups
 //
-// Cleanup model: every component root element grows an `__aeditorCleanups: fn[]`
-// array. aeditor.ui.dispose(el) runs them in reverse order and removes el from
+// Cleanup model: every component root element grows an `__aiditorCleanups: fn[]`
+// array. aiditor.ui.dispose(el) runs them in reverse order and removes el from
 // its parent. Callers that mount UI components inside a framework panel should
-// call ctx.onCleanup(() => aeditor.ui.dispose(el)) so cleanups fire when the
+// call ctx.onCleanup(() => aiditor.ui.dispose(el)) so cleanups fire when the
 // panel is removed.
-;(function (aeditor) {
+;(function (aiditor) {
   'use strict'
-  const ui = aeditor.ui = aeditor.ui || {}
+  const ui = aiditor.ui = aiditor.ui || {}
 
   // Accepts both plain signals and read-only derived signals — the read
   // contract is the same (call as fn, has .peek). Writable check (.set) is
@@ -36,7 +36,7 @@
 
   function asSig(v) {
     if (isSignal(v)) return v
-    return aeditor.signal(v)
+    return aiditor.signal(v)
   }
   ui.asSig = asSig
 
@@ -44,7 +44,7 @@
   // should call to write a new value. Throws at construction if no write path
   // is available — no runtime defensive `typeof .set` checks anywhere.
   //
-  // Writes execute in `aeditor.untracked` scope so the caller's onChange (which may
+  // Writes execute in `aiditor.untracked` scope so the caller's onChange (which may
   // read outer signals as part of persisting state) never silently subscribes
   // the effect that invoked the write. Same principle as `bus.emit` handlers
   // and `materializeComponentEl` — a write is a side effect, not a computation.
@@ -53,19 +53,19 @@
       ? onChange
       : (typeof sig === 'function' && typeof sig.set === 'function' ? sig.set : null)
     if (!write) throw new Error((name || 'ui') + ': `value` must be a writable signal or `onChange` is required')
-    return function (v) { aeditor.untracked(function () { write(v) }) }
+    return function (v) { aiditor.untracked(function () { write(v) }) }
   }
   ui.writer = writer
 
   function collect(el, fn) {
-    if (!el.__aeditorCleanups) el.__aeditorCleanups = []
-    el.__aeditorCleanups.push(fn)
+    if (!el.__aiditorCleanups) el.__aiditorCleanups = []
+    el.__aiditorCleanups.push(fn)
   }
   ui.collect = collect
 
   // bind(el, sig, fn): runs fn(sig()) once + on every change; cleanup auto.
   function bind(el, sig, fn) {
-    const stop = aeditor.effect(function () { fn(sig()) })
+    const stop = aiditor.effect(function () { fn(sig()) })
     collect(el, stop)
     return stop
   }
@@ -78,7 +78,7 @@
   }
 
   // bindClass(el, sig, prefix) — swap `${prefix}${value}` class as sig changes.
-  // For mutually-exclusive variant classes like aeditor-ui-btn-primary, aeditor-ui-btn-md.
+  // For mutually-exclusive variant classes like aiditor-ui-btn-primary, aiditor-ui-btn-md.
   // Strips the previous variant class before adding the new one.
   ui.bindClass = function (el, sig, prefix) {
     let prev = ''
@@ -104,12 +104,12 @@
   // dispose: run all cleanups in reverse, then detach.
   ui.dispose = function (el) {
     if (!el) return
-    const list = el.__aeditorCleanups
+    const list = el.__aiditorCleanups
     if (list) {
       for (let i = list.length - 1; i >= 0; i--) {
-        try { list[i]() } catch (e) { console.error('[aeditor.ui] cleanup error', e) }
+        try { list[i]() } catch (e) { console.error('[aiditor.ui] cleanup error', e) }
       }
-      el.__aeditorCleanups = null
+      el.__aiditorCleanups = null
     }
     if (el.parentNode) el.parentNode.removeChild(el)
   }
@@ -134,4 +134,4 @@
     }
     return el
   }
-})(window.aeditor = window.aeditor || {})
+})(window.aiditor = window.aiditor || {})

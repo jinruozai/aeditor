@@ -1,4 +1,4 @@
-// aeditor.ui.button — text button with optional icon.
+// aiditor.ui.button — text button with optional icon.
 //
 // opts:
 //   text     : string | signal<string>
@@ -7,9 +7,9 @@
 //   size     : 'sm' | 'md' | 'lg' | signal                          (md)
 //   disabled : boolean | signal<boolean>
 //   onClick  : (e) => void
-;(function (aeditor) {
+;(function (aiditor) {
   'use strict'
-  const ui = aeditor.ui = aeditor.ui || {}
+  const ui = aiditor.ui = aiditor.ui || {}
 
   ui.button = function (opts) {
     const o = opts || {}
@@ -18,9 +18,9 @@
     const size     = ui.asSig(o.size     != null ? o.size     : 'md')
     const disabled = ui.asSig(o.disabled != null ? o.disabled : false)
 
-    const el = ui.h('button', 'aeditor-ui-btn', { type: 'button' })
-    ui.bindClass(el, kind, 'aeditor-ui-btn-')
-    ui.bindClass(el, size, 'aeditor-ui-btn-')
+    const el = ui.h('button', 'aiditor-ui-btn', { type: 'button' })
+    ui.bindClass(el, kind, 'aiditor-ui-btn-')
+    ui.bindClass(el, size, 'aiditor-ui-btn-')
     ui.bindAttr(el, disabled, 'disabled')
 
     // Optional icon slot. Static HTMLElement goes in as-is; a signal or
@@ -35,15 +35,15 @@
     }
 
     // Text span — always present, hidden when empty so the icon can center.
-    const sp = ui.h('span', 'aeditor-ui-btn-text')
+    const sp = ui.h('span', 'aiditor-ui-btn-text')
     el.appendChild(sp)
     ui.bind(el, text, function (v) {
       const s = v == null ? '' : String(v)
       sp.textContent = s
-      el.classList.toggle('aeditor-ui-btn-text-empty', s === '')
+      el.classList.toggle('aiditor-ui-btn-text-empty', s === '')
     })
 
     if (o.onClick) el.addEventListener('click', function (e) { if (!el.disabled) o.onClick(e) })
     return el
   }
-})(window.aeditor = window.aeditor || {})
+})(window.aiditor = window.aiditor || {})

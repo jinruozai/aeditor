@@ -1,8 +1,8 @@
-// aeditor.ai built-in transports.
-;(function (aeditor) {
+// aiditor.ai built-in transports.
+;(function (aiditor) {
   'use strict'
 
-  const ai = aeditor.ai = aeditor.ai || {}
+  const ai = aiditor.ai = aiditor.ai || {}
   const http = ai.provider
 
   function mergeToolCallDeltas(calls) {
@@ -235,4 +235,4 @@
       })
     },
   })
-})(window.aeditor = window.aeditor || {})
+})(window.aiditor = window.aiditor || {})

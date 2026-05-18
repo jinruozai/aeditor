@@ -1,19 +1,19 @@
 ---
-name: aeditor-authoring
-description: Use when an AI agent needs to build, modify, review, or mount AEditor editor UI: registered components, dock layouts, panels, toolbar items, aeditor.ui controls, AI tools/context/operations, extension manifests, or workspace-backed editor code. Use for zero-build plain JavaScript AEditor projects and to avoid React, TSX, JSX, import/export, or bundled-module patterns.
+name: aiditor-authoring
+description: Use when an AI agent needs to build, modify, review, or mount Aiditor editor UI: registered components, dock layouts, panels, toolbar items, aiditor.ui controls, AI tools/context/operations, extension manifests, or workspace-backed editor code. Use for zero-build plain JavaScript Aiditor projects and to avoid React, TSX, JSX, import/export, or bundled-module patterns.
 ---
 
-# AEditor Authoring
+# Aiditor Authoring
 
 This is the compatibility umbrella skill. Prefer the focused skills:
 
-- `aeditor-runtime-authoring`: live AEditor agent, workspace files, runtime dock
+- `aiditor-runtime-authoring`: live Aiditor agent, workspace files, runtime dock
   mounting/replacing.
-- `aeditor-library-authoring`: Codex-like repository work using AEditor as a
+- `aiditor-library-authoring`: Codex-like repository work using Aiditor as a
   library.
 
-Use AEditor as a zero-dependency, zero-build editor framework. Build durable
-editor UI as plain JavaScript files that register AEditor components, then mount
+Use Aiditor as a zero-dependency, zero-build editor framework. Build durable
+editor UI as plain JavaScript files that register Aiditor components, then mount
 those registered component names into dock panels.
 
 ## Current Runtime Shape
@@ -21,14 +21,14 @@ those registered component names into dock panels.
 Load only the layer the host needs:
 
 ```text
-aeditor-kernel    core services + component registry + tree + dock runtime
-aeditor-ui        aeditor.ui.* widgets, propertyForm, Inspector, settings UI, tab/log panels
-aeditor-ai        AI Host + Extension Runtime add-on
-aeditor-core      classic Kernel + UI bundle
-aeditor-full      Kernel + UI + AI Host + Extension Runtime
+aiditor-kernel    core services + component registry + tree + dock runtime
+aiditor-ui        aiditor.ui.* widgets, propertyForm, Inspector, settings UI, tab/log panels
+aiditor-ai        AI Host + Extension Runtime add-on
+aiditor-core      classic Kernel + UI bundle
+aiditor-full      Kernel + UI + AI Host + Extension Runtime
 ```
 
-If a host loaded only `aeditor-kernel`, do not assume `aeditor.ui.*`,
+If a host loaded only `aiditor-kernel`, do not assume `aiditor.ui.*`,
 `tab-standard`, `log`, AI tools, or extension APIs exist. Check the loaded
 surface before using optional layers.
 
@@ -37,10 +37,10 @@ surface before using optional layers.
 1. Inspect the host workspace before writing code. Find how it loads scripts,
    registers components, creates the layout, and stores demo or project state.
 2. When an API shape is unclear, search the generated runtime API references
-   before guessing. Use `aeditor.searchReferences` with the API name, then
-   `aeditor.readReference` on the returned `aeditor://api/...` URI.
+   before guessing. Use `aiditor.searchReferences` with the API name, then
+   `aiditor.readReference` on the returned `aiditor://api/...` URI.
 3. Use one component registration path for each file. Standalone code uses
-   `aeditor.registerComponent(name, spec)`. If the host provides a wrapper, use
+   `aiditor.registerComponent(name, spec)`. If the host provides a wrapper, use
    that wrapper instead.
 4. Prefer editing or adding real source files. Do not pass source code inside
    dock, panel, or extension tool arguments.
@@ -57,38 +57,38 @@ surface before using optional layers.
   framework components only own their internal semantic keys.
 - Components receive `factory(propsSig, ctx)` and return one HTMLElement root.
   `propsSig` is a signal function: use `propsSig.peek()` for a one-time read,
-  or `propsSig()` inside `aeditor.effect`.
-- Clean up with `ctx.onCleanup(fn)`. If you create nested AEditor UI elements,
-  call `aeditor.ui.dispose(root)` from cleanup when the subtree needs disposal.
+  or `propsSig()` inside `aiditor.effect`.
+- Clean up with `ctx.onCleanup(fn)`. If you create nested Aiditor UI elements,
+  call `aiditor.ui.dispose(root)` from cleanup when the subtree needs disposal.
 - Panel roots must survive resizable docks: set `height: 100%`, `minHeight: 0`,
   `boxSizing: border-box`, and use flex or grid layouts that adapt.
-- Prefer `aeditor.ui.*` controls over raw controls when the UI layer is loaded
-  and one exists. Use `aeditor.ui.view` for primary scroll surfaces.
-- Use `aeditor.ui.propertyForm` for schema-driven fields owned by one component.
-  Use `aeditor.inspector` plus a provider when many editor surfaces need to
+- Prefer `aiditor.ui.*` controls over raw controls when the UI layer is loaded
+  and one exists. Use `aiditor.ui.view` for primary scroll surfaces.
+- Use `aiditor.ui.propertyForm` for schema-driven fields owned by one component.
+  Use `aiditor.inspector` plus a provider when many editor surfaces need to
   inspect the current selection in a shared dock panel.
 - Toolbar tab components are normal toolbar components. Static toolbar items
   have `ctx.dock` but no `ctx.panel`.
-- Use `dockMenu: true` only when the host wants AEditor default dock menu
+- Use `dockMenu: true` only when the host wants Aiditor default dock menu
   contributions. Menus and commands are opt-in host choices.
-- In the AEditor demo project runtime, component entry files use
+- In the Aiditor demo project runtime, component entry files use
   `Demo.project.component(componentId, spec)`. Do not hand-write layout JSON or
-  guess dock names. Use `aeditor.inspectDocks`, choose a returned `dockId`, then
-  call `aeditor.addPanelToDock` with the registered `component`; include `path`
+  guess dock names. Use `aiditor.inspectDocks`, choose a returned `dockId`, then
+  call `aiditor.addPanelToDock` with the registered `component`; include `path`
   when the component file was just written and has not been loaded yet. If
   `path` is omitted, the tool can infer a single matching JS file; retry with an
   explicit `path` if it reports ambiguity. When replacing one existing panel,
-  use `aeditor.replacePanel` with the returned `panelId` instead of add/remove
+  use `aiditor.replacePanel` with the returned `panelId` instead of add/remove
   choreography. After editing the file for the same mounted component, use
-  `aeditor.reloadPanel({ panelId, path })` instead of `replacePanel`.
+  `aiditor.reloadPanel({ panelId, path })` instead of `replacePanel`.
 
 ## Component Pattern
 
 ```js
-;(function (aeditor) {
+;(function (aiditor) {
   'use strict'
 
-  aeditor.registerComponent('demo.notes', {
+  aiditor.registerComponent('demo.notes', {
     category: 'panel',
     label: 'Notes',
     defaults: function () {
@@ -99,10 +99,10 @@ surface before using optional layers.
       }
     },
     factory: function (propsSig, ctx) {
-      const ui = aeditor.ui
+      const ui = aiditor.ui
       const root = ui.h('div', 'demo-notes')
       const initial = (propsSig.peek() || {}).text || ''
-      const text = aeditor.signal(initial)
+      const text = aiditor.signal(initial)
 
       root.style.height = '100%'
       root.style.minHeight = '0'
@@ -125,11 +125,11 @@ surface before using optional layers.
       return root
     },
   })
-})(window.aeditor = window.aeditor || {})
+})(window.aiditor = window.aiditor || {})
 ```
 
 For more patterns, read
-`doc/skill/aeditor-authoring/references/component-patterns.md`.
+`doc/skill/aiditor-authoring/references/component-patterns.md`.
 
 ## Inspector Pattern
 
@@ -139,7 +139,7 @@ ordered targets, and mount the built-in `inspector` component where the host
 wants properties to appear.
 
 ```js
-aeditor.inspector.registerProvider('app.node', {
+aiditor.inspector.registerProvider('app.node', {
   inspect: function (targets, inspectCtx) {
     return {
       schema: {
@@ -158,18 +158,18 @@ aeditor.inspector.registerProvider('app.node', {
   },
 })
 
-aeditor.inspector.select({ type: 'app.node', id: 'node-1', title: 'Node 1' })
+aiditor.inspector.select({ type: 'app.node', id: 'node-1', title: 'Node 1' })
 ```
 
 The provider API is `registerProvider(type, provider, meta)`. Do not pass a
-single object with `id/get/set`; that is not the AEditor Inspector protocol.
+single object with `id/get/set`; that is not the Aiditor Inspector protocol.
 If inspected state changes outside the form and no `subscribe(refresh)` hook is
-available, call `aeditor.inspector.refresh()`.
+available, call `aiditor.inspector.refresh()`.
 
 For the exact generated API document, search:
 
 ```text
-aeditor.searchReferences({ query: "aeditor.inspector.registerProvider" })
+aiditor.searchReferences({ query: "aiditor.inspector.registerProvider" })
 ```
 
 Multi-target Inspector edits show the first selected target as primary. A field
@@ -178,36 +178,36 @@ allows writing it. There is no mixed-value state.
 
 ## AI Authoring Workflow
 
-When an AI agent modifies AEditor code, use the workspace-backed path:
+When an AI agent modifies Aiditor code, use the workspace-backed path:
 
 1. Map or search files first.
 2. Read the exact range you will edit.
 3. For existing files, use exact edits with the current base hash and exact
    `oldText`.
 4. For new files, write the component file.
-5. Inspect docks with `aeditor.inspectDocks`, then mount by registered
-   component name and returned dock id with `aeditor.addPanelToDock`. Include
+5. Inspect docks with `aiditor.inspectDocks`, then mount by registered
+   component name and returned dock id with `aiditor.addPanelToDock`. Include
    the workspace file `path` so the runtime loads the component before mounting.
    If the tool can infer one matching JS file, it may fill `path` itself.
-   To replace an existing panel, use `aeditor.replacePanel` with the target
+   To replace an existing panel, use `aiditor.replacePanel` with the target
    `panelId`; it keeps dock position and returns a fresh panel id.
 6. After editing the file for an already-mounted panel, use
-   `aeditor.reloadPanel({ panelId, path })` to rebuild the same panel instance.
+   `aiditor.reloadPanel({ panelId, path })` to rebuild the same panel instance.
 7. If the edit is stale or ambiguous, reread and retry with a narrower change.
 
 For AI registry details, read
-`doc/skill/aeditor-authoring/references/ai-workflow.md`.
+`doc/skill/aiditor-authoring/references/ai-workflow.md`.
 
 ## Extension Workflow
 
 Use an extension when the work is packaged, reviewable, installable, and
-uninstallable. The host must load `aeditor-ai` or `aeditor-full` for extension
+uninstallable. The host must load `aiditor-ai` or `aiditor-full` for extension
 APIs. Use ordinary component files when the host simply needs project UI.
 Extensions contribute to existing registries; they do not create a second
 component, tool, or AI model.
 
 For extension details, read
-`doc/skill/aeditor-authoring/references/extension-runtime.md`.
+`doc/skill/aiditor-authoring/references/extension-runtime.md`.
 
 ## Verification
 

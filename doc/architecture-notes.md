@@ -9,24 +9,24 @@ real defect, fix the code or move the plan into a focused design document.
 The public AI registry shape is:
 
 ```js
-aeditor.ai.tools.register(name, spec)
-aeditor.ai.context.register(name, spec)
-aeditor.ai.operations.register(name, spec)
+aiditor.ai.tools.register(name, spec)
+aiditor.ai.context.register(name, spec)
+aiditor.ai.operations.register(name, spec)
 ```
 
 Attachments are runtime chat state, not a registry:
 
 ```js
-aeditor.ai.attachments
-aeditor.ai.addAttachment(spec)
-aeditor.ai.removeAttachment(id)
+aiditor.ai.attachments
+aiditor.ai.addAttachment(spec)
+aiditor.ai.removeAttachment(id)
 ```
 
-Readable URI/kind/meta pointers resolve through `aeditor.ai.references`.
+Readable URI/kind/meta pointers resolve through `aiditor.ai.references`.
 
 ## Project Runtime
 
-AEditor framework has no built-in project model.
+Aiditor framework has no built-in project model.
 
 The file-backed project loader is demo behavior:
 
@@ -58,7 +58,7 @@ Runtime packages.
 
 ## ChangeSet
 
-`aeditor.changeSet` is review infrastructure for grouped changes. It complements
+`aiditor.changeSet` is review infrastructure for grouped changes. It complements
 operations; it is not a fourth AI registry.
 
 ## AI Runtime

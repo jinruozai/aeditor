@@ -1,8 +1,8 @@
-// aeditor.ai tool-call lifecycle and run context.
-;(function (aeditor) {
+// aiditor.ai tool-call lifecycle and run context.
+;(function (aiditor) {
   'use strict'
 
-  const ai = aeditor.ai = aeditor.ai || {}
+  const ai = aiditor.ai = aiditor.ai || {}
   let nextToolCallId = 1
 
   function makeToolCall(spec, actor) {
@@ -177,7 +177,7 @@
   }
 
   function failToolCall(agentId, callId, found, err, phase) {
-    if (aeditor.reportError) aeditor.reportError({ scope: 'ai', tool: found.toolCall.toolId }, err)
+    if (aiditor.reportError) aiditor.reportError({ scope: 'ai', tool: found.toolCall.toolId }, err)
     const envelope = failureEnvelope(found.toolCall.toolId, phase || 'run', err)
     const patch = { status: 'failed', error: envelope.message, errorDetails: envelope }
     if (phase === 'preview') patch.preview = envelope
@@ -390,4 +390,4 @@
   ai.isToolAlwaysAllowed = isToolAlwaysAllowed
   ai.setToolAlwaysAllowed = setToolAlwaysAllowed
   ai.createRunContext = createRunContext
-})(window.aeditor = window.aeditor || {})
+})(window.aiditor = window.aiditor || {})

@@ -1,8 +1,8 @@
-// Built-in Inspector panel: renders the current aeditor.inspector selection.
-;(function (aeditor) {
+// Built-in Inspector panel: renders the current aiditor.inspector selection.
+;(function (aiditor) {
   'use strict'
 
-  const ui = aeditor.ui
+  const ui = aiditor.ui
 
   function disposeTree(el) {
     if (!el) return
@@ -30,19 +30,19 @@
   }
 
   function factory(propsSig, ctx) {
-    const root = ui.h('div', 'aeditor-inspector')
-    const head = ui.h('div', 'aeditor-inspector-head')
-    const title = ui.h('div', 'aeditor-inspector-title')
-    const subtitle = ui.h('div', 'aeditor-inspector-subtitle')
+    const root = ui.h('div', 'aiditor-inspector')
+    const head = ui.h('div', 'aiditor-inspector-head')
+    const title = ui.h('div', 'aiditor-inspector-title')
+    const subtitle = ui.h('div', 'aiditor-inspector-subtitle')
     head.appendChild(title)
     head.appendChild(subtitle)
-    const body = ui.h('div', 'aeditor-inspector-body')
+    const body = ui.h('div', 'aiditor-inspector-body')
     root.appendChild(head)
     root.appendChild(body)
 
-    const schemaSig = aeditor.signal({})
-    const valuesSig = aeditor.signal([])
-    const disabledSig = aeditor.signal(false)
+    const schemaSig = aiditor.signal({})
+    const valuesSig = aiditor.signal([])
+    const disabledSig = aiditor.signal(false)
     let currentInspection = null
     let currentDispose = null
     let currentTargets = []
@@ -69,7 +69,7 @@
       currentSubKey = nextKey
       currentSubscribe = nextSubscribe
       if (nextSubscribe) {
-        currentDispose = aeditor.safeCall({ scope: 'inspector', action: 'subscribe', type: inspection.type }, function () {
+        currentDispose = aiditor.safeCall({ scope: 'inspector', action: 'subscribe', type: inspection.type }, function () {
           return nextSubscribe(refresh, {
             targets: targets,
             primary: targets[0],
@@ -81,13 +81,13 @@
     }
 
     function callWrite(field, change, values) {
-      aeditor.safeCall({ scope: 'inspector', action: 'write', type: currentInspection.type, field: field }, function () {
+      aiditor.safeCall({ scope: 'inspector', action: 'write', type: currentInspection.type, field: field }, function () {
         currentInspection.write(field, change, {
           targets: currentTargets,
           primary: currentTargets[0],
           values: values,
           primaryValue: values[0],
-          valueForChange: aeditor.inspector.valueForChange,
+          valueForChange: aiditor.inspector.valueForChange,
         })
       })
     }
@@ -104,13 +104,13 @@
       clearBody()
       title.textContent = text
       subtitle.textContent = hint || ''
-      body.appendChild(ui.h('div', 'aeditor-inspector-empty', { text: hint || 'Select something to inspect.' }))
+      body.appendChild(ui.h('div', 'aiditor-inspector-empty', { text: hint || 'Select something to inspect.' }))
       mode = 'empty'
     }
 
     function mountCustom(inspection, targets) {
       clearBody()
-      customEl = aeditor.safeCall({ scope: 'inspector', action: 'render', type: inspection.type }, function () { return inspection.render({
+      customEl = aiditor.safeCall({ scope: 'inspector', action: 'render', type: inspection.type }, function () { return inspection.render({
         targets: targets,
         primary: targets[0],
         values: inspection.values,
@@ -119,7 +119,7 @@
         refresh: refresh,
       }) })
       if (!customEl) {
-        body.appendChild(ui.h('div', 'aeditor-inspector-empty', { text: 'Inspector renderer failed.' }))
+        body.appendChild(ui.h('div', 'aiditor-inspector-empty', { text: 'Inspector renderer failed.' }))
         mode = 'empty'
         return
       }
@@ -137,14 +137,14 @@
           defaults: function () { return currentInspection && currentInspection.defaults },
           requireAllTargets: true,
           canEdit: function (field, values, rawField) {
-            return aeditor.inspector.canEditField(currentInspection, field, values, rawField)
+            return aiditor.inspector.canEditField(currentInspection, field, values, rawField)
           },
           onChange: function (field, value, values, meta) {
-            const change = meta && meta.change || aeditor.inspector.literalChange(field, value)
+            const change = meta && meta.change || aiditor.inspector.literalChange(field, value)
             callWrite(field, change, values)
           },
           ctx: function (field) {
-            return { source: 'aeditor-inspector', field: field, targets: currentTargets, panel: ctx.panel }
+            return { source: 'aiditor-inspector', field: field, targets: currentTargets, panel: ctx.panel }
           },
         })
         body.appendChild(form)
@@ -156,7 +156,7 @@
     }
 
     function refresh() {
-      const targets = aeditor.inspector.selection()
+      const targets = aiditor.inspector.selection()
       if (!targets.length) {
         currentInspection = null
         currentTargets = []
@@ -164,7 +164,7 @@
         mountEmpty('Inspector', 'Select something to inspect.')
         return
       }
-      const inspection = aeditor.inspector.inspect(targets, { panel: ctx.panel, bus: ctx.bus })
+      const inspection = aiditor.inspector.inspect(targets, { panel: ctx.panel, bus: ctx.bus })
       if (!inspection) {
         currentInspection = null
         currentTargets = targets
@@ -188,11 +188,11 @@
       currentSubscribe = null
       clearBody()
     })
-    ctx.onCleanup(aeditor.effect(refresh))
+    ctx.onCleanup(aiditor.effect(refresh))
     return root
   }
 
-  aeditor.registerComponent('inspector', {
+  aiditor.registerComponent('inspector', {
     category: 'panel',
     label: 'Inspector',
     icon: 'settings',
@@ -200,4 +200,4 @@
     factory: factory,
     dispose: disposeTree,
   })
-})(window.aeditor = window.aeditor || {})
+})(window.aiditor = window.aiditor || {})

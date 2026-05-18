@@ -8,15 +8,15 @@ execution, streaming state, and persistence.
 Agents are runtime records. Implemented abilities include:
 
 ```js
-aeditor.ai.createAgent(spec)
-aeditor.ai.updateAgent(id, patch)
-aeditor.ai.renameAgent(id, name)
-aeditor.ai.moveAgent(id, order)
-aeditor.ai.reparentAgent(id, parentAgentId)
-aeditor.ai.deleteAgent(id)
-aeditor.ai.selectAgent(id)
-aeditor.ai.findAgent(id)
-aeditor.ai.getActiveAgent()
+aiditor.ai.createAgent(spec)
+aiditor.ai.updateAgent(id, patch)
+aiditor.ai.renameAgent(id, name)
+aiditor.ai.moveAgent(id, order)
+aiditor.ai.reparentAgent(id, parentAgentId)
+aiditor.ai.deleteAgent(id)
+aiditor.ai.selectAgent(id)
+aiditor.ai.findAgent(id)
+aiditor.ai.getActiveAgent()
 ```
 
 Agents may have:
@@ -50,11 +50,11 @@ for an agent.
 Implemented APIs:
 
 ```js
-aeditor.ai.skills.register(name, skill)
-aeditor.ai.skills.unregister(name)
-aeditor.ai.skills.unregisterPrefix(prefix)
-aeditor.ai.skills.get(name)
-aeditor.ai.skills.list(prefix)
+aiditor.ai.skills.register(name, skill)
+aiditor.ai.skills.unregister(name)
+aiditor.ai.skills.unregisterPrefix(prefix)
+aiditor.ai.skills.get(name)
+aiditor.ai.skills.list(prefix)
 ```
 
 Agents enable skills by listing skill ids in `agent.skillRefs`. During request
@@ -64,13 +64,13 @@ the runtime guide.
 The framework ships focused built-in authoring skills:
 
 ```text
-aeditor.runtime-authoring   live editor agent: write workspace files, mount/replace dock panels
-aeditor.library-authoring   repository agent: use AEditor as a plain JavaScript library
-aeditor.authoring           compatibility alias for older combined guidance
+aiditor.runtime-authoring   live editor agent: write workspace files, mount/replace dock panels
+aiditor.library-authoring   repository agent: use Aiditor as a plain JavaScript library
+aiditor.authoring           compatibility alias for older combined guidance
 ```
 
-They teach the model the AEditor component contract: plain `.js` files,
-registered components, `factory(propsSig, ctx) -> HTMLElement`, `aeditor.ui.*`
+They teach the model the Aiditor component contract: plain `.js` files,
+registered components, `factory(propsSig, ctx) -> HTMLElement`, `aiditor.ui.*`
 controls, dock-responsive layout, generated API references, and no
 React/TSX/import/export unless the workspace explicitly provides such a build
 system. The request builder enables the runtime skill automatically for
@@ -78,15 +78,15 @@ UI/panel/dock authoring requests and for workspace-backed editing sessions.
 
 The copyable documentation forms are:
 
-- [skill/aeditor-runtime-authoring/SKILL.md](./skill/aeditor-runtime-authoring/SKILL.md)
-- [skill/aeditor-library-authoring/SKILL.md](./skill/aeditor-library-authoring/SKILL.md)
+- [skill/aiditor-runtime-authoring/SKILL.md](./skill/aiditor-runtime-authoring/SKILL.md)
+- [skill/aiditor-library-authoring/SKILL.md](./skill/aiditor-library-authoring/SKILL.md)
 
 The same registry is exposed to agents as references:
 
 ```text
-aeditor://skills
-aeditor://skills/aeditor.runtime-authoring
-aeditor://skills/aeditor.library-authoring
+aiditor://skills
+aiditor://skills/aiditor.runtime-authoring
+aiditor://skills/aiditor.library-authoring
 ```
 
 Agents use this index to choose the right workflow instead of relying on a
@@ -124,11 +124,11 @@ through the shared tool registry and permission system.
 Implemented message abilities:
 
 ```js
-aeditor.ai.appendMessage(agentId, message)
-aeditor.ai.insertMessageAfter(agentId, afterId, message)
-aeditor.ai.readMessage(agentId, messageId)
-aeditor.ai.updateMessage(agentId, messageId, patch)
-aeditor.ai.agent.messages(agentId, options, actor)
+aiditor.ai.appendMessage(agentId, message)
+aiditor.ai.insertMessageAfter(agentId, afterId, message)
+aiditor.ai.readMessage(agentId, messageId)
+aiditor.ai.updateMessage(agentId, messageId, patch)
+aiditor.ai.agent.messages(agentId, options, actor)
 ```
 
 Messages may contain text, rich prompt content, context refs, attachments, tool
@@ -141,10 +141,10 @@ User and system work is queued before execution.
 Implemented abilities:
 
 ```js
-aeditor.ai.enqueueMessage(agentId, messageId, options)
-aeditor.ai.dequeueMessage(agentId, messageId)
-aeditor.ai.scheduleAgent(agentId)
-aeditor.ai.message.send(agentId, spec)
+aiditor.ai.enqueueMessage(agentId, messageId, options)
+aiditor.ai.dequeueMessage(agentId, messageId)
+aiditor.ai.scheduleAgent(agentId)
+aiditor.ai.message.send(agentId, spec)
 ```
 
 The queue lets an agent finish current work cleanly while newer messages wait,
@@ -159,12 +159,12 @@ records completion or failure.
 Implemented abilities:
 
 ```js
-aeditor.ai.scheduleAgent(agentId)
-aeditor.ai.stopAgent(agentId, actor)
-aeditor.ai.resumeAgent(agentId, actor)
-aeditor.ai.flushToolResults(agentId)
-aeditor.ai.configureRuntime(options)
-aeditor.ai.createRunContext(request, controller)
+aiditor.ai.scheduleAgent(agentId)
+aiditor.ai.stopAgent(agentId, actor)
+aiditor.ai.resumeAgent(agentId, actor)
+aiditor.ai.flushToolResults(agentId)
+aiditor.ai.configureRuntime(options)
+aiditor.ai.createRunContext(request, controller)
 ```
 
 The important invariant is message order:
@@ -201,10 +201,10 @@ A quest is delegated work tracked across agents.
 Implemented abilities:
 
 ```js
-aeditor.ai.createQuest(agentId, spec)
-aeditor.ai.findQuest(agentId, questId)
-aeditor.ai.updateQuest(agentId, questId, patch)
-aeditor.ai.agent.send(toAgentId, spec)
+aiditor.ai.createQuest(agentId, spec)
+aiditor.ai.findQuest(agentId, questId)
+aiditor.ai.updateQuest(agentId, questId, patch)
+aiditor.ai.agent.send(toAgentId, spec)
 ```
 
 Built-in orchestration tools include:
@@ -232,8 +232,8 @@ completion from interrupting an unrelated current run.
 Implemented abilities:
 
 ```js
-aeditor.ai.appendInboxEvent(agentId, event)
-aeditor.ai.markInboxEventConsumed(agentId, eventId)
+aiditor.ai.appendInboxEvent(agentId, event)
+aiditor.ai.markInboxEventConsumed(agentId, eventId)
 ```
 
 The runtime can enqueue a continuation when actionable inbox events exist.
@@ -243,9 +243,9 @@ The runtime can enqueue a continuation when actionable inbox events exist.
 The runtime exposes lightweight live state for UI:
 
 ```js
-aeditor.ai.activeRunState(agentId)
-aeditor.ai.peekActiveRunState(agentId)
-aeditor.ai.setActiveRunState(agentId, patch)
+aiditor.ai.activeRunState(agentId)
+aiditor.ai.peekActiveRunState(agentId)
+aiditor.ai.setActiveRunState(agentId, patch)
 ```
 
 This state tracks:
@@ -283,11 +283,11 @@ raw transcript remains the source of truth.
 Implemented APIs:
 
 ```js
-aeditor.ai.compaction.configure(options)
-aeditor.ai.compaction.plan(agentId, input)
-aeditor.ai.compaction.run(agentId, plan)
-aeditor.ai.compaction.records(agentId)
-aeditor.ai.compaction.clear(agentId, options)
+aiditor.ai.compaction.configure(options)
+aiditor.ai.compaction.plan(agentId, input)
+aiditor.ai.compaction.run(agentId, plan)
+aiditor.ai.compaction.records(agentId)
+aiditor.ai.compaction.clear(agentId, options)
 ```
 
 Implemented command wrappers:
@@ -348,7 +348,7 @@ which resource version was inspected and committed
 ```
 
 This trace is diagnostic infrastructure, not a new model-facing concept. It
-connects `aeditor.log`, tool cards, ChangeSet review, provider usage, and the
+connects `aiditor.log`, tool cards, ChangeSet review, provider usage, and the
 permission audit log.
 
 ## Tool Call Lifecycle
@@ -370,15 +370,15 @@ failed
 Implemented APIs include:
 
 ```js
-aeditor.ai.createToolCall(agentId, spec, actor)
-aeditor.ai.attachToolCalls(agentId, messageId, calls, actor)
-aeditor.ai.previewToolCall(agentId, callId, actor)
-aeditor.ai.approveToolCall(agentId, callId, actor)
-aeditor.ai.rejectToolCall(agentId, callId, reason, actor)
-aeditor.ai.runToolCall(agentId, callId, actor)
-aeditor.ai.applyToolCall(agentId, callId, actor)
-aeditor.ai.getToolCallActionState(agentId, callId, actor)
-aeditor.ai.setToolAlwaysAllowed(agentId, toolId, allowed)
+aiditor.ai.createToolCall(agentId, spec, actor)
+aiditor.ai.attachToolCalls(agentId, messageId, calls, actor)
+aiditor.ai.previewToolCall(agentId, callId, actor)
+aiditor.ai.approveToolCall(agentId, callId, actor)
+aiditor.ai.rejectToolCall(agentId, callId, reason, actor)
+aiditor.ai.runToolCall(agentId, callId, actor)
+aiditor.ai.applyToolCall(agentId, callId, actor)
+aiditor.ai.getToolCallActionState(agentId, callId, actor)
+aiditor.ai.setToolAlwaysAllowed(agentId, toolId, allowed)
 ```
 
 Failed calls should display failure and must not show apply controls.
@@ -397,9 +397,9 @@ new model-facing registry beyond tools/context/operations.
 Implemented APIs:
 
 ```js
-aeditor.ai.context.register(name, provider)
-aeditor.ai.context.get(name)
-aeditor.ai.context.list()
+aiditor.ai.context.register(name, provider)
+aiditor.ai.context.get(name)
+aiditor.ai.context.list()
 ```
 
 Context providers may add compact state such as active selection, workspace
@@ -410,11 +410,11 @@ URI, search, or read on demand.
 Reference providers turn normalized references into readable content:
 
 ```js
-aeditor.ai.references.register(name, provider)
-aeditor.ai.references.read(ref, options, ctx)
+aiditor.ai.references.register(name, provider)
+aiditor.ai.references.read(ref, options, ctx)
 ```
 
-Use reference providers for URI/kind/meta pointers. Use `aeditor.ai.context`
+Use reference providers for URI/kind/meta pointers. Use `aiditor.ai.context`
 for compact run-level context that should be included with a model request.
 
 ## Agent Templates And Bundles
@@ -422,38 +422,38 @@ for compact run-level context that should be included with a model request.
 The runtime also exposes small host-level registries:
 
 ```js
-aeditor.ai.agentTemplates.register(name, template)
-aeditor.ai.agentTemplates.unregister(name)
-aeditor.ai.agentTemplates.unregisterPrefix(prefix)
-aeditor.ai.agentTemplates.get(name)
-aeditor.ai.agentTemplates.list(prefix)
+aiditor.ai.agentTemplates.register(name, template)
+aiditor.ai.agentTemplates.unregister(name)
+aiditor.ai.agentTemplates.unregisterPrefix(prefix)
+aiditor.ai.agentTemplates.get(name)
+aiditor.ai.agentTemplates.list(prefix)
 
-aeditor.ai.bundles.register(name, bundle)
-aeditor.ai.bundles.unregister(name)
-aeditor.ai.bundles.unregisterPrefix(prefix)
-aeditor.ai.bundles.get(name)
-aeditor.ai.bundles.list(prefix)
+aiditor.ai.bundles.register(name, bundle)
+aiditor.ai.bundles.unregister(name)
+aiditor.ai.bundles.unregisterPrefix(prefix)
+aiditor.ai.bundles.get(name)
+aiditor.ai.bundles.list(prefix)
 ```
 
 Agent templates are presets for creating agents. They are not a separate agent
 type.
 
-`aeditor.ai.bundles` is only a convenience registry for registering AI runtime
+`aiditor.ai.bundles` is only a convenience registry for registering AI runtime
 entries together, such as connections, skills, tools, context providers, and
 agent templates. It is not an Extension replacement; framework-wide packaging
-belongs to `aeditor.extensions`.
+belongs to `aiditor.extensions`.
 
 ## Persistence
 
 Implemented persistence APIs:
 
 ```js
-aeditor.ai.snapshot()
-aeditor.ai.save()
-aeditor.ai.restore()
-aeditor.ai.configurePersistence(options)
-aeditor.ai.clearStoredState()
+aiditor.ai.snapshot()
+aiditor.ai.save()
+aiditor.ai.restore()
+aiditor.ai.configurePersistence(options)
+aiditor.ai.clearStoredState()
 ```
 
 Persistence belongs to the AI runtime. Domain persistence remains outside
-AEditor Core.
+Aiditor Core.

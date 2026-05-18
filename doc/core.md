@@ -6,27 +6,27 @@ models and AI provider details.
 ## Public Areas
 
 ```text
-aeditor.signal
-aeditor.effect
-aeditor.derived
-aeditor.batch
-aeditor.untracked
-aeditor.onCleanup
+aiditor.signal
+aiditor.effect
+aiditor.derived
+aiditor.batch
+aiditor.untracked
+aiditor.onCleanup
 
-aeditor.log
-aeditor.reportError
-aeditor.safeCall
+aiditor.log
+aiditor.reportError
+aiditor.safeCall
 
-aeditor.names
-aeditor.bus
-aeditor.history
-aeditor.theme
-aeditor.i18n
-aeditor.settings
-aeditor.commands
-aeditor.shortcuts
-aeditor.runtime
-aeditor.workspace
+aiditor.names
+aiditor.bus
+aiditor.history
+aiditor.theme
+aiditor.i18n
+aiditor.settings
+aiditor.commands
+aiditor.shortcuts
+aiditor.runtime
+aiditor.workspace
 ```
 
 ## Signals
@@ -46,7 +46,7 @@ Design rule: signals are framework infrastructure, not domain state policy.
 
 ## Log And Safe Calls
 
-`aeditor.log` is the shared log stream. `reportError` and `safeCall` isolate
+`aiditor.log` is the shared log stream. `reportError` and `safeCall` isolate
 component and plugin errors so one failing panel does not take down the shell.
 
 Design rule: only user-code boundaries need safe wrapping. Internal framework
@@ -54,20 +54,20 @@ contracts should stay simple and fail clearly.
 
 ## Names
 
-`aeditor.names.matchesPrefix(name, prefix)` is the shared dotted-prefix matcher
+`aiditor.names.matchesPrefix(name, prefix)` is the shared dotted-prefix matcher
 used by registries for list and cleanup behavior.
 
 ## Bus
 
-`aeditor.bus` is the decoupled communication path between panels and domain
+`aiditor.bus` is the decoupled communication path between panels and domain
 code.
 
 It provides:
 
 ```js
-aeditor.bus.on(topic, handler)
-aeditor.bus.off(topic, handler)
-aeditor.bus.emit(topic, payload)
+aiditor.bus.on(topic, handler)
+aiditor.bus.off(topic, handler)
+aiditor.bus.emit(topic, payload)
 ```
 
 Component contexts should use bus subscriptions that are cleaned up with the
@@ -75,7 +75,7 @@ component lifecycle.
 
 ## History
 
-`aeditor.history.create(options)` creates a generic undo/redo timeline.
+`aiditor.history.create(options)` creates a generic undo/redo timeline.
 
 Implemented abilities:
 
@@ -92,30 +92,30 @@ generic history surface.
 
 ## Settings
 
-`aeditor.settings` stores setting sections, schemas, custom pages, values, and
+`aiditor.settings` stores setting sections, schemas, custom pages, values, and
 persistence.
 
 Implemented abilities:
 
 ```js
-aeditor.settings.registerSection(id, spec, meta)
-aeditor.settings.registerSchema(sectionId, schemaOrArray, meta)
-aeditor.settings.registerPage(id, spec, meta)
-aeditor.settings.unregisterPrefix(prefix)
-aeditor.settings.unregisterOwner(owner)
-aeditor.settings.sectionMeta(id)
-aeditor.settings.schemaMeta(key)
-aeditor.settings.pageMeta(id)
-aeditor.settings.get(key)
-aeditor.settings.set(key, value)
-aeditor.settings.reset(key)
-aeditor.settings.resetSection(sectionId)
-aeditor.settings.exportValues()
-aeditor.settings.importValues(values)
-aeditor.settings.configurePersistence(options)
-aeditor.settings.save()
-aeditor.settings.clearStoredValues()
-aeditor.settings.resolveOptions(definition, context)
+aiditor.settings.registerSection(id, spec, meta)
+aiditor.settings.registerSchema(sectionId, schemaOrArray, meta)
+aiditor.settings.registerPage(id, spec, meta)
+aiditor.settings.unregisterPrefix(prefix)
+aiditor.settings.unregisterOwner(owner)
+aiditor.settings.sectionMeta(id)
+aiditor.settings.schemaMeta(key)
+aiditor.settings.pageMeta(id)
+aiditor.settings.get(key)
+aiditor.settings.set(key, value)
+aiditor.settings.reset(key)
+aiditor.settings.resetSection(sectionId)
+aiditor.settings.exportValues()
+aiditor.settings.importValues(values)
+aiditor.settings.configurePersistence(options)
+aiditor.settings.save()
+aiditor.settings.clearStoredValues()
+aiditor.settings.resolveOptions(definition, context)
 ```
 
 Settings are framework-level configuration infrastructure. Domain-specific
@@ -127,25 +127,25 @@ must not import AI, theme, workspace, or domain-specific configuration logic.
 
 ## Commands And Menus
 
-`aeditor.commands` is a generic command registry and menu contribution surface.
+`aiditor.commands` is a generic command registry and menu contribution surface.
 
 Implemented abilities:
 
 ```js
-aeditor.commands.register(id, spec, meta)
-aeditor.commands.unregister(id, meta)
-aeditor.commands.unregisterPrefix(prefix)
-aeditor.commands.unregisterOwner(owner)
-aeditor.commands.get(id)
-aeditor.commands.list(filter)
-aeditor.commands.run(id, input, context)
-aeditor.commands.registerMenu(id, spec, meta)
-aeditor.commands.unregisterMenu(id, meta)
-aeditor.commands.listMenus(filter)
-aeditor.commands.menuItems(target, filter, context)
-aeditor.commands.menuUiItems(target, context)
-aeditor.commands.meta(id)
-aeditor.commands.menuMeta(id)
+aiditor.commands.register(id, spec, meta)
+aiditor.commands.unregister(id, meta)
+aiditor.commands.unregisterPrefix(prefix)
+aiditor.commands.unregisterOwner(owner)
+aiditor.commands.get(id)
+aiditor.commands.list(filter)
+aiditor.commands.run(id, input, context)
+aiditor.commands.registerMenu(id, spec, meta)
+aiditor.commands.unregisterMenu(id, meta)
+aiditor.commands.listMenus(filter)
+aiditor.commands.menuItems(target, filter, context)
+aiditor.commands.menuUiItems(target, context)
+aiditor.commands.meta(id)
+aiditor.commands.menuMeta(id)
 ```
 
 Commands are named with dotted paths. Domain-specific commands should use domain
@@ -161,29 +161,29 @@ policy separate.
 
 ## Shortcuts
 
-`aeditor.shortcuts` exists as infrastructure, but framework code must not hard
+`aiditor.shortcuts` exists as infrastructure, but framework code must not hard
 code domain-level shortcuts.
 
 ## Theme And I18n
 
-`aeditor.theme` owns theme mode and token application. UI components should read
+`aiditor.theme` owns theme mode and token application. UI components should read
 semantic CSS tokens instead of domain colors.
 
-`aeditor.i18n` owns language selection and string lookup. It is framework
+`aiditor.i18n` owns language selection and string lookup. It is framework
 infrastructure; dictionaries are provided outside Core.
 
 ## Workspace
 
-`aeditor.workspace` is documented in [workspace.md](./workspace.md). It is part
+`aiditor.workspace` is documented in [workspace.md](./workspace.md). It is part
 of Core because it only defines bounded file access, not a project model.
 
 ## Runtime Contributions
 
-`aeditor.runtime.loadScript(options)` executes host-provided JavaScript source
+`aiditor.runtime.loadScript(options)` executes host-provided JavaScript source
 with a default registration owner:
 
 ```js
-aeditor.runtime.loadScript({
+aiditor.runtime.loadScript({
   id: 'sample.panel',
   source: sourceText,
   owner: 'workspace:sample',
@@ -197,7 +197,7 @@ owner-aware registries such as components, commands, settings, AI tools,
 references, operations, and Inspector providers inherit the default owner unless
 the registration call provides its own metadata.
 
-`aeditor.runtime.unloadOwner(owner)` removes owner-scoped registrations from the
+`aiditor.runtime.unloadOwner(owner)` removes owner-scoped registrations from the
 known registries. It is the cleanup boundary for runtime-loaded contributions.
 
 ## Metadata Note

@@ -1,12 +1,12 @@
-# aeditor
+# aiditor
 
 A zero-dependency, zero-build frontend framework for building Blender-style web
 editors with optional AI and extension runtime layers.
 
-[![npm](https://img.shields.io/npm/v/@gooooo/aeditor.svg)](https://www.npmjs.com/package/@gooooo/aeditor)
-[![license](https://img.shields.io/npm/l/@gooooo/aeditor.svg)](./LICENSE)
+[![npm](https://img.shields.io/npm/v/@gooooo/aiditor.svg)](https://www.npmjs.com/package/@gooooo/aiditor)
+[![license](https://img.shields.io/npm/l/@gooooo/aiditor.svg)](./LICENSE)
 
-aeditor keeps the editor kernel small: docks, panels, registered components,
+aiditor keeps the editor kernel small: docks, panels, registered components,
 theme tokens, settings, commands, workspace contracts, and a compact reactive
 runtime. UI widgets, AI Host, and Extension Runtime are layered on top, not
 hidden requirements.
@@ -29,7 +29,7 @@ Most editors need the same stable primitives:
 - settings, commands, logs, themes, and workspace access
 - optional AI that can read editor context and apply reviewed changes
 
-aeditor gives those primitives one model:
+aiditor gives those primitives one model:
 
 ```text
 Layout
@@ -50,62 +50,62 @@ without paying layout and paint cost in the background.
 Use **Kernel** for the smallest dock/component runtime. It includes core
 services, component registration, immutable dock tree helpers, dock runtime,
 theme tokens, commands, settings, workspace contracts, and dock CSS. It does
-not include `aeditor.ui.*`, built-in tab/log panels, AI, or extensions:
+not include `aiditor.ui.*`, built-in tab/log panels, AI, or extensions:
 
 ```html
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@gooooo/aeditor@1/dist/aeditor-kernel.css">
-<script src="https://cdn.jsdelivr.net/npm/@gooooo/aeditor@1/dist/aeditor-kernel.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@gooooo/aiditor@1/dist/aiditor-kernel.css">
+<script src="https://cdn.jsdelivr.net/npm/@gooooo/aiditor@1/dist/aiditor-kernel.js"></script>
 ```
 
-Add **UI** when you want the built-in `aeditor.ui.*` widgets, settings UI, and
+Add **UI** when you want the built-in `aiditor.ui.*` widgets, settings UI, and
 tab/log panel components:
 
 ```html
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@gooooo/aeditor@1/dist/aeditor-kernel.css">
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@gooooo/aeditor@1/dist/aeditor-ui.css">
-<script src="https://cdn.jsdelivr.net/npm/@gooooo/aeditor@1/dist/aeditor-kernel.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@gooooo/aeditor@1/dist/aeditor-ui.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@gooooo/aiditor@1/dist/aiditor-kernel.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@gooooo/aiditor@1/dist/aiditor-ui.css">
+<script src="https://cdn.jsdelivr.net/npm/@gooooo/aiditor@1/dist/aiditor-kernel.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@gooooo/aiditor@1/dist/aiditor-ui.js"></script>
 ```
 
 Use **Core** when you want the classic editor framework bundle in one file:
 
 ```html
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@gooooo/aeditor@1/dist/aeditor-core.css">
-<script src="https://cdn.jsdelivr.net/npm/@gooooo/aeditor@1/dist/aeditor-core.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@gooooo/aiditor@1/dist/aiditor-core.css">
+<script src="https://cdn.jsdelivr.net/npm/@gooooo/aiditor@1/dist/aiditor-core.js"></script>
 ```
 
 Use **Full** when you also want AI Host and Extension Runtime:
 
 ```html
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@gooooo/aeditor@1/dist/aeditor-full.css">
-<script src="https://cdn.jsdelivr.net/npm/@gooooo/aeditor@1/dist/aeditor-full.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@gooooo/aiditor@1/dist/aiditor-full.css">
+<script src="https://cdn.jsdelivr.net/npm/@gooooo/aiditor@1/dist/aiditor-full.js"></script>
 ```
 
-Classic `dist/aeditor.js` and `dist/aeditor.css` are Core aliases. `aeditor-ai`
+Classic `dist/aiditor.js` and `dist/aiditor.css` are Core aliases. `aiditor-ai`
 is also available as an add-on for hosts that already loaded Kernel and UI:
 
 ```html
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@gooooo/aeditor@1/dist/aeditor-ai.css">
-<script src="https://cdn.jsdelivr.net/npm/@gooooo/aeditor@1/dist/aeditor-ai.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@gooooo/aiditor@1/dist/aiditor-ai.css">
+<script src="https://cdn.jsdelivr.net/npm/@gooooo/aiditor@1/dist/aiditor-ai.js"></script>
 ```
 
 Published npm packages contain only runtime dist files, this README, and the
 license.
 
 ```bash
-npm install @gooooo/aeditor
+npm install @gooooo/aiditor
 ```
 
-Everything is exposed through `window.aeditor`.
+Everything is exposed through `window.aiditor`.
 
 ## Quick Start
 
 ```html
 <div id="app" style="height:100vh"></div>
-<link rel="stylesheet" href="./dist/aeditor-core.css">
-<script src="./dist/aeditor-core.js"></script>
+<link rel="stylesheet" href="./dist/aiditor-core.css">
+<script src="./dist/aiditor-core.js"></script>
 <script>
-aeditor.registerComponent('demo.editor', {
+aiditor.registerComponent('demo.editor', {
   category: 'panel',
   defaults: function () {
     return { title: 'Editor', icon: 'file-text', props: { file: 'main.js' } }
@@ -119,7 +119,7 @@ aeditor.registerComponent('demo.editor', {
     body.style.marginTop = '12px'
     root.append(title, body)
 
-    ctx.onCleanup(aeditor.effect(function () {
+    ctx.onCleanup(aiditor.effect(function () {
       var props = propsSig() || {}
       title.textContent = props.file || 'untitled'
       body.textContent = 'Build your editor panel here.'
@@ -129,25 +129,25 @@ aeditor.registerComponent('demo.editor', {
   },
 })
 
-var tree = aeditor.split('horizontal', [
-  aeditor.dock({
+var tree = aiditor.split('horizontal', [
+  aiditor.dock({
     name: 'main',
     toolbar: { direction: 'top', items: [{ component: 'tab-standard' }] },
     panels: [
-      aeditor.panel({ component: 'demo.editor', title: 'main.js', props: { file: 'main.js' } }),
-      aeditor.panel({ component: 'demo.editor', title: 'style.css', props: { file: 'style.css' } }),
+      aiditor.panel({ component: 'demo.editor', title: 'main.js', props: { file: 'main.js' } }),
+      aiditor.panel({ component: 'demo.editor', title: 'style.css', props: { file: 'style.css' } }),
     ],
   }),
-  aeditor.dock({
+  aiditor.dock({
     name: 'side',
     toolbar: { direction: 'top', items: [{ component: 'tab-compact' }] },
     panels: [
-      aeditor.panel({ component: 'log', title: 'Log', icon: 'list' }),
+      aiditor.panel({ component: 'log', title: 'Log', icon: 'list' }),
     ],
   }),
 ], [0.7, 0.3])
 
-var layout = aeditor.createDockLayout(document.getElementById('app'), {
+var layout = aiditor.createDockLayout(document.getElementById('app'), {
   tree: tree,
   dockMenu: true,
   lru: { max: -1 },
@@ -163,7 +163,7 @@ your host wants to provide its own menu surface.
 ### Component
 
 ```js
-aeditor.registerComponent('example.panel', {
+aiditor.registerComponent('example.panel', {
   category: 'panel',
   defaults: function () {
     return { title: 'Example', icon: 'box', props: {} }
@@ -184,7 +184,7 @@ Rules:
   step are required.
 - Props should be JSON-serializable plain objects.
 - Use `propsSig.peek()` for one-shot reads and `propsSig()` inside
-  `aeditor.effect(...)` for reactive reads.
+  `aiditor.effect(...)` for reactive reads.
 - Use `ctx.onCleanup(...)` for effects, subscriptions, timers, and overlays.
 - Panel roots should fit resizable docks: `height:100%`, `min-height:0`, and
   responsive flex/grid layout.
@@ -238,23 +238,23 @@ layout.destroy()
 The immutable tree helpers are also public:
 
 ```js
-aeditor.addPanel(tree, dockId, partial, opts)
-aeditor.removePanel(tree, panelId)
-aeditor.activatePanel(tree, panelId)
-aeditor.movePanel(tree, panelId, targetDockId, targetIndex)
-aeditor.movePanelToSplit(tree, panelId, targetDockId, direction, side, ratio)
-aeditor.splitDock(tree, dockId, direction, side, ratio, opts)
-aeditor.mergeDocks(tree, winnerDockId, loserDockId)
+aiditor.addPanel(tree, dockId, partial, opts)
+aiditor.removePanel(tree, panelId)
+aiditor.activatePanel(tree, panelId)
+aiditor.movePanel(tree, panelId, targetDockId, targetIndex)
+aiditor.movePanelToSplit(tree, panelId, targetDockId, direction, side, ratio)
+aiditor.splitDock(tree, dockId, direction, side, ratio, opts)
+aiditor.mergeDocks(tree, winnerDockId, loserDockId)
 ```
 
 ### UI Library
 
-`aeditor.ui.*` provides signal-first controls:
+`aiditor.ui.*` provides signal-first controls:
 
 ```js
-var name = aeditor.signal('world')
-var input = aeditor.ui.input({ value: name, placeholder: 'Name' })
-var button = aeditor.ui.button({
+var name = aiditor.signal('world')
+var input = aiditor.ui.input({ value: name, placeholder: 'Name' })
+var button = aiditor.ui.button({
   text: 'Greet',
   onClick: function () { alert('Hello ' + name()) },
 })
@@ -262,17 +262,17 @@ var button = aeditor.ui.button({
 
 Groups include base controls, form inputs, editor inputs, containers, virtualized
 data views, overlays, schema-driven property forms, the generic Inspector panel,
-settings, log, tabs, and AI-specific panels in `aeditor-ai` / `aeditor-full`.
+settings, log, tabs, and AI-specific panels in `aiditor-ai` / `aiditor-full`.
 
-Inspector is provider-based: editor surfaces call `aeditor.inspector.select(...)`,
-domain code registers `aeditor.inspector.registerProvider(type, { inspect })`,
+Inspector is provider-based: editor surfaces call `aiditor.inspector.select(...)`,
+domain code registers `aiditor.inspector.registerProvider(type, { inspect })`,
 and the built-in `inspector` panel renders the primary target while applying
 edits to every selected target whose field is present and writable. Call
-`aeditor.inspector.refresh()` after external state changes when no provider
+`aiditor.inspector.refresh()` after external state changes when no provider
 subscription is available.
 
 ```js
-aeditor.inspector.registerProvider('app.node', {
+aiditor.inspector.registerProvider('app.node', {
   inspect: function (targets) {
     return {
       schema: { name: { type: 'string' }, visible: { type: 'bool' } },
@@ -294,15 +294,15 @@ aeditor.inspector.registerProvider('app.node', {
 Built-in themes:
 
 ```js
-aeditor.theme.set('dark')
-aeditor.theme.set('dracula')
-aeditor.theme.set('harbor')
-aeditor.theme.set('light')
+aiditor.theme.set('dark')
+aiditor.theme.set('dracula')
+aiditor.theme.set('harbor')
+aiditor.theme.set('light')
 ```
 
 Custom themes should start with semantic authoring tokens such as
-`--aeditor-surface-*`, `--aeditor-text-*`, `--aeditor-stroke-*`,
-`--aeditor-brand`, and `--aeditor-state-*`.
+`--aiditor-surface-*`, `--aiditor-text-*`, `--aiditor-stroke-*`,
+`--aiditor-brand`, and `--aiditor-state-*`.
 
 ## Optional AI Host
 
@@ -320,7 +320,7 @@ ChangeSet
 Register model-callable tools:
 
 ```js
-aeditor.ai.tools.register('workspace.summarizeOpenFile', {
+aiditor.ai.tools.register('workspace.summarizeOpenFile', {
   title: 'Summarize Open File',
   description: 'Read the active file summary.',
   schema: { type: 'object', properties: {} },
@@ -335,23 +335,23 @@ Register context providers or operations when the editor needs to expose current
 selection, bounded reads, previews, or reviewed mutations. All writes should go
 through permission and preview/apply paths.
 
-`aeditor-ai` and `aeditor-full` include built-in AEditor authoring skills.
-`aeditor.runtime-authoring` teaches in-editor agents to create file-backed
-components and mount them into live docks. `aeditor.library-authoring` teaches
-Codex-like agents to use AEditor as a plain JavaScript library in a repository.
+`aiditor-ai` and `aiditor-full` include built-in Aiditor authoring skills.
+`aiditor.runtime-authoring` teaches in-editor agents to create file-backed
+components and mount them into live docks. `aiditor.library-authoring` teaches
+Codex-like agents to use Aiditor as a plain JavaScript library in a repository.
 Copyable skill documents live under [`doc/skill`](./doc/skill).
 
 Runtime API docs are generated from structured comments in `src/` during
 `node tools/build.mjs`. The same source creates
-[`dist/aeditor-api.json`](./dist/aeditor-api.json),
+[`dist/aiditor-api.json`](./dist/aiditor-api.json),
 [`doc/api`](./doc/api), and AI-searchable references such as
-`aeditor://api/aeditor.inspector.registerProvider`. Agents should use
-`aeditor.searchReferences` / `aeditor.readReference` for exact API shape before
+`aiditor://api/aiditor.inspector.registerProvider`. Agents should use
+`aiditor.searchReferences` / `aiditor.readReference` for exact API shape before
 calling unfamiliar framework APIs.
 
 Runtime skill discovery is also exposed through references. Agents can read
-`aeditor://skills` to choose between `aeditor.runtime-authoring` and
-`aeditor.library-authoring`, then read the chosen skill for full rules.
+`aiditor://skills` to choose between `aiditor.runtime-authoring` and
+`aiditor.library-authoring`, then read the chosen skill for full rules.
 
 ## Optional Extension Runtime
 
@@ -378,22 +378,22 @@ manifest, reviews trust and conflicts, installs contributions with
 For durable AI-generated UI:
 
 1. Open or select a workspace.
-2. Let the agent read `aeditor://skills` and choose the focused skill for the
+2. Let the agent read `aiditor://skills` and choose the focused skill for the
    task.
 3. Let the agent inspect files with `workspace.*` / `code.*`.
 4. Edit or create plain `.js` component files with exact workspace edits.
 5. Register the component by name. Demo project files use
    `Demo.project.component(...)`; standalone hosts can use
-   `aeditor.registerComponent(...)`.
-6. Inspect docks with `aeditor.inspectDocks`.
-7. Add the component with `aeditor.addPanelToDock`, or replace an existing
-   panel instance with `aeditor.replacePanel({ panelId, component, ... })`.
+   `aiditor.registerComponent(...)`.
+6. Inspect docks with `aiditor.inspectDocks`.
+7. Add the component with `aiditor.addPanelToDock`, or replace an existing
+   panel instance with `aiditor.replacePanel({ panelId, component, ... })`.
    For a new workspace file, pass `path` so the runtime loads the script before
    adding or replacing the panel. If `path` is omitted, the tool tries to infer
    a single matching workspace JS file before asking the agent to retry
    explicitly.
 8. After editing the file for an already-mounted panel, call
-   `aeditor.reloadPanel({ panelId, path })` to keep the same panel id and dock
+   `aiditor.reloadPanel({ panelId, path })` to keep the same panel id and dock
    position while rebuilding the runtime.
 9. Verify with `verify.*` or host project checks.
 
@@ -404,8 +404,8 @@ Layout persistence is a host save decision, not part of runtime placement.
 ## Local Development
 
 ```bash
-git clone https://gitee.com/lazygoo/aeditor.git
-cd aeditor
+git clone https://gitee.com/lazygoo/aiditor.git
+cd aiditor
 node tools/build.mjs --watch
 npx http-server -p 5570
 ```
@@ -420,10 +420,10 @@ npm run check
 npm run check:dist
 ```
 
-`dist/aeditor-kernel.*`, `dist/aeditor-ui.*`, `dist/aeditor-ai.*`,
-`dist/aeditor-core.*`, `dist/aeditor-full.*`, and the `dist/aeditor.*` core
+`dist/aiditor-kernel.*`, `dist/aiditor-ui.*`, `dist/aiditor-ai.*`,
+`dist/aiditor-core.*`, `dist/aiditor-full.*`, and the `dist/aiditor.*` core
 aliases are generated artifacts that stay in the repository for zero-build use.
-`dist/aeditor-api.json` is generated from source comments and is published with
+`dist/aiditor-api.json` is generated from source comments and is published with
 the runtime bundles.
 
 ## Documentation
@@ -435,8 +435,8 @@ the runtime bundles.
 - [AI Host](./doc/ai.md)
 - [Extension Runtime](./doc/extensions.md)
 - [Generated API docs](./doc/api/index.md)
-- [AEditor runtime authoring skill](./doc/skill/aeditor-runtime-authoring/SKILL.md)
-- [AEditor library authoring skill](./doc/skill/aeditor-library-authoring/SKILL.md)
+- [Aiditor runtime authoring skill](./doc/skill/aiditor-runtime-authoring/SKILL.md)
+- [Aiditor library authoring skill](./doc/skill/aiditor-library-authoring/SKILL.md)
 
 ## License
 

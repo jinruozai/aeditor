@@ -3,9 +3,9 @@
 // A panel root can own transient UI that is mounted outside its DOM subtree
 // (tooltips, popovers, menus in the portal layer). When that panel is
 // detached or disposed, the scope closes those transient overlays at once.
-;(function (aeditor) {
+;(function (aiditor) {
   'use strict'
-  const ui = aeditor.ui = aeditor.ui || {}
+  const ui = aiditor.ui = aiditor.ui || {}
 
   function makeScope(root) {
     const scope = {
@@ -13,10 +13,10 @@
       overlays: [],
       activeBound: false,
     }
-    root.__aeditorUiScope = scope
+    root.__aiditorUiScope = scope
     ui.collect(root, function () {
       ui.closeScope(scope)
-      if (root.__aeditorUiScope === scope) root.__aeditorUiScope = null
+      if (root.__aiditorUiScope === scope) root.__aiditorUiScope = null
     })
     return scope
   }
@@ -24,7 +24,7 @@
   function scopeOf(node) {
     let n = node
     while (n) {
-      if (n.__aeditorUiScope) return n.__aeditorUiScope
+      if (n.__aiditorUiScope) return n.__aiditorUiScope
       n = n.parentNode
     }
     return null
@@ -44,11 +44,11 @@
   }
 
   ui.scope = function (root, opts) {
-    const scope = root.__aeditorUiScope || makeScope(root)
+    const scope = root.__aiditorUiScope || makeScope(root)
     const o = opts || {}
     if (o.active && !scope.activeBound) {
       scope.activeBound = true
-      ui.collect(root, aeditor.effect(function () {
+      ui.collect(root, aiditor.effect(function () {
         if (!o.active()) ui.closeScopeTransient(scope)
       }))
     }
@@ -90,4 +90,4 @@
     const list = scope.overlays.slice()
     for (let i = list.length - 1; i >= 0; i--) closeEntry(list[i])
   }
-})(window.aeditor = window.aeditor || {})
+})(window.aiditor = window.aiditor || {})

@@ -44,38 +44,38 @@ same component registry.
 Implemented pure APIs include:
 
 ```js
-aeditor.dock(...)
-aeditor.panel(...)
-aeditor.split(...)
-aeditor.findDock(tree, id)
-aeditor.findPanel(tree, id)
-aeditor.findByName(tree, name)
-aeditor.getAt(tree, path)
-aeditor.replaceAt(tree, path, node)
-aeditor.removeAt(tree, path)
-aeditor.resizeAt(tree, path, sizes)
-aeditor.updateDock(tree, dockId, patch)
-aeditor.addPanel(tree, dockId, partial, opts)
-aeditor.removePanel(tree, panelId)
-aeditor.updatePanel(tree, panelId, patch)
-aeditor.activatePanel(tree, panelId)
-aeditor.promotePanel(tree, panelId)
-aeditor.movePanel(tree, panelId, targetDockId, targetIndex)
-aeditor.movePanelToSplit(tree, panelId, targetDockId, direction, side, ratio)
-aeditor.reorderPanel(tree, panelId, newIndex)
-aeditor.splitDock(tree, dockId, direction, side, ratio, opts)
-aeditor.mergeDocks(tree, winnerDockId, loserDockId)
-aeditor.swapDocks(tree, leftDockId, rightDockId)
-aeditor.setCollapsed(tree, dockId, value)
-aeditor.canCollapseDock(tree, dockId)
-aeditor.setFocused(tree, dockId, value)
+aiditor.dock(...)
+aiditor.panel(...)
+aiditor.split(...)
+aiditor.findDock(tree, id)
+aiditor.findPanel(tree, id)
+aiditor.findByName(tree, name)
+aiditor.getAt(tree, path)
+aiditor.replaceAt(tree, path, node)
+aiditor.removeAt(tree, path)
+aiditor.resizeAt(tree, path, sizes)
+aiditor.updateDock(tree, dockId, patch)
+aiditor.addPanel(tree, dockId, partial, opts)
+aiditor.removePanel(tree, panelId)
+aiditor.updatePanel(tree, panelId, patch)
+aiditor.activatePanel(tree, panelId)
+aiditor.promotePanel(tree, panelId)
+aiditor.movePanel(tree, panelId, targetDockId, targetIndex)
+aiditor.movePanelToSplit(tree, panelId, targetDockId, direction, side, ratio)
+aiditor.reorderPanel(tree, panelId, newIndex)
+aiditor.splitDock(tree, dockId, direction, side, ratio, opts)
+aiditor.mergeDocks(tree, winnerDockId, loserDockId)
+aiditor.swapDocks(tree, leftDockId, rightDockId)
+aiditor.setCollapsed(tree, dockId, value)
+aiditor.canCollapseDock(tree, dockId)
+aiditor.setFocused(tree, dockId, value)
 ```
 
 These functions operate on data. DOM behavior is in the dock runtime.
 
 ## Dock Runtime
 
-`aeditor.createDockLayout(root, config)` mounts a layout into the DOM.
+`aiditor.createDockLayout(root, config)` mounts a layout into the DOM.
 
 Implemented runtime abilities:
 
@@ -102,7 +102,7 @@ When a panel becomes active, the runtime does:
 
 ```text
 PanelData.component
-  -> aeditor.resolveComponent(name)
+  -> aiditor.resolveComponent(name)
   -> spec.factory(propsSig, ctx)
   -> append returned element into dock content
 ```
@@ -112,15 +112,15 @@ PanelData.component
 All UI types are registered as components:
 
 ```js
-aeditor.registerComponent(name, spec, meta)
-aeditor.resolveComponent(name)
-aeditor.componentDefaults(name)
-aeditor.listComponents(filter)
-aeditor.unregisterComponent(name, meta)
-aeditor.unregisterComponentPrefix(prefix)
-aeditor.unregisterComponentOwner(owner)
-aeditor.componentRegistration(name)
-aeditor.componentRegistryVersion
+aiditor.registerComponent(name, spec, meta)
+aiditor.resolveComponent(name)
+aiditor.componentDefaults(name)
+aiditor.listComponents(filter)
+aiditor.unregisterComponent(name, meta)
+aiditor.unregisterComponentPrefix(prefix)
+aiditor.unregisterComponentOwner(owner)
+aiditor.componentRegistration(name)
+aiditor.componentRegistryVersion
 ```
 
 A registered component may be used as:
@@ -149,19 +149,19 @@ topic, not a second conceptual grouping model.
 AI-created UI and extension manifests can describe UI with a plain data tree:
 
 ```js
-aeditor.ui.renderUITree(node, ctx)
+aiditor.ui.renderUITree(node, ctx)
 ```
 
 This is not a second component system. Each node still resolves through the same
 component registry:
 
 ```text
-UITree node.component -> aeditor.resolveComponent(name) -> component factory
+UITree node.component -> aiditor.resolveComponent(name) -> component factory
 ```
 
 The tree format exists so generated panels, palettes, and extension manifests
 can be stored, reviewed, and recreated as data. Handwritten panels may still call
-`aeditor.ui.*` functions directly.
+`aiditor.ui.*` functions directly.
 
 ## Component Spec
 
@@ -184,8 +184,8 @@ Rules:
   It does not create a different kind of component.
 - Components communicate through `ctx.bus`, references, operations, or domain
   APIs.
-- Components should use `aeditor.ui.*` widgets when available.
-- View surfaces and scrollable panel content should prefer `aeditor.ui.view`; `aeditor.ui.scrollArea` is the lower-level scrollbar wrapper.
+- Components should use `aiditor.ui.*` widgets when available.
+- View surfaces and scrollable panel content should prefer `aiditor.ui.view`; `aiditor.ui.scrollArea` is the lower-level scrollbar wrapper.
 - Floating UI should prefer framework overlay helpers.
 
 Registered component metadata may include palette and editor hints:
@@ -239,7 +239,7 @@ src/ui/_internal/   implementation helpers used by the UI library
 ```
 
 AI-specific panel components live under `src/ai/panels/` because they belong to
-the AI module, even though they are registered through `aeditor.registerComponent`
+the AI module, even though they are registered through `aiditor.registerComponent`
 and usually use `category: 'panel'`.
 
 Domain-specific components live outside `src/ui/`.
@@ -254,16 +254,16 @@ settings from `src/style/theme-settings.js` and AI settings from
 The UI library includes schema-driven property editing:
 
 ```js
-aeditor.ui.setTypeConfig(builtinTypes, options)
-aeditor.ui.setTypeOverrides(overrides)
-aeditor.ui.getTypeConfig()
-aeditor.ui.resolveType(typeName)
-aeditor.ui.resolveFieldDef(fieldDef)
-aeditor.ui.registerRenderer(kind, fn)
-aeditor.ui.getRenderer(kind)
-aeditor.ui.listRenderKinds()
-aeditor.ui.editorFor(fieldDef, value, onChange, ctx)
-aeditor.ui.propertyForm(options)
+aiditor.ui.setTypeConfig(builtinTypes, options)
+aiditor.ui.setTypeOverrides(overrides)
+aiditor.ui.getTypeConfig()
+aiditor.ui.resolveType(typeName)
+aiditor.ui.resolveFieldDef(fieldDef)
+aiditor.ui.registerRenderer(kind, fn)
+aiditor.ui.getRenderer(kind)
+aiditor.ui.listRenderKinds()
+aiditor.ui.editorFor(fieldDef, value, onChange, ctx)
+aiditor.ui.propertyForm(options)
 ```
 
 `typeconfig` provides built-in field aliases and render hints. Domain schemas
@@ -275,7 +275,7 @@ provider dispatch, then uses `propertyForm` for normal property rows. See
 [inspector.md](./inspector.md).
 
 Use `propertyForm` directly when a component already owns the objects it edits.
-Use `aeditor.inspector` when selection can come from many editor surfaces and a
+Use `aiditor.inspector` when selection can come from many editor surfaces and a
 shared dock panel should inspect the current selection.
 
 ## Icons And Floating UI
@@ -283,7 +283,7 @@ shared dock panel should inspect the current selection.
 Icons use a small registry:
 
 ```js
-aeditor.ui.registerIcon(name, svgInnerMarkup)
+aiditor.ui.registerIcon(name, svgInnerMarkup)
 ```
 
 Floating UI should use the shared portal, overlay stack, and scoped overlay
@@ -291,13 +291,13 @@ cleanup. Components that create floating DOM outside their root should register
 it so it closes when the owning panel becomes inactive or is disposed:
 
 ```js
-aeditor.ui.registerScopedOverlay(anchor, close, options)
+aiditor.ui.registerScopedOverlay(anchor, close, options)
 ```
 
 This prevents tooltips, popovers, and menus from leaking across tabs or panels.
 
 ## Themes
 
-Themes are token-driven and applied through `aeditor.theme`.
+Themes are token-driven and applied through `aiditor.theme`.
 
 UI components should consume semantic role tokens, not domain-specific colors.

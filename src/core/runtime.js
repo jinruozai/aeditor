@@ -1,7 +1,7 @@
 // Runtime contribution loader.
-// Hosts provide source text or a URL; AEditor executes it with a default owner
+// Hosts provide source text or a URL; Aiditor executes it with a default owner
 // so plain register calls can be cleaned up as one contribution group.
-;(function (aeditor) {
+;(function (aiditor) {
   'use strict'
 
   const stack = []
@@ -28,7 +28,7 @@
   }
 
   function sourceUrl(input) {
-    const id = input.sourceURL || input.sourceUrl || input.path || input.id || 'aeditor-runtime-script'
+    const id = input.sourceURL || input.sourceUrl || input.path || input.id || 'aiditor-runtime-script'
     return String(id).replace(/[\r\n]/g, '')
   }
 
@@ -49,16 +49,16 @@
     const meta = { owner: input.owner, layer: input.layer, replace: input.replace === true }
     const code = String(text || '') + '\n//# sourceURL=' + sourceUrl(input)
     return withOwner(meta, function () {
-      ;(new Function('aeditor', code))(aeditor)
+      ;(new Function('aiditor', code))(aiditor)
     })
   }
 
   /**
-   * @aeditorApi aeditor.runtime.loadScript
+   * @aiditorApi aiditor.runtime.loadScript
    * @group runtime
    * @layer core
    * @kind js-api
-   * @signature aeditor.runtime.loadScript({ id?, source?, url?, path?, owner?, layer?, type? })
+   * @signature aiditor.runtime.loadScript({ id?, source?, url?, path?, owner?, layer?, type? })
    * @summary Execute a workspace or host script with default owner/layer metadata so its registrations can be cleaned up as one contribution group.
    * @param {object} input - Script loading options.
    * @param {string} input.source - Inline JavaScript source text. Use source or url.
@@ -68,13 +68,13 @@
    * @param {string} input.layer - Registration layer, usually workspace, extension, or builtin.
    * @returns {Promise<object>} Load result with ok/id/owner/layer/type.
    * @example
-   * aeditor.runtime.loadScript({
+   * aiditor.runtime.loadScript({
    *   path: 'three-scene.js',
    *   source: text,
    *   owner: 'workspace:game',
    *   layer: 'workspace',
    * })
-   * @related aeditor.registerComponent,aeditor.addPanelToDock
+   * @related aiditor.registerComponent,aiditor.addPanelToDock
    */
   function loadScript(input) {
     input = input || {}
@@ -93,9 +93,9 @@
   function unloadOwner(owner) {
     const removed = {}
     if (!owner) return removed
-    if (aeditor.unregisterComponentOwner) removed.components = aeditor.unregisterComponentOwner(owner)
-    if (aeditor.commands && aeditor.commands.unregisterOwner) removed.commands = aeditor.commands.unregisterOwner(owner)
-    if (aeditor.settings && aeditor.settings.unregisterOwner) removed.settings = aeditor.settings.unregisterOwner(owner)
+    if (aiditor.unregisterComponentOwner) removed.components = aiditor.unregisterComponentOwner(owner)
+    if (aiditor.commands && aiditor.commands.unregisterOwner) removed.commands = aiditor.commands.unregisterOwner(owner)
+    if (aiditor.settings && aiditor.settings.unregisterOwner) removed.settings = aiditor.settings.unregisterOwner(owner)
     for (let i = 0; i < ownerCleanups.length; i++) {
       const extra = ownerCleanups[i](owner) || {}
       Object.keys(extra).forEach(function (key) { removed[key] = extra[key] })
@@ -111,7 +111,7 @@
     }
   }
 
-  aeditor.runtime = {
+  aiditor.runtime = {
     loadScript: loadScript,
     withOwner: withOwner,
     registrationMeta: registrationMeta,
@@ -122,4 +122,4 @@
     unloadOwner: unloadOwner,
     registerOwnerCleanup: registerOwnerCleanup,
   }
-})(window.aeditor = window.aeditor || {})
+})(window.aiditor = window.aiditor || {})

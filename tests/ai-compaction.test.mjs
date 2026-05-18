@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs'
 import vm from 'node:vm'
 
 function loadCore(storage) {
-  global.window = { aeditor: {}, localStorage: storage || null }
+  global.window = { aiditor: {}, localStorage: storage || null }
   vm.runInThisContext(readFileSync('src/core/signal.js', 'utf8'), { filename: 'signal.js' })
   vm.runInThisContext(readFileSync('src/core/log.js', 'utf8'), { filename: 'log.js' })
   vm.runInThisContext(readFileSync('src/core/names.js', 'utf8'), { filename: 'names.js' })
@@ -44,7 +44,7 @@ function requestText(request) {
 function assertCompactionRecordAndRequestView() {
   loadCore()
   loadRequestRuntime()
-  const ai = window.aeditor.ai
+  const ai = window.aiditor.ai
   ai.compaction.configure({ tailMessages: 2, minMessages: 3, softLimitRatio: 0.01, maxRecordsInRequest: 4 })
 
   const messages = []
@@ -79,7 +79,7 @@ function assertCompactionRecordAndRequestView() {
 
 function assertOpenToolSequenceIsProtected() {
   loadCore()
-  const ai = window.aeditor.ai
+  const ai = window.aiditor.ai
   ai.compaction.configure({ tailMessages: 1, minMessages: 1 })
   const agent = ai.createAgent({
     name: 'Tool Boundary',
@@ -102,7 +102,7 @@ function assertOpenToolSequenceIsProtected() {
 function assertToolGroupBudgetStaysTogether() {
   loadCore()
   loadRequestRuntime()
-  const ai = window.aeditor.ai
+  const ai = window.aiditor.ai
   const agent = ai.createAgent({
     name: 'Tool Group',
     contextBudgetTokens: 1200,
@@ -134,7 +134,7 @@ function assertToolGroupBudgetStaysTogether() {
 function assertRuntimeSafePointCompactsBeforeRequest() {
   loadCore()
   loadRequestRuntime()
-  const ai = window.aeditor.ai
+  const ai = window.aiditor.ai
   ai.compaction.configure({ tailMessages: 1, minMessages: 3, softLimitRatio: 0.01 })
   let requestSeen = null
   ai.registerTransport('capture-compaction', {
@@ -162,7 +162,7 @@ function assertRuntimeSafePointCompactsBeforeRequest() {
 function assertCompactionsPersist() {
   const s = storage()
   loadCore(s)
-  let ai = window.aeditor.ai
+  let ai = window.aiditor.ai
   ai.configurePersistence({ key: 'test.compaction', load: false })
   const agent = ai.createAgent({
     name: 'Persistent Compact',
@@ -178,7 +178,7 @@ function assertCompactionsPersist() {
   assert.ok(record)
 
   loadCore(s)
-  ai = window.aeditor.ai
+  ai = window.aiditor.ai
   ai.configurePersistence({ key: 'test.compaction' })
   const restored = ai.findAgent(agent.id)
   assert.equal(restored.compactions.length, 1)
@@ -187,7 +187,7 @@ function assertCompactionsPersist() {
 
 function assertCommandsWrapService() {
   loadCore()
-  const ai = window.aeditor.ai
+  const ai = window.aiditor.ai
   const agent = ai.createAgent({
     name: 'Command Compact',
     messages: [
@@ -198,11 +198,11 @@ function assertCommandsWrapService() {
       { role: 'user', content: 'five' },
     ],
   })
-  const compacted = window.aeditor.commands.run('ai.compactCurrentAgent', { tailMessages: 1, minMessages: 1 })
+  const compacted = window.aiditor.commands.run('ai.compactCurrentAgent', { tailMessages: 1, minMessages: 1 })
   assert.equal(compacted.compacted, true)
   assert.equal(compacted.records.length, 1)
-  assert.equal(window.aeditor.commands.run('ai.listCurrentAgentCompactions').length, 1)
-  const cleared = window.aeditor.commands.run('ai.clearCurrentAgentCompactions')
+  assert.equal(window.aiditor.commands.run('ai.listCurrentAgentCompactions').length, 1)
+  const cleared = window.aiditor.commands.run('ai.clearCurrentAgentCompactions')
   assert.equal(cleared.length, 1)
   assert.equal(ai.compaction.records(agent.id).length, 0)
 }

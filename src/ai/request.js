@@ -1,8 +1,8 @@
-// aeditor.ai canonical request builder.
-;(function (aeditor) {
+// aiditor.ai canonical request builder.
+;(function (aiditor) {
   'use strict'
 
-  const ai = aeditor.ai = aeditor.ai || {}
+  const ai = aiditor.ai = aiditor.ai || {}
 
   function resolveAttachmentRef(ref, all) {
     if (typeof ref === 'string') return all.find(function (item) { return item.id === ref }) || { id: ref }
@@ -94,14 +94,14 @@
     for (let i = 0; i < explicit.length; i++) addUnique(refs, seen, explicit[i])
     const needsRuntimeAuthoring = uiAuthoringIntent(input) || (ai.currentWorkspace && ai.currentWorkspace())
     if (ai.skills && ai.skills.get && needsRuntimeAuthoring) {
-      if (ai.skills.get('aeditor.runtime-authoring')) addUnique(refs, seen, 'aeditor.runtime-authoring')
-      else if (ai.skills.get('aeditor.authoring')) addUnique(refs, seen, 'aeditor.authoring')
+      if (ai.skills.get('aiditor.runtime-authoring')) addUnique(refs, seen, 'aiditor.runtime-authoring')
+      else if (ai.skills.get('aiditor.authoring')) addUnique(refs, seen, 'aiditor.authoring')
     }
     if (ai.skills && ai.skills.list && ai.skills.get) {
       const names = ai.skills.list()
       for (let j = 0; j < names.length; j++) {
         const id = names[j]
-        if (id === 'aeditor.authoring' || id === 'aeditor.runtime-authoring' || seen[id]) continue
+        if (id === 'aiditor.authoring' || id === 'aiditor.runtime-authoring' || seen[id]) continue
         const skill = ai.skills.get(id)
         if (skill && typeof skill.auto === 'function' && skill.auto(ctx || {})) addUnique(refs, seen, id)
       }
@@ -521,7 +521,7 @@
 
   function runtimeGuideMessage(agent, requestCtx) {
     const lines = [
-      'You are an AEditor AI agent running inside an editor runtime.',
+      'You are an Aiditor AI agent running inside an editor runtime.',
       'Complete the user request end-to-end in the current turn whenever the available tools make that possible.',
       'Do not stop after a partial setup step. For delegated work, prefer agent.delegate because it creates/reuses an agent and sends the task in one workflow.',
       'If you use agent.create separately for a delegated task, immediately send that agent the task with agent.send unless the user only asked to create the agent.',
@@ -536,7 +536,7 @@
       'Stop and clearly report a blocker when required workspace/project state, permissions, APIs, files, schemas, or user decisions are missing. Do not keep searching for workaround tools.',
       'Stop and ask the user when the next step is ambiguous, destructive, or requires confirmation. Say exactly what decision or input is needed.',
       'Stop after a repeated equivalent tool/schema failure instead of retrying the same action under new guessed names.',
-      'Do not guess editor operation names. The generic aeditor.previewOperation/applyOperation bridge is hidden from normal requests; use concrete tools exposed in this request.',
+      'Do not guess editor operation names. The generic aiditor.previewOperation/applyOperation bridge is hidden from normal requests; use concrete tools exposed in this request.',
       'Use workspace.fileSummary, code.map, search, and range reads before loading large files.',
       'When verify.* tools are available, run the narrowest relevant check after editing workspace files and use diagnostics to repair failures before claiming completion.',
       'Only ask the user for clarification or confirmation when the requested outcome is ambiguous, destructive, or blocked by permissions/errors.',
@@ -545,7 +545,7 @@
       'CURRENT_AGENT_NAME: ' + (agent.name || ''),
       'CURRENT_PARENT_AGENT_ID: ' + (agent.parentAgentId || ''),
     ]
-    if (aeditor.ai.workspaceMeta && aeditor.ai.workspaceMeta()) lines.push('CURRENT_AI_WORKSPACE: ' + compactJson(aeditor.ai.workspaceMeta(), 400))
+    if (aiditor.ai.workspaceMeta && aiditor.ai.workspaceMeta()) lines.push('CURRENT_AI_WORKSPACE: ' + compactJson(aiditor.ai.workspaceMeta(), 400))
     else lines.push('NO_CURRENT_AI_WORKSPACE: workspace-backed file tools are unavailable until the user opens or selects a workspace.')
     if (requestCtx && requestCtx.uiAuthoringBlocked) {
       lines.push('CURRENT_REQUEST_BLOCKED: The user is asking to create or modify UI/panels/docks, but no workspace project is open. Do not call tools, do not search for workaround operations, and do not try older extension/dock paths. Reply briefly that a workspace project must be opened or selected first.')
@@ -714,4 +714,4 @@
   }
 
   ai.makeRequest = makeRequest
-})(window.aeditor = window.aeditor || {})
+})(window.aiditor = window.aiditor || {})

@@ -2,12 +2,12 @@
 
 Generated from structured API comments in `src/`.
 
-## `aeditor.registerComponent`
+## `aiditor.registerComponent`
 
 Register a component that can be used as a panel, toolbar item, UI tree node, or palette item.
 
 ```js
-aeditor.registerComponent(name, spec, meta?)
+aiditor.registerComponent(name, spec, meta?)
 ```
 
 | Param | Type | Description |
@@ -19,7 +19,7 @@ aeditor.registerComponent(name, spec, meta?)
 Returns: `object` The registered component spec.
 
 ```js
-aeditor.registerComponent('hello-panel', {
+aiditor.registerComponent('hello-panel', {
   label: 'Hello Panel',
   factory: function (propsSig, ctx) {
     var el = document.createElement('div')
@@ -33,9 +33,9 @@ aeditor.registerComponent('hello-panel', {
 Avoid:
 
 ```js
-aeditor.registerComponent('hello-panel', { render: function () {} })
+aiditor.registerComponent('hello-panel', { render: function () {} })
 ```
 
-Related: `aeditor.runtime.loadScript`, `aeditor.addPanelToDock`
+Related: `aiditor.runtime.loadScript`, `aiditor.addPanelToDock`
 
 Source: `src/core/registry.js`

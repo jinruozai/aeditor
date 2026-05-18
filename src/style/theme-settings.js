@@ -1,17 +1,17 @@
-// Theme settings contribution for AEditor.
-;(function (aeditor) {
+// Theme settings contribution for Aiditor.
+;(function (aiditor) {
   'use strict'
 
-  if (!aeditor.settings) return
+  if (!aiditor.settings) return
 
-  aeditor.settings.registerSection('theme', {
+  aiditor.settings.registerSection('theme', {
     title: 'Theme',
     icon: 'palette',
-    description: 'AEditor appearance and visual density.',
+    description: 'Aiditor appearance and visual density.',
     order: 10,
   })
 
-  aeditor.settings.registerSchema('theme', [
+  aiditor.settings.registerSchema('theme', [
     {
       key: 'theme.mode',
       label: 'Mode',
@@ -23,7 +23,7 @@
         { value: 'harbor', label: 'Harbor' },
         { value: 'light', label: 'Light' },
       ],
-      description: 'Active AEditor theme.',
+      description: 'Active Aiditor theme.',
       order: 10,
     },
     {
@@ -41,7 +41,7 @@
     },
   ])
 
-  aeditor.settings.registerPage('theme-editor', {
+  aiditor.settings.registerPage('theme-editor', {
     section: 'theme',
     title: 'Appearance',
     icon: 'sliders',
@@ -50,16 +50,16 @@
     factory: renderThemeSettings,
   })
 
-  aeditor.effect(function () {
-    const mode = aeditor.settings.get('theme.mode')
-    if (aeditor.theme && aeditor.theme.set) aeditor.theme.set(mode || 'dark')
-    const density = aeditor.settings.get('theme.density')
-    if (aeditor.theme && aeditor.theme.setDensity) aeditor.theme.setDensity(density || 'default')
+  aiditor.effect(function () {
+    const mode = aiditor.settings.get('theme.mode')
+    if (aiditor.theme && aiditor.theme.set) aiditor.theme.set(mode || 'dark')
+    const density = aiditor.settings.get('theme.density')
+    if (aiditor.theme && aiditor.theme.setDensity) aiditor.theme.setDensity(density || 'default')
   })
 
-  const THEME_STORAGE_KEY = 'aeditor-theme-overrides-v3'
-  const THEME_MODE_KEY = 'aeditor-theme-mode'
-  const THEME_DENSITY_KEY = 'aeditor-theme-density'
+  const THEME_STORAGE_KEY = 'aiditor-theme-overrides-v3'
+  const THEME_MODE_KEY = 'aiditor-theme-mode'
+  const THEME_DENSITY_KEY = 'aiditor-theme-density'
   const THEME_TABS = [
     { value: 'palette', label: 'Palette' },
     { value: 'spacing', label: 'Spacing' },
@@ -69,77 +69,77 @@
     { value: 'motion', label: 'Motion' },
   ]
   const PALETTE = [
-    ['--aeditor-surface-canvas', 'Surface / Canvas'],
-    ['--aeditor-surface-lower', 'Surface / Lower'],
-    ['--aeditor-surface-frame', 'Surface / Frame'],
-    ['--aeditor-surface-panel', 'Surface / Panel'],
-    ['--aeditor-surface-field', 'Surface / Field'],
-    ['--aeditor-surface-hover', 'Surface / Hover'],
-    ['--aeditor-surface-active', 'Surface / Active'],
-    ['--aeditor-surface-raised', 'Surface / Raised'],
-    ['--aeditor-text-primary', 'Text / Primary'],
-    ['--aeditor-text-body', 'Text / Body'],
-    ['--aeditor-text-label', 'Text / Label'],
-    ['--aeditor-text-muted', 'Text / Muted'],
-    ['--aeditor-text-disabled', 'Text / Disabled'],
-    ['--aeditor-stroke-subtle', 'Stroke / Subtle'],
-    ['--aeditor-stroke-strong', 'Stroke / Strong'],
-    ['--aeditor-stroke-field', 'Stroke / Field'],
-    ['--aeditor-stroke-hover', 'Stroke / Hover'],
-    ['--aeditor-brand', 'Brand / Accent'],
-    ['--aeditor-brand-hover', 'Brand / Hover'],
-    ['--aeditor-brand-contrast', 'Brand / Contrast'],
-    ['--aeditor-state-success', 'State / Success'],
-    ['--aeditor-state-warning', 'State / Warning'],
-    ['--aeditor-state-danger', 'State / Danger'],
-    ['--aeditor-state-info', 'State / Info'],
+    ['--aiditor-surface-canvas', 'Surface / Canvas'],
+    ['--aiditor-surface-lower', 'Surface / Lower'],
+    ['--aiditor-surface-frame', 'Surface / Frame'],
+    ['--aiditor-surface-panel', 'Surface / Panel'],
+    ['--aiditor-surface-field', 'Surface / Field'],
+    ['--aiditor-surface-hover', 'Surface / Hover'],
+    ['--aiditor-surface-active', 'Surface / Active'],
+    ['--aiditor-surface-raised', 'Surface / Raised'],
+    ['--aiditor-text-primary', 'Text / Primary'],
+    ['--aiditor-text-body', 'Text / Body'],
+    ['--aiditor-text-label', 'Text / Label'],
+    ['--aiditor-text-muted', 'Text / Muted'],
+    ['--aiditor-text-disabled', 'Text / Disabled'],
+    ['--aiditor-stroke-subtle', 'Stroke / Subtle'],
+    ['--aiditor-stroke-strong', 'Stroke / Strong'],
+    ['--aiditor-stroke-field', 'Stroke / Field'],
+    ['--aiditor-stroke-hover', 'Stroke / Hover'],
+    ['--aiditor-brand', 'Brand / Accent'],
+    ['--aiditor-brand-hover', 'Brand / Hover'],
+    ['--aiditor-brand-contrast', 'Brand / Contrast'],
+    ['--aiditor-state-success', 'State / Success'],
+    ['--aiditor-state-warning', 'State / Warning'],
+    ['--aiditor-state-danger', 'State / Danger'],
+    ['--aiditor-state-info', 'State / Info'],
   ]
   const SPACING = [
-    ['--aeditor-space-1', 'Tight gap', 0, 32],
-    ['--aeditor-space-2', 'Control gap', 0, 32],
-    ['--aeditor-space-3', 'Row gap', 0, 64],
-    ['--aeditor-space-4', 'Panel padding', 0, 64],
-    ['--aeditor-space-5', 'Section gap', 0, 96],
-    ['--aeditor-space-6', 'Large gap', 0, 128],
+    ['--aiditor-space-1', 'Tight gap', 0, 32],
+    ['--aiditor-space-2', 'Control gap', 0, 32],
+    ['--aiditor-space-3', 'Row gap', 0, 64],
+    ['--aiditor-space-4', 'Panel padding', 0, 64],
+    ['--aiditor-space-5', 'Section gap', 0, 96],
+    ['--aiditor-space-6', 'Large gap', 0, 128],
   ]
   const SIZING = [
-    ['--aeditor-size-h-xs', 'Control height xs', 12, 40],
-    ['--aeditor-size-h-sm', 'Control height sm', 14, 44],
-    ['--aeditor-size-h-md', 'Control height md', 16, 48],
-    ['--aeditor-size-h-lg', 'Control height lg', 18, 56],
-    ['--aeditor-toolbar-h', 'Toolbar height', 16, 60],
-    ['--aeditor-tab-h', 'Tab height', 16, 60],
+    ['--aiditor-size-h-xs', 'Control height xs', 12, 40],
+    ['--aiditor-size-h-sm', 'Control height sm', 14, 44],
+    ['--aiditor-size-h-md', 'Control height md', 16, 48],
+    ['--aiditor-size-h-lg', 'Control height lg', 18, 56],
+    ['--aiditor-toolbar-h', 'Toolbar height', 16, 60],
+    ['--aiditor-tab-h', 'Tab height', 16, 60],
   ]
   const RADIUS = [
-    ['--aeditor-r-1', 'Tiny radius', 0, 24],
-    ['--aeditor-r-2', 'Control radius', 0, 24],
-    ['--aeditor-r-3', 'Panel radius', 0, 24],
-    ['--aeditor-r-4', 'Floating radius', 0, 24],
+    ['--aiditor-r-1', 'Tiny radius', 0, 24],
+    ['--aiditor-r-2', 'Control radius', 0, 24],
+    ['--aiditor-r-3', 'Panel radius', 0, 24],
+    ['--aiditor-r-4', 'Floating radius', 0, 24],
   ]
   const TYPO_PX = [
-    ['--aeditor-fs-xs', 'Font size xs', 8, 24],
-    ['--aeditor-fs-sm', 'Font size sm', 8, 24],
-    ['--aeditor-fs-md', 'Font size md', 8, 28],
-    ['--aeditor-fs-lg', 'Font size lg', 8, 32],
-    ['--aeditor-fs-xl', 'Font size xl', 8, 36],
+    ['--aiditor-fs-xs', 'Font size xs', 8, 24],
+    ['--aiditor-fs-sm', 'Font size sm', 8, 24],
+    ['--aiditor-fs-md', 'Font size md', 8, 28],
+    ['--aiditor-fs-lg', 'Font size lg', 8, 32],
+    ['--aiditor-fs-xl', 'Font size xl', 8, 36],
   ]
   const MOTION_MS = [
-    ['--aeditor-dur-fast', 'Fast', 0, 1000],
-    ['--aeditor-dur-med', 'Med', 0, 1000],
-    ['--aeditor-dur-slow', 'Slow', 0, 1000],
+    ['--aiditor-dur-fast', 'Fast', 0, 1000],
+    ['--aiditor-dur-med', 'Med', 0, 1000],
+    ['--aiditor-dur-slow', 'Slow', 0, 1000],
   ]
 
   function renderThemeSettings() {
-    const ui = aeditor.ui
-    const root = ui.view({ scroll: 'hidden', className: 'aeditor-settings-page aeditor-settings-theme-page' })
-    root.appendChild(pageHead('Theme', 'AEditor appearance and visual density.'))
+    const ui = aiditor.ui
+    const root = ui.view({ scroll: 'hidden', className: 'aiditor-settings-page aiditor-settings-theme-page' })
+    root.appendChild(pageHead('Theme', 'Aiditor appearance and visual density.'))
 
-    const bar = ui.h('div', 'aeditor-settings-theme-bar')
-    const tabSig = aeditor.signal('palette')
-    const modeSig = aeditor.signal(aeditor.settings.get('theme.mode') || localStorage.getItem(THEME_MODE_KEY) || 'dark')
-    const densitySig = aeditor.signal(aeditor.settings.get('theme.density') || localStorage.getItem(THEME_DENSITY_KEY) || 'default')
+    const bar = ui.h('div', 'aiditor-settings-theme-bar')
+    const tabSig = aiditor.signal('palette')
+    const modeSig = aiditor.signal(aiditor.settings.get('theme.mode') || localStorage.getItem(THEME_MODE_KEY) || 'dark')
+    const densitySig = aiditor.signal(aiditor.settings.get('theme.density') || localStorage.getItem(THEME_DENSITY_KEY) || 'default')
     const tabs = ui.segmented({ value: tabSig, options: THEME_TABS })
-    tabs.classList.add('aeditor-settings-theme-tabs')
+    tabs.classList.add('aiditor-settings-theme-tabs')
     const mode = ui.select({
       value: modeSig,
       options: [
@@ -174,7 +174,7 @@
       text: 'Export',
       size: 'sm',
       onClick: function () {
-        const text = aeditor.theme && aeditor.theme.exportCss ? aeditor.theme.exportCss() : ''
+        const text = aiditor.theme && aiditor.theme.exportCss ? aiditor.theme.exportCss() : ''
         ui.copyText(text)
         if (ui.toast) ui.toast({ kind: 'info', title: 'CSS copied', message: text })
       },
@@ -187,15 +187,15 @@
     root.appendChild(bar)
 
     const allSigs = []
-    const host = ui.h('div', 'aeditor-settings-theme-host')
-    const scroll = ui.view({ children: host, className: 'aeditor-settings-theme-scroll' })
+    const host = ui.h('div', 'aiditor-settings-theme-host')
+    const scroll = ui.view({ children: host, className: 'aiditor-settings-theme-scroll' })
     root.appendChild(scroll)
 
     function track(sig, name, parse, format) {
       allSigs.push({ sig: sig, name: name, parse: parse, format: format })
     }
     function bindWriter(sig, name, format) {
-      ui.collect(root, aeditor.effect(function () {
+      ui.collect(root, aiditor.effect(function () {
         const literal = format ? format(sig()) : sig()
         const effective = readThemeToken(name)
         if (effective === literal) return
@@ -213,11 +213,11 @@
     }
 
     let didMountMode = false
-    ui.collect(root, aeditor.effect(function () {
+    ui.collect(root, aiditor.effect(function () {
       const value = modeSig()
-      aeditor.settings.set('theme.mode', value)
+      aiditor.settings.set('theme.mode', value)
       localStorage.setItem(THEME_MODE_KEY, value)
-      if (aeditor.theme && aeditor.theme.set) aeditor.theme.set(value)
+      if (aiditor.theme && aiditor.theme.set) aiditor.theme.set(value)
       if (!didMountMode) {
         didMountMode = true
         return
@@ -226,11 +226,11 @@
       refreshAll()
     }))
 
-    ui.collect(root, aeditor.effect(function () {
+    ui.collect(root, aiditor.effect(function () {
       const value = densitySig()
-      aeditor.settings.set('theme.density', value)
+      aiditor.settings.set('theme.density', value)
       localStorage.setItem(THEME_DENSITY_KEY, value)
-      if (aeditor.theme && aeditor.theme.setDensity) aeditor.theme.setDensity(value)
+      if (aiditor.theme && aiditor.theme.setDensity) aiditor.theme.setDensity(value)
     }))
 
     const panes = {}
@@ -245,7 +245,7 @@
       return panes[key]
     }
 
-    ui.collect(root, aeditor.effect(function () {
+    ui.collect(root, aiditor.effect(function () {
       while (host.firstChild) host.removeChild(host.firstChild)
       host.appendChild(pane(tabSig()))
     }))
@@ -279,53 +279,53 @@
   }
 
   function buildPalette(track, bindWriter) {
-    const wrap = aeditor.ui.h('div', 'aeditor-settings-theme-pane aeditor-settings-theme-palette')
+    const wrap = aiditor.ui.h('div', 'aiditor-settings-theme-pane aiditor-settings-theme-palette')
     for (let i = 0; i < PALETTE.length; i++) {
       const name = PALETTE[i][0]
-      const sig = aeditor.signal(readThemeToken(name) || '#000000')
+      const sig = aiditor.signal(readThemeToken(name) || '#000000')
       track(sig, name, null, null)
       bindWriter(sig, name, null)
-      wrap.appendChild(aeditor.ui.propRow({ label: PALETTE[i][1], control: aeditor.ui.colorInput({ value: sig }) }))
+      wrap.appendChild(aiditor.ui.propRow({ label: PALETTE[i][1], control: aiditor.ui.colorInput({ value: sig }) }))
     }
     return wrap
   }
 
   function buildPxRows(catalog, track, bindWriter, unit) {
-    const wrap = aeditor.ui.h('div', 'aeditor-settings-theme-pane')
+    const wrap = aiditor.ui.h('div', 'aiditor-settings-theme-pane')
     const format = function (v) { return v + unit }
     for (let i = 0; i < catalog.length; i++) {
       const row = catalog[i]
-      const sig = aeditor.signal(pxNum(readThemeToken(row[0])))
+      const sig = aiditor.signal(pxNum(readThemeToken(row[0])))
       track(sig, row[0], pxNum, format)
       bindWriter(sig, row[0], format)
-      wrap.appendChild(aeditor.ui.propRow({
+      wrap.appendChild(aiditor.ui.propRow({
         label: row[1],
-        control: aeditor.ui.numberInput({ value: sig, min: row[2], max: row[3], step: unit === 'ms' ? 10 : 1, suffix: unit }),
+        control: aiditor.ui.numberInput({ value: sig, min: row[2], max: row[3], step: unit === 'ms' ? 10 : 1, suffix: unit }),
       }))
     }
     return wrap
   }
 
   function buildTypography(track, bindWriter) {
-    const wrap = aeditor.ui.h('div', 'aeditor-settings-theme-pane')
-    const uiFont = aeditor.signal(readThemeToken('--aeditor-font-ui'))
-    track(uiFont, '--aeditor-font-ui', null, null)
-    bindWriter(uiFont, '--aeditor-font-ui', null)
-    wrap.appendChild(aeditor.ui.propRow({ label: 'UI font', control: aeditor.ui.input({ value: uiFont }) }))
-    const monoFont = aeditor.signal(readThemeToken('--aeditor-font-mono'))
-    track(monoFont, '--aeditor-font-mono', null, null)
-    bindWriter(monoFont, '--aeditor-font-mono', null)
-    wrap.appendChild(aeditor.ui.propRow({ label: 'Mono font', control: aeditor.ui.input({ value: monoFont }) }))
+    const wrap = aiditor.ui.h('div', 'aiditor-settings-theme-pane')
+    const uiFont = aiditor.signal(readThemeToken('--aiditor-font-ui'))
+    track(uiFont, '--aiditor-font-ui', null, null)
+    bindWriter(uiFont, '--aiditor-font-ui', null)
+    wrap.appendChild(aiditor.ui.propRow({ label: 'UI font', control: aiditor.ui.input({ value: uiFont }) }))
+    const monoFont = aiditor.signal(readThemeToken('--aiditor-font-mono'))
+    track(monoFont, '--aiditor-font-mono', null, null)
+    bindWriter(monoFont, '--aiditor-font-mono', null)
+    wrap.appendChild(aiditor.ui.propRow({ label: 'Mono font', control: aiditor.ui.input({ value: monoFont }) }))
     const sizes = buildPxRows(TYPO_PX, track, bindWriter, 'px')
     while (sizes.firstChild) wrap.appendChild(sizes.firstChild)
     return wrap
   }
 
   function pageHead(title, desc) {
-    const head = aeditor.ui.h('div', 'aeditor-settings-page-head')
-    head.appendChild(aeditor.ui.h('div', 'aeditor-settings-page-title', { text: title }))
-    head.appendChild(aeditor.ui.h('div', 'aeditor-settings-page-desc', { text: desc }))
+    const head = aiditor.ui.h('div', 'aiditor-settings-page-head')
+    head.appendChild(aiditor.ui.h('div', 'aiditor-settings-page-title', { text: title }))
+    head.appendChild(aiditor.ui.h('div', 'aiditor-settings-page-desc', { text: desc }))
     return head
   }
 
-})(window.aeditor = window.aeditor || {})
+})(window.aiditor = window.aiditor || {})

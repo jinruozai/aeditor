@@ -1,10 +1,10 @@
 // Component registry - the single registration point for everything that can
 // be put into a panel, a toolbar, a UI tree, or a card layout.
 //
-//   aeditor.registerComponent(name, spec)
-//   aeditor.resolveComponent(name)             -> spec     (throws on unknown)
-//   aeditor.componentDefaults(name)            -> object   (spec.defaults?.() ?? {})
-//   aeditor.listComponents()                   -> [{ name, ...spec }]
+//   aiditor.registerComponent(name, spec)
+//   aiditor.resolveComponent(name)             -> spec     (throws on unknown)
+//   aiditor.componentDefaults(name)            -> object   (spec.defaults?.() ?? {})
+//   aiditor.listComponents()                   -> [{ name, ...spec }]
 //
 // ComponentSpec = {
 //   factory:           (propsSig, ctx) => HTMLElement,    // required
@@ -15,7 +15,7 @@
 //   serialize?:        (el) => any,
 //   deserialize?:      (el, state) => void,
 //
-//   // Palette / UI-tree metadata (consumed by aeditor.ui.renderUITree + tools that
+//   // Palette / UI-tree metadata (consumed by aiditor.ui.renderUITree + tools that
 //   // present a palette of available components, e.g. a scene editor)
 //   label?:            string,
 //   icon?:             string,
@@ -31,30 +31,30 @@
 // component decides what feeds the signal: for panel components it's
 // ctx.panel.props (live); for toolbar items / UI-tree leaves it's a frozen
 // signal seeded from the literal/static props.
-;(function (aeditor) {
+;(function (aiditor) {
   'use strict'
 
   const components = new Map()
   const componentMeta = new Map()
-  const versionSig = aeditor.signal(0)
+  const versionSig = aiditor.signal(0)
 
   function bumpVersion() {
     versionSig.set(versionSig.peek() + 1)
   }
 
   /**
-   * @aeditorApi aeditor.registerComponent
+   * @aiditorApi aiditor.registerComponent
    * @group component
    * @layer core
    * @kind js-api
-   * @signature aeditor.registerComponent(name, spec, meta?)
+   * @signature aiditor.registerComponent(name, spec, meta?)
    * @summary Register a component that can be used as a panel, toolbar item, UI tree node, or palette item.
    * @param {string} name - Unique component id.
    * @param {object} spec - Component spec with factory(propsSig, ctx), plus optional defaults/dispose/serialize/deserialize/schema metadata.
    * @param {object} meta - Optional owner/layer metadata, normally supplied by runtime.loadScript.
    * @returns {object} The registered component spec.
    * @example
-   * aeditor.registerComponent('hello-panel', {
+   * aiditor.registerComponent('hello-panel', {
    *   label: 'Hello Panel',
    *   factory: function (propsSig, ctx) {
    *     var el = document.createElement('div')
@@ -64,8 +64,8 @@
    *   defaults: function () { return { title: 'Hello' } },
    * })
    * @wrong
-   * aeditor.registerComponent('hello-panel', { render: function () {} })
-   * @related aeditor.runtime.loadScript,aeditor.addPanelToDock
+   * aiditor.registerComponent('hello-panel', { render: function () {} })
+   * @related aiditor.runtime.loadScript,aiditor.addPanelToDock
    */
   function registerComponent(name, spec, meta) {
     if (typeof name !== 'string' || name.length === 0)
@@ -108,7 +108,7 @@
     return out
   }
 
-  const matchesPrefix = aeditor.names.matchesPrefix
+  const matchesPrefix = aiditor.names.matchesPrefix
 
   function unregisterComponent(name, meta) {
     if (!components.has(name)) return false
@@ -155,7 +155,7 @@
   }
 
   function normalizeMeta(meta) {
-    if (aeditor.runtime && aeditor.runtime.registrationMeta) meta = aeditor.runtime.registrationMeta(meta)
+    if (aiditor.runtime && aiditor.runtime.registrationMeta) meta = aiditor.runtime.registrationMeta(meta)
     meta = meta || {}
     const out = {}
     if (meta.owner != null) out.owner = String(meta.owner)
@@ -164,13 +164,13 @@
     return out
   }
 
-  aeditor.registerComponent  = registerComponent
-  aeditor.resolveComponent   = resolveComponent
-  aeditor.componentDefaults  = componentDefaults
-  aeditor.listComponents     = listComponents
-  aeditor.unregisterComponent = unregisterComponent
-  aeditor.unregisterComponentPrefix = unregisterComponentPrefix
-  aeditor.unregisterComponentOwner = unregisterComponentOwner
-  aeditor.componentRegistration = componentRegistration
-  aeditor.componentRegistryVersion = versionSig
-})(window.aeditor = window.aeditor || {})
+  aiditor.registerComponent  = registerComponent
+  aiditor.resolveComponent   = resolveComponent
+  aiditor.componentDefaults  = componentDefaults
+  aiditor.listComponents     = listComponents
+  aiditor.unregisterComponent = unregisterComponent
+  aiditor.unregisterComponentPrefix = unregisterComponentPrefix
+  aiditor.unregisterComponentOwner = unregisterComponentOwner
+  aiditor.componentRegistration = componentRegistration
+  aiditor.componentRegistryVersion = versionSig
+})(window.aiditor = window.aiditor || {})

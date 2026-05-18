@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import vm from 'node:vm'
 
-global.window = { aeditor: {} }
+global.window = { aiditor: {} }
 
 for (const file of [
   'src/core/signal.js',
@@ -26,7 +26,7 @@ for (const file of [
   vm.runInThisContext(readFileSync(file, 'utf8'), { filename: file })
 }
 
-const ai = window.aeditor.ai
+const ai = window.aiditor.ai
 const replies = []
 const requests = []
 

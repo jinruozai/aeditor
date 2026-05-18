@@ -8,7 +8,7 @@ Goal: make the chat surface stable with very large transcripts while keeping the
 
 The current AI message panel is correct at small scale, but its update model is too broad:
 
-- `ai-messages` subscribes to the global `aeditor.ai.agents()` signal.
+- `ai-messages` subscribes to the global `aiditor.ai.agents()` signal.
 - Any message update can cause the transcript panel to schedule a full render.
 - Full render clears the scroll container and rebuilds every visible message node.
 - Tool call blocks are `<details>`, so their open state is lost whenever the row is recreated.
@@ -64,14 +64,14 @@ The composer is latency-sensitive. Cursor blink, IME composition, typing, paste,
 ## 3. Target Architecture
 
 ```
-aeditor.ai.store
+aiditor.ai.store
   agents metadata
   activeAgentId
   messages by agent
   per-agent message version
   per-message version
 
-aeditor.ai.runtime
+aiditor.ai.runtime
   provider stream reader
   stream buffer
   frame/timer batching
@@ -98,11 +98,11 @@ The important shape is separation:
 - transcript owns viewport and row lifetimes;
 - composer owns draft and user input.
 
-No React-style full component tree render is needed. This remains a small IIFE implementation using the existing `aeditor.signal`, `aeditor.effect`, `aeditor.ui`, and cleanup conventions.
+No React-style full component tree render is needed. This remains a small IIFE implementation using the existing `aiditor.signal`, `aiditor.effect`, `aiditor.ui`, and cleanup conventions.
 
 ## 4. Store Shape
 
-The existing `aeditor.ai.agents` array can remain as a compatibility surface, but the hot UI path needs narrower subscriptions.
+The existing `aiditor.ai.agents` array can remain as a compatibility surface, but the hot UI path needs narrower subscriptions.
 
 Recommended internal model:
 
@@ -125,18 +125,18 @@ messageVersions = {
 Recommended public or internal helpers:
 
 ```js
-aeditor.ai.activeAgentMeta()
-aeditor.ai.agentMessageIds(agentId)
-aeditor.ai.readMessage(agentId, messageId)
-aeditor.ai.messageVersion(agentId, messageId)
-aeditor.ai.messageListVersion(agentId)
-aeditor.ai.activeRunState(agentId)
+aiditor.ai.activeAgentMeta()
+aiditor.ai.agentMessageIds(agentId)
+aiditor.ai.readMessage(agentId, messageId)
+aiditor.ai.messageVersion(agentId, messageId)
+aiditor.ai.messageListVersion(agentId)
+aiditor.ai.activeRunState(agentId)
 ```
 
 Compatibility:
 
-- `aeditor.ai.agents()` can still return the full array for older panels.
-- New hot panels should not subscribe to full `aeditor.ai.agents()` during streaming.
+- `aiditor.ai.agents()` can still return the full array for older panels.
+- New hot panels should not subscribe to full `aiditor.ai.agents()` during streaming.
 - `appendMessage`, `updateMessage`, and tool-result operations update the narrow versions first, then refresh compatibility snapshots.
 
 This avoids forcing every AI panel to wake up when one message receives more text.
@@ -328,7 +328,7 @@ The live strip must be cheaper than the transcript:
 - no Markdown parsing;
 - no tool body rendering;
 - no transcript scan;
-- no subscription to `aeditor.ai.agents()`.
+- no subscription to `aiditor.ai.agents()`.
 
 Elapsed time can update once per second. Preview can update at the same cadence as stream UI patches or via a separate lightweight `requestAnimationFrame` queue. It should never force message rows to render.
 
@@ -363,7 +363,7 @@ This makes the chat feel honest even when the full message row is intentionally 
 }
 ```
 
-The panel runtime is disposable with the normal `ui.collect` / `aeditor.ui.dispose` convention.
+The panel runtime is disposable with the normal `ui.collect` / `aiditor.ui.dispose` convention.
 
 ## 8. Virtual Message List
 
@@ -652,7 +652,7 @@ This phase makes huge transcripts cheap.
 ### Phase 4: Narrow Store Signals
 
 - Add per-agent/per-message version accessors.
-- Move transcript and composer off global `aeditor.ai.agents()` hot subscription.
+- Move transcript and composer off global `aiditor.ai.agents()` hot subscription.
 - Keep compatibility APIs.
 
 This phase removes unnecessary wakeups across AI panels.
@@ -693,7 +693,7 @@ The final implementation is acceptable when:
 
 ## 19. Design Fit
 
-This design matches AEditor's existing architecture:
+This design matches Aiditor's existing architecture:
 
 - It uses stable ids and keyed reconciliation, same spirit as dock rendering.
 - It keeps component runtime state local to the panel.

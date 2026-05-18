@@ -1,4 +1,4 @@
-# 只发布 files 里白名单的东西,这里是额外保险
+# package.json `files` is the publish whitelist; this file excludes extra local files.
 demo/
 .claude/
 doc/

@@ -7,7 +7,7 @@ Panel communication should be decoupled:
 - no panel holds another panel's object reference
 - no toolbar component gets private tab privileges
 - no app-level singleton is required for basic panel coordination
-- event-style communication goes through `aeditor.bus`
+- event-style communication goes through `aiditor.bus`
 - state-style communication goes through signals or serialized props
 
 This design is correct. The hardening work is about making it diagnosable and leak-free.
@@ -16,7 +16,7 @@ This design is correct. The hardening work is about making it diagnosable and le
 
 - `ctx.bus.on(topic, handler)` auto-unsubscribes, but bus handler errors are attributed only to `{ scope: 'bus', topic }`.
 - `ctx.dock.*` and `ctx.panel.*` derived signals are not registered for disposal.
-- Documentation still references `aeditor.errors` while implementation uses `aeditor.log`.
+- Documentation still references `aiditor.errors` while implementation uses `aiditor.log`.
 - Some AGENTS sections mention system topics that are not implemented.
 
 ## Scoped bus target
@@ -24,12 +24,12 @@ This design is correct. The hardening work is about making it diagnosable and le
 Keep the raw global API:
 
 ```js
-aeditor.bus.on(topic, handler)
-aeditor.bus.off(topic, handler)
-aeditor.bus.emit(topic, payload)
+aiditor.bus.on(topic, handler)
+aiditor.bus.off(topic, handler)
+aiditor.bus.emit(topic, payload)
 ```
 
-Raw `aeditor.bus` stays simple and has no owner context.
+Raw `aiditor.bus` stays simple and has no owner context.
 
 For `ctx.bus.on`, register a wrapper that captures subscriber source:
 
@@ -55,8 +55,8 @@ If the handler throws, the log entry should include:
 
 Implementation options:
 
-1. Keep `aeditor.bus` unchanged. `ctx.bus.on` wraps the handler with `ctx.safeCall`.
-2. Extend `aeditor.bus.on(topic, handler, source)` internally but keep public docs focused on the two-argument form.
+1. Keep `aiditor.bus` unchanged. `ctx.bus.on` wraps the handler with `ctx.safeCall`.
+2. Extend `aiditor.bus.on(topic, handler, source)` internally but keep public docs focused on the two-argument form.
 
 Option 1 is lower risk and preserves global bus simplicity.
 
@@ -64,11 +64,11 @@ Option 1 is lower risk and preserves global bus simplicity.
 
 AGENTS currently mentions system topics such as:
 
-- `aeditor:panel:activated`
-- `aeditor:panel:removed`
-- `aeditor:panel:moved`
-- `aeditor:dock:focus-changed`
-- `aeditor:errors:new`
+- `aiditor:panel:activated`
+- `aiditor:panel:removed`
+- `aiditor:panel:moved`
+- `aiditor:dock:focus-changed`
+- `aiditor:errors:new`
 
 Before implementing or documenting these, decide:
 
@@ -80,36 +80,36 @@ Recommendation:
 
 - Do not add system topics until there is a clear use case.
 - Remove stale promises from design authority docs for now.
-- Keep `aeditor.bus` as user/app communication infrastructure.
+- Keep `aiditor.bus` as user/app communication infrastructure.
 
 ## Error API decision
 
 Current implementation:
 
-- `aeditor.log`
-- `aeditor.log.push(level, source, message, error)`
-- `aeditor.log.dismiss(id)`
-- `aeditor.log.clear()`
-- `aeditor.reportError(source, err)`
-- `aeditor.safeCall(source, fn)`
+- `aiditor.log`
+- `aiditor.log.push(level, source, message, error)`
+- `aiditor.log.dismiss(id)`
+- `aiditor.log.clear()`
+- `aiditor.reportError(source, err)`
+- `aiditor.safeCall(source, fn)`
 - built-in panel component registered as `log`
 
 Stale design references:
 
-- `aeditor.errors`
-- `aeditor.clearErrors()`
-- `aeditor.dismissError()`
+- `aiditor.errors`
+- `aiditor.clearErrors()`
+- `aiditor.dismissError()`
 - `error-log`
 
 Recommended direction:
 
-- Keep `aeditor.log` as the more general primitive.
-- Document `aeditor.reportError` and `aeditor.safeCall` as error-specific helpers.
+- Keep `aiditor.log` as the more general primitive.
+- Document `aiditor.reportError` and `aiditor.safeCall` as error-specific helpers.
 - If compatibility aliases are desired, add them deliberately:
-  - `aeditor.errors = aeditor.derived(() => aeditor.log().filter(e => e.level === 'error'))`
-  - `aeditor.clearErrors()` removes only error entries or clears all? This ambiguity makes alias risky.
+  - `aiditor.errors = aiditor.derived(() => aiditor.log().filter(e => e.level === 'error'))`
+  - `aiditor.clearErrors()` removes only error entries or clears all? This ambiguity makes alias risky.
 
-Recommendation: update docs to `aeditor.log` instead of adding ambiguous aliases.
+Recommendation: update docs to `aiditor.log` instead of adding ambiguous aliases.
 
 ## Context lifetime target
 
@@ -141,7 +141,7 @@ Acceptance:
 - `src/ui/panel/log.js`
 - `AGENTS.md`
 - `README.md`
-- `dist/aeditor.js`
+- `dist/aiditor.js`
 
 ## Tests
 

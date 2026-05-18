@@ -1,8 +1,8 @@
-// aeditor.ai Reference / Operation protocol.
-;(function (aeditor) {
+// aiditor.ai Reference / Operation protocol.
+;(function (aiditor) {
   'use strict'
 
-  const ai = aeditor.ai = aeditor.ai || {}
+  const ai = aiditor.ai = aiditor.ai || {}
   const referenceProviders = {}
   const referenceProviderMeta = {}
   const operations = {}
@@ -19,9 +19,9 @@
 
   function inferResolver(uri, kind) {
     const text = String(uri || '')
-    if (text === 'aeditor://api' || text.indexOf('aeditor://api/') === 0) return 'api'
-    if (text === 'aeditor://skills' || text.indexOf('aeditor://skills/') === 0) return 'skills'
-    if (text === 'aeditor://host' || text.indexOf('aeditor://host/') === 0) return 'editor'
+    if (text === 'aiditor://api' || text.indexOf('aiditor://api/') === 0) return 'api'
+    if (text === 'aiditor://skills' || text.indexOf('aiditor://skills/') === 0) return 'skills'
+    if (text === 'aiditor://host' || text.indexOf('aiditor://host/') === 0) return 'editor'
     const idx = text.indexOf('://')
     if (idx > 0) return text.slice(0, idx)
     const dot = String(kind || '').indexOf('.')
@@ -75,7 +75,7 @@
   }
 
   function normalizeMeta(meta) {
-    if (aeditor.runtime && aeditor.runtime.registrationMeta) meta = aeditor.runtime.registrationMeta(meta)
+    if (aiditor.runtime && aiditor.runtime.registrationMeta) meta = aiditor.runtime.registrationMeta(meta)
     meta = meta || {}
     const out = {}
     if (meta.owner != null) out.owner = String(meta.owner)
@@ -83,7 +83,7 @@
     return out
   }
 
-  const matchesPrefix = aeditor.names.matchesPrefix
+  const matchesPrefix = aiditor.names.matchesPrefix
 
   function canReplace(meta) {
     return !!(meta && meta.replace === true)
@@ -336,7 +336,7 @@
     const apply = function () { return spec.apply(preview, opCtx) }
     const result = spec.transaction === false
       ? apply()
-      : runTransaction(preview.title || op, apply, { source: 'aeditor.ai', op: op, previewId: preview.id, risk: preview.risk })
+      : runTransaction(preview.title || op, apply, { source: 'aiditor.ai', op: op, previewId: preview.id, risk: preview.risk })
     if (result && typeof result === 'object') return Object.assign({ applied: true, previewId: preview.id }, result)
     return { applied: true, previewId: preview.id, result: result }
   }
@@ -348,12 +348,12 @@
 
   function canUseOperation(actor, agentId, op, phase, details) {
     if (ai.canUseOperation) return ai.canUseOperation(actor, agentId, op, phase, details || {})
-    if (ai.canUseTool) return ai.canUseTool(actor, agentId, 'aeditor.' + (phase === 'apply' ? 'applyOperation' : 'previewOperation'), phase === 'apply' ? 'apply' : 'call')
+    if (ai.canUseTool) return ai.canUseTool(actor, agentId, 'aiditor.' + (phase === 'apply' ? 'applyOperation' : 'previewOperation'), phase === 'apply' ? 'apply' : 'call')
     return true
   }
 
   function registerEditorTools() {
-    ai.tools.register('aeditor.readReference', {
+    ai.tools.register('aiditor.readReference', {
       title: 'Read Editor Reference',
       description: 'Read a referenced editor object. Use this before editing so schemas, values, and summaries are grounded in the host editor.',
       schema: {
@@ -370,7 +370,7 @@
         return readReference(args, args, ctx)
       },
     })
-    ai.tools.register('aeditor.searchReferences', {
+    ai.tools.register('aiditor.searchReferences', {
       title: 'Search Editor References',
       description: 'Search host-provided editor references by query and optional kind.',
       schema: {
@@ -385,7 +385,7 @@
         return searchReferences(args || {}, ctx)
       },
     })
-    ai.tools.register('aeditor.getSelection', {
+    ai.tools.register('aiditor.getSelection', {
       title: 'Get Editor Selection',
       description: 'Return current host editor selection as references.',
       schema: { type: 'object', properties: {} },
@@ -393,7 +393,7 @@
         return selectedReferences(ctx)
       },
     })
-    ai.tools.register('aeditor.getCapabilities', {
+    ai.tools.register('aiditor.getCapabilities', {
       title: 'Get Reference Capabilities',
       description: 'Return schemas and operations available for a reference.',
       schema: {
@@ -413,7 +413,7 @@
         }
       },
     })
-    ai.tools.register('aeditor.previewOperation', {
+    ai.tools.register('aiditor.previewOperation', {
       title: 'Preview Editor Operation',
       description: 'Preview a registered editor operation. Never apply invalid previews; repair input from returned validation errors.',
       exposeToModel: false,
@@ -434,7 +434,7 @@
         return previewOperation(args, null, ctx)
       },
     })
-    ai.tools.register('aeditor.applyOperation', {
+    ai.tools.register('aiditor.applyOperation', {
       title: 'Apply Editor Operation',
       description: 'Preview and apply a registered editor operation through the host transaction bridge.',
       exposeToModel: false,
@@ -521,8 +521,8 @@
     configure: configureTransactions,
     run: runTransaction,
   }
-  if (aeditor.runtime && aeditor.runtime.registerOwnerCleanup) {
-    aeditor.runtime.registerOwnerCleanup(function (owner) {
+  if (aiditor.runtime && aiditor.runtime.registerOwnerCleanup) {
+    aiditor.runtime.registerOwnerCleanup(function (owner) {
       return {
         references: unregisterReferenceProviderOwner(owner),
         operations: unregisterOperationOwner(owner),
@@ -531,4 +531,4 @@
   }
 
   registerEditorTools()
-})(window.aeditor = window.aeditor || {})
+})(window.aiditor = window.aiditor || {})

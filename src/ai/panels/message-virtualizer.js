@@ -1,7 +1,7 @@
-;(function (aeditor) {
+;(function (aiditor) {
   'use strict'
 
-  const ai = aeditor.ai = aeditor.ai || {}
+  const ai = aiditor.ai = aiditor.ai || {}
 
   function binaryLowerBound(prefix, value) {
     let lo = 0
@@ -69,4 +69,4 @@
   }
 
   ai.createMessageVirtualizer = createMessageVirtualizer
-})(window.aeditor = window.aeditor || {})
+})(window.aiditor = window.aiditor || {})

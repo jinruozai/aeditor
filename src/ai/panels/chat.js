@@ -1,7 +1,7 @@
-;(function (aeditor) {
+;(function (aiditor) {
   'use strict'
 
-  const ui = aeditor.ui
+  const ui = aiditor.ui
 
   const PERMISSION_OPTIONS = [
     { value: 'default', label: 'Default permissions', icon: 'settings' },
@@ -46,18 +46,18 @@
   }
 
   function connectionOptions() {
-    if (aeditor.ai.connectionOptions) return aeditor.ai.connectionOptions()
-    return aeditor.ai.connections ? optionsFrom(aeditor.ai.connections) : optionsFrom(aeditor.ai.listConnections())
+    if (aiditor.ai.connectionOptions) return aiditor.ai.connectionOptions()
+    return aiditor.ai.connections ? optionsFrom(aiditor.ai.connections) : optionsFrom(aiditor.ai.listConnections())
   }
 
   function defaultConnection() {
-    if (aeditor.settings && aeditor.settings.values) aeditor.settings.values()
-    if (aeditor.settings) return aeditor.settings.get('ai.defaultConnection') || aeditor.ai.defaultConnection || 'mock'
-    return aeditor.ai.defaultConnection || 'mock'
+    if (aiditor.settings && aiditor.settings.values) aiditor.settings.values()
+    if (aiditor.settings) return aiditor.settings.get('ai.defaultConnection') || aiditor.ai.defaultConnection || 'mock'
+    return aiditor.ai.defaultConnection || 'mock'
   }
 
   function connectionConfig(connection) {
-    return aeditor.ai.getConnectionConfig ? aeditor.ai.getConnectionConfig(connection || defaultConnection()) : {}
+    return aiditor.ai.getConnectionConfig ? aiditor.ai.getConnectionConfig(connection || defaultConnection()) : {}
   }
 
   function defaultModel(connection) {
@@ -67,9 +67,9 @@
   function modelOptions(connection, config) {
     const o = config || {}
     const out = []
-    const hints = (!o.loadedOnly && aeditor.ai.modelHints) ? aeditor.ai.modelHints(connection) : []
+    const hints = (!o.loadedOnly && aiditor.ai.modelHints) ? aiditor.ai.modelHints(connection) : []
     for (let h = 0; h < hints.length; h++) pushOption(out, hints[h])
-    const connections = aeditor.ai.connections ? readList(aeditor.ai.connections) : []
+    const connections = aiditor.ai.connections ? readList(aiditor.ai.connections) : []
     for (let i = 0; i < connections.length; i++) {
       const p = connections[i]
       if (typeof p !== 'string' && (p.id === connection || p.name === connection || p.value === connection)) {
@@ -77,7 +77,7 @@
         for (let m = 0; m < metaModels.length; m++) pushOption(out, metaModels[m])
       }
     }
-    const models = aeditor.ai.models ? (read(aeditor.ai.models) || []) : []
+    const models = aiditor.ai.models ? (read(aiditor.ai.models) || []) : []
     const loaded = (Array.isArray(models) ? models : models[connection]) || []
     for (let j = 0; j < loaded.length; j++) pushOption(out, loaded[j])
     const fallback = defaultModel(connection)
@@ -99,7 +99,7 @@
     if (content == null) return ''
     if (typeof content === 'string') return content
     if (content && typeof content === 'object' && content.type === 'rich-prompt') {
-      return content.renderedText || (aeditor.ai.richPrompt && aeditor.ai.richPrompt.toModelText ? aeditor.ai.richPrompt.toModelText(content) : '')
+      return content.renderedText || (aiditor.ai.richPrompt && aiditor.ai.richPrompt.toModelText ? aiditor.ai.richPrompt.toModelText(content) : '')
     }
     try { return JSON.stringify(content) } catch (_) { return String(content) }
   }
@@ -117,7 +117,7 @@
 
   function messagesForEstimate(agent) {
     if (!agent) return []
-    if (aeditor.ai.compaction && aeditor.ai.compaction.requestMessages) return aeditor.ai.compaction.requestMessages(agent, null)
+    if (aiditor.ai.compaction && aiditor.ai.compaction.requestMessages) return aiditor.ai.compaction.requestMessages(agent, null)
     return agent && agent.messages || []
   }
 
@@ -145,7 +145,7 @@
       if (msg.status === 'running') continue
       parts.push((msg.role || 'message') + ': ' + textOfContent(msg.content != null ? msg.content : msg.text))
     }
-    const compacted = aeditor.ai.compaction && aeditor.ai.compaction.contextMessages ? aeditor.ai.compaction.contextMessages(agent) : []
+    const compacted = aiditor.ai.compaction && aiditor.ai.compaction.contextMessages ? aiditor.ai.compaction.contextMessages(agent) : []
     for (let i = 0; i < compacted.length; i++) parts.push('system: ' + textOfContent(compacted[i].content))
     const rawMessages = agent && agent.messages || []
     for (let i = 0; i < rawMessages.length; i++) {
@@ -153,8 +153,8 @@
       if (msg.status === 'running') continue
       rawParts.push((msg.role || 'message') + ': ' + textOfContent(msg.content != null ? msg.content : msg.text))
     }
-    if (draftValue && !aeditor.ai.richPrompt.isEmpty(draftValue)) {
-      const draftText = 'draft: ' + aeditor.ai.richPrompt.toModelText(draftValue)
+    if (draftValue && !aiditor.ai.richPrompt.isEmpty(draftValue)) {
+      const draftText = 'draft: ' + aiditor.ai.richPrompt.toModelText(draftValue)
       parts.push(draftText)
       rawParts.push(draftText)
     }
@@ -171,8 +171,8 @@
 
   function configuredConnectionOptions() {
     const connections = connectionOptions()
-    const statuses = aeditor.ai.connectionStatus ? (read(aeditor.ai.connectionStatus) || {}) : {}
-    const loadedMap = aeditor.ai.models ? (read(aeditor.ai.models) || {}) : {}
+    const statuses = aiditor.ai.connectionStatus ? (read(aiditor.ai.connectionStatus) || {}) : {}
+    const loadedMap = aiditor.ai.models ? (read(aiditor.ai.models) || {}) : {}
     const out = []
     for (let i = 0; i < connections.length; i++) {
       const p = connections[i]
@@ -238,15 +238,15 @@
   }
 
   function agents() {
-    return readList(aeditor.ai.agents)
+    return readList(aiditor.ai.agents)
   }
 
   function attachments() {
-    return readList(aeditor.ai.attachments)
+    return readList(aiditor.ai.attachments)
   }
 
   function activeAgent() {
-    const id = read(aeditor.ai.activeAgentId)
+    const id = read(aiditor.ai.activeAgentId)
     const list = agents()
     for (let i = 0; i < list.length; i++) if (list[i].id === id) return list[i]
     return null
@@ -254,7 +254,7 @@
 
   function updateCurrentAgent(patch) {
     const agent = activeAgent()
-    if (agent) aeditor.ai.updateAgent(agent.id, patch)
+    if (agent) aiditor.ai.updateAgent(agent.id, patch)
   }
 
   function permissionLabel(value) {
@@ -297,24 +297,24 @@
 
   function factory(propsSig, ctx) {
     const props = propsSig.peek() || {}
-    const connection = aeditor.signal(props.connection || defaultConnection())
-    const model = aeditor.signal(props.model || defaultModel(connection.peek()))
-    const permissionMode = aeditor.signal(props.permissionMode || 'full')
-    const draft = aeditor.signal(aeditor.ai.richPrompt.empty())
-    const hasTarget = aeditor.derived(function () { return !!activeAgent() })
-    const busy = aeditor.derived(function () {
+    const connection = aiditor.signal(props.connection || defaultConnection())
+    const model = aiditor.signal(props.model || defaultModel(connection.peek()))
+    const permissionMode = aiditor.signal(props.permissionMode || 'full')
+    const draft = aiditor.signal(aiditor.ai.richPrompt.empty())
+    const hasTarget = aiditor.derived(function () { return !!activeAgent() })
+    const busy = aiditor.derived(function () {
       const a = activeAgent()
       return !!(a && (a.status === 'running' || a.status === 'queued'))
     })
-    const stoppable = aeditor.derived(function () {
+    const stoppable = aiditor.derived(function () {
       const a = activeAgent()
       return !!(a && (a.status === 'running' || a.status === 'waiting_approval'))
     })
-    const controlDisabled = aeditor.derived(function () { return !hasTarget() })
-    const sendDisabled = aeditor.derived(function () { return !hasTarget() || (aeditor.ai.richPrompt.isEmpty(draft()) && !stoppable()) })
-    const sendIcon = aeditor.derived(function () { return stoppable() && aeditor.ai.richPrompt.isEmpty(draft()) ? 'square' : 'arrow-up' })
+    const controlDisabled = aiditor.derived(function () { return !hasTarget() })
+    const sendDisabled = aiditor.derived(function () { return !hasTarget() || (aiditor.ai.richPrompt.isEmpty(draft()) && !stoppable()) })
+    const sendIcon = aiditor.derived(function () { return stoppable() && aiditor.ai.richPrompt.isEmpty(draft()) ? 'square' : 'arrow-up' })
 
-    const root = ui.view({ scroll: 'hidden', className: 'aeditor-ai-panel aeditor-ai-chat' })
+    const root = ui.view({ scroll: 'hidden', className: 'aiditor-ai-panel aiditor-ai-chat' })
     ui.collect(root, hasTarget.dispose)
     ui.collect(root, busy.dispose)
     ui.collect(root, stoppable.dispose)
@@ -322,9 +322,9 @@
     ui.collect(root, sendDisabled.dispose)
     ui.collect(root, sendIcon.dispose)
 
-    const composer = ui.h('div', 'aeditor-ai-composer')
-    if (aeditor.ai.installTargetDrop) {
-      aeditor.ai.installTargetDrop(composer, {
+    const composer = ui.h('div', 'aiditor-ai-composer')
+    if (aiditor.ai.installTargetDrop) {
+      aiditor.ai.installTargetDrop(composer, {
         onDrop: function (targets) { insertTargets(targets) },
       })
     }
@@ -332,23 +332,23 @@
       const targets = ev.detail && ev.detail.targets
       if (targets && targets.length) insertTargets(targets)
     }
-    window.addEventListener('aeditor-ai-add-to-chat', onAddToChat)
-    ui.collect(root, function () { window.removeEventListener('aeditor-ai-add-to-chat', onAddToChat) })
+    window.addEventListener('aiditor-ai-add-to-chat', onAddToChat)
+    ui.collect(root, function () { window.removeEventListener('aiditor-ai-add-to-chat', onAddToChat) })
 
-    const editorWrap = ui.h('div', 'aeditor-ai-chat-input-wrap')
+    const editorWrap = ui.h('div', 'aiditor-ai-chat-input-wrap')
     const editor = ui.richPromptInput({
       value: draft,
       placeholder: 'Message current agent...',
       disabled: controlDisabled,
       onSubmit: sendClick,
     })
-    editor.classList.add('aeditor-ai-chat-input')
+    editor.classList.add('aiditor-ai-chat-input')
     editorWrap.appendChild(editor)
     composer.appendChild(editorWrap)
 
-    const actions = ui.h('div', 'aeditor-ai-chat-actions')
-    const leftActions = ui.h('div', 'aeditor-ai-chat-actions-left')
-    const rightActions = ui.h('div', 'aeditor-ai-chat-actions-right')
+    const actions = ui.h('div', 'aiditor-ai-chat-actions')
+    const leftActions = ui.h('div', 'aiditor-ai-chat-actions-left')
+    const rightActions = ui.h('div', 'aiditor-ai-chat-actions-right')
     const add = ui.iconButton({
       icon: 'plus',
       title: 'Add context',
@@ -356,7 +356,7 @@
       disabled: controlDisabled,
       onClick: function (ev) { openAttachmentMenu(ev.currentTarget, insertAttachments) },
     })
-    const permissionText = aeditor.derived(function () { return permissionLabel(permissionMode()) })
+    const permissionText = aiditor.derived(function () { return permissionLabel(permissionMode()) })
     ui.collect(root, permissionText.dispose)
     const permission = ui.button({
       text: permissionText,
@@ -366,9 +366,9 @@
       disabled: controlDisabled,
       onClick: function (ev) { openPermissionMenu(ev.currentTarget, permissionMode) },
     })
-    const modelSlot = ui.h('div', 'aeditor-ai-model-control')
-    const contextMeter = ui.h('div', 'aeditor-ai-context-meter')
-    const contextInfo = aeditor.signal({ used: 0, rawUsed: 0, limit: modelContextLimit(model.peek()), compactions: 0, compactedMessages: 0, latestBefore: 0, latestAfter: 0 })
+    const modelSlot = ui.h('div', 'aiditor-ai-model-control')
+    const contextMeter = ui.h('div', 'aiditor-ai-context-meter')
+    const contextInfo = aiditor.signal({ used: 0, rawUsed: 0, limit: modelContextLimit(model.peek()), compactions: 0, compactedMessages: 0, latestBefore: 0, latestAfter: 0 })
     let contextTimer = null
     function scheduleContextEstimate(delay) {
       if (contextTimer) clearTimeout(contextTimer)
@@ -380,7 +380,7 @@
         }, contextMetrics(a, draft.peek())))
       }, delay == null ? 260 : delay)
     }
-    const contextTip = aeditor.derived(function () {
+    const contextTip = aiditor.derived(function () {
       const info = contextInfo()
       const used = info.used || 0
       const rawUsed = info.rawUsed || used
@@ -403,22 +403,22 @@
       if (contextTimer) clearTimeout(contextTimer)
       contextTimer = null
     })
-    ui.collect(root, aeditor.effect(function () {
+    ui.collect(root, aiditor.effect(function () {
       const info = contextInfo()
       const used = info.used || 0
       const limit = info.limit || modelContextLimit(model.peek())
       const pct = Math.max(0, Math.min(1, used / limit))
-      contextMeter.style.setProperty('--aeditor-ai-context-pct', String(pct * 100))
+      contextMeter.style.setProperty('--aiditor-ai-context-pct', String(pct * 100))
       contextMeter.setAttribute('aria-label', contextTip())
     }))
-    ui.collect(root, aeditor.effect(function () {
+    ui.collect(root, aiditor.effect(function () {
       draft()
       model()
-      const agentId = read(aeditor.ai.activeAgentId)
-      if (agentId && aeditor.ai.messageListVersion) aeditor.ai.messageListVersion(agentId)
+      const agentId = read(aiditor.ai.activeAgentId)
+      if (agentId && aiditor.ai.messageListVersion) aiditor.ai.messageListVersion(agentId)
       scheduleContextEstimate()
     }))
-    const sendTitle = aeditor.derived(function () { return stoppable() && aeditor.ai.richPrompt.isEmpty(draft()) ? 'Stop' : (busy() ? 'Queue message' : 'Send') })
+    const sendTitle = aiditor.derived(function () { return stoppable() && aiditor.ai.richPrompt.isEmpty(draft()) ? 'Stop' : (busy() ? 'Queue message' : 'Send') })
     ui.collect(root, sendTitle.dispose)
     const send = ui.iconButton({
       icon: sendIcon,
@@ -437,15 +437,15 @@
     composer.appendChild(actions)
     root.appendChild(composer)
 
-    ui.collect(root, aeditor.effect(function () {
+    ui.collect(root, aiditor.effect(function () {
       const opts = connectionOptions()
       const preferred = defaultConnection()
       if (opts.length && !connection.peek()) connection.set(preferred || opts[0].value)
     }))
 
-    ui.collect(root, aeditor.effect(function () {
+    ui.collect(root, aiditor.effect(function () {
       const opts = groupedModelOptions(connection(), model())
-      const selected = aeditor.signal(modelValue(connection(), model()))
+      const selected = aiditor.signal(modelValue(connection(), model()))
       disposeTree(modelSlot.firstChild)
       modelSlot.appendChild(ui.select({
         value: selected,
@@ -457,7 +457,7 @@
         disabled: controlDisabled,
         onChange: function (v) {
           const parsed = parseModelValue(v)
-          aeditor.batch(function () {
+          aiditor.batch(function () {
             connection.set(parsed.connection)
             model.set(parsed.model)
             updateCurrentAgent({ connection: parsed.connection, model: parsed.model, stream: !!connectionConfig(parsed.connection).stream })
@@ -466,7 +466,7 @@
       }))
     }))
 
-    ui.collect(root, aeditor.effect(function () {
+    ui.collect(root, aiditor.effect(function () {
       const a = activeAgent()
       if (!a) {
         connection.set(defaultConnection())
@@ -482,14 +482,14 @@
 
     function insertAttachments(list) {
       if (!list || !list.length) return
-      if (editor.__aeditorRichPromptInsertRefs) editor.__aeditorRichPromptInsertRefs(list)
-      if (editor.__aeditorRichPromptFocus) editor.__aeditorRichPromptFocus()
+      if (editor.__aiditorRichPromptInsertRefs) editor.__aiditorRichPromptInsertRefs(list)
+      if (editor.__aiditorRichPromptFocus) editor.__aiditorRichPromptFocus()
     }
 
     function insertTargets(targets) {
       const stored = []
       for (let i = 0; i < (targets || []).length; i++) {
-        const attachment = aeditor.ai.addTarget ? aeditor.ai.addTarget(targets[i]) : null
+        const attachment = aiditor.ai.addTarget ? aiditor.ai.addTarget(targets[i]) : null
         if (attachment) stored.push(attachment)
       }
       insertAttachments(stored)
@@ -498,15 +498,15 @@
     function sendClick() {
       const agent = activeAgent()
       if (!agent) return
-      const currentDraft = aeditor.ai.richPrompt.normalize(draft.peek())
-      if (aeditor.ai.richPrompt.isEmpty(currentDraft) && stoppable()) {
-        aeditor.ai.stopAgent(agent.id)
+      const currentDraft = aiditor.ai.richPrompt.normalize(draft.peek())
+      if (aiditor.ai.richPrompt.isEmpty(currentDraft) && stoppable()) {
+        aiditor.ai.stopAgent(agent.id)
         return
       }
-      if (aeditor.ai.richPrompt.isEmpty(currentDraft)) return
-      const refs = aeditor.ai.richPrompt.refs(currentDraft)
-      const content = aeditor.ai.richPrompt.content(currentDraft)
-      aeditor.ai.updateAgent(agent.id, {
+      if (aiditor.ai.richPrompt.isEmpty(currentDraft)) return
+      const refs = aiditor.ai.richPrompt.refs(currentDraft)
+      const content = aiditor.ai.richPrompt.content(currentDraft)
+      aiditor.ai.updateAgent(agent.id, {
         connection: connection.peek(),
         model: model.peek() || defaultModel(connection.peek()),
         permissionMode: permissionMode.peek(),
@@ -519,12 +519,12 @@
         attachmentRefs: refs,
         renderedText: content.renderedText,
       }
-      aeditor.ai.message.send(agent.id, { content: content, contextRefs: refs, meta: meta, from: 'user' })
-      draft.set(aeditor.ai.richPrompt.empty())
+      aiditor.ai.message.send(agent.id, { content: content, contextRefs: refs, meta: meta, from: 'user' })
+      draft.set(aiditor.ai.richPrompt.empty())
     }
   }
 
-  aeditor.registerComponent('ai-chatinput', {
+  aiditor.registerComponent('ai-chatinput', {
     category: 'panel',
     label: 'AIChatInput',
     icon: 'message-circle',
@@ -532,4 +532,4 @@
     factory: factory,
     dispose: disposeTree,
   })
-})(window.aeditor = window.aeditor || {})
+})(window.aiditor = window.aiditor || {})

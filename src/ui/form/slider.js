@@ -1,13 +1,13 @@
-// aeditor.ui.slider — horizontal numeric slider with optional value bubble.
+// aiditor.ui.slider — horizontal numeric slider with optional value bubble.
 //
 // opts: {
 //   value: number|signal, onChange?,
 //   min?: number|signal, max?: number|signal, step?: number|signal,
 //   showValue?: boolean|signal, suffix?: string|signal,
 // }
-;(function (aeditor) {
+;(function (aiditor) {
   'use strict'
-  const ui = aeditor.ui = aeditor.ui || {}
+  const ui = aiditor.ui = aiditor.ui || {}
 
   ui.slider = function (opts) {
     const o = opts || {}
@@ -19,11 +19,11 @@
     const suffix    = ui.asSig(o.suffix    != null ? o.suffix    : '')
     const doWrite = ui.writer(sig, o.onChange, 'ui.slider')
 
-    const el = ui.h('div', 'aeditor-ui-slider')
-    const track = ui.h('div', 'aeditor-ui-slider-track')
-    const fill  = ui.h('div', 'aeditor-ui-slider-fill')
-    const thumb = ui.h('div', 'aeditor-ui-slider-thumb')
-    const valueEl = ui.h('span', 'aeditor-ui-slider-value')
+    const el = ui.h('div', 'aiditor-ui-slider')
+    const track = ui.h('div', 'aiditor-ui-slider-track')
+    const fill  = ui.h('div', 'aiditor-ui-slider-fill')
+    const thumb = ui.h('div', 'aiditor-ui-slider-thumb')
+    const valueEl = ui.h('span', 'aiditor-ui-slider-value')
     track.appendChild(fill)
     track.appendChild(thumb)
     el.appendChild(track)
@@ -75,4 +75,4 @@
 
     return el
   }
-})(window.aeditor = window.aeditor || {})
+})(window.aiditor = window.aiditor || {})

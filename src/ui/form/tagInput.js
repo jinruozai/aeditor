@@ -1,13 +1,13 @@
-// aeditor.ui.tagInput — chip list with add-on-Enter and click-to-remove.
+// aiditor.ui.tagInput — chip list with add-on-Enter and click-to-remove.
 //
 // opts: {
 //   value: signal<string[]>, onChange?,
 //   placeholder?: string|signal,
 //   disabled?: bool|signal,
 // }
-;(function (aeditor) {
+;(function (aiditor) {
   'use strict'
-  const ui = aeditor.ui = aeditor.ui || {}
+  const ui = aiditor.ui = aiditor.ui || {}
 
   ui.tagInput = function (opts) {
     const o = opts || {}
@@ -15,13 +15,13 @@
     const placeholder = ui.asSig(o.placeholder != null ? o.placeholder : 'Add...')
     const disabled    = ui.asSig(o.disabled    != null ? o.disabled    : false)
     const doWrite = ui.writer(sig, o.onChange, 'ui.tagInput')
-    const el = ui.h('div', 'aeditor-ui-field aeditor-ui-taginput')
-    const list = ui.h('div', 'aeditor-ui-taginput-list')
-    const inp = ui.h('input', 'aeditor-ui-taginput-input', { type: 'text' })
+    const el = ui.h('div', 'aiditor-ui-field aiditor-ui-taginput')
+    const list = ui.h('div', 'aiditor-ui-taginput-list')
+    const inp = ui.h('input', 'aiditor-ui-taginput-input', { type: 'text' })
     el.appendChild(list); el.appendChild(inp)
     ui.bindAttr(inp, placeholder, 'placeholder')
     ui.bindAttr(inp, disabled, 'disabled')
-    ui.bind(el, disabled, function (v) { el.classList.toggle('aeditor-ui-taginput-disabled', !!v) })
+    ui.bind(el, disabled, function (v) { el.classList.toggle('aiditor-ui-taginput-disabled', !!v) })
 
     function rebuild(arr) {
       list.replaceChildren()
@@ -48,4 +48,4 @@
     el.addEventListener('click', function () { if (!disabled.peek()) inp.focus() })
     return el
   }
-})(window.aeditor = window.aeditor || {})
+})(window.aiditor = window.aiditor || {})

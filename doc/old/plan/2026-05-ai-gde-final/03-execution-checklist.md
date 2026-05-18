@@ -31,11 +31,11 @@
 
 ## Phase 4 - Patch UX
 
-- [ ] `aeditor.changeSet` core implemented.
-- [ ] `aeditor.ui.changeReview` implemented.
-- [ ] `ai-messages` renders `aeditor.changeSet` previews.
+- [ ] `aiditor.changeSet` core implemented.
+- [ ] `aiditor.ui.changeReview` implemented.
+- [ ] `ai-messages` renders `aiditor.changeSet` previews.
 - [ ] `GDE.ai.patchPreviewToChangeSet` implemented.
-- [ ] GDE patch preview renders through `aeditor.ui.changeReview`.
+- [ ] GDE patch preview renders through `aiditor.ui.changeReview`.
 - [x] Apply requires approval.
 - [x] Apply writes one history entry.
 - [x] Validation failure displays errors without mutation.

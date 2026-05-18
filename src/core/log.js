@@ -2,14 +2,14 @@
 // no separate channel. Anything that wants "errors only" filters in its own
 // derived/effect.
 //
-//   aeditor.log                          : signal<LogEntry[]>
-//     aeditor.log()         entries[]
-//     aeditor.log.push(level, source, message[, error])
-//     aeditor.log.dismiss(id)
-//     aeditor.log.clear()
+//   aiditor.log                          : signal<LogEntry[]>
+//     aiditor.log()         entries[]
+//     aiditor.log.push(level, source, message[, error])
+//     aiditor.log.dismiss(id)
+//     aiditor.log.clear()
 //
-//   aeditor.reportError(source, err)     // shim → aeditor.log.push('error', source, …)
-//   aeditor.safeCall(source, fn)         // sync try/catch wrapper
+//   aiditor.reportError(source, err)     // shim → aiditor.log.push('error', source, …)
+//   aiditor.safeCall(source, fn)         // sync try/catch wrapper
 //
 // LogEntry = { id, time, level, source, message, error?, stack? }
 // level    = 'error' | 'warn' | 'info' | 'debug'
@@ -18,10 +18,10 @@
 // The window 'error' / 'unhandledrejection' listeners are NOT installed
 // here — they live in dock/layout.js and attach on first createDockLayout()
 // (§ 4.7). This file is pure data and must not touch window globals.
-;(function (aeditor) {
+;(function (aiditor) {
   'use strict'
 
-  const log = aeditor.signal([])
+  const log = aiditor.signal([])
   let _nextId = 1
 
   log.push = function (level, source, message, error) {
@@ -56,7 +56,7 @@
     return log.push('error', source, (err && err.message) || String(err), err)
   }
 
-  aeditor.log         = log
-  aeditor.reportError = reportError
-  aeditor.safeCall    = safeCall
-})(window.aeditor = window.aeditor || {})
+  aiditor.log         = log
+  aiditor.reportError = reportError
+  aiditor.safeCall    = safeCall
+})(window.aiditor = window.aiditor || {})

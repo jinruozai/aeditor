@@ -1,8 +1,8 @@
-// aeditor.ai agent runtime.
-;(function (aeditor) {
+// aiditor.ai agent runtime.
+;(function (aiditor) {
   'use strict'
 
-  const ai = aeditor.ai = aeditor.ai || {}
+  const ai = aiditor.ai = aiditor.ai || {}
   const runs = {}
   const waitingRuns = {}
   const runtimeConfig = {
@@ -573,7 +573,7 @@
       }
       jobs.push(job.catch(function (err) {
         appendToolResult(agentId, call, { error: String(err && err.message || err) }, 'error')
-        if (aeditor.reportError) aeditor.reportError({ scope: 'ai', tool: call.toolId || call.name || 'tool' }, err)
+        if (aiditor.reportError) aiditor.reportError({ scope: 'ai', tool: call.toolId || call.name || 'tool' }, err)
         return { waiting: false, error: err }
       }).then(function (state) {
         if (state && state.waiting) waiting = true
@@ -852,7 +852,7 @@
     if (input && input.id) ai.updateMessage(agentId, input.id, { status: stopped ? 'stopped' : 'failed', completedAt: Date.now() })
     if (input && input.questId) ai.updateQuest(agentId, input.questId, { status: stopped ? 'stopped' : 'failed', completedAt: Date.now(), summary: String(err && err.message ? err.message : err) })
     ai.setAgentStatus(agentId, stopped ? 'idle' : 'failed')
-    if (!stopped && aeditor.reportError) aeditor.reportError({ scope: 'ai', connection: request.connectionName }, err)
+    if (!stopped && aiditor.reportError) aiditor.reportError({ scope: 'ai', connection: request.connectionName }, err)
     scheduleQueuedAgents()
     return null
   }
@@ -1074,7 +1074,7 @@
       if (input && input.id) ai.updateMessage(agent.id, input.id, { status: 'stopped', completedAt: Date.now() })
       if (input && input.questId) ai.updateQuest(agent.id, input.questId, { status: 'stopped', completedAt: Date.now(), summary: 'Stopped' })
       if (run.connection && run.connection.abort) {
-        if (aeditor.safeCall) aeditor.safeCall({ scope: 'ai', connection: agent.connection || ai.defaultConnection, runId: run.runId }, function () { run.connection.abort(run.runId) })
+        if (aiditor.safeCall) aiditor.safeCall({ scope: 'ai', connection: agent.connection || ai.defaultConnection, runId: run.runId }, function () { run.connection.abort(run.runId) })
         else run.connection.abort(run.runId)
       }
       delete runs[agent.id]
@@ -1242,4 +1242,4 @@
   ai.agent = ai.agent || {}
   ai.message.send = function (agentId, spec) { return queueMessage(agentId, spec || {}, (spec && spec.from) || 'user') }
   ai.agent.send = sendAgentQuest
-})(window.aeditor = window.aeditor || {})
+})(window.aiditor = window.aiditor || {})

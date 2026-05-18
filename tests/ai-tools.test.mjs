@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import vm from 'node:vm'
 
-global.window = { aeditor: {} }
+global.window = { aiditor: {} }
 
 for (const file of [
   'src/core/signal.js',
@@ -25,7 +25,7 @@ for (const file of [
   vm.runInThisContext(readFileSync(file, 'utf8'), { filename: file })
 }
 
-const ai = window.aeditor.ai
+const ai = window.aiditor.ai
 
 ai.tools.register('dupe.tool', { run: function () { return 'one' } })
 assert.throws(function () {
@@ -285,7 +285,7 @@ const generatedMessage = ai.findAgent(generatedCallAgent.id).messages.find(funct
 })
 assert.notEqual(generatedMessage.toolCalls[0].id, generatedMessage.toolCalls[1].id)
 
-const decodedTextTool = ai.decodeTextToolResponse('Before\n```json\n{"aeditor_tool_calls":[{"toolId":"read-number","args":{"id":"answer"}}]}\n```\nAfter')
+const decodedTextTool = ai.decodeTextToolResponse('Before\n```json\n{"aiditor_tool_calls":[{"toolId":"read-number","args":{"id":"answer"}}]}\n```\nAfter')
 assert.equal(decodedTextTool.content, 'Before\n\nAfter')
 assert.equal(decodedTextTool.toolCalls.length, 1)
 assert.equal(decodedTextTool.toolCalls[0].toolId, 'read-number')

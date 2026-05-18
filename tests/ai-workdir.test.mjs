@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import vm from 'node:vm'
 
-global.window = { aeditor: {} }
+global.window = { aiditor: {} }
 
 for (const file of [
   'src/core/signal.js',
@@ -22,9 +22,9 @@ for (const file of [
   vm.runInThisContext(readFileSync(file, 'utf8'), { filename: file })
 }
 
-const aeditor = window.aeditor
-const ai = aeditor.ai
-const workspace = aeditor.workspace.memory({
+const aiditor = window.aiditor
+const ai = aiditor.ai
+const workspace = aiditor.workspace.memory({
   'src/app.js': 'const value = 1\nconsole.log(value)\n',
   'README.md': 'hello workspace',
 })
@@ -36,7 +36,7 @@ assert.equal(noWorkspaceRequest.tools.some(function (tool) { return tool.indexOf
 const blockedUiRequest = ai.makeRequest(agent, { role: 'user', content: '写一个简单的背包界面，放在主dock' }, 'run_blocked_ui_tools', 'user', 0)
 assert.equal(blockedUiRequest.tools.length, 0)
 assert.match(blockedUiRequest.messages[0].content, /CURRENT_REQUEST_BLOCKED/)
-assert.equal(blockedUiRequest.skills.includes('aeditor.runtime-authoring'), true)
+assert.equal(blockedUiRequest.skills.includes('aiditor.runtime-authoring'), true)
 assert.match(blockedUiRequest.messages[0].content, /Do not create \.tsx/)
 assert.match(blockedUiRequest.messages[0].content, /Current runtime state/)
 const escapedChineseUiRequest = ai.makeRequest(agent, { role: 'user', content: '\u5199\u4e00\u4e2a\u7b80\u5355\u7684\u80cc\u5305\u754c\u9762\uff0c\u653e\u5728\u4e3bdock' }, 'run_escaped_chinese_ui_tools', 'user', 0)
@@ -46,7 +46,7 @@ const dir = ai.setWorkspace(workspace, { id: 'memory:test', label: 'Test Workspa
 const workspaceRequest = ai.makeRequest(agent, null, 'run_workspace_tools', 'user', 0)
 assert.equal(workspaceRequest.tools.includes('workspace.fileSummary'), true)
 assert.equal(workspaceRequest.tools.includes('code.map'), true)
-assert.equal(workspaceRequest.skills.includes('aeditor.runtime-authoring'), true)
+assert.equal(workspaceRequest.skills.includes('aiditor.runtime-authoring'), true)
 assert.match(workspaceRequest.messages[0].content, /workspace component files/)
 assert.equal(workspaceRequest.messages[0].meta.contextLayer, 'runtime')
 assert.equal(workspaceRequest.messages[1].meta.contextLayer, 'workspace')
@@ -73,7 +73,7 @@ assert.deepEqual(summary.directories.map(function (dir) { return dir.path }), ['
 assert.equal(summary.truncated, false)
 
 const read = await ai.tools.get('workspace.readFile').run({ path: 'src/app.js' }, ctx)
-assert.equal(read.hash, aeditor.workspace.hashText(read.text))
+assert.equal(read.hash, aiditor.workspace.hashText(read.text))
 assert.match(read.text, /const value/)
 assert.equal(read.truncated, false)
 

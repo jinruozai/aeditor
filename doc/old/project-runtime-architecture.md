@@ -1,10 +1,10 @@
-# AEditor Project Runtime Architecture
+# Aiditor Project Runtime Architecture
 
-This document defines the final architecture for AEditor as a local-first,
+This document defines the final architecture for Aiditor as a local-first,
 AI-editable editor runtime.
 
 The goal is not to add another parallel plugin system. The goal is to make every
-editor built on AEditor follow one simple shape:
+editor built on Aiditor follow one simple shape:
 
 > Open a directory, read its project descriptor, load its registered editor
 > capabilities, mount its dock layout, and let AI edit the project through
@@ -17,19 +17,19 @@ The Project Runtime adds a file-backed application layer above it.
 
 1. One programming model.
    Built-in panels, app panels, AI-generated panels, and project panels all use
-   the same `aeditor.registerComponent` / `factory(propsSig, ctx)` component model.
+   the same `aiditor.registerComponent` / `factory(propsSig, ctx)` component model.
 
 2. File-backed by default.
    Serious AI-created code should live in files, not long tool-call strings.
    Files can be searched, read in ranges, patched, versioned, and recovered.
 
 3. Dynamic panels remain useful as drafts.
-   `aeditor.createPanel` is still the fast path for one-shot UI generation, but
+   `aiditor.createPanel` is still the fast path for one-shot UI generation, but
    the long-term path is "promote to project file".
 
 4. Open directory equals open editor.
    A user can select `game-data-editor`, `gbox-ani-editor`, or a future editor
-   project directory and AEditor can mount the corresponding app.
+   project directory and Aiditor can mount the corresponding app.
 
 5. AI works like a code agent.
    AI should search files, read small ranges, patch with base hashes, reload the
@@ -52,14 +52,14 @@ The Project Runtime adds a file-backed application layer above it.
 
 ## 2. Core Mental Model
 
-AEditor has three layers:
+Aiditor has three layers:
 
 ```text
 Host Shell
-  owns global aeditor runtime, project picker, permissions, recovery UI
+  owns global aiditor runtime, project picker, permissions, recovery UI
 
 Project Runtime
-  opens a workspace directory, loads aeditor.project.json,
+  opens a workspace directory, loads aiditor.project.json,
   installs project-owned registrations, mounts a layout
 
 Editor Runtime
@@ -70,10 +70,10 @@ The shell is stable. Projects are replaceable.
 
 ```text
 User selects directory
-  -> aeditor.workspace opens an authorized root
-  -> aeditor.project reads aeditor.project.json
+  -> aiditor.workspace opens an authorized root
+  -> aiditor.project reads aiditor.project.json
   -> project entry registers panels/tools/resources
-  -> aeditor.createDockLayout mounts layout into the host dock
+  -> aiditor.createDockLayout mounts layout into the host dock
   -> AI tools operate against the same workspace and runtime owner
 ```
 
@@ -83,7 +83,7 @@ The preferred project shape is:
 
 ```text
 my-editor/
-  aeditor.project.json
+  aiditor.project.json
   layout.json
   src/
     main.js
@@ -109,11 +109,11 @@ This is a convention, not a prison. The descriptor controls exact entry files.
 
 ### 3.1 Descriptor
 
-`aeditor.project.json` is the single discovery file.
+`aiditor.project.json` is the single discovery file.
 
 ```json
 {
-  "type": "aeditor-project",
+  "type": "aiditor-project",
   "schemaVersion": 1,
   "id": "game-data-editor",
   "title": "GameDataEditor",
@@ -137,7 +137,7 @@ Fields:
 
 | Field | Meaning |
 | --- | --- |
-| `type` | Must be `aeditor-project`. |
+| `type` | Must be `aiditor-project`. |
 | `schemaVersion` | Descriptor schema version. |
 | `id` | Stable project id, used in owners and persistence. |
 | `title` | Display title. |
@@ -156,7 +156,7 @@ Entry forms:
 ```
 
 `script` entries are classic same-page scripts. They may expose a global symbol
-with `setup` / `mount` methods, or call `aeditor.project.define(...)` while loading.
+with `setup` / `mount` methods, or call `aiditor.project.define(...)` while loading.
 The loader normalizes either form into the same project spec shape.
 
 `module` entries are loaded through dynamic import when the host environment
@@ -184,7 +184,7 @@ is a workspace, not the GameDataEditor app itself.
 Project entries register capabilities through one owner-scoped context.
 
 ```js
-aeditor.project.define({
+aiditor.project.define({
   id: 'game-data-editor',
   title: 'GameDataEditor',
 
@@ -203,7 +203,7 @@ aeditor.project.define({
 })
 ```
 
-`aeditor.project.define(spec)` is the canonical project registration entry point.
+`aiditor.project.define(spec)` is the canonical project registration entry point.
 `setup(ctx)` installs registrations. `mount(container, ctx)` creates the running
 UI and returns a handle with `destroy()`.
 
@@ -235,7 +235,7 @@ There is one component shape:
 
 ```js
 function InventoryPanel(propsSig, ctx) {
-  const root = aeditor.ui.h('div', 'inventory-panel')
+  const root = aiditor.ui.h('div', 'inventory-panel')
 
   ctx.bus.on('inventory:selected', function (item) {
     // update panel
@@ -257,14 +257,14 @@ The same context rules apply everywhere:
 
 - Use `ctx.bus` for panel-to-panel communication.
 - Use `ctx.onCleanup` for non-UI resources.
-- Use `aeditor.ui.*` components when available.
-- Floating overlays should use `aeditor.ui.tooltip`, `aeditor.ui.popover`, `aeditor.ui.menu`,
-  or `aeditor.ui.registerScopedOverlay`.
+- Use `aiditor.ui.*` components when available.
+- Floating overlays should use `aiditor.ui.tooltip`, `aiditor.ui.popover`, `aiditor.ui.menu`,
+  or `aiditor.ui.registerScopedOverlay`.
 - Panel root layout must be responsive inside a resizable dock.
 
 ## 6. Workspace Runtime
 
-`aeditor.workspace` is the file access boundary.
+`aiditor.workspace` is the file access boundary.
 
 ```js
 workspace.rootId()
@@ -337,7 +337,7 @@ References to project source support projections:
 | --- | --- |
 | `summary` | id, title, file path, hash, size, exports, panel health. |
 | `outline` | top-level functions, component registrations, bus topics, events. |
-| `events` | `ctx.bus`, `aeditor.bus`, DOM events, cleanup handlers. |
+| `events` | `ctx.bus`, `aiditor.bus`, DOM events, cleanup handlers. |
 | `search` | query matches with surrounding lines. |
 | `range` | exact line range. |
 | `full` | full source, explicit only. |
@@ -346,11 +346,11 @@ This mirrors how code agents work with real repositories.
 
 ## 8. Dynamic Panel Drafts
 
-`aeditor.createPanel` remains as the fast drafting path.
+`aiditor.createPanel` remains as the fast drafting path.
 
 ```text
 User asks for quick UI
-  -> AI calls aeditor.createPanel
+  -> AI calls aiditor.createPanel
   -> session-owned draft panel appears
   -> user likes it
   -> AI or user promotes it to project file
@@ -396,8 +396,8 @@ This keeps experimentation fast while making durable work maintainable.
 }
 ```
 
-The project runtime converts this into the existing `aeditor.dock`, `aeditor.panel`, and
-`aeditor.split` tree shape. The Dock runtime remains the only layout engine.
+The project runtime converts this into the existing `aiditor.dock`, `aiditor.panel`, and
+`aiditor.split` tree shape. The Dock runtime remains the only layout engine.
 
 Open panels created by users can be persisted back to `layout.json` when the
 project opts into layout persistence.
@@ -449,13 +449,13 @@ Important boundary:
 
 Same-page `script` and `module` entries are not a JavaScript sandbox. Once loaded
 into the page, trusted project code can use ordinary browser APIs available to
-that origin. The workspace API bounds AEditor and AI file access, but it does
+that origin. The workspace API bounds Aiditor and AI file access, but it does
 not magically confine arbitrary same-page JavaScript. Therefore:
 
 1. Only load same-page project code after the user grants `project.code.load`.
 2. Treat opened app projects like trusted local applications.
 3. Use iframe/worker isolation for future untrusted project modes.
-4. Keep AI file operations inside `aeditor.workspace` even when project code is trusted.
+4. Keep AI file operations inside `aiditor.workspace` even when project code is trusted.
 
 Permission categories:
 
@@ -479,7 +479,7 @@ Failure boundaries:
 3. Setup failure rolls back owner registrations.
 4. Mount failure leaves the host shell alive.
 5. Reload failure keeps the last good project mounted when possible.
-6. Panel factory failure shows a panel error box and records `aeditor.log`.
+6. Panel factory failure shows a panel error box and records `aiditor.log`.
 
 ## 12. Reload and Recovery
 
@@ -508,7 +508,7 @@ strategies:
 2. Snapshot rollback: unload the old owner, install the candidate, and restore
    the previous owner snapshot if setup or mount fails.
 
-AEditor's zero-build same-page runtime uses snapshot rollback today because
+Aiditor's zero-build same-page runtime uses snapshot rollback today because
 it keeps the component model simple and avoids an alias layer in the registry.
 Versioned staging can be added later only if the registry grows first-class
 public-id aliasing.
@@ -529,7 +529,7 @@ Current state:
 
 - Static app with `index.html`.
 - Multi-file IIFE source under `src/`.
-- Panels already use `aeditor.registerComponent`.
+- Panels already use `aiditor.registerComponent`.
 - Layout is created in `src/main.js`.
 - Project IO and AI domain tools already exist.
 
@@ -537,7 +537,7 @@ Recommended final shape:
 
 ```text
 game-data-editor/
-  aeditor.project.json
+  aiditor.project.json
   src/main.js
   src/panels/
   src/ai/
@@ -553,7 +553,7 @@ window.GDEApp = {
 ```
 
 Then `index.html` can call `GDEApp.mount(document.getElementById('app'))`, while
-the AEditor host can mount the same app into a dock.
+the Aiditor host can mount the same app into a dock.
 
 ### 13.2 GBox Ani Editor
 
@@ -562,13 +562,13 @@ Current state:
 - ES module source.
 - Bundled IIFE output in `dist/gobjani-editor.bundle.js`.
 - Already exposes `GObjAniEditor.mount`, `createTree`, and `registerComponents`.
-- Uses AEditor panels and bus topics.
+- Uses Aiditor panels and bus topics.
 
 Recommended final shape:
 
 ```text
 gbox-ani-editor/
-  aeditor.project.json
+  aiditor.project.json
   dist/gobjani-editor.bundle.js
   demo/style.css
 ```
@@ -599,39 +599,39 @@ Dock Runtime
   mounts panels and handles UI lifecycle
 ```
 
-`aeditor.createPanel` can continue to wrap a factory source as a session extension.
+`aiditor.createPanel` can continue to wrap a factory source as a session extension.
 Promotion converts that session extension into project files.
 
 ## 15. Minimal Public API
 
 ```js
-aeditor.project.open(workspace, options)
-aeditor.project.close(id)
-aeditor.project.reload(id)
-aeditor.project.current()
-aeditor.project.list()
+aiditor.project.open(workspace, options)
+aiditor.project.close(id)
+aiditor.project.reload(id)
+aiditor.project.current()
+aiditor.project.list()
 
-aeditor.project.define(spec)       // called by project entry
-aeditor.project.promotePanel(input)
+aiditor.project.define(spec)       // called by project entry
+aiditor.project.promotePanel(input)
 
-aeditor.workspace.openDirectory(options)
-aeditor.workspace.fromHandle(handle)
-aeditor.workspace.fromBridge(root)
-aeditor.workspace.memory(files)
+aiditor.workspace.openDirectory(options)
+aiditor.workspace.fromHandle(handle)
+aiditor.workspace.fromBridge(root)
+aiditor.workspace.memory(files)
 ```
 
 The host usually needs only:
 
 ```js
-const workspace = await aeditor.workspace.openDirectory()
-const project = await aeditor.project.open(workspace, { mount: container })
+const workspace = await aiditor.workspace.openDirectory()
+const project = await aiditor.project.open(workspace, { mount: container })
 ```
 
 ## 16. Implementation Phases
 
 Phase 1: Project Descriptor and Mount API
 
-- Add `aeditor.project.define`.
+- Add `aiditor.project.define`.
 - Add descriptor loader.
 - Add project owner cleanup.
 - Support app projects with script/style entries and a global mount function.
@@ -652,7 +652,7 @@ Phase 3: File AI Tools
 
 Phase 4: Promote Draft to Project
 
-- Convert `aeditor.createPanel` session panels into project panel files.
+- Convert `aiditor.createPanel` session panels into project panel files.
 - Update `layout.json`.
 - Reload project.
 
@@ -682,7 +682,7 @@ Phase 6: Hardening
 
 ## 18. Final Shape
 
-AEditor becomes:
+Aiditor becomes:
 
 ```text
 Dock UI framework

@@ -1,6 +1,6 @@
 # AI Context And Compaction
 
-This document defines how AEditor keeps long agent sessions useful without
+This document defines how Aiditor keeps long agent sessions useful without
 making every request carry the whole transcript.
 
 The design borrows the durable lessons from mainstream coding agents:
@@ -12,7 +12,7 @@ The design borrows the durable lessons from mainstream coding agents:
 - old noisy history is condensed into auditable summaries.
 
 It does not add a project model to the framework. File access is still
-`workspace.*`. Product semantics stay outside AEditor or in extensions.
+`workspace.*`. Product semantics stay outside Aiditor or in extensions.
 
 ## Mental Model
 
@@ -256,11 +256,11 @@ payloads.
 Final runtime service:
 
 ```js
-aeditor.ai.compaction.configure(options)
-aeditor.ai.compaction.plan(agentId, input)
-aeditor.ai.compaction.run(agentId, plan)
-aeditor.ai.compaction.records(agentId)
-aeditor.ai.compaction.clear(agentId, options)
+aiditor.ai.compaction.configure(options)
+aiditor.ai.compaction.plan(agentId, input)
+aiditor.ai.compaction.run(agentId, plan)
+aiditor.ai.compaction.records(agentId)
+aiditor.ai.compaction.clear(agentId, options)
 ```
 
 This is an AI runtime service. It is not a tool registry and not a context

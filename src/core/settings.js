@@ -1,19 +1,19 @@
-// aeditor.settings - schema + page registry for standard settings UI.
-;(function (aeditor) {
+// aiditor.settings - schema + page registry for standard settings UI.
+;(function (aiditor) {
   'use strict'
 
-  const settings = aeditor.settings = aeditor.settings || {}
+  const settings = aiditor.settings = aiditor.settings || {}
 
-  const sectionsSig = aeditor.signal([])
-  const schemasSig = aeditor.signal([])
-  const pagesSig = aeditor.signal([])
+  const sectionsSig = aiditor.signal([])
+  const schemasSig = aiditor.signal([])
+  const pagesSig = aiditor.signal([])
   const sectionMeta = {}
   const schemaMeta = {}
   const pageMeta = {}
-  const DEFAULT_STORAGE_KEY = 'aeditor.settings.v1'
+  const DEFAULT_STORAGE_KEY = 'aiditor.settings.v1'
   let storageKey = DEFAULT_STORAGE_KEY
   let storage = null
-  const valuesSig = aeditor.signal(readStoredValues())
+  const valuesSig = aiditor.signal(readStoredValues())
 
   function defaultStorage() {
     try { return window.localStorage || null } catch (_) { return null }
@@ -51,7 +51,7 @@
   }
 
   function normalizeMeta(meta) {
-    if (aeditor.runtime && aeditor.runtime.registrationMeta) meta = aeditor.runtime.registrationMeta(meta)
+    if (aiditor.runtime && aiditor.runtime.registrationMeta) meta = aiditor.runtime.registrationMeta(meta)
     meta = meta || {}
     const out = {}
     if (meta.owner != null) out.owner = String(meta.owner)
@@ -59,7 +59,7 @@
     return out
   }
 
-  const matchesPrefix = aeditor.names.matchesPrefix
+  const matchesPrefix = aiditor.names.matchesPrefix
 
   function registerSection(id, spec, meta) {
     const s = spec || {}
@@ -265,4 +265,4 @@
   settings.save = save
   settings.clearStoredValues = clearStoredValues
   settings.resolveOptions = resolveOptions
-})(window.aeditor = window.aeditor || {})
+})(window.aiditor = window.aiditor || {})

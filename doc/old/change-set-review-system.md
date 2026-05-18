@@ -5,7 +5,7 @@ Scope: framework-level change review, AI previews, editor-specific semantic diff
 
 ## 1. Goal
 
-AEditor needs one reusable review system for changes proposed by AI, plugins, imports, generators, or batch tools.
+Aiditor needs one reusable review system for changes proposed by AI, plugins, imports, generators, or batch tools.
 
 The framework must support code diffs like Codex / Claude / Trae style editors, structured data diffs like GameDataEditor, and future editor domains such as animation timelines, material graphs, documents, images, and asset references.
 
@@ -14,8 +14,8 @@ The final pipeline is:
 ```text
 tool / plugin / user action
   -> domain preview
-  -> aeditor.changeSet
-  -> aeditor.ui.changeReview
+  -> aiditor.changeSet
+  -> aiditor.ui.changeReview
   -> approve / reject
   -> domain adapter apply
   -> project history / undo
@@ -39,7 +39,7 @@ The review system is not a replacement for project history. It is the approval a
 
 ```js
 {
-  type: "aeditor.changeSet",
+  type: "aiditor.changeSet",
   id: "cs_...",
   title: "Balance early weapons",
   description: "",
@@ -209,18 +209,18 @@ Use for:
 ## 5. Public API
 
 ```js
-aeditor.changeSet.create(spec)
-aeditor.changeSet.update(id, patch)
-aeditor.changeSet.find(id)
-aeditor.changeSet.list()
-aeditor.changeSet.apply(id, scope, actor)
-aeditor.changeSet.reject(id, scope, actor)
-aeditor.changeSet.normalize(spec)
+aiditor.changeSet.create(spec)
+aiditor.changeSet.update(id, patch)
+aiditor.changeSet.find(id)
+aiditor.changeSet.list()
+aiditor.changeSet.apply(id, scope, actor)
+aiditor.changeSet.reject(id, scope, actor)
+aiditor.changeSet.normalize(spec)
 
-aeditor.changeSet.registerAdapter(id, adapter)
-aeditor.changeSet.getAdapter(id)
-aeditor.changeSet.registerRenderer(kind, renderer)
-aeditor.changeSet.getRenderer(kind)
+aiditor.changeSet.registerAdapter(id, adapter)
+aiditor.changeSet.getAdapter(id)
+aiditor.changeSet.registerRenderer(kind, renderer)
+aiditor.changeSet.getRenderer(kind)
 ```
 
 `scope`:
@@ -243,7 +243,7 @@ aeditor.changeSet.getRenderer(kind)
 Adapters own mutation. Framework never edits domain state directly.
 
 ```js
-aeditor.changeSet.registerAdapter("gde.patch", {
+aiditor.changeSet.registerAdapter("gde.patch", {
   canApply(changeSet, scope, ctx) {},
   apply(changeSet, scope, ctx) {},
   reject(changeSet, scope, ctx) {},
@@ -276,7 +276,7 @@ Async adapters are allowed. Framework treats a rejected promise or `applied !== 
 ## 7. Renderer Contract
 
 ```js
-aeditor.changeSet.registerRenderer("gde.field", {
+aiditor.changeSet.registerRenderer("gde.field", {
   match(change, resource, changeSet) {},
   render(change, ctx) {},
   renderResourceHeader(resource, ctx) {},
@@ -292,7 +292,7 @@ Renderer context:
   resource,
   change,
   mode: "compact" | "full",
-  ui: aeditor.ui,
+  ui: aiditor.ui,
   actions: {
     apply(scope),
     reject(scope),
@@ -313,7 +313,7 @@ Fallback renderers:
 Framework component:
 
 ```js
-aeditor.ui.changeReview({
+aiditor.ui.changeReview({
   changeSet,
   mode: "compact" | "full",
   view: "semantic" | "unified" | "sideBySide",
@@ -357,14 +357,14 @@ Balance early weapons
 AI message panel recognizes ChangeSet previews:
 
 ```js
-if (aeditor.changeSet.isChangeSet(toolCall.preview)) {
-  render aeditor.ui.changeReview
+if (aiditor.changeSet.isChangeSet(toolCall.preview)) {
+  render aiditor.ui.changeReview
 } else {
   render existing JSON preview fallback
 }
 ```
 
-Tool-call apply should prefer ChangeSet adapter application when preview is an `aeditor.changeSet`.
+Tool-call apply should prefer ChangeSet adapter application when preview is an `aiditor.changeSet`.
 
 For atomic tools such as `gde.previewPatch`, the `Apply` button applies the whole ChangeSet through the adapter. The model does not need to call a second mutation tool after preview. This keeps user approval explicit.
 
@@ -488,8 +488,8 @@ asset.metadata
 
 Phase 1:
 
-- `aeditor.changeSet` core registry/store
-- `aeditor.ui.changeReview`
+- `aiditor.changeSet` core registry/store
+- `aiditor.ui.changeReview`
 - fallback JSON/value renderers
 - `ai-messages` ChangeSet preview rendering
 - tests for atomic apply/reject and failed apply
@@ -499,7 +499,7 @@ Phase 2:
 - `GDE.ai.patchPreviewToChangeSet`
 - `gde.patch` adapter
 - GDE semantic renderers
-- GDE patch preview displayed through `aeditor.ui.changeReview`
+- GDE patch preview displayed through `aiditor.ui.changeReview`
 - tests for field/entity/type/card node previews
 
 Phase 3:

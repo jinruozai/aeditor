@@ -1,4 +1,4 @@
-// aeditor.ui.propertyForm — schema-driven form for editing one or more objects.
+// aiditor.ui.propertyForm — schema-driven form for editing one or more objects.
 // One form can edit a single object (length-1 targets) or batch-edit many;
 // multi-target reads display the first target's value, and a user edit fans
 // out to every target.
@@ -15,9 +15,9 @@
 //   requireAllTargets?:boolean                        disables a field when any target lacks it
 //   canEdit?:(field, targets, rawField) => boolean     extra per-field edit gate
 //   ctx?:     any                                     forwarded to editorFor
-;(function (aeditor) {
+;(function (aiditor) {
   'use strict'
-  const ui = aeditor.ui = aeditor.ui || {}
+  const ui = aiditor.ui = aiditor.ui || {}
 
   // Schema fields can carry a `group` tag; propertyForm collects fields
   // by tag and renders a labeled section per group. The order below is
@@ -35,11 +35,11 @@
   }
 
   /**
-   * @aeditorApi aeditor.ui.propertyForm
+   * @aiditorApi aiditor.ui.propertyForm
    * @group ui
    * @layer core-ui
    * @kind js-api
-   * @signature aeditor.ui.propertyForm(opts)
+   * @signature aiditor.ui.propertyForm(opts)
    * @summary Render a schema-driven property editor for one target or a multi-target batch edit. Multi-target reads use the first target value; writes fan out only through enabled fields.
    * @param {object} opts - Form options.
    * @param {Signal<object[]>|object[]} opts.targets - Targets to edit.
@@ -49,16 +49,16 @@
    * @param {Function} opts.canEdit - Optional field gate: (field, targets, rawField) => boolean.
    * @returns {HTMLElement} Property form root element.
    * @example
-   * var form = aeditor.ui.propertyForm({
-   *   targets: aeditor.signal([{ x: 0, color: '#44aaff' }]),
+   * var form = aiditor.ui.propertyForm({
+   *   targets: aiditor.signal([{ x: 0, color: '#44aaff' }]),
    *   schema: { x: { type: 'number' }, color: { type: 'color' } },
    * })
-   * @related aeditor.inspector.registerProvider
+   * @related aiditor.inspector.registerProvider
    */
   ui.propertyForm = function (opts) {
     const o = opts || {}
-    const targets   = ui.isSignal(o.targets) ? o.targets : aeditor.signal(o.targets || [])
-    const schemaSig = ui.isSignal(o.schema)  ? o.schema  : aeditor.signal(o.schema  || {})
+    const targets   = ui.isSignal(o.targets) ? o.targets : aiditor.signal(o.targets || [])
+    const schemaSig = ui.isSignal(o.schema)  ? o.schema  : aiditor.signal(o.schema  || {})
     const disabled  = ui.asSig(o.disabled != null ? o.disabled : false)
     const defaults  = o.defaults || null
     const onChange  = typeof o.onChange === 'function' ? o.onChange : null
@@ -66,10 +66,10 @@
     const canEdit = typeof o.canEdit === 'function' ? o.canEdit : null
     const ctx       = o.ctx
 
-    const root = ui.h('div', 'aeditor-ui-property-form')
+    const root = ui.h('div', 'aiditor-ui-property-form')
     ui.bind(root, disabled, function (v) { root.toggleAttribute('inert', !!v) })
 
-    const composite = aeditor.derived(function () {
+    const composite = aiditor.derived(function () {
       const arr    = targets() || []
       if (arr.length === 0) return {}
       return arr[0] || {}
@@ -93,12 +93,12 @@
     // without any cross-instance bookkeeping.
     let mounted = []
     let mountedSchemaKey = null
-    const stopSchema = aeditor.effect(function () {
+    const stopSchema = aiditor.effect(function () {
       const schema = schemaSig() || {}
       const schemaKey = JSON.stringify(schema)
       if (schemaKey === mountedSchemaKey) return
       mountedSchemaKey = schemaKey
-      aeditor.untracked(function () {
+      aiditor.untracked(function () {
         mounted.forEach(function (n) { ui.dispose(n); if (n.parentNode) n.parentNode.removeChild(n) })
         mounted = []
 
@@ -133,7 +133,7 @@
               title:    ui.PROP_GROUP_LABELS[g.name] || g.name,
               children: [body],
             })
-            mountedEl.classList.add('aeditor-ui-property-section')
+            mountedEl.classList.add('aiditor-ui-property-section')
           } else {
             mountedEl = body
           }
@@ -173,7 +173,7 @@
   }
 
   function fieldDisabled(targets, requireAllTargets, canEdit, field, raw) {
-    return aeditor.derived(function () {
+    return aiditor.derived(function () {
       const arr = targets() || []
       if (raw && raw.disabled === true) return true
       if (requireAllTargets && !allHave(arr, field)) return true
@@ -192,7 +192,7 @@
   // when the current slot value already equals that default.
   function slotEditor(slotSig, write, innerCtx, fieldDef, fname, defaults, disabled) {
     const editorEl = ui.editorFor(fieldDef, slotSig, write, innerCtx)
-    const slot = ui.h('div', 'aeditor-ui-slot')
+    const slot = ui.h('div', 'aiditor-ui-slot')
     slot.appendChild(editorEl)
     if (defaults) slot.appendChild(buildReset(slotSig, write, function () {
       const current = defaultsFor(defaults) || {}
@@ -203,7 +203,7 @@
     }))
     ui.bind(slot, disabled, function (v) {
       slot.toggleAttribute('inert', !!v)
-      slot.classList.toggle('aeditor-ui-slot-disabled', !!v)
+      slot.classList.toggle('aiditor-ui-slot-disabled', !!v)
       slot.title = v ? 'Not editable for the current selection' : ''
     })
     ui.collect(slot, disabled.dispose)
@@ -220,13 +220,13 @@
       icon: 'refresh', kind: 'ghost', size: 'sm', title: 'Reset to default',
       onClick: function () { if (hasDefault()) write(defaultValue()) },
     })
-    btn.classList.add('aeditor-ui-slot-reset')
+    btn.classList.add('aiditor-ui-slot-reset')
     // Fade when already at default — visual cue that the button is a
     // no-op right now without removing it (so layout doesn't shift).
     // undefined / null / '' are treated as the same "empty" state so a
     // freshly-created node (where the field was never set) reads as
     // "at default" even when the default literal is ''.
-    ui.collect(btn, aeditor.effect(function () {
+    ui.collect(btn, aiditor.effect(function () {
       const v = slotSig()
       const has = hasDefault()
       const atDefault = has && isAtDefault(v, defaultValue())
@@ -248,4 +248,4 @@
     if (typeof a !== 'object' || typeof b !== 'object') return false
     return JSON.stringify(a) === JSON.stringify(b)
   }
-})(window.aeditor = window.aeditor || {})
+})(window.aiditor = window.aiditor || {})

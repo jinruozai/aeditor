@@ -1,6 +1,6 @@
 # AI Reference / Operation Architecture
 
-AEditor treats AI as another editor operator. The framework should not know
+Aiditor treats AI as another editor operator. The framework should not know
 game data tables, animation keyframes, theme tokens, or node graphs. It should
 know how to reference editor objects, ask the host how to read them, preview a
 host operation, and commit that operation through the host transaction path.
@@ -55,7 +55,7 @@ gde://entity/monster/1001
 gde://field/monster/1001/hp
 gani://state/s1/track/0/3
 gani://state/s1/selection
-theme://token/--aeditor-brand
+theme://token/--aiditor-brand
 ```
 
 Index-heavy editors should include enough metadata to detect stale references,
@@ -67,7 +67,7 @@ fingerprint.
 Each domain registers a provider:
 
 ```js
-aeditor.ai.references.register("gde", {
+aiditor.ai.references.register("gde", {
   describe(ref, ctx) {},
   read(ref, options, ctx) {},
   schema(ref, ctx) {},
@@ -98,7 +98,7 @@ prompt wording.
 All writes and editor commands go through host-owned operations:
 
 ```js
-aeditor.ai.operations.register("gde.patch", {
+aiditor.ai.operations.register("gde.patch", {
   title: "Patch Game Data",
   schema: patchSchema,
   risk(input, ctx) {},
@@ -161,7 +161,7 @@ not trust model input; it applies only host-validated data.
 The framework exposes a transaction bridge:
 
 ```js
-aeditor.ai.transactions.configure({
+aiditor.ai.transactions.configure({
   run(label, fn, meta) {
     history.begin(label)
     try {
@@ -206,12 +206,12 @@ them.
 The AI runtime exposes a small fixed tool surface:
 
 ```text
-aeditor.readReference
-aeditor.searchReferences
-aeditor.getSelection
-aeditor.getCapabilities
-aeditor.previewOperation
-aeditor.applyOperation
+aiditor.readReference
+aiditor.searchReferences
+aiditor.getSelection
+aiditor.getCapabilities
+aiditor.previewOperation
+aiditor.applyOperation
 ```
 
 Domain power comes from registered providers and operations, not from creating a
@@ -222,17 +222,17 @@ new framework tool for every domain object.
 UI code stays thin:
 
 ```js
-aeditor.ai.attach(rowEl, GDE.refs.entity(table, id), { drag: true })
-aeditor.ai.attach(labelEl, GDE.refs.field(table, id, field), { menu: true })
+aiditor.ai.attach(rowEl, GDE.refs.entity(table, id), { drag: true })
+aiditor.ai.attach(labelEl, GDE.refs.field(table, id, field), { menu: true })
 ```
 
-`aeditor.ai.attach` is an alias for the existing target binding behavior. The visible
+`aiditor.ai.attach` is an alias for the existing target binding behavior. The visible
 menu item remains `Add to Chat`.
 
 Property rows may pass references directly:
 
 ```js
-aeditor.ui.propRow({
+aiditor.ui.propRow({
   label: "HP",
   control,
   ai: GDE.refs.field("monster", id, "hp")

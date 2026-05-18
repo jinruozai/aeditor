@@ -1,4 +1,4 @@
-// aeditor.ui.image — bitmap/raster image primitive.
+// aiditor.ui.image — bitmap/raster image primitive.
 //
 // opts:
 //   src       : string | signal<string>           image URL
@@ -8,9 +8,9 @@
 // Sizing comes from CSS — the <img> fills its parent by default; consumers
 // shape it via the standard BOX_STYLE props (width/height/border/radius/…)
 // applied to the wrapping element by the component registration.
-;(function (aeditor) {
+;(function (aiditor) {
   'use strict'
-  const ui = aeditor.ui = aeditor.ui || {}
+  const ui = aiditor.ui = aiditor.ui || {}
 
   ui.image = function (opts) {
     const o = opts || {}
@@ -18,7 +18,7 @@
     const alt = ui.asSig(o.alt != null ? o.alt : '')
     const fit = ui.asSig(o.objectFit != null ? o.objectFit : 'cover')
 
-    const el = ui.h('img', 'aeditor-ui-image')
+    const el = ui.h('img', 'aiditor-ui-image')
     el.setAttribute('draggable', 'false')
     el.addEventListener('error', function () { el.removeAttribute('src') })
     ui.bind(el, src, function (v) {
@@ -30,4 +30,4 @@
     ui.bind(el, fit, function (v) { el.style.objectFit = v || 'cover' })
     return el
   }
-})(window.aeditor = window.aeditor || {})
+})(window.aiditor = window.aiditor || {})

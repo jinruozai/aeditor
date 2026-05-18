@@ -2,11 +2,11 @@
   "version": 1,
   "entries": [
     {
-      "id": "aeditor.addPanelToDock",
+      "id": "aiditor.addPanelToDock",
       "group": "ai-tools",
       "layer": "ai-host",
       "kind": "ai-tool",
-      "signature": "aeditor.addPanelToDock({ dock, component, path?, title?, props?, transient? })",
+      "signature": "aiditor.addPanelToDock({ dock, component, path?, title?, props?, transient? })",
       "summary": "Add a registered or workspace-file component as a new panel in a runtime dock. If path is provided, the script is loaded before adding the panel.",
       "params": [
         {
@@ -50,23 +50,23 @@
         "description": "Applied operation result."
       },
       "examples": [
-        "aeditor.addPanelToDock({\n  dock: 'dock-2',\n  component: 'three-scene',\n  path: 'three-scene.js',\n  title: '3D Scene',\n})"
+        "aiditor.addPanelToDock({\n  dock: 'dock-2',\n  component: 'three-scene',\n  path: 'three-scene.js',\n  title: '3D Scene',\n})"
       ],
       "wrong": [],
       "related": [
-        "aeditor.inspectDocks",
-        "aeditor.runtime.loadScript",
-        "aeditor.reloadPanel",
-        "aeditor.replacePanel"
+        "aiditor.inspectDocks",
+        "aiditor.runtime.loadScript",
+        "aiditor.reloadPanel",
+        "aiditor.replacePanel"
       ],
       "source": "src/extensions/ai.js"
     },
     {
-      "id": "aeditor.inspectDocks",
+      "id": "aiditor.inspectDocks",
       "group": "ai-tools",
       "layer": "ai-host",
       "kind": "ai-tool",
-      "signature": "aeditor.inspectDocks({ layout? })",
+      "signature": "aiditor.inspectDocks({ layout? })",
       "summary": "List current dock ids, names, viewport rects, panels, active panel, and accept rules so agents can choose a real runtime dock.",
       "params": [
         {
@@ -85,21 +85,21 @@
         "description": "Dock summaries."
       },
       "examples": [
-        "aeditor.inspectDocks({})"
+        "aiditor.inspectDocks({})"
       ],
       "wrong": [],
       "related": [
-        "aeditor.addPanelToDock",
-        "aeditor.replacePanel"
+        "aiditor.addPanelToDock",
+        "aiditor.replacePanel"
       ],
       "source": "src/extensions/ai.js"
     },
     {
-      "id": "aeditor.inspector.refresh",
+      "id": "aiditor.inspector.refresh",
       "group": "inspector",
       "layer": "core-ui",
       "kind": "js-api",
-      "signature": "aeditor.inspector.refresh()",
+      "signature": "aiditor.inspector.refresh()",
       "summary": "Notify inspector panels to re-read the current selection after external state changes.",
       "params": [],
       "returns": {
@@ -107,21 +107,21 @@
         "description": "No return value."
       },
       "examples": [
-        "cubeState.color = '#ffcc00'\naeditor.inspector.refresh()"
+        "cubeState.color = '#ffcc00'\naiditor.inspector.refresh()"
       ],
       "wrong": [],
       "related": [
-        "aeditor.inspector.select",
-        "aeditor.inspector.registerProvider"
+        "aiditor.inspector.select",
+        "aiditor.inspector.registerProvider"
       ],
       "source": "src/ui/inspector.js"
     },
     {
-      "id": "aeditor.inspector.registerProvider",
+      "id": "aiditor.inspector.registerProvider",
       "group": "inspector",
       "layer": "core-ui",
       "kind": "js-api",
-      "signature": "aeditor.inspector.registerProvider(type, provider, meta?)",
+      "signature": "aiditor.inspector.registerProvider(type, provider, meta?)",
       "summary": "Register the editor-owned provider that turns selected targets of one type into an inspector schema, values, and write handlers.",
       "params": [
         {
@@ -145,24 +145,24 @@
         "description": "unregister callback."
       },
       "examples": [
-        "aeditor.inspector.registerProvider('cube', {\n  inspect: function (targets) {\n    return {\n      schema: {\n        x: { type: 'number', label: 'X', step: 0.1 },\n        color: { type: 'color', label: 'Color' },\n      },\n      values: targets.map(function (target) { return target.value }),\n      write: function (field, change, ctx) {\n        ctx.targets.forEach(function (target, index) {\n          target.value[field] = ctx.valueForChange(change, target, index)\n        })\n      },\n    }\n  },\n})"
+        "aiditor.inspector.registerProvider('cube', {\n  inspect: function (targets) {\n    return {\n      schema: {\n        x: { type: 'number', label: 'X', step: 0.1 },\n        color: { type: 'color', label: 'Color' },\n      },\n      values: targets.map(function (target) { return target.value }),\n      write: function (field, change, ctx) {\n        ctx.targets.forEach(function (target, index) {\n          target.value[field] = ctx.valueForChange(change, target, index)\n        })\n      },\n    }\n  },\n})"
       ],
       "wrong": [
-        "aeditor.inspector.registerProvider({\n  id: 'cube',\n  getProperties: function () {},\n  patchProperties: function () {},\n})"
+        "aiditor.inspector.registerProvider({\n  id: 'cube',\n  getProperties: function () {},\n  patchProperties: function () {},\n})"
       ],
       "related": [
-        "aeditor.inspector.select",
-        "aeditor.inspector.refresh",
-        "aeditor.ui.propertyForm"
+        "aiditor.inspector.select",
+        "aiditor.inspector.refresh",
+        "aiditor.ui.propertyForm"
       ],
       "source": "src/ui/inspector.js"
     },
     {
-      "id": "aeditor.inspector.select",
+      "id": "aiditor.inspector.select",
       "group": "inspector",
       "layer": "core-ui",
       "kind": "js-api",
-      "signature": "aeditor.inspector.select(targets, meta?)",
+      "signature": "aiditor.inspector.select(targets, meta?)",
       "summary": "Set the ordered inspector selection. The first target is primary; multi-edit uses only fields present and writable on every target.",
       "params": [
         {
@@ -181,21 +181,21 @@
         "description": "No return value."
       },
       "examples": [
-        "aeditor.inspector.select([\n  { type: 'cube', id: 'cube-1', value: cubeState },\n])"
+        "aiditor.inspector.select([\n  { type: 'cube', id: 'cube-1', value: cubeState },\n])"
       ],
       "wrong": [],
       "related": [
-        "aeditor.inspector.registerProvider",
-        "aeditor.inspector.refresh"
+        "aiditor.inspector.registerProvider",
+        "aiditor.inspector.refresh"
       ],
       "source": "src/ui/inspector.js"
     },
     {
-      "id": "aeditor.registerComponent",
+      "id": "aiditor.registerComponent",
       "group": "component",
       "layer": "core",
       "kind": "js-api",
-      "signature": "aeditor.registerComponent(name, spec, meta?)",
+      "signature": "aiditor.registerComponent(name, spec, meta?)",
       "summary": "Register a component that can be used as a panel, toolbar item, UI tree node, or palette item.",
       "params": [
         {
@@ -219,23 +219,23 @@
         "description": "The registered component spec."
       },
       "examples": [
-        "aeditor.registerComponent('hello-panel', {\n  label: 'Hello Panel',\n  factory: function (propsSig, ctx) {\n    var el = document.createElement('div')\n    el.textContent = 'Hello'\n    return el\n  },\n  defaults: function () { return { title: 'Hello' } },\n})"
+        "aiditor.registerComponent('hello-panel', {\n  label: 'Hello Panel',\n  factory: function (propsSig, ctx) {\n    var el = document.createElement('div')\n    el.textContent = 'Hello'\n    return el\n  },\n  defaults: function () { return { title: 'Hello' } },\n})"
       ],
       "wrong": [
-        "aeditor.registerComponent('hello-panel', { render: function () {} })"
+        "aiditor.registerComponent('hello-panel', { render: function () {} })"
       ],
       "related": [
-        "aeditor.runtime.loadScript",
-        "aeditor.addPanelToDock"
+        "aiditor.runtime.loadScript",
+        "aiditor.addPanelToDock"
       ],
       "source": "src/core/registry.js"
     },
     {
-      "id": "aeditor.reloadPanel",
+      "id": "aiditor.reloadPanel",
       "group": "ai-tools",
       "layer": "ai-host",
       "kind": "ai-tool",
-      "signature": "aeditor.reloadPanel({ panelId, path?, component? })",
+      "signature": "aiditor.reloadPanel({ panelId, path?, component? })",
       "summary": "Reload one existing panel instance after its component file changes. Keeps the same panel id, dock position, title, props, and component.",
       "params": [
         {
@@ -246,7 +246,7 @@
         {
           "type": "string",
           "name": "input.panelId",
-          "description": "Existing panel instance id returned by aeditor.inspectDocks."
+          "description": "Existing panel instance id returned by aiditor.inspectDocks."
         },
         {
           "type": "string",
@@ -264,22 +264,22 @@
         "description": "Applied operation result."
       },
       "examples": [
-        "aeditor.reloadPanel({\n  panelId: 'panel-12',\n  path: 'login-panel.js',\n})"
+        "aiditor.reloadPanel({\n  panelId: 'panel-12',\n  path: 'login-panel.js',\n})"
       ],
       "wrong": [],
       "related": [
-        "aeditor.inspectDocks",
-        "aeditor.addPanelToDock",
-        "aeditor.replacePanel"
+        "aiditor.inspectDocks",
+        "aiditor.addPanelToDock",
+        "aiditor.replacePanel"
       ],
       "source": "src/extensions/ai.js"
     },
     {
-      "id": "aeditor.replacePanel",
+      "id": "aiditor.replacePanel",
       "group": "ai-tools",
       "layer": "ai-host",
       "kind": "ai-tool",
-      "signature": "aeditor.replacePanel({ panelId, component, path?, title?, props?, transient?, discardDirty? })",
+      "signature": "aiditor.replacePanel({ panelId, component, path?, title?, props?, transient?, discardDirty? })",
       "summary": "Replace one existing panel instance with another component while keeping its dock position. Use reloadPanel after editing the same component file.",
       "params": [
         {
@@ -323,22 +323,22 @@
         "description": "Applied operation result."
       },
       "examples": [
-        "aeditor.replacePanel({\n  panelId: 'panel-12',\n  component: 'cube-inspector',\n  path: 'cube-inspector.js',\n})"
+        "aiditor.replacePanel({\n  panelId: 'panel-12',\n  component: 'cube-inspector',\n  path: 'cube-inspector.js',\n})"
       ],
       "wrong": [],
       "related": [
-        "aeditor.inspectDocks",
-        "aeditor.addPanelToDock",
-        "aeditor.reloadPanel"
+        "aiditor.inspectDocks",
+        "aiditor.addPanelToDock",
+        "aiditor.reloadPanel"
       ],
       "source": "src/extensions/ai.js"
     },
     {
-      "id": "aeditor.runtime.loadScript",
+      "id": "aiditor.runtime.loadScript",
       "group": "runtime",
       "layer": "core",
       "kind": "js-api",
-      "signature": "aeditor.runtime.loadScript({ id?, source?, url?, path?, owner?, layer?, type? })",
+      "signature": "aiditor.runtime.loadScript({ id?, source?, url?, path?, owner?, layer?, type? })",
       "summary": "Execute a workspace or host script with default owner/layer metadata so its registrations can be cleaned up as one contribution group.",
       "params": [
         {
@@ -377,21 +377,21 @@
         "description": "Load result with ok/id/owner/layer/type."
       },
       "examples": [
-        "aeditor.runtime.loadScript({\n  path: 'three-scene.js',\n  source: text,\n  owner: 'workspace:game',\n  layer: 'workspace',\n})"
+        "aiditor.runtime.loadScript({\n  path: 'three-scene.js',\n  source: text,\n  owner: 'workspace:game',\n  layer: 'workspace',\n})"
       ],
       "wrong": [],
       "related": [
-        "aeditor.registerComponent",
-        "aeditor.addPanelToDock"
+        "aiditor.registerComponent",
+        "aiditor.addPanelToDock"
       ],
       "source": "src/core/runtime.js"
     },
     {
-      "id": "aeditor.ui.propertyForm",
+      "id": "aiditor.ui.propertyForm",
       "group": "ui",
       "layer": "core-ui",
       "kind": "js-api",
-      "signature": "aeditor.ui.propertyForm(opts)",
+      "signature": "aiditor.ui.propertyForm(opts)",
       "summary": "Render a schema-driven property editor for one target or a multi-target batch edit. Multi-target reads use the first target value; writes fan out only through enabled fields.",
       "params": [
         {
@@ -430,11 +430,11 @@
         "description": "Property form root element."
       },
       "examples": [
-        "var form = aeditor.ui.propertyForm({\n  targets: aeditor.signal([{ x: 0, color: '#44aaff' }]),\n  schema: { x: { type: 'number' }, color: { type: 'color' } },\n})"
+        "var form = aiditor.ui.propertyForm({\n  targets: aiditor.signal([{ x: 0, color: '#44aaff' }]),\n  schema: { x: { type: 'number' }, color: { type: 'color' } },\n})"
       ],
       "wrong": [],
       "related": [
-        "aeditor.inspector.registerProvider"
+        "aiditor.inspector.registerProvider"
       ],
       "source": "src/ui/form/propertyForm.js"
     }

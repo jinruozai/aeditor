@@ -1,18 +1,18 @@
-// aeditor.ui.copyButton — icon button that copies text and gives success feedback.
+// aiditor.ui.copyButton — icon button that copies text and gives success feedback.
 //
 // opts:
 //   text    : string | () => string | signal<string>
 //   title?  : string | signal<string>   default: 'Copy'
 //   copiedTitle?                     default: 'Copied'
 //   size?   : 'sm' | 'md' | 'lg' | signal
-;(function (aeditor) {
+;(function (aiditor) {
   'use strict'
-  const ui = aeditor.ui = aeditor.ui || {}
+  const ui = aiditor.ui = aiditor.ui || {}
 
   ui.copyButton = function (opts) {
     const o = opts || {}
-    const copied = aeditor.signal(false)
-    const copyTitle = aeditor.derived(function () { return readValue(o.title) || 'Copy' })
+    const copied = aiditor.signal(false)
+    const copyTitle = aiditor.derived(function () { return readValue(o.title) || 'Copy' })
     let timer = 0
 
     const btn = ui.stateButton({
@@ -33,7 +33,7 @@
         })
       },
     })
-    btn.classList.add('aeditor-ui-copy-btn')
+    btn.classList.add('aiditor-ui-copy-btn')
     ui.collect(btn, copyTitle.dispose)
     ui.collect(btn, function () { if (timer) clearTimeout(timer) })
     return btn
@@ -68,4 +68,4 @@
     document.execCommand('copy')
     ta.remove()
   }
-})(window.aeditor = window.aeditor || {})
+})(window.aiditor = window.aiditor || {})

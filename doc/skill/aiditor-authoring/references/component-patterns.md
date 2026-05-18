@@ -1,11 +1,11 @@
 # Component Patterns
 
-Load this reference when you are writing or reviewing AEditor component code.
+Load this reference when you are writing or reviewing Aiditor component code.
 
 ## Component Contract
 
 ```js
-aeditor.registerComponent('domain.name', {
+aiditor.registerComponent('domain.name', {
   category: 'panel',
   label: 'Readable Name',
   defaults: function () {
@@ -24,12 +24,12 @@ any resources it creates.
 
 ## Signals
 
-Use AEditor signals for component state:
+Use Aiditor signals for component state:
 
 ```js
-const value = aeditor.signal('hello')
+const value = aiditor.signal('hello')
 
-ctx.onCleanup(aeditor.effect(function () {
+ctx.onCleanup(aiditor.effect(function () {
   const props = propsSig() || {}
   value(props.text || '')
 }))
@@ -55,17 +55,17 @@ areas. Avoid fixed viewport sizes inside panels.
 
 ## UI Library
 
-Prefer AEditor UI primitives when the UI layer is loaded:
+Prefer Aiditor UI primitives when the UI layer is loaded:
 
 ```js
-const name = aeditor.signal('Untitled')
+const name = aiditor.signal('Untitled')
 
-root.appendChild(aeditor.ui.view({
+root.appendChild(aiditor.ui.view({
   scroll: 'y',
   padding: true,
   children: [
-    aeditor.ui.input({ value: name, placeholder: 'Name' }),
-    aeditor.ui.button({
+    aiditor.ui.input({ value: name, placeholder: 'Name' }),
+    aiditor.ui.button({
       text: 'Save',
       icon: 'save',
       kind: 'primary',
@@ -78,17 +78,17 @@ root.appendChild(aeditor.ui.view({
 Use the matching component for buttons, icon buttons, form fields, lists, trees,
 tables, menus, popovers, modals, drawers, toasts, and scroll surfaces.
 
-If the host loaded only `aeditor-kernel`, write plain DOM inside component
-roots or ask the host to load `aeditor-ui` before using `aeditor.ui.*`.
+If the host loaded only `aiditor-kernel`, write plain DOM inside component
+roots or ask the host to load `aiditor-ui` before using `aiditor.ui.*`.
 
 ## Property Forms And Inspector
 
-Use `aeditor.ui.propertyForm` when the current component owns the objects being
+Use `aiditor.ui.propertyForm` when the current component owns the objects being
 edited:
 
 ```js
-const targets = aeditor.signal([{ name: 'Node', visible: true }])
-root.appendChild(aeditor.ui.propertyForm({
+const targets = aiditor.signal([{ name: 'Node', visible: true }])
+root.appendChild(aiditor.ui.propertyForm({
   targets: targets,
   schema: {
     name: { type: 'string' },
@@ -104,13 +104,13 @@ root.appendChild(aeditor.ui.propertyForm({
 }))
 ```
 
-Use `aeditor.inspector` when selection comes from different panels or canvases
+Use `aiditor.inspector` when selection comes from different panels or canvases
 and a shared dock panel should inspect it. Register one provider per domain
-target type, call `aeditor.inspector.select(targets)` from selection surfaces,
+target type, call `aiditor.inspector.select(targets)` from selection surfaces,
 and mount the built-in `inspector` component.
 
 ```js
-aeditor.inspector.registerProvider('three.cube', {
+aiditor.inspector.registerProvider('three.cube', {
   inspect: function (targets, ctx) {
     return {
       title: 'Cube',
@@ -123,13 +123,13 @@ aeditor.inspector.registerProvider('three.cube', {
       write: function (field, change, writeCtx) {
         cubeState[field] = writeCtx.valueForChange(change, writeCtx.primary, 0, writeCtx)
         applyCubeState(cubeState)
-        aeditor.inspector.refresh()
+        aiditor.inspector.refresh()
       },
     }
   },
 })
 
-aeditor.inspector.select({ type: 'three.cube', id: 'cube', title: 'Cube' })
+aiditor.inspector.select({ type: 'three.cube', id: 'cube', title: 'Cube' })
 ```
 
 Inspector multi-selection is ordered. The first target is primary and supplies
@@ -147,7 +147,7 @@ const off = ctx.bus.on('selection.changed', function (payload) {
 
 const timer = setInterval(tick, 1000)
 ctx.onCleanup(function () { clearInterval(timer) })
-ctx.onCleanup(function () { aeditor.ui.dispose(root) })
+ctx.onCleanup(function () { aiditor.ui.dispose(root) })
 ```
 
 `ctx.bus.on` already auto-cleans when the panel is disposed. Call the returned
@@ -160,12 +160,12 @@ Toolbar components use the same component contract. Static toolbar items have
 panel.
 
 ```js
-aeditor.registerComponent('demo.toolbar.tabs', {
+aiditor.registerComponent('demo.toolbar.tabs', {
   category: 'toolbar',
   defaults: function () { return { props: {} } },
   factory: function (_, ctx) {
-    const root = aeditor.ui.h('div', 'demo-toolbar-tabs')
-    ctx.onCleanup(aeditor.effect(function () {
+    const root = aiditor.ui.h('div', 'demo-toolbar-tabs')
+    ctx.onCleanup(aiditor.effect(function () {
       const panels = ctx.dock.panels()
       const activeId = ctx.dock.activeId()
       root.textContent = panels.map(function (panel) {
@@ -182,5 +182,5 @@ aeditor.registerComponent('demo.toolbar.tabs', {
 - Registering the same component twice.
 - Passing source code as a panel prop.
 - Writing large app state into `ctx.panel.updateProps` on every animation frame.
-- Using hidden DOM panels instead of AEditor's detached inactive panel model.
+- Using hidden DOM panels instead of Aiditor's detached inactive panel model.
 - Adding application shortcuts to framework source.

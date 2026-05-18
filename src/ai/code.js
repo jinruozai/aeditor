@@ -1,8 +1,8 @@
-// aeditor.ai code tools - generic workspace code context.
-;(function (aeditor) {
+// aiditor.ai code tools - generic workspace code context.
+;(function (aiditor) {
   'use strict'
 
-  const ai = aeditor.ai = aeditor.ai || {}
+  const ai = aiditor.ai = aiditor.ai || {}
 
   const CODE_EXT = {
     js: true,
@@ -96,7 +96,7 @@
         line.indexOf('dispatchEvent') >= 0 ||
         line.indexOf('.on(') >= 0 ||
         line.indexOf('ctx.bus') >= 0 ||
-        line.indexOf('aeditor.bus') >= 0 ||
+        line.indexOf('aiditor.bus') >= 0 ||
         line.indexOf('onCleanup') >= 0 ||
         line.indexOf('register') >= 0
       ) {
@@ -106,7 +106,7 @@
 
     return {
       path: path,
-      hash: aeditor.workspace.hashText(text),
+      hash: aiditor.workspace.hashText(text),
       size: String(text == null ? '' : text).length,
       lines: lines.length,
       symbols: symbols,
@@ -161,7 +161,7 @@
   }
 
   function registerTools() {
-    const owner = 'aeditor.ai.code'
+    const owner = 'aiditor.ai.code'
     ai.tools.register('code.outline', {
       title: 'Outline Code File',
       description: 'Read a compact structural outline for one workspace code file.',
@@ -186,4 +186,4 @@
   }
 
   registerTools()
-})(window.aeditor = window.aeditor || {})
+})(window.aiditor = window.aiditor || {})

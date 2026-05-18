@@ -7,9 +7,9 @@
 //
 // Floating elements MUST already be in the portal layer (so we measure them
 // as fixed-positioned, no parent layout influence).
-;(function (aeditor) {
+;(function (aiditor) {
   'use strict'
-  const ui = aeditor.ui = aeditor.ui || {}
+  const ui = aiditor.ui = aiditor.ui || {}
 
   // place(anchor, floating, opts)
   //   opts.side    : 'top' | 'bottom' | 'left' | 'right'   (default 'bottom')
@@ -73,4 +73,4 @@
     floating.style.top  = p.top  + 'px'
     floating.style.visibility = ''
   }
-})(window.aeditor = window.aeditor || {})
+})(window.aiditor = window.aiditor || {})

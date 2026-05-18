@@ -7,8 +7,8 @@
 // fragments small (and identical in construction) lets `ui.icon` swap
 // between named icons without touching attributes.
 //
-// Users can extend or override via `aeditor.ui.registerIcon(name, innerMarkup)`.
-;(function (aeditor) {
+// Users can extend or override via `aiditor.ui.registerIcon(name, innerMarkup)`.
+;(function (aiditor) {
   'use strict'
 
   const ICONS = {
@@ -105,8 +105,8 @@
     return Object.prototype.hasOwnProperty.call(ICONS, name)
   }
 
-  aeditor.ui = aeditor.ui || {}
-  aeditor.ui.registerIcon = registerIcon
-  aeditor.ui._getIcon     = getIcon
-  aeditor.ui._hasIcon     = hasIcon
-})(window.aeditor = window.aeditor || {})
+  aiditor.ui = aiditor.ui || {}
+  aiditor.ui.registerIcon = registerIcon
+  aiditor.ui._getIcon     = getIcon
+  aiditor.ui._hasIcon     = hasIcon
+})(window.aiditor = window.aiditor || {})

@@ -1,9 +1,9 @@
-// aeditor.shortcuts — generic keyboard shortcut registry.
+// aiditor.shortcuts — generic keyboard shortcut registry.
 //
 // The framework owns only the input-routing mechanism: matching keys,
 // scoping, priority, cleanup, and editable/overlay guards. It does not bind
 // application actions by default.
-;(function (aeditor) {
+;(function (aiditor) {
   'use strict'
 
   const entries = []
@@ -13,7 +13,7 @@
 
   function isEditableTarget(el) {
     return !!(el && el.closest && el.closest(
-      'input,textarea,select,[contenteditable="true"],.aeditor-ui-menu,.aeditor-ui-modal'
+      'input,textarea,select,[contenteditable="true"],.aiditor-ui-menu,.aiditor-ui-modal'
     ))
   }
 
@@ -65,7 +65,7 @@
       const at = entries.indexOf(item)
       if (at >= 0) entries.splice(at, 1)
     }
-    if (owner && aeditor.ui && aeditor.ui.collect) aeditor.ui.collect(owner, off)
+    if (owner && aiditor.ui && aiditor.ui.collect) aiditor.ui.collect(owner, off)
     return off
   }
 
@@ -74,9 +74,9 @@
     return el
   }
 
-  aeditor.shortcuts = {
+  aiditor.shortcuts = {
     register: register,
     scope: scope,
     isEditableTarget: isEditableTarget,
   }
-})(window.aeditor = window.aeditor || {})
+})(window.aiditor = window.aiditor || {})

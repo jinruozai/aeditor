@@ -11,7 +11,7 @@ platform inside Core. Host apps teach the model through references, tools,
 operations, skills, and normal registered UI components. They do not get a
 private AI path.
 
-Any AEditor module can contribute to AI by registering tools, context
+Any Aiditor module can contribute to AI by registering tools, context
 references, or operations. `workspace.*`, `theme.*`, `dock.*`, `ui.*`, extension
 prefixes, and product prefixes all use the same registries.
 
@@ -19,14 +19,14 @@ Skills are agent behavior profiles. They add prompt guidance and rules to an
 agent; they are not tools, context references, or operations.
 
 Generated API references are the exact-call companion to skills. Structured
-comments in `src/` generate `doc/api`, `dist/aeditor-api.json`, and runtime
-`aeditor://api/...` references. Skills may explain when to use a concept, but
+comments in `src/` generate `doc/api`, `dist/aiditor-api.json`, and runtime
+`aiditor://api/...` references. Skills may explain when to use a concept, but
 agents should read generated API references before calling unfamiliar framework
 APIs.
 
-Skills are discoverable too. `aeditor://skills` lists registered skills and
+Skills are discoverable too. `aiditor://skills` lists registered skills and
 when to use them; concrete skill URIs contain the full rules. This keeps the
-default prompt small while still letting agents choose the correct AEditor
+default prompt small while still letting agents choose the correct Aiditor
 workflow.
 
 ## Public Concept Model
@@ -81,12 +81,12 @@ gde.table.patchRows
 Target API:
 
 ```js
-aeditor.ai.tools.register(name, spec, meta)
-aeditor.ai.tools.unregister(name)
-aeditor.ai.tools.unregisterOwner(owner)
-aeditor.ai.tools.unregisterPrefix(prefix)
-aeditor.ai.tools.get(name)
-aeditor.ai.tools.list(prefix)
+aiditor.ai.tools.register(name, spec, meta)
+aiditor.ai.tools.unregister(name)
+aiditor.ai.tools.unregisterOwner(owner)
+aiditor.ai.tools.unregisterPrefix(prefix)
+aiditor.ai.tools.get(name)
+aiditor.ai.tools.list(prefix)
 ```
 
 Tool names use dotted paths. Prefixes are public grouping. Extension lifecycle
@@ -96,8 +96,8 @@ The request builder sends only model-visible and currently available tools to
 the provider:
 
 ```js
-aeditor.ai.tools.register('workspace.readFile', {
-  available: function () { return !!aeditor.ai.currentWorkspace() },
+aiditor.ai.tools.register('workspace.readFile', {
+  available: function () { return !!aiditor.ai.currentWorkspace() },
   run: readFile,
 })
 ```
@@ -122,12 +122,12 @@ gde.tableSchema
 Target API:
 
 ```js
-aeditor.ai.context.register(name, spec, meta)
-aeditor.ai.context.unregister(name, meta)
-aeditor.ai.context.unregisterOwner(owner)
-aeditor.ai.context.unregisterPrefix(prefix)
-aeditor.ai.context.get(name)
-aeditor.ai.context.list(prefix)
+aiditor.ai.context.register(name, spec, meta)
+aiditor.ai.context.unregister(name, meta)
+aiditor.ai.context.unregisterOwner(owner)
+aiditor.ai.context.unregisterPrefix(prefix)
+aiditor.ai.context.get(name)
+aiditor.ai.context.list(prefix)
 ```
 
 The API name is `context`; the public concept is "Context Reference" because
@@ -150,14 +150,14 @@ ani.timeline.moveKeys
 Target API:
 
 ```js
-aeditor.ai.operations.register(name, spec, meta)
-aeditor.ai.operations.unregister(name)
-aeditor.ai.operations.unregisterOwner(owner)
-aeditor.ai.operations.unregisterPrefix(prefix)
-aeditor.ai.operations.get(name)
-aeditor.ai.operations.list(prefix)
-aeditor.ai.operations.preview(name, input)
-aeditor.ai.operations.apply(preview)
+aiditor.ai.operations.register(name, spec, meta)
+aiditor.ai.operations.unregister(name)
+aiditor.ai.operations.unregisterOwner(owner)
+aiditor.ai.operations.unregisterPrefix(prefix)
+aiditor.ai.operations.get(name)
+aiditor.ai.operations.list(prefix)
+aiditor.ai.operations.preview(name, input)
+aiditor.ai.operations.apply(preview)
 ```
 
 Operations are for changes that need validation, preview, review UI, undo
@@ -166,7 +166,7 @@ integration, or resource-version checks.
 AI registries reject duplicate names by default. Use `{ replace: true }` in the
 registration metadata only when replacing an existing contribution is deliberate.
 
-`aeditor.previewOperation` and `aeditor.applyOperation` are low-level bridge
+`aiditor.previewOperation` and `aiditor.applyOperation` are low-level bridge
 tools for internal code and explicitly scoped agents. They should be hidden from
 normal model requests unless a host has a specific reason to expose them.
 

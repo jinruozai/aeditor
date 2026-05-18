@@ -14,7 +14,7 @@
 //
 // All ids are framework-generated (§ 4.13). Users may attach an optional
 // `name` for stable lookup via findByName.
-;(function (aeditor) {
+;(function (aiditor) {
   'use strict'
 
   // ─── id generators (process-global, monotonic) ─────────────
@@ -25,9 +25,9 @@
   function nextPanelId()       { return 'panel-' + (_nextPanelN++) }
   function nextToolbarItemId() { return 'ti-'    + (_nextToolbarN++) }
 
-  aeditor._nextDockId        = nextDockId
-  aeditor._nextPanelId       = nextPanelId
-  aeditor._nextToolbarItemId = nextToolbarItemId
+  aiditor._nextDockId        = nextDockId
+  aiditor._nextPanelId       = nextPanelId
+  aiditor._nextToolbarItemId = nextToolbarItemId
 
   // ─── factories ─────────────────────────────────────────────
   // dock(partial) — never takes an id; it's framework-generated.
@@ -610,30 +610,30 @@
   }
 
   // ─── exports ──────────────────────────────────────────────
-  aeditor.dock          = dock
-  aeditor.panel         = panel
-  aeditor.split         = split
-  aeditor.findDock      = findDock
-  aeditor.findPanel     = findPanel
-  aeditor.findByName    = findByName
-  aeditor.getAt         = getAt
-  aeditor.replaceAt     = replaceAt
-  aeditor.removeAt      = removeAt
-  aeditor.resizeAt      = resizeAt
-  aeditor.updateDock    = updateDock
-  aeditor.setCollapsed  = setCollapsed
-  aeditor.setFocused    = setFocused
-  aeditor.addPanel      = addPanel
-  aeditor.removePanel   = removePanel
-  aeditor.updatePanel   = updatePanel
-  aeditor.replacePanel  = replacePanel
-  aeditor.activatePanel = activatePanel
-  aeditor.promotePanel  = promotePanel
-  aeditor.movePanel     = movePanel
-  aeditor.movePanelToSplit = movePanelToSplit
-  aeditor.reorderPanel  = reorderPanel
-  aeditor.splitDock     = splitDock
-  aeditor.mergeDocks    = mergeDocks
-  aeditor.swapDocks     = swapDocks
-  aeditor.canCollapseDock = canCollapseDock
-})(window.aeditor = window.aeditor || {})
+  aiditor.dock          = dock
+  aiditor.panel         = panel
+  aiditor.split         = split
+  aiditor.findDock      = findDock
+  aiditor.findPanel     = findPanel
+  aiditor.findByName    = findByName
+  aiditor.getAt         = getAt
+  aiditor.replaceAt     = replaceAt
+  aiditor.removeAt      = removeAt
+  aiditor.resizeAt      = resizeAt
+  aiditor.updateDock    = updateDock
+  aiditor.setCollapsed  = setCollapsed
+  aiditor.setFocused    = setFocused
+  aiditor.addPanel      = addPanel
+  aiditor.removePanel   = removePanel
+  aiditor.updatePanel   = updatePanel
+  aiditor.replacePanel  = replacePanel
+  aiditor.activatePanel = activatePanel
+  aiditor.promotePanel  = promotePanel
+  aiditor.movePanel     = movePanel
+  aiditor.movePanelToSplit = movePanelToSplit
+  aiditor.reorderPanel  = reorderPanel
+  aiditor.splitDock     = splitDock
+  aiditor.mergeDocks    = mergeDocks
+  aiditor.swapDocks     = swapDocks
+  aiditor.canCollapseDock = canCollapseDock
+})(window.aiditor = window.aiditor || {})

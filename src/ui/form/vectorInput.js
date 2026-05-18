@@ -1,4 +1,4 @@
-// aeditor.ui.vectorInput — XYZ / XY / XYZW number input (Blender vector).
+// aiditor.ui.vectorInput — XYZ / XY / XYZW number input (Blender vector).
 //
 // Each axis is a numberInput. Channels share one signal holding a
 // number[]. Optional `linked` toggle keeps all axes proportional.
@@ -10,9 +10,9 @@
 //   layout   : 'row'|'column'       default 'column'
 //   step?, precision?
 //   linked   : signal<boolean>      optional toggle for proportional editing
-;(function (aeditor) {
+;(function (aiditor) {
   'use strict'
-  const ui = aeditor.ui = aeditor.ui || {}
+  const ui = aiditor.ui = aiditor.ui || {}
 
   ui.vectorInput = function (opts) {
     const o = opts || {}
@@ -24,23 +24,23 @@
     const layout = ui.asSig(o.layout || 'column')
     const linked = o.linked
 
-    const wrap = ui.h('div', 'aeditor-ui-vec aeditor-ui-vec-' + n)
-    ui.bindClass(wrap, layout, 'aeditor-ui-vec-')
+    const wrap = ui.h('div', 'aiditor-ui-vec aiditor-ui-vec-' + n)
+    ui.bindClass(wrap, layout, 'aiditor-ui-vec-')
 
     // Per-channel signals. Two effects per channel form a sync bridge with
     // a `writing` flag to break feedback loops.
     for (let i = 0; i < n; i++) {
       const idx = i
-      const cs = aeditor.signal(init[idx])
+      const cs = aiditor.signal(init[idx])
       let writing = false
 
       // parent → channel
-      const stop1 = aeditor.effect(function () {
+      const stop1 = aiditor.effect(function () {
         const arr = sig()
         if (cs.peek() !== arr[idx]) { writing = true; cs.set(arr[idx]); writing = false }
       })
       // channel → parent
-      const stop2 = aeditor.effect(function () {
+      const stop2 = aiditor.effect(function () {
         const v = cs()
         if (writing) return
         const cur = sig.peek()
@@ -64,4 +64,4 @@
     }
     return wrap
   }
-})(window.aeditor = window.aeditor || {})
+})(window.aiditor = window.aiditor || {})

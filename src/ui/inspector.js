@@ -1,11 +1,11 @@
-// aeditor.inspector — ordered selection + provider registry for generic inspectors.
-;(function (aeditor) {
+// aiditor.inspector — ordered selection + provider registry for generic inspectors.
+;(function (aiditor) {
   'use strict'
 
   const providers = {}
   const providerMeta = {}
-  const selectionSig = aeditor.signal([])
-  const metaSig = aeditor.signal({})
+  const selectionSig = aiditor.signal([])
+  const metaSig = aiditor.signal({})
   let formulaEvaluator = null
 
   function cloneTargets(targets) {
@@ -19,18 +19,18 @@
   }
 
   /**
-   * @aeditorApi aeditor.inspector.registerProvider
+   * @aiditorApi aiditor.inspector.registerProvider
    * @group inspector
    * @layer core-ui
    * @kind js-api
-   * @signature aeditor.inspector.registerProvider(type, provider, meta?)
+   * @signature aiditor.inspector.registerProvider(type, provider, meta?)
    * @summary Register the editor-owned provider that turns selected targets of one type into an inspector schema, values, and write handlers.
    * @param {string} type - Target type matched against target.type or target.kind.
    * @param {object} provider - Provider with inspect(targets, ctx), plus optional accept(targets).
    * @param {object} meta - Optional owner/layer metadata; pass { replace: true } only when intentionally replacing an existing provider.
    * @returns {Function} unregister callback.
    * @example
-   * aeditor.inspector.registerProvider('cube', {
+   * aiditor.inspector.registerProvider('cube', {
    *   inspect: function (targets) {
    *     return {
    *       schema: {
@@ -47,17 +47,17 @@
    *   },
    * })
    * @wrong
-   * aeditor.inspector.registerProvider({
+   * aiditor.inspector.registerProvider({
    *   id: 'cube',
    *   getProperties: function () {},
    *   patchProperties: function () {},
    * })
-   * @related aeditor.inspector.select,aeditor.inspector.refresh,aeditor.ui.propertyForm
+   * @related aiditor.inspector.select,aiditor.inspector.refresh,aiditor.ui.propertyForm
    */
   function registerProvider(type, provider, meta) {
     if (!type || typeof type !== 'string') throw new Error('inspector.registerProvider: type is required')
     if (!provider || typeof provider.inspect !== 'function') throw new Error('inspector.registerProvider: provider.inspect is required')
-    const m = aeditor.runtime && aeditor.runtime.registrationMeta ? aeditor.runtime.registrationMeta(meta) : (meta || {})
+    const m = aiditor.runtime && aiditor.runtime.registrationMeta ? aiditor.runtime.registrationMeta(meta) : (meta || {})
     if (providers[type] && !m.replace) throw new Error('inspector.registerProvider: duplicate provider "' + type + '"')
     providers[type] = provider
     providerMeta[type] = Object.assign({}, m)
@@ -151,7 +151,7 @@
 
   function safe(action, type, fn) {
     const source = { scope: 'inspector', action: action, type: type }
-    return aeditor.safeCall ? aeditor.safeCall(source, fn) : fn()
+    return aiditor.safeCall ? aiditor.safeCall(source, fn) : fn()
   }
 
   function canEditField(inspection, field, values, rawField) {
@@ -175,24 +175,24 @@
   }
 
   function emitSelection() {
-    if (aeditor.bus && aeditor.bus.emit) aeditor.bus.emit('inspector:selection', selectionSig.peek())
+    if (aiditor.bus && aiditor.bus.emit) aiditor.bus.emit('inspector:selection', selectionSig.peek())
   }
 
   /**
-   * @aeditorApi aeditor.inspector.select
+   * @aiditorApi aiditor.inspector.select
    * @group inspector
    * @layer core-ui
    * @kind js-api
-   * @signature aeditor.inspector.select(targets, meta?)
+   * @signature aiditor.inspector.select(targets, meta?)
    * @summary Set the ordered inspector selection. The first target is primary; multi-edit uses only fields present and writable on every target.
    * @param {object|object[]} targets - One target or ordered targets; each target should include type or kind.
    * @param {object} meta - Optional selection metadata for the host/editor.
    * @returns {void} No return value.
    * @example
-   * aeditor.inspector.select([
+   * aiditor.inspector.select([
    *   { type: 'cube', id: 'cube-1', value: cubeState },
    * ])
-   * @related aeditor.inspector.registerProvider,aeditor.inspector.refresh
+   * @related aiditor.inspector.registerProvider,aiditor.inspector.refresh
    */
   function select(targets, meta) {
     selectionSig.set(cloneTargets(targets))
@@ -201,17 +201,17 @@
   }
 
   /**
-   * @aeditorApi aeditor.inspector.refresh
+   * @aiditorApi aiditor.inspector.refresh
    * @group inspector
    * @layer core-ui
    * @kind js-api
-   * @signature aeditor.inspector.refresh()
+   * @signature aiditor.inspector.refresh()
    * @summary Notify inspector panels to re-read the current selection after external state changes.
    * @returns {void} No return value.
    * @example
    * cubeState.color = '#ffcc00'
-   * aeditor.inspector.refresh()
-   * @related aeditor.inspector.select,aeditor.inspector.registerProvider
+   * aiditor.inspector.refresh()
+   * @related aiditor.inspector.select,aiditor.inspector.registerProvider
    */
   function refresh() {
     selectionSig.set(selectionSig.peek().slice())
@@ -222,7 +222,7 @@
     select([], {})
   }
 
-  aeditor.inspector = {
+  aiditor.inspector = {
     selection: selectionSig,
     meta: metaSig,
     select: select,
@@ -240,9 +240,9 @@
     valueForChange: valueForChange,
     setFormulaEvaluator: function (fn) { formulaEvaluator = fn || null },
   }
-  if (aeditor.runtime && aeditor.runtime.registerOwnerCleanup) {
-    aeditor.runtime.registerOwnerCleanup(function (owner) {
+  if (aiditor.runtime && aiditor.runtime.registerOwnerCleanup) {
+    aiditor.runtime.registerOwnerCleanup(function (owner) {
       return { inspector: unregisterOwner(owner) }
     })
   }
-})(window.aeditor = window.aeditor || {})
+})(window.aiditor = window.aiditor || {})

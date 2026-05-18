@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import vm from 'node:vm'
 
-global.window = { aeditor: {} }
+global.window = { aiditor: {} }
 vm.runInThisContext(readFileSync('src/core/signal.js', 'utf8'), { filename: 'signal.js' })
 vm.runInThisContext(readFileSync('src/core/log.js', 'utf8'), { filename: 'log.js' })
 vm.runInThisContext(readFileSync('src/core/names.js', 'utf8'), { filename: 'names.js' })
@@ -22,8 +22,8 @@ vm.runInThisContext(readFileSync('src/ai/change-set.js', 'utf8'), { filename: 'a
 vm.runInThisContext(readFileSync('src/ai/request.js', 'utf8'), { filename: 'ai/request.js' })
 vm.runInThisContext(readFileSync('src/ai/runtime.js', 'utf8'), { filename: 'ai/runtime.js' })
 
-const aeditor = window.aeditor
-const ai = aeditor.ai
+const aiditor = window.aiditor
+const ai = aiditor.ai
 
 function ids(items) {
   return items.map(function (item) { return item.id })
@@ -248,30 +248,30 @@ function assertPermissionContract(agentId) {
 
 async function assertChangeSetPermission(parentId, childId) {
   let applyCount = 0
-  aeditor.changeSet.registerAdapter('permission.patch', {
+  aiditor.changeSet.registerAdapter('permission.patch', {
     apply: function () {
       applyCount += 1
       return { applied: true }
     },
   })
-  const parentSet = aeditor.changeSet.create({
+  const parentSet = aiditor.changeSet.create({
     title: 'Parent owned change',
     source: { agentId: parentId },
     resources: [],
     apply: { mode: 'atomic', adapter: 'permission.patch', payload: {} },
   })
-  const denied = await aeditor.changeSet.apply(parentSet.id, { type: 'all' }, childId)
+  const denied = await aiditor.changeSet.apply(parentSet.id, { type: 'all' }, childId)
   assert.equal(denied.status, 'failed')
   assert.match(denied.meta.error, /ChangeSet apply not allowed/)
   assert.equal(applyCount, 0)
 
-  const childSet = aeditor.changeSet.create({
+  const childSet = aiditor.changeSet.create({
     title: 'Child owned change',
     source: { agentId: childId },
     resources: [],
     apply: { mode: 'atomic', adapter: 'permission.patch', payload: {} },
   })
-  const allowed = await aeditor.changeSet.apply(childSet.id, { type: 'all' }, parentId)
+  const allowed = await aiditor.changeSet.apply(childSet.id, { type: 'all' }, parentId)
   assert.equal(allowed.status, 'applied')
   assert.equal(applyCount, 1)
 }
@@ -530,7 +530,7 @@ async function assertGdePatchPreviewRendering() {
     createTextNode: makeTextNode,
   }
   global.requestAnimationFrame = function (fn) { fn() }
-  window.aeditor.ui = {
+  window.aiditor.ui = {
     isSignal: function (v) { return typeof v === 'function' && typeof v.peek === 'function' },
     h: function (tag, cls, attrs) {
       const el = document.createElement(tag)
@@ -543,26 +543,26 @@ async function assertGdePatchPreviewRendering() {
     },
     dispose: function (el) { if (el && el.remove) el.remove() },
     collect: function () {},
-    button: function (opts) { return this.h('button', 'aeditor-ui-btn', { text: opts.text || '' }) },
-    stateButton: function () { return this.h('button', 'aeditor-ui-state-btn') },
-    'switch': function (opts) { return this.h('label', 'aeditor-ui-switch', { text: opts.label || '' }) },
-    copyButton: function () { return this.h('button', 'aeditor-ui-copy-btn', { text: 'Copy' }) },
-    scrollArea: function () { return this.h('div', 'aeditor-ui-scrollarea') },
+    button: function (opts) { return this.h('button', 'aiditor-ui-btn', { text: opts.text || '' }) },
+    stateButton: function () { return this.h('button', 'aiditor-ui-state-btn') },
+    'switch': function (opts) { return this.h('label', 'aiditor-ui-switch', { text: opts.label || '' }) },
+    copyButton: function () { return this.h('button', 'aiditor-ui-copy-btn', { text: 'Copy' }) },
+    scrollArea: function () { return this.h('div', 'aiditor-ui-scrollarea') },
     view: function (opts) {
-      const el = this.h('div', 'aeditor-ui-view')
+      const el = this.h('div', 'aiditor-ui-view')
       const children = opts && opts.children
       const list = Array.isArray(children) ? children : (children ? [children] : [])
       for (let i = 0; i < list.length; i++) el.appendChild(list[i])
       return el
     },
   }
-  window.aeditor.registerComponent = function (name, spec) { components[name] = spec }
+  window.aiditor.registerComponent = function (name, spec) { components[name] = spec }
   vm.runInThisContext(readFileSync('src/ui/data/changeReview.js', 'utf8'), { filename: 'ui/data/changeReview.js' })
   vm.runInThisContext(readFileSync('src/ai/panels/message-live-strip.js', 'utf8'), { filename: 'ai/panels/message-live-strip.js' })
   vm.runInThisContext(readFileSync('src/ai/panels/message-virtualizer.js', 'utf8'), { filename: 'ai/panels/message-virtualizer.js' })
   vm.runInThisContext(readFileSync('src/ai/panels/transcript.js', 'utf8'), { filename: 'ai/panels/transcript.js' })
 
-  const preview = aeditor.changeSet.normalize({
+  const preview = aiditor.changeSet.normalize({
     title: 'Tune swords',
     validation: { ok: false, errors: [{ path: 'ops[0].field', message: 'Field not in struct_def: missing' }] },
     resources: [{
@@ -617,9 +617,9 @@ async function assertGdePatchPreviewRendering() {
   })
   ai.activeAgentId.set(streamAgent.id)
   const streamingRoot = components['ai-messages'].factory(null, {})
-  const row = streamingRoot.querySelector('.aeditor-ai-message-row')
+  const row = streamingRoot.querySelector('.aiditor-ai-message-row')
   const payload = streamingRoot.querySelector('[data-message-payload]')
-  const firstTextPart = streamingRoot.querySelector('.aeditor-ai-message-text')
+  const firstTextPart = streamingRoot.querySelector('.aiditor-ai-message-text')
   assert.ok(row)
   assert.ok(payload)
   assert.ok(firstTextPart)
@@ -627,9 +627,9 @@ async function assertGdePatchPreviewRendering() {
   ai.updateMessage(streamAgent.id, 'stream-1', { content: 'hello\n\nworld', status: 'running' })
   await new Promise(function (resolve) { setTimeout(resolve, 140) })
 
-  assert.equal(streamingRoot.querySelector('.aeditor-ai-message-row'), row)
+  assert.equal(streamingRoot.querySelector('.aiditor-ai-message-row'), row)
   assert.equal(streamingRoot.querySelector('[data-message-payload]'), payload)
-  assert.equal(streamingRoot.querySelector('.aeditor-ai-message-text'), firstTextPart)
+  assert.equal(streamingRoot.querySelector('.aiditor-ai-message-text'), firstTextPart)
   assert.match(collectText(streamingRoot), /world/)
 }
 

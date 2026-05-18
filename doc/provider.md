@@ -20,18 +20,18 @@ A connection is a named model backend configuration.
 Implemented APIs:
 
 ```js
-aeditor.ai.registerConnection(id, spec)
-aeditor.ai.createCustomConnection(spec)
-aeditor.ai.loadCustomConnections()
-aeditor.ai.getConnection(id)
-aeditor.ai.listConnections()
-aeditor.ai.connectionOptions()
-aeditor.ai.setActiveConnection(id)
-aeditor.ai.getConnectionConfig(id, overrides)
-aeditor.ai.connectionConfigKey(id, key)
-aeditor.ai.modelHints(id)
-aeditor.ai.refreshModels(id, overrides)
-aeditor.ai.sendViaConnection(connectionId, request, context)
+aiditor.ai.registerConnection(id, spec)
+aiditor.ai.createCustomConnection(spec)
+aiditor.ai.loadCustomConnections()
+aiditor.ai.getConnection(id)
+aiditor.ai.listConnections()
+aiditor.ai.connectionOptions()
+aiditor.ai.setActiveConnection(id)
+aiditor.ai.getConnectionConfig(id, overrides)
+aiditor.ai.connectionConfigKey(id, key)
+aiditor.ai.modelHints(id)
+aiditor.ai.refreshModels(id, overrides)
+aiditor.ai.sendViaConnection(connectionId, request, context)
 ```
 
 A connection points to an auth driver and a transport driver.
@@ -40,10 +40,10 @@ Connection state is exposed as lightweight signals so UI can render status
 without polling:
 
 ```js
-aeditor.ai.defaultConnection
-aeditor.ai.connections
-aeditor.ai.connectionModels(connectionId)
-aeditor.ai.connectionStatus(connectionId)
+aiditor.ai.defaultConnection
+aiditor.ai.connections
+aiditor.ai.connectionModels(connectionId)
+aiditor.ai.connectionStatus(connectionId)
 ```
 
 ## Auth Drivers
@@ -51,11 +51,11 @@ aeditor.ai.connectionStatus(connectionId)
 Implemented API:
 
 ```js
-aeditor.ai.registerAuthDriver(type, driver)
-aeditor.ai.authStatus(connectionId)
-aeditor.ai.refreshAuthStatus(connectionId)
-aeditor.ai.loginConnection(connectionId, options)
-aeditor.ai.logoutConnection(connectionId)
+aiditor.ai.registerAuthDriver(type, driver)
+aiditor.ai.authStatus(connectionId)
+aiditor.ai.refreshAuthStatus(connectionId)
+aiditor.ai.loginConnection(connectionId, options)
+aiditor.ai.logoutConnection(connectionId)
 ```
 
 Current auth driver types include:
@@ -72,7 +72,7 @@ subscriptionBridge
 Implemented API:
 
 ```js
-aeditor.ai.registerTransport(type, driver)
+aiditor.ai.registerTransport(type, driver)
 ```
 
 Current transport types include:
@@ -112,7 +112,7 @@ explicit refresh path.
 Provider helpers support:
 
 ```js
-aeditor.ai.provider.requestMaybeStream(url, options, extractDelta)
+aiditor.ai.provider.requestMaybeStream(url, options, extractDelta)
 ```
 
 The stream path should emit text, reasoning text, tool call deltas, and usage as
@@ -131,20 +131,20 @@ workspace, task, context, attachment, memory, compaction, queue, and transcript
 messages before a provider sees the request.
 
 The adapter layer formats that assembled request for a provider. It converts
-AEditor messages, images, tools, and text-tool fallbacks into provider payload
+Aiditor messages, images, tools, and text-tool fallbacks into provider payload
 shapes without owning context selection policy.
 
 Implemented helpers include:
 
 ```js
-aeditor.ai.messageText(content)
-aeditor.ai.openAiMessages(messages, request)
-aeditor.ai.openAiTools(request)
-aeditor.ai.normalizeOpenAiToolCalls(calls, request)
-aeditor.ai.anthropicPayloadMessages(messages, request)
-aeditor.ai.anthropicSystem(messages)
-aeditor.ai.encodeTextToolRequest(request)
-aeditor.ai.decodeTextToolResponse(result)
+aiditor.ai.messageText(content)
+aiditor.ai.openAiMessages(messages, request)
+aiditor.ai.openAiTools(request)
+aiditor.ai.normalizeOpenAiToolCalls(calls, request)
+aiditor.ai.anthropicPayloadMessages(messages, request)
+aiditor.ai.anthropicSystem(messages)
+aiditor.ai.encodeTextToolRequest(request)
+aiditor.ai.decodeTextToolResponse(result)
 ```
 
 The text tool protocol is a fallback for models or transports that do not expose
@@ -155,7 +155,7 @@ native function calling.
 The provider helper can estimate usage cost for known providers:
 
 ```js
-aeditor.ai.estimateUsageCost(provider, model, usage)
+aiditor.ai.estimateUsageCost(provider, model, usage)
 ```
 
 Cost estimation is optional metadata. The runtime should still operate when no

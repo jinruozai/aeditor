@@ -1,11 +1,11 @@
-// aeditor.ai target protocol - stable editor object references for AI context.
-;(function (aeditor) {
+// aiditor.ai target protocol - stable editor object references for AI context.
+;(function (aiditor) {
   'use strict'
 
-  const ai = aeditor.ai = aeditor.ai || {}
+  const ai = aiditor.ai = aiditor.ai || {}
   const providers = {}
-  const TARGET_MIME = 'application/x-aeditor-target'
-  const TARGET_LIST_MIME = 'application/x-aeditor-target-list'
+  const TARGET_MIME = 'application/x-aiditor-target'
+  const TARGET_LIST_MIME = 'application/x-aiditor-target-list'
 
   function clone(v) {
     return v == null ? v : (ai.serialize && ai.serialize.clone ? ai.serialize.clone(v) : JSON.parse(JSON.stringify(v)))
@@ -117,7 +117,7 @@
     const list = normalizeTargets(targets)
     if (!list.length) return []
     if (typeof window !== 'undefined' && typeof CustomEvent !== 'undefined') {
-      window.dispatchEvent(new CustomEvent('aeditor-ai-add-to-chat', { detail: { targets: list } }))
+      window.dispatchEvent(new CustomEvent('aiditor-ai-add-to-chat', { detail: { targets: list } }))
     }
     return list
   }
@@ -307,8 +307,8 @@
   }
 
   function addCleanup(el, fn) {
-    el.__aeditorCleanups = el.__aeditorCleanups || []
-    el.__aeditorCleanups.push(fn)
+    el.__aiditorCleanups = el.__aiditorCleanups || []
+    el.__aiditorCleanups.push(fn)
   }
 
   function resolveDragHandle(el, opts) {
@@ -331,9 +331,9 @@
     if (opts.ignoreInteractive === false) return false
     const target = ev.target
     if (!target || target === dragEl) return false
-    if (closestMatch(target, dragEl, '[data-aeditor-ai-drag-handle]')) return false
+    if (closestMatch(target, dragEl, '[data-aiditor-ai-drag-handle]')) return false
     return !!closestMatch(target, root, [
-      '[data-aeditor-ai-drag-ignore]',
+      '[data-aiditor-ai-drag-ignore]',
       'input',
       'textarea',
       'select',
@@ -360,7 +360,7 @@
       const hadDraggable = dragEl.hasAttribute && dragEl.hasAttribute('draggable')
       const prevDraggable = hadDraggable ? dragEl.getAttribute('draggable') : null
       dragEl.draggable = true
-      if (dragEl !== el) dragEl.setAttribute('data-aeditor-ai-drag-handle', '1')
+      if (dragEl !== el) dragEl.setAttribute('data-aiditor-ai-drag-handle', '1')
       const onDragStart = function (ev) {
         if (shouldIgnoreDragStart(ev, el, dragEl, opts)) {
           ev.preventDefault()
@@ -374,16 +374,16 @@
         dragEl.removeEventListener('dragstart', onDragStart)
         if (hadDraggable) dragEl.setAttribute('draggable', prevDraggable)
         else dragEl.removeAttribute('draggable')
-        if (dragEl !== el) dragEl.removeAttribute('data-aeditor-ai-drag-handle')
+        if (dragEl !== el) dragEl.removeAttribute('data-aiditor-ai-drag-handle')
       })
     }
 
     if (opts.contextMenu) {
       const onContext = function (ev) {
         const targets = resolveTarget(targetOrFn, ev)
-        if (!targets.length || !aeditor.ui || !aeditor.ui.contextMenu) return
+        if (!targets.length || !aiditor.ui || !aiditor.ui.contextMenu) return
         ev.preventDefault()
-        aeditor.ui.contextMenu({ x: ev.clientX, y: ev.clientY }, [
+        aiditor.ui.contextMenu({ x: ev.clientX, y: ev.clientY }, [
           {
             label: 'Add to Chat',
             icon: 'plus',
@@ -404,17 +404,17 @@
       if (!hasTargetDrag(ev) && !hasFileDrag(ev)) return
       ev.preventDefault()
       if (ev.dataTransfer) ev.dataTransfer.dropEffect = 'copy'
-      el.classList.add('aeditor-ai-target-drop-active')
+      el.classList.add('aiditor-ai-target-drop-active')
     }
     const onDragLeave = function (ev) {
-      if (ev.currentTarget === el) el.classList.remove('aeditor-ai-target-drop-active')
+      if (ev.currentTarget === el) el.classList.remove('aiditor-ai-target-drop-active')
     }
     const onDrop = function (ev) {
       const targets = readTargetFromDragEvent(ev)
       const files = filesFromDragEvent(ev)
       if (!targets.length && !files.length) return
       ev.preventDefault()
-      el.classList.remove('aeditor-ai-target-drop-active')
+      el.classList.remove('aiditor-ai-target-drop-active')
       if (files.length) {
         Promise.all(files.map(fileToTarget)).then(function (fileTargets) {
           const all = targets.concat(fileTargets.filter(Boolean))
@@ -452,4 +452,4 @@
   ai.readTargetFromDragEvent = readTargetFromDragEvent
   ai.writeTargetDragData = writeDragData
   ai.fileToTarget = fileToTarget
-})(window.aeditor = window.aeditor || {})
+})(window.aiditor = window.aiditor || {})

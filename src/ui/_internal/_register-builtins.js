@@ -1,5 +1,5 @@
 // Component-registry sidecar — registers the built-in ui.* widgets as
-// palette-able components so aeditor.ui.renderUITree (and editors / palettes
+// palette-able components so aiditor.ui.renderUITree (and editors / palettes
 // built on top of it) can instantiate them by name.
 //
 // Visual chrome (background / border / radius / padding / font / color /
@@ -10,10 +10,10 @@
 // on its outer element. Empty / null defaults mean "no inline style" which
 // lets the framework's CSS rules (theme cascade) win — that's the
 // "no edit = use theme" semantics for free.
-;(function (aeditor) {
+;(function (aiditor) {
   'use strict'
-  const ui = aeditor.ui
-  const reg = aeditor.registerComponent
+  const ui = aiditor.ui
+  const reg = aiditor.registerComponent
   const lift = ui.liftProps
   const BOX  = ui.BOX_STYLE_SCHEMA
   const BOX_D = ui.BOX_STYLE_DEFAULTS
@@ -186,7 +186,7 @@
     bindable: ['icon'],
     defaultProps: Object.assign({}, BOX_D, { icon: 'plus', size: 'md', kind: 'default' }),
     schema: Object.assign({}, BOX, {
-      icon:     { type: 'string', desc: 'Registered icon name (see aeditor.ui.registerIcon).' },
+      icon:     { type: 'string', desc: 'Registered icon name (see aiditor.ui.registerIcon).' },
       title:    { type: 'string', desc: 'Tooltip / accessibility label shown on hover.' },
       size:     { type: 'enum_string', type_agv: { options: ['sm','md','lg'] },
                   desc: 'Button size: sm · md · lg.' },
@@ -196,7 +196,7 @@
     }),
     factory: function (p) {
       const opts = lift(p, ['icon','size','kind','disabled'])
-      opts.title = aeditor.derived(function () {
+      opts.title = aiditor.derived(function () {
         const cur = p() || {}
         return cur.title || cur.icon || 'Icon button'
       })
@@ -232,7 +232,7 @@
       disabled: { type: 'bool', desc: 'Disable interaction (greyed out, not focusable).' },
     }),
     factory: function (p) {
-      const value = aeditor.signal(!!((p.peek ? p.peek() : p()) || {}).value)
+      const value = aiditor.signal(!!((p.peek ? p.peek() : p()) || {}).value)
       const opts = lift(p, ['size','kind','disabled','offIcon','offText','onIcon','onText'])
       const el = ui.stateButton({
         value: value,
@@ -243,7 +243,7 @@
         disabled: opts.disabled,
         onChange: function (next) { value.set(!!next) },
       })
-      ui.collect(el, aeditor.effect(function () { value.set(!!((p() || {}).value)) }))
+      ui.collect(el, aiditor.effect(function () { value.set(!!((p() || {}).value)) }))
       ui.collect(el, opts.size.dispose)
       ui.collect(el, opts.kind.dispose)
       ui.collect(el, opts.disabled.dispose)
@@ -278,7 +278,7 @@
     bindable: ['name'],
     defaultProps: { name: 'image', size: 'md', color: '' },
     schema: {
-      name:  { type: 'string', desc: 'Registered icon name (see aeditor.ui.registerIcon). Falls back to literal text.' },
+      name:  { type: 'string', desc: 'Registered icon name (see aiditor.ui.registerIcon). Falls back to literal text.' },
       size:  { type: 'enum_string', type_agv: { options: ['sm','md','lg'] },
                desc: 'Icon size: sm · md · lg.' },
       color: { type: 'string', desc: 'CSS color override. Empty inherits from text color.' },
@@ -287,7 +287,7 @@
       const el = ui.icon(lift(p, ['name','size']))
       // Single-prop "color" maps to el.style.color directly — no need for
       // the full TEXT_STYLE fragment for an icon.
-      aeditor.effect(function () {
+      aiditor.effect(function () {
         const c = (p() || {}).color
         el.style.color = (c == null || c === '') ? '' : c
       })
@@ -419,4 +419,4 @@
       return el
     },
   })
-})(window.aeditor = window.aeditor || {})
+})(window.aiditor = window.aiditor || {})

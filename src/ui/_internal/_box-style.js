@@ -13,9 +13,9 @@
 // is "real" (non-empty string, non-null number). Empty → no inline style →
 // the framework's CSS rules (theme cascade) win. That's how "no edit = use
 // theme" falls out for free.
-;(function (aeditor) {
+;(function (aiditor) {
   'use strict'
-  const ui = aeditor.ui = aeditor.ui || {}
+  const ui = aiditor.ui = aiditor.ui || {}
 
   // valueKind:'hex' forces colorInput to store '#rrggbb' strings — CSS
   // accepts them directly. Without this override, the default color
@@ -65,7 +65,7 @@
   }
 
   ui.applyBoxStyle = function (el, propsSig) {
-    ui.collect(el, aeditor.effect(function () {
+    ui.collect(el, aiditor.effect(function () {
       const p = propsSig() || {}
       setStr(el, 'background',   p.background)
       const bw = Number(p.borderWidth)
@@ -112,4 +112,4 @@
 
   // Shared with _text-style.js so the small primitives stay one definition.
   ui._styleSetters = { setStr: setStr, setPx: setPx, setNum: setNum }
-})(window.aeditor = window.aeditor || {})
+})(window.aiditor = window.aiditor || {})

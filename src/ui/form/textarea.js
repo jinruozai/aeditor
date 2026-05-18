@@ -1,4 +1,4 @@
-// aeditor.ui.textarea — multi-line text bound to a signal.
+// aiditor.ui.textarea — multi-line text bound to a signal.
 //
 // opts: {
 //   value: string|signal, onChange?,
@@ -7,9 +7,9 @@
 //   submitMode?: 'none'|'modifier'|'enter',
 //   onCommit?: (v) => void, onCancel?: (base) => void,
 // }
-;(function (aeditor) {
+;(function (aiditor) {
   'use strict'
-  const ui = aeditor.ui = aeditor.ui || {}
+  const ui = aiditor.ui = aiditor.ui || {}
 
   ui.textarea = function (opts) {
     const o = opts || {}
@@ -19,10 +19,10 @@
     const mono        = ui.asSig(o.mono        != null ? o.mono        : false)
     const doWrite = ui.writer(sig, o.onChange, 'ui.textarea')
 
-    const el = ui.h('textarea', 'aeditor-ui-textarea', { rows: String(o.rows || 4) })
+    const el = ui.h('textarea', 'aiditor-ui-textarea', { rows: String(o.rows || 4) })
     ui.bindAttr(el, placeholder, 'placeholder')
     ui.bindAttr(el, disabled,    'disabled')
-    ui.bind(el, mono, function (v) { el.classList.toggle('aeditor-ui-textarea-mono', !!v) })
+    ui.bind(el, mono, function (v) { el.classList.toggle('aiditor-ui-textarea-mono', !!v) })
     ui.bind(el, sig, function (v) {
       if (document.activeElement !== el) el.value = v == null ? '' : String(v)
     })
@@ -41,4 +41,4 @@
     })
     return el
   }
-})(window.aeditor = window.aeditor || {})
+})(window.aiditor = window.aiditor || {})

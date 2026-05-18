@@ -1,12 +1,12 @@
-// aeditor.ui.tooltip — attach a hover tooltip to any element.
+// aiditor.ui.tooltip — attach a hover tooltip to any element.
 //
-// aeditor.ui.tooltip(target, { text: string|signal, side?: 'top'|'bottom'|'left'|'right', delay?: 400 })
+// aiditor.ui.tooltip(target, { text: string|signal, side?: 'top'|'bottom'|'left'|'right', delay?: 400 })
 //
 // `side` and `delay` are identity-time config and stay plain. `text` is
 // signal-aware so callers can update tooltip copy reactively.
-;(function (aeditor) {
+;(function (aiditor) {
   'use strict'
-  const ui = aeditor.ui = aeditor.ui || {}
+  const ui = aiditor.ui = aiditor.ui || {}
 
   ui.tooltip = function (target, opts) {
     const o = opts || {}
@@ -19,7 +19,7 @@
 
     function show() {
       if (tip) return
-      tip = ui.h('div', 'aeditor-ui-tooltip')
+      tip = ui.h('div', 'aiditor-ui-tooltip')
       ui.bindText(tip, text)
       ui.portal(tip)
       ui.place(target, tip, { side: side, align: 'center', gap: 6 })
@@ -45,4 +45,4 @@
     })
     return target
   }
-})(window.aeditor = window.aeditor || {})
+})(window.aiditor = window.aiditor || {})

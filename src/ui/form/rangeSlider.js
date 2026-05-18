@@ -1,12 +1,12 @@
-// aeditor.ui.rangeSlider — two-thumb slider for [min, max] ranges.
+// aiditor.ui.rangeSlider — two-thumb slider for [min, max] ranges.
 //
 // opts: {
 //   value: [number, number] | signal, onChange?,
 //   min?: number|signal, max?: number|signal, step?: number|signal,
 // }
-;(function (aeditor) {
+;(function (aiditor) {
   'use strict'
-  const ui = aeditor.ui = aeditor.ui || {}
+  const ui = aiditor.ui = aiditor.ui || {}
 
   ui.rangeSlider = function (opts) {
     const o = opts || {}
@@ -16,11 +16,11 @@
     const stepS = ui.asSig(o.step  != null ? o.step  : 0)
     const doWrite = ui.writer(sig, o.onChange, 'ui.rangeSlider')
 
-    const el = ui.h('div', 'aeditor-ui-slider aeditor-ui-slider-range')
-    const track = ui.h('div', 'aeditor-ui-slider-track')
-    const fill  = ui.h('div', 'aeditor-ui-slider-fill')
-    const t1 = ui.h('div', 'aeditor-ui-slider-thumb')
-    const t2 = ui.h('div', 'aeditor-ui-slider-thumb')
+    const el = ui.h('div', 'aiditor-ui-slider aiditor-ui-slider-range')
+    const track = ui.h('div', 'aiditor-ui-slider-track')
+    const fill  = ui.h('div', 'aiditor-ui-slider-fill')
+    const t1 = ui.h('div', 'aiditor-ui-slider-thumb')
+    const t2 = ui.h('div', 'aiditor-ui-slider-thumb')
     track.appendChild(fill); track.appendChild(t1); track.appendChild(t2)
     el.appendChild(track)
 
@@ -70,4 +70,4 @@
 
     return el
   }
-})(window.aeditor = window.aeditor || {})
+})(window.aiditor = window.aiditor || {})

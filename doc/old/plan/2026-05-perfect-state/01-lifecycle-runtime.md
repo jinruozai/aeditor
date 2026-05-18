@@ -8,7 +8,7 @@ Known gaps:
 
 - `createDockLayout()` creates the reconcile effect but does not expose `destroy()`.
 - `disposeComponentRuntime()` runs `runtime.cleanups`, optional `spec.dispose`, then directly removes `contentEl`.
-- aeditor.ui cleanup lives on `el.__aeditorCleanups` and requires `aeditor.ui.dispose(el)`.
+- aiditor.ui cleanup lives on `el.__aiditorCleanups` and requires `aiditor.ui.dispose(el)`.
 - Context-created `derived()` signals have disposers but are not registered into the runtime cleanup scope.
 - Transient panel eviction removes `PanelData` from the tree without disposing any already-created panel runtime.
 - Reconcile only GCs disappeared docks, not disappeared panels inside surviving docks.
@@ -32,7 +32,7 @@ Required semantics:
 - removes popup/migration message listeners owned by the layout
 - cancels active drag sessions owned by the layout if any
 - clears the container content
-- removes `aeditor-root` from the container if no longer used
+- removes `aiditor-root` from the container if no longer used
 - prevents later handle mutations from mutating disposed runtime state
 
 The API is framework-level lifecycle, not an app shortcut, so it belongs in `src/`.
@@ -51,10 +51,10 @@ Every component runtime disposal should run:
 The fallback should be carefully defined:
 
 - If `spec.dispose` exists, call it and trust it.
-- If no `spec.dispose` exists and `aeditor.ui.dispose` exists, call `aeditor.ui.dispose(contentEl)`.
+- If no `spec.dispose` exists and `aiditor.ui.dispose` exists, call `aiditor.ui.dispose(contentEl)`.
 - If neither applies, remove the node.
 
-This makes built-in and user components safer without forcing every user panel to remember `ctx.onCleanup(() => aeditor.ui.dispose(root))`.
+This makes built-in and user components safer without forcing every user panel to remember `ctx.onCleanup(() => aiditor.ui.dispose(root))`.
 
 ### Context scope disposal
 
@@ -63,7 +63,7 @@ This makes built-in and user components safer without forcing every user panel t
 Candidate approach:
 
 - add helper `scopedDerived(runtime, fn)`
-- it calls `aeditor.derived(fn)`
+- it calls `aiditor.derived(fn)`
 - it pushes `derived.dispose` into `runtime.cleanups`
 - all `ctx.dock.*` and `ctx.panel.*` derived signals are created through it
 
@@ -93,7 +93,7 @@ Dock disappearance is already handled by dock runtime GC.
 - `src/dock/render.js`
 - `src/core/context.js`
 - `tools/build.mjs`
-- `dist/aeditor.js`
+- `dist/aiditor.js`
 
 If a new file is created, candidate name:
 
@@ -123,6 +123,6 @@ This can be private (`handle._runtime`) for tests, not public API.
 
 ## Risks
 
-- Calling `aeditor.ui.dispose(contentEl)` by default could surprise user components that already remove children in custom `dispose`.
+- Calling `aiditor.ui.dispose(contentEl)` by default could surprise user components that already remove children in custom `dispose`.
 - To avoid double cleanup, only call fallback when no `spec.dispose` exists.
 - `ui.dispose()` currently removes the element; after it runs, do not call `contentEl.remove()` again unless checking parent first.

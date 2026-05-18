@@ -1,6 +1,6 @@
 # AI Agent Quest Runtime
 
-This document is the implementation target for the AEditor AI agent runtime.
+This document is the implementation target for the Aiditor AI agent runtime.
 
 The design intentionally removes the old `chat` / `goal` split. Every agent uses one runtime model: messages enter a queue, the scheduler runs the agent, tools are the only side-effect boundary, and cross-agent work is tracked by quests.
 
@@ -19,10 +19,10 @@ The design intentionally removes the old `chat` / `goal` split. Every agent uses
 
 The current framework already has most foundations:
 
-- `aeditor.ai.agents` stores agent state.
-- `aeditor.ai.appendMessage` stores messages.
-- `aeditor.ai.runAgent` executes one agent turn.
-- `aeditor.ai.agent.send` exists as a tool-level operation.
+- `aiditor.ai.agents` stores agent state.
+- `aiditor.ai.appendMessage` stores messages.
+- `aiditor.ai.runAgent` executes one agent turn.
+- `aiditor.ai.agent.send` exists as a tool-level operation.
 - Agent identity is id-only. Names are display labels and may repeat.
 - Message panel already renders messages and tool calls.
 
@@ -223,12 +223,12 @@ Completion rules:
 
 ## 5. Public API
 
-Use names that match existing aeditor style while keeping the final model clean.
+Use names that match existing aiditor style while keeping the final model clean.
 
 ### 5.1 Send a Local Message
 
 ```js
-aeditor.ai.message.send(agentId, {
+aiditor.ai.message.send(agentId, {
   content,
   from: 'user',
   attachments: [],
@@ -252,7 +252,7 @@ This is used by the UI send box.
 ### 5.2 Send a Cross-Agent Quest
 
 ```js
-aeditor.ai.agent.send(toAgentId, {
+aiditor.ai.agent.send(toAgentId, {
   fromAgentId,
   content,
   attachments: [],
@@ -277,7 +277,7 @@ This is the only default way for one agent to assign work to another.
 ### 5.3 Read Quest
 
 ```js
-aeditor.ai.quest.read(agentId, questId, actor)
+aiditor.ai.quest.read(agentId, questId, actor)
 ```
 
 Returns:
@@ -299,7 +299,7 @@ Returns:
 ### 5.4 Read Message
 
 ```js
-aeditor.ai.message.read(agentId, messageId, actor)
+aiditor.ai.message.read(agentId, messageId, actor)
 ```
 
 Returns the exact message. This is the precise result-read path after a quest completes.
@@ -307,7 +307,7 @@ Returns the exact message. This is the precise result-read path after a quest co
 ### 5.5 Read Agent Summary
 
 ```js
-aeditor.ai.agent.read(agentId, actor)
+aiditor.ai.agent.read(agentId, actor)
 ```
 
 Returns a summary only:
@@ -334,7 +334,7 @@ It must not return the full transcript by default.
 For UI/debug only:
 
 ```js
-aeditor.ai.agent.messages(agentId, {
+aiditor.ai.agent.messages(agentId, {
   limit,
   after,
   includeToolMessages: false
@@ -595,14 +595,14 @@ Implementation should be staged but the final API should not preserve old compat
 
 ### Stage 2: Message API
 
-- Implement `aeditor.ai.message.send`.
-- Implement `aeditor.ai.message.read`.
+- Implement `aiditor.ai.message.send`.
+- Implement `aiditor.ai.message.read`.
 - Update AI send panel to use `message.send`.
 
 ### Stage 3: Quest API
 
 - Rework `agent.send` tool to create a target message and quest, return `{ agentId, questId, messageId, status }`.
-- Implement `aeditor.ai.quest.read`.
+- Implement `aiditor.ai.quest.read`.
 - Implement quest completion update when target agent finishes the request message.
 
 ### Stage 4: Scheduler
@@ -653,4 +653,4 @@ Provider= transport only
 UI      = projection of real runtime state
 ```
 
-This model supports Codex-style parallel collaboration while staying small enough for AEditor: a parent can dispatch many child quests, continue its own work, process whatever child results have completed by the next scheduler checkpoint, and read exact results by `agentId/messageId` without contaminating context or losing task boundaries.
+This model supports Codex-style parallel collaboration while staying small enough for Aiditor: a parent can dispatch many child quests, continue its own work, process whatever child results have completed by the next scheduler checkpoint, and read exact results by `agentId/messageId` without contaminating context or losing task boundaries.

@@ -8,7 +8,7 @@ The project currently has several overlapping sources of truth:
 - `CLAUDE.md` appears to duplicate AGENTS content.
 - `README.md` points readers to `CLAUDE.md` for full architecture.
 - `package.json.files` includes `CLAUDE.md` but not `AGENTS.md`, `doc/`, `index.html`, or `demo/`.
-- `AGENTS.md` still contains stale references to `src/core/errors.js`, `aeditor.errors`, and `error-log`.
+- `AGENTS.md` still contains stale references to `src/core/errors.js`, `aiditor.errors`, and `error-log`.
 - `temp/GameDataEditor` is tracked as a reference project but lives under a directory named `temp`.
 
 This creates confusion for future Codex sessions, npm users, and framework maintainers.
@@ -29,7 +29,7 @@ Do not leave two competing full architecture authorities.
 
 Required updates:
 
-- Replace stale `aeditor.errors` references with `aeditor.log`, or explicitly decide to add compatibility aliases.
+- Replace stale `aiditor.errors` references with `aiditor.log`, or explicitly decide to add compatibility aliases.
 - Replace `error-log` with registered component `log`, unless `error-log` alias is intentionally added.
 - Remove old phase snippets that mention `src/core/errors.js`.
 - Keep `tools/build.mjs` as the single source of bundle order.
@@ -138,8 +138,8 @@ Recommendation:
 
 Current boundary is healthy:
 
-- `index.html` loads `dist/aeditor.js` first
-- `demo/` consumes `aeditor`
+- `index.html` loads `dist/aiditor.js` first
+- `demo/` consumes `aiditor`
 - `src/` does not reference `Demo`
 
 Keep this invariant.

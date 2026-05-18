@@ -1,4 +1,4 @@
-// aeditor.ui.pathInput — file/folder path with browse button.
+// aiditor.ui.pathInput — file/folder path with browse button.
 //
 // In a pure-frontend world we can't actually open OS file dialogs. This
 // component emits an `onBrowse` callback you wire up to your own picker (or
@@ -12,9 +12,9 @@
 //   useFileInput?, onBrowse?,
 //   mode?: 'file'|'folder'|signal,
 // }
-;(function (aeditor) {
+;(function (aiditor) {
   'use strict'
-  const ui = aeditor.ui = aeditor.ui || {}
+  const ui = aiditor.ui = aiditor.ui || {}
 
   ui.pathInput = function (opts) {
     const o = opts || {}
@@ -23,10 +23,10 @@
     const disabled    = ui.asSig(o.disabled    != null ? o.disabled    : false)
     const mode        = ui.asSig(o.mode        != null ? o.mode        : 'file')
     const doWrite = ui.writer(sig, o.onChange, 'ui.pathInput')
-    const el = ui.h('div', 'aeditor-ui-field aeditor-ui-path')
-    const ic = ui.h('span', 'aeditor-ui-field-prefix')
-    const inp = ui.h('input', 'aeditor-ui-input', { type: 'text' })
-    const btn = ui.h('button', 'aeditor-ui-path-browse', { type: 'button', text: '…' })
+    const el = ui.h('div', 'aiditor-ui-field aiditor-ui-path')
+    const ic = ui.h('span', 'aiditor-ui-field-prefix')
+    const inp = ui.h('input', 'aiditor-ui-input', { type: 'text' })
+    const btn = ui.h('button', 'aiditor-ui-path-browse', { type: 'button', text: '…' })
     el.appendChild(ic); el.appendChild(inp); el.appendChild(btn)
 
     ui.bind(el, mode, function (v) { ic.textContent = v === 'folder' ? '📁' : '📄' })
@@ -71,4 +71,4 @@
     })
     return el
   }
-})(window.aeditor = window.aeditor || {})
+})(window.aiditor = window.aiditor || {})

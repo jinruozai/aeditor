@@ -2,7 +2,7 @@
 
 ## Purpose
 
-An extension packages things AEditor already knows how to register.
+An extension packages things Aiditor already knows how to register.
 
 ```text
 extension
@@ -80,7 +80,7 @@ reported before any registry is mutated.
 }
 ```
 
-Contribution ids are local by default. AEditor publishes them with the extension
+Contribution ids are local by default. Aiditor publishes them with the extension
 id as a dotted prefix:
 
 ```text
@@ -101,14 +101,14 @@ and `sample.child`.
 Install registers each contribution with the normal registry:
 
 ```js
-aeditor.registerComponent('sample.panel', spec)
-aeditor.ai.references.register('sample.data', spec)
-aeditor.ai.tools.register('sample.makeThing', spec)
-aeditor.ai.context.register('sample.schema', spec)
-aeditor.ai.operations.register('sample.patchThing', spec)
-aeditor.settings.registerSchema('sample', spec)
-aeditor.commands.register('sample.refresh', spec)
-aeditor.commands.registerMenu('sample.refreshMenu', spec)
+aiditor.registerComponent('sample.panel', spec)
+aiditor.ai.references.register('sample.data', spec)
+aiditor.ai.tools.register('sample.makeThing', spec)
+aiditor.ai.context.register('sample.schema', spec)
+aiditor.ai.operations.register('sample.patchThing', spec)
+aiditor.settings.registerSchema('sample', spec)
+aiditor.commands.register('sample.refresh', spec)
+aiditor.commands.registerMenu('sample.refreshMenu', spec)
 ```
 
 Dock panel contributions are not a new registry. They add panel records that
@@ -122,19 +122,19 @@ the same feature should be available to both humans and agents.
 Implemented extension APIs currently include:
 
 ```js
-aeditor.extensions.preview(input)
-aeditor.extensions.review(input)
-aeditor.extensions.install(manifest, options)
-aeditor.extensions.installWithReview(input, options)
-aeditor.extensions.update(id, manifest, options)
-aeditor.extensions.uninstall(id, options)
-aeditor.extensions.enable(id)
-aeditor.extensions.disable(id)
-aeditor.extensions.list()
-aeditor.extensions.get(id)
-aeditor.extensions.ownerFor(name)
-aeditor.extensions.hashSource(source)
-aeditor.extensions.permissions(manifest)
+aiditor.extensions.preview(input)
+aiditor.extensions.review(input)
+aiditor.extensions.install(manifest, options)
+aiditor.extensions.installWithReview(input, options)
+aiditor.extensions.update(id, manifest, options)
+aiditor.extensions.uninstall(id, options)
+aiditor.extensions.enable(id)
+aiditor.extensions.disable(id)
+aiditor.extensions.list()
+aiditor.extensions.get(id)
+aiditor.extensions.ownerFor(name)
+aiditor.extensions.hashSource(source)
+aiditor.extensions.permissions(manifest)
 ```
 
 ## Uninstall
@@ -142,13 +142,13 @@ aeditor.extensions.permissions(manifest)
 Uninstall removes by owner:
 
 ```js
-aeditor.ai.tools.unregisterOwner('extension:sample')
-aeditor.ai.context.unregisterOwner('extension:sample')
-aeditor.ai.references.unregisterOwner('extension:sample')
-aeditor.ai.operations.unregisterOwner('extension:sample')
-aeditor.settings.unregisterOwner('extension:sample')
-aeditor.commands.unregisterOwner('extension:sample')
-aeditor.unregisterComponentOwner('extension:sample')
+aiditor.ai.tools.unregisterOwner('extension:sample')
+aiditor.ai.context.unregisterOwner('extension:sample')
+aiditor.ai.references.unregisterOwner('extension:sample')
+aiditor.ai.operations.unregisterOwner('extension:sample')
+aiditor.settings.unregisterOwner('extension:sample')
+aiditor.commands.unregisterOwner('extension:sample')
+aiditor.unregisterComponentOwner('extension:sample')
 ```
 
 The same dotted path model is still used everywhere for public names,
@@ -189,19 +189,19 @@ register components, but that loader belongs to the host app, not to Core/UI.
 The extension runtime may also expose safety and recovery helpers:
 
 ```js
-aeditor.extensions.safeMode(enabled, options)
-aeditor.extensions.setLayer(id, layer)
-aeditor.extensions.setMaxLayer(layer)
-aeditor.extensions.enableLayer(layer)
-aeditor.extensions.removePanelFromDock(panelId)
-aeditor.extensions.previewAddPanelToDock(input)
-aeditor.extensions.applyAddPanelToDock(preview)
-aeditor.extensions.disableLayer(layer)
-aeditor.extensions.configurePermissions(policy)
-aeditor.extensions.configureStorage(options)
-aeditor.extensions.boot(options)
-aeditor.extensions.save()
-aeditor.extensions.clearStored()
+aiditor.extensions.safeMode(enabled, options)
+aiditor.extensions.setLayer(id, layer)
+aiditor.extensions.setMaxLayer(layer)
+aiditor.extensions.enableLayer(layer)
+aiditor.extensions.removePanelFromDock(panelId)
+aiditor.extensions.previewAddPanelToDock(input)
+aiditor.extensions.applyAddPanelToDock(preview)
+aiditor.extensions.disableLayer(layer)
+aiditor.extensions.configurePermissions(policy)
+aiditor.extensions.configureStorage(options)
+aiditor.extensions.boot(options)
+aiditor.extensions.save()
+aiditor.extensions.clearStored()
 ```
 
 These are operational safeguards around the same contribution model. They are
@@ -210,8 +210,8 @@ not extra extension kinds and should stay secondary in docs, UI, and prompts.
 Advanced host hooks:
 
 ```js
-aeditor.extensions.registerLayout(name, handle)
-aeditor.extensions.registerAdapter(id, spec)
+aiditor.extensions.registerLayout(name, handle)
+aiditor.extensions.registerAdapter(id, spec)
 ```
 
 Use them only when normal registries cannot express the integration. The
@@ -223,7 +223,7 @@ to a dock.
 Extensions may be disabled by id. This keeps recovery simple:
 
 ```js
-aeditor.extensions.disable('sample')
+aiditor.extensions.disable('sample')
 ```
 
 Internally that means the runtime deactivates the `extension:sample` owner,

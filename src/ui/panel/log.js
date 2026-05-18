@@ -1,7 +1,7 @@
 // Log panel component - compact editor log with filtering, search, and details.
-;(function (aeditor) {
+;(function (aiditor) {
   'use strict'
-  const ui = aeditor.ui
+  const ui = aiditor.ui
 
   const LEVEL_OPTS = [
     { value: 'all',   label: 'All' },
@@ -12,17 +12,17 @@
   ]
 
   function factory(propsSig, ctx) {
-    const root = ui.h('div', 'aeditor-ui-errlog')
-    const levelSig = aeditor.signal(((propsSig.peek() || {}).level) || 'all')
-    const querySig = aeditor.signal('')
+    const root = ui.h('div', 'aiditor-ui-errlog')
+    const levelSig = aiditor.signal(((propsSig.peek() || {}).level) || 'all')
+    const querySig = aiditor.signal('')
     const expanded = new Set()
 
-    const bar = ui.h('div', 'aeditor-ui-errlog-bar')
+    const bar = ui.h('div', 'aiditor-ui-errlog-bar')
     bar.appendChild(ui.select({ value: levelSig, options: LEVEL_OPTS }))
     bar.appendChild(ui.searchInput({ value: querySig, placeholder: 'Search logs...' }))
-    const summary = ui.h('div', 'aeditor-ui-errlog-summary')
+    const summary = ui.h('div', 'aiditor-ui-errlog-summary')
     bar.appendChild(summary)
-    bar.appendChild(ui.h('div', 'aeditor-ui-errlog-spacer'))
+    bar.appendChild(ui.h('div', 'aiditor-ui-errlog-spacer'))
 
     const copyBtn = ui.button({ text: 'Copy', size: 'sm' })
     copyBtn.addEventListener('click', function () {
@@ -37,16 +37,16 @@
     clearBtn.addEventListener('click', function () {
       const visible = new Set(filteredEntries().map(function (e) { return e.id }))
       if (!visible.size) return
-      aeditor.log.update(function (list) { return list.filter(function (e) { return !visible.has(e.id) }) })
+      aiditor.log.update(function (list) { return list.filter(function (e) { return !visible.has(e.id) }) })
     })
     bar.appendChild(clearBtn)
     root.appendChild(bar)
 
-    const body = ui.view({ className: 'aeditor-ui-errlog-body' })
+    const body = ui.view({ className: 'aiditor-ui-errlog-body' })
     root.appendChild(body)
 
     function filteredEntries() {
-      const list = aeditor.log()
+      const list = aiditor.log()
       const level = levelSig()
       const query = String(querySig() || '').trim().toLowerCase()
       return list.filter(function (entry) {
@@ -57,12 +57,12 @@
     }
 
     function render() {
-      const list = aeditor.log()
+      const list = aiditor.log()
       const visible = filteredEntries()
       summary.textContent = summaryText(list, visible)
       clearBody(body)
       if (!visible.length) {
-        body.appendChild(ui.h('div', 'aeditor-ui-errlog-empty', { text: list.length ? 'No matching log entries' : 'No log entries' }))
+        body.appendChild(ui.h('div', 'aiditor-ui-errlog-empty', { text: list.length ? 'No matching log entries' : 'No log entries' }))
         return
       }
       for (let i = visible.length - 1; i >= 0; i--) {
@@ -70,7 +70,7 @@
       }
     }
 
-    ctx.onCleanup(aeditor.effect(render))
+    ctx.onCleanup(aiditor.effect(render))
     return root
   }
 
@@ -79,44 +79,44 @@
   }
 
   function buildRow(entry, expanded, rerender) {
-    const row = ui.h('div', 'aeditor-ui-errlog-row aeditor-ui-errlog-row-' + entry.level)
-    if (expanded.has(entry.id)) row.classList.add('aeditor-ui-errlog-row-open')
+    const row = ui.h('div', 'aiditor-ui-errlog-row aiditor-ui-errlog-row-' + entry.level)
+    if (expanded.has(entry.id)) row.classList.add('aiditor-ui-errlog-row-open')
 
-    const main = ui.h('button', 'aeditor-ui-errlog-main', { type: 'button' })
+    const main = ui.h('button', 'aiditor-ui-errlog-main', { type: 'button' })
     main.addEventListener('click', function () {
       if (expanded.has(entry.id)) expanded.delete(entry.id)
       else expanded.add(entry.id)
       rerender()
     })
-    main.appendChild(ui.h('span', 'aeditor-ui-errlog-caret', { text: expanded.has(entry.id) ? '▾' : '▸' }))
-    main.appendChild(ui.h('span', 'aeditor-ui-errlog-level aeditor-ui-errlog-level-' + entry.level, { text: entry.level }))
-    main.appendChild(ui.h('span', 'aeditor-ui-errlog-time', { text: formatTime(entry.time) }))
-    main.appendChild(ui.h('span', 'aeditor-ui-errlog-source', { text: shortSource(entry.source) }))
-    main.appendChild(ui.h('span', 'aeditor-ui-errlog-msg', { text: entry.message }))
+    main.appendChild(ui.h('span', 'aiditor-ui-errlog-caret', { text: expanded.has(entry.id) ? '▾' : '▸' }))
+    main.appendChild(ui.h('span', 'aiditor-ui-errlog-level aiditor-ui-errlog-level-' + entry.level, { text: entry.level }))
+    main.appendChild(ui.h('span', 'aiditor-ui-errlog-time', { text: formatTime(entry.time) }))
+    main.appendChild(ui.h('span', 'aiditor-ui-errlog-source', { text: shortSource(entry.source) }))
+    main.appendChild(ui.h('span', 'aiditor-ui-errlog-msg', { text: entry.message }))
     row.appendChild(main)
 
     const dismiss = ui.iconButton({ icon: 'x', title: 'Dismiss', size: 'sm', kind: 'ghost' })
-    dismiss.classList.add('aeditor-ui-errlog-dismiss')
+    dismiss.classList.add('aiditor-ui-errlog-dismiss')
     dismiss.addEventListener('click', function (ev) {
       ev.stopPropagation()
-      aeditor.log.dismiss(entry.id)
+      aiditor.log.dismiss(entry.id)
     })
     row.appendChild(dismiss)
 
     if (expanded.has(entry.id)) {
-      const details = ui.h('div', 'aeditor-ui-errlog-details')
+      const details = ui.h('div', 'aiditor-ui-errlog-details')
       details.appendChild(detailLine('source', formatSource(entry.source)))
       details.appendChild(detailLine('time', new Date(entry.time).toLocaleString()))
-      if (entry.stack) details.appendChild(ui.h('pre', 'aeditor-ui-errlog-stack', { text: entry.stack }))
+      if (entry.stack) details.appendChild(ui.h('pre', 'aiditor-ui-errlog-stack', { text: entry.stack }))
       row.appendChild(details)
     }
     return row
   }
 
   function detailLine(label, value) {
-    const el = ui.h('div', 'aeditor-ui-errlog-detail')
-    el.appendChild(ui.h('span', 'aeditor-ui-errlog-detail-label', { text: label }))
-    el.appendChild(ui.h('span', 'aeditor-ui-errlog-detail-value', { text: value }))
+    const el = ui.h('div', 'aiditor-ui-errlog-detail')
+    el.appendChild(ui.h('span', 'aiditor-ui-errlog-detail-label', { text: label }))
+    el.appendChild(ui.h('span', 'aiditor-ui-errlog-detail-value', { text: value }))
     return el
   }
 
@@ -164,11 +164,11 @@
     return parts.join(' · ')
   }
 
-  aeditor.registerComponent('log', {
+  aiditor.registerComponent('log', {
     label:    'Log',
     icon:     'list',
     category: 'panel',
     defaults: function () { return { title: 'Log', icon: 'list', props: { level: 'all' } } },
     factory:  factory,
   })
-})(window.aeditor = window.aeditor || {})
+})(window.aiditor = window.aiditor || {})

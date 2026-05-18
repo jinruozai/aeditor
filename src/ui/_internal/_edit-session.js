@@ -1,12 +1,12 @@
-// aeditor.ui.editSession — shared keyboard contract for editable fields.
+// aiditor.ui.editSession — shared keyboard contract for editable fields.
 //
 // The UI library writes values live while the user types. An edit session adds
 // the editor-style finish semantics on top: focus captures the base value,
 // Enter/blur commit, Escape restores the base value. Multiline controls choose
 // their submit behavior with `submitMode`.
-;(function (aeditor) {
+;(function (aiditor) {
   'use strict'
-  const ui = aeditor.ui = aeditor.ui || {}
+  const ui = aiditor.ui = aiditor.ui || {}
 
   ui.editSession = function (opts) {
     const o = opts || {}
@@ -82,4 +82,4 @@
 
     return { commit: finish, cancel: revert }
   }
-})(window.aeditor = window.aeditor || {})
+})(window.aiditor = window.aiditor || {})

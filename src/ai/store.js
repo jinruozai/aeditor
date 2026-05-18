@@ -1,22 +1,22 @@
-// aeditor.ai store - agents, messages, and chat attachments.
-;(function (aeditor) {
+// aiditor.ai store - agents, messages, and chat attachments.
+;(function (aiditor) {
   'use strict'
 
-  const ai = aeditor.ai = aeditor.ai || {}
+  const ai = aiditor.ai = aiditor.ai || {}
 
   let nextAgentId = 1
   let nextMessageId = 1
   let nextAttachmentId = 1
   let nextEventId = 1
 
-  const agentsSig = aeditor.signal([])
-  const attachmentsSig = aeditor.signal([])
-  const activeAgentIdSig = aeditor.signal(null)
+  const agentsSig = aiditor.signal([])
+  const attachmentsSig = aiditor.signal([])
+  const activeAgentIdSig = aiditor.signal(null)
   const agentVersionSigs = {}
   const messageListVersionSigs = {}
   const messageVersionSigs = {}
   const activeRunStateSigs = {}
-  let persistenceKey = 'aeditor.ai.v2'
+  let persistenceKey = 'aiditor.ai.v2'
   let persistenceEnabled = true
   let saveTimer = null
   const MAX_SNAPSHOT_CONTENT_CHARS = 1000000
@@ -206,7 +206,7 @@
   }
 
   function versionSig(map, key) {
-    if (!map[key]) map[key] = aeditor.signal(0)
+    if (!map[key]) map[key] = aiditor.signal(0)
     return map[key]
   }
 
@@ -686,7 +686,7 @@
     try {
       s.setItem(persistenceKey, JSON.stringify(data))
     } catch (err) {
-      if (aeditor.reportError) aeditor.reportError({ scope: 'ai', storage: persistenceKey }, err)
+      if (aiditor.reportError) aiditor.reportError({ scope: 'ai', storage: persistenceKey }, err)
     }
     return data
   }
@@ -938,10 +938,10 @@
   ai.agent.messages = agentMessages
 
   restore()
-  aeditor.effect(function () {
+  aiditor.effect(function () {
     agentsSig()
     attachmentsSig()
     activeAgentIdSig()
     scheduleSave()
   })
-})(window.aeditor = window.aeditor || {})
+})(window.aiditor = window.aiditor || {})

@@ -1,19 +1,19 @@
-// AI settings sections for AEditor.
-;(function (aeditor) {
+// AI settings sections for Aiditor.
+;(function (aiditor) {
   'use strict'
 
-  if (!aeditor.settings) return
+  if (!aiditor.settings) return
 
-  const ui = aeditor.ui
+  const ui = aiditor.ui
 
-  aeditor.settings.registerSection('ai', {
+  aiditor.settings.registerSection('ai', {
     title: 'AI',
     icon: 'user',
     description: 'Connections, auth methods, models, and local bridge settings.',
     order: 20,
   })
 
-  aeditor.settings.registerSchema('ai', [
+  aiditor.settings.registerSchema('ai', [
     {
       key: 'ai.defaultConnection',
       label: 'Default Connection',
@@ -25,12 +25,12 @@
     },
   ])
 
-  aeditor.effect(function () {
-    if (!aeditor.ai || !aeditor.ai.setActiveConnection) return
-    aeditor.ai.setActiveConnection(aeditor.settings.get('ai.defaultConnection') || 'mock')
+  aiditor.effect(function () {
+    if (!aiditor.ai || !aiditor.ai.setActiveConnection) return
+    aiditor.ai.setActiveConnection(aiditor.settings.get('ai.defaultConnection') || 'mock')
   })
 
-  aeditor.settings.registerPage('ai', {
+  aiditor.settings.registerPage('ai', {
     section: 'ai',
     title: 'Connections',
     icon: 'link',
@@ -41,17 +41,17 @@
   })
 
   function renderAiSettings() {
-    const root = ui.view({ scroll: 'auto', className: 'aeditor-settings-page aeditor-settings-ai-page' })
+    const root = ui.view({ scroll: 'auto', className: 'aiditor-settings-page aiditor-settings-ai-page' })
     const options = connectionOptions()
-    const initial = aeditor.settings.get('ai.defaultConnection') || (options[0] && options[0].id) || 'mock'
-    const selected = aeditor.signal(initial)
+    const initial = aiditor.settings.get('ai.defaultConnection') || (options[0] && options[0].id) || 'mock'
+    const selected = aiditor.signal(initial)
 
     root.appendChild(pageHead(
       'AI Connections',
       'Choose a provider, configure auth, and set the model used by new agents.'
     ))
 
-    const bar = ui.h('div', 'aeditor-settings-ai-toolbar')
+    const bar = ui.h('div', 'aiditor-settings-ai-toolbar')
     bar.appendChild(settingSelect({
       key: 'ai.defaultConnection',
       label: 'Default connection',
@@ -68,16 +68,16 @@
     }))
     root.appendChild(bar)
 
-    const shell = ui.h('div', 'aeditor-settings-connection-shell')
-    const list = ui.h('div', 'aeditor-settings-connection-list')
-    const detail = ui.h('div', 'aeditor-settings-connection-detail')
+    const shell = ui.h('div', 'aiditor-settings-connection-shell')
+    const list = ui.h('div', 'aiditor-settings-connection-list')
+    const detail = ui.h('div', 'aiditor-settings-connection-detail')
     shell.appendChild(list)
     shell.appendChild(detail)
     root.appendChild(shell)
 
     renderConnectionList(list, selected)
     renderConnectionDetail(detail, selected)
-    ui.collect(root, aeditor.effect(function () {
+    ui.collect(root, aiditor.effect(function () {
       selected()
       renderConnectionDetail(detail, selected)
       updateConnectionListActive(list, selected.peek())
@@ -87,7 +87,7 @@
   }
 
   function connectionOptions() {
-    if (aeditor.ai && aeditor.ai.connectionOptions) return aeditor.ai.connectionOptions()
+    if (aiditor.ai && aiditor.ai.connectionOptions) return aiditor.ai.connectionOptions()
     return [{ id: 'mock', label: 'Mock', provider: 'mock', authType: 'none', transportType: 'mock' }]
   }
 
@@ -98,9 +98,9 @@
   }
 
   function pageHead(title, desc) {
-    const head = ui.h('div', 'aeditor-settings-page-head')
-    head.appendChild(ui.h('div', 'aeditor-settings-page-title', { text: title }))
-    head.appendChild(ui.h('div', 'aeditor-settings-page-desc', { text: desc }))
+    const head = ui.h('div', 'aiditor-settings-page-head')
+    head.appendChild(ui.h('div', 'aiditor-settings-page-title', { text: title }))
+    head.appendChild(ui.h('div', 'aiditor-settings-page-desc', { text: desc }))
     return head
   }
 
@@ -125,21 +125,21 @@
   }
 
   function updateConnectionListActive(host, activeId) {
-    const items = host.querySelectorAll('.aeditor-settings-connection-item')
+    const items = host.querySelectorAll('.aiditor-settings-connection-item')
     for (let i = 0; i < items.length; i++) {
       items[i].toggleAttribute('data-active', items[i].getAttribute('data-connection-id') === activeId)
     }
   }
 
   function connectionListItem(meta, activeId, onSelect) {
-    const item = ui.h('button', 'aeditor-settings-connection-item', { type: 'button' })
+    const item = ui.h('button', 'aiditor-settings-connection-item', { type: 'button' })
     item.setAttribute('data-connection-id', meta.id)
     if (meta.id === activeId) item.setAttribute('data-active', 'true')
-    item.appendChild(ui.h('span', 'aeditor-settings-connection-item-title', { text: meta.label || meta.id }))
-    item.appendChild(ui.h('span', 'aeditor-settings-connection-item-meta', {
+    item.appendChild(ui.h('span', 'aiditor-settings-connection-item-title', { text: meta.label || meta.id }))
+    item.appendChild(ui.h('span', 'aiditor-settings-connection-item-meta', {
       text: [meta.provider || meta.id, meta.authType || 'none'].join(' / '),
     }))
-    item.appendChild(ui.h('span', 'aeditor-settings-connection-item-status', { text: connectionStateText(meta.id) }))
+    item.appendChild(ui.h('span', 'aiditor-settings-connection-item-status', { text: connectionStateText(meta.id) }))
     item.addEventListener('click', function () { onSelect(meta.id) })
     return item
   }
@@ -152,19 +152,19 @@
       return
     }
 
-    const connection = aeditor.ai && aeditor.ai.getConnection ? aeditor.ai.getConnection(meta.id) : null
-    const card = ui.h('section', 'aeditor-settings-connection-card')
-    const head = ui.h('div', 'aeditor-settings-connection-head')
-    const copy = ui.h('div', 'aeditor-settings-connection-copy')
-    copy.appendChild(ui.h('div', 'aeditor-settings-connection-title', { text: meta.label || meta.id }))
-    copy.appendChild(ui.h('div', 'aeditor-settings-connection-subtitle', {
+    const connection = aiditor.ai && aiditor.ai.getConnection ? aiditor.ai.getConnection(meta.id) : null
+    const card = ui.h('section', 'aiditor-settings-connection-card')
+    const head = ui.h('div', 'aiditor-settings-connection-head')
+    const copy = ui.h('div', 'aiditor-settings-connection-copy')
+    copy.appendChild(ui.h('div', 'aiditor-settings-connection-title', { text: meta.label || meta.id }))
+    copy.appendChild(ui.h('div', 'aiditor-settings-connection-subtitle', {
       text: connectionSummary(meta),
     }))
     head.appendChild(copy)
 
-    const actions = ui.h('div', 'aeditor-settings-connection-actions')
-    actions.appendChild(ui.h('span', 'aeditor-settings-provider-status', { text: connectionStateText(meta.id) }))
-    if (aeditor.settings.get('ai.defaultConnection') !== meta.id) {
+    const actions = ui.h('div', 'aiditor-settings-connection-actions')
+    actions.appendChild(ui.h('span', 'aiditor-settings-provider-status', { text: connectionStateText(meta.id) }))
+    if (aiditor.settings.get('ai.defaultConnection') !== meta.id) {
       actions.appendChild(ui.button({
         text: 'Use Default',
         size: 'sm',
@@ -178,8 +178,8 @@
     head.appendChild(actions)
     card.appendChild(head)
 
-    const fields = ui.h('div', 'aeditor-settings-connection-fields')
-    const status = ui.h('span', 'aeditor-settings-provider-status')
+    const fields = ui.h('div', 'aiditor-settings-connection-fields')
+    const status = ui.h('span', 'aiditor-settings-provider-status')
     if (meta.authType === 'subscriptionBridge') fields.appendChild(settingAuth(meta.id, status, meta.authType))
     const settings = connectionSettingsFor(meta.id, meta.label || meta.id, connection)
     for (let i = 0; i < settings.length; i++) {
@@ -209,10 +209,10 @@
   }
 
   function connectionStateText(id) {
-    const config = aeditor.ai && aeditor.ai.getConnectionConfig ? aeditor.ai.getConnectionConfig(id) : {}
-    const connection = aeditor.ai && aeditor.ai.getConnection ? aeditor.ai.getConnection(id) : null
+    const config = aiditor.ai && aiditor.ai.getConnectionConfig ? aiditor.ai.getConnectionConfig(id) : {}
+    const connection = aiditor.ai && aiditor.ai.getConnection ? aiditor.ai.getConnection(id) : null
     const authType = connection && connection.auth && connection.auth.type || 'none'
-    if (aeditor.settings.get('ai.defaultConnection') === id) return 'Default'
+    if (aiditor.settings.get('ai.defaultConnection') === id) return 'Default'
     if (authType === 'apiKey') return config.apiKey ? 'Configured' : 'Needs key'
     if (authType === 'subscriptionBridge' || authType === 'localBridge') return authStatusText(id)
     return 'Ready'
@@ -223,14 +223,14 @@
       return 'Subscription connections use the Local Bridge for browser login. Keep the bridge running while using ChatGPT/Codex or Claude Code auth.'
     }
     if (meta.authType === 'apiKey') {
-      return 'API keys are stored in local AEditor settings. For team or production use, prefer a trusted proxy or host-managed secret store.'
+      return 'API keys are stored in local Aiditor settings. For team or production use, prefer a trusted proxy or host-managed secret store.'
     }
     if (meta.provider === 'ollama') return 'Ollama uses the OpenAI-compatible local endpoint. Keep Ollama running before loading models.'
     return 'This connection is available without extra browser-side credentials.'
   }
 
   function modelLoadAction(connectionId, card, status) {
-    const wrap = ui.h('div', 'aeditor-settings-model-action')
+    const wrap = ui.h('div', 'aiditor-settings-model-action')
     wrap.appendChild(ui.iconButton({
       icon: 'refresh',
       title: 'Load models',
@@ -249,7 +249,7 @@
       out.push({
         kind: key === 'stream' ? 'switch' : (key === 'defaultModel' ? 'model' : 'input'),
         connectionId: id,
-        key: aeditor.ai.connectionConfigKey(id, key),
+        key: aiditor.ai.connectionConfigKey(id, key),
         label: compactLabel(id, label, keyLabel(key)),
         type: key === 'apiKey' ? 'password' : 'text',
         placeholder: placeholderFor(key),
@@ -296,17 +296,17 @@
   }
 
   function settingInput(spec) {
-    const current = aeditor.settings.get(spec.key)
-    const value = aeditor.signal(current !== undefined ? current : (spec.defaultValue != null ? spec.defaultValue : ''))
+    const current = aiditor.settings.get(spec.key)
+    const value = aiditor.signal(current !== undefined ? current : (spec.defaultValue != null ? spec.defaultValue : ''))
     const row = settingRow(spec.label, spec.desc)
-    const control = ui.h('div', 'aeditor-settings-field-control')
+    const control = ui.h('div', 'aiditor-settings-field-control')
     control.appendChild(ui.input({
       value: value,
       type: spec.type || 'text',
       placeholder: spec.placeholder || '',
       onChange: function (v) {
         value.set(v)
-        aeditor.settings.set(spec.key, v)
+        aiditor.settings.set(spec.key, v)
         if (spec.key.indexOf('.apiKey') >= 0 && v && spec.connectionId) activateConnection(spec.connectionId)
       },
     }))
@@ -315,25 +315,25 @@
   }
 
   function settingModel(spec) {
-    const current = aeditor.settings.get(spec.key)
-    const value = aeditor.signal(current !== undefined ? current : (spec.defaultValue != null ? spec.defaultValue : ''))
-    const options = aeditor.signal(modelOptionsFor(spec.connectionId, value.peek()))
+    const current = aiditor.settings.get(spec.key)
+    const value = aiditor.signal(current !== undefined ? current : (spec.defaultValue != null ? spec.defaultValue : ''))
+    const options = aiditor.signal(modelOptionsFor(spec.connectionId, value.peek()))
     const row = settingRow(spec.label, spec.desc)
-    const control = ui.h('div', 'aeditor-settings-field-control aeditor-settings-model-control')
+    const control = ui.h('div', 'aiditor-settings-field-control aiditor-settings-model-control')
     control.appendChild(ui.combobox({
       value: value,
       options: options,
       placeholder: spec.placeholder || 'Load models or enter model id',
       onChange: function (v) {
         value.set(v)
-        aeditor.settings.set(spec.key, v)
+        aiditor.settings.set(spec.key, v)
         if (spec.connectionId) syncActiveAgentModel(spec.connectionId, v)
       },
     }))
     if (spec.action) control.appendChild(spec.action)
     row.appendChild(control)
-    if (aeditor.ai && aeditor.ai.models) {
-      ui.collect(row, aeditor.effect(function () {
+    if (aiditor.ai && aiditor.ai.models) {
+      ui.collect(row, aiditor.effect(function () {
         options.set(modelOptionsFor(spec.connectionId, value()))
       }))
     }
@@ -341,9 +341,9 @@
   }
 
   function modelOptionsFor(connectionId, current) {
-    const map = aeditor.ai && aeditor.ai.models ? aeditor.ai.models() : {}
+    const map = aiditor.ai && aiditor.ai.models ? aiditor.ai.models() : {}
     const list = map && map[connectionId] ? map[connectionId] : []
-    const hints = aeditor.ai && aeditor.ai.modelHints ? aeditor.ai.modelHints(connectionId) : []
+    const hints = aiditor.ai && aiditor.ai.modelHints ? aiditor.ai.modelHints(connectionId) : []
     const out = []
     let found = !current
     for (let h = 0; h < hints.length; h++) {
@@ -367,16 +367,16 @@
   }
 
   function settingSelect(spec) {
-    const value = aeditor.signal(aeditor.settings.get(spec.key) || '')
+    const value = aiditor.signal(aiditor.settings.get(spec.key) || '')
     const row = settingRow(spec.label, spec.desc)
-    if (spec.compact) row.classList.add('aeditor-settings-field-compact')
-    const control = ui.h('div', 'aeditor-settings-field-control')
+    if (spec.compact) row.classList.add('aiditor-settings-field-compact')
+    const control = ui.h('div', 'aiditor-settings-field-control')
     control.appendChild(ui.select({
       value: value,
       options: spec.options(),
       onChange: function (v) {
         value.set(v)
-        aeditor.settings.set(spec.key, v)
+        aiditor.settings.set(spec.key, v)
         if (spec.key === 'ai.defaultConnection') activateConnection(v)
         if (spec.onChange) spec.onChange(v)
       },
@@ -386,15 +386,15 @@
   }
 
   function settingSwitch(spec) {
-    const current = aeditor.settings.get(spec.key)
-    const value = aeditor.signal(current !== undefined ? !!current : !!spec.defaultValue)
+    const current = aiditor.settings.get(spec.key)
+    const value = aiditor.signal(current !== undefined ? !!current : !!spec.defaultValue)
     const row = settingRow(spec.label, spec.desc)
-    const control = ui.h('div', 'aeditor-settings-field-control')
+    const control = ui.h('div', 'aiditor-settings-field-control')
     control.appendChild(ui.switch({
       value: value,
       onChange: function (v) {
         value.set(v)
-        aeditor.settings.set(spec.key, v)
+        aiditor.settings.set(spec.key, v)
       },
     }))
     row.appendChild(control)
@@ -408,7 +408,7 @@
         ? 'Uses Local Bridge to open the provider login page and store account auth outside this browser page.'
         : 'Connects to a trusted Local Bridge running on this machine.'
     )
-    const actions = ui.h('div', 'aeditor-settings-auth-actions')
+    const actions = ui.h('div', 'aiditor-settings-auth-actions')
     const loginBtn = ui.button({
       text: 'Login with Browser',
       size: 'sm',
@@ -428,7 +428,7 @@
       kind: 'ghost',
       onClick: function () { refreshAuthStatus(connectionId, status, loginBtn, logoutBtn, bridgeHint) },
     })
-    const bridgeHint = ui.h('span', 'aeditor-settings-auth-hint')
+    const bridgeHint = ui.h('span', 'aiditor-settings-auth-hint')
     actions.appendChild(loginBtn)
     actions.appendChild(refreshBtn)
     actions.appendChild(logoutBtn)
@@ -441,37 +441,37 @@
   }
 
   function settingRow(label, desc) {
-    const row = ui.h('div', 'aeditor-settings-field')
-    const copy = ui.h('div', 'aeditor-settings-field-copy')
-    copy.appendChild(ui.h('span', 'aeditor-settings-field-label', { text: label }))
-    if (desc) copy.appendChild(ui.h('span', 'aeditor-settings-field-desc', { text: desc }))
+    const row = ui.h('div', 'aiditor-settings-field')
+    const copy = ui.h('div', 'aiditor-settings-field-copy')
+    copy.appendChild(ui.h('span', 'aiditor-settings-field-label', { text: label }))
+    if (desc) copy.appendChild(ui.h('span', 'aiditor-settings-field-desc', { text: desc }))
     row.appendChild(copy)
     return row
   }
 
   function statusNote(text) {
-    return ui.h('div', 'aeditor-settings-note', { text: text })
+    return ui.h('div', 'aiditor-settings-note', { text: text })
   }
 
   function loadModels(connectionId, card, status) {
-    if (!aeditor.ai || !aeditor.ai.refreshModels) return
-    card.classList.add('aeditor-settings-provider-loading')
+    if (!aiditor.ai || !aiditor.ai.refreshModels) return
+    card.classList.add('aiditor-settings-provider-loading')
     if (status) status.textContent = 'Loading...'
-    aeditor.ai.refreshModels(connectionId).then(function (models) {
-      card.classList.remove('aeditor-settings-provider-loading')
-      card.classList.add('aeditor-settings-provider-ok')
+    aiditor.ai.refreshModels(connectionId).then(function (models) {
+      card.classList.remove('aiditor-settings-provider-loading')
+      card.classList.add('aiditor-settings-provider-ok')
       if (status) status.textContent = models && models.length ? String(models.length) + ' models' : 'No models returned'
       activateConnection(connectionId)
-      setTimeout(function () { card.classList.remove('aeditor-settings-provider-ok') }, 900)
+      setTimeout(function () { card.classList.remove('aiditor-settings-provider-ok') }, 900)
     }, function (err) {
-      card.classList.remove('aeditor-settings-provider-loading')
+      card.classList.remove('aiditor-settings-provider-loading')
       if (status) status.textContent = 'Load failed'
-      if (aeditor.reportError) aeditor.reportError({ scope: 'settings', connection: connectionId }, err)
+      if (aiditor.reportError) aiditor.reportError({ scope: 'settings', connection: connectionId }, err)
     })
   }
 
   function loginConnection(connectionId, status, loginBtn, logoutBtn) {
-    if (!aeditor.ai || !aeditor.ai.loginConnection) return
+    if (!aiditor.ai || !aiditor.ai.loginConnection) return
     if (loginBtn && loginBtn.disabled) return
     let popup = null
     try {
@@ -485,7 +485,7 @@
     } catch (_) {}
     if (status) status.textContent = 'Signing in...'
     if (loginBtn) loginBtn.disabled = true
-    aeditor.ai.loginConnection(connectionId, { popup: popup }).then(function (next) {
+    aiditor.ai.loginConnection(connectionId, { popup: popup }).then(function (next) {
       setAuthState(connectionId, status, loginBtn, logoutBtn, next)
       activateConnection(connectionId)
     }, function (err) {
@@ -503,26 +503,26 @@
         loginBtn.disabled = false
       }
       if (logoutBtn) logoutBtn.style.display = 'none'
-      if (aeditor.reportError) aeditor.reportError({ scope: 'settings', connection: connectionId }, err)
+      if (aiditor.reportError) aiditor.reportError({ scope: 'settings', connection: connectionId }, err)
     })
   }
 
   function logoutConnection(connectionId, status, loginBtn, logoutBtn) {
-    if (!aeditor.ai || !aeditor.ai.logoutConnection) return
+    if (!aiditor.ai || !aiditor.ai.logoutConnection) return
     if (status) status.textContent = 'Signing out...'
-    aeditor.ai.logoutConnection(connectionId).then(function (next) {
+    aiditor.ai.logoutConnection(connectionId).then(function (next) {
       setAuthState(connectionId, status, loginBtn, logoutBtn, next || { state: 'signed_out' })
     }, function (err) {
       if (status) status.textContent = 'Logout failed'
-      if (aeditor.reportError) aeditor.reportError({ scope: 'settings', connection: connectionId }, err)
+      if (aiditor.reportError) aiditor.reportError({ scope: 'settings', connection: connectionId }, err)
     })
   }
 
   function refreshAuthStatus(connectionId, status, loginBtn, logoutBtn, bridgeHint) {
-    if (!aeditor.ai || !aeditor.ai.refreshAuthStatus) return
+    if (!aiditor.ai || !aiditor.ai.refreshAuthStatus) return
     if (loginBtn) loginBtn.disabled = true
     if (status) status.textContent = 'Checking...'
-    aeditor.ai.refreshAuthStatus(connectionId).then(function (next) {
+    aiditor.ai.refreshAuthStatus(connectionId).then(function (next) {
       setAuthState(connectionId, status, loginBtn, logoutBtn, next, bridgeHint)
     }, function (err) {
       if (status) status.textContent = bridgeUnavailableText(err)
@@ -537,7 +537,7 @@
   }
 
   function authStatusText(connectionId) {
-    const status = aeditor.ai && aeditor.ai.authStatus ? aeditor.ai.authStatus(connectionId) : null
+    const status = aiditor.ai && aiditor.ai.authStatus ? aiditor.ai.authStatus(connectionId) : null
     return status && status.state ? status.state : 'Not signed in'
   }
 
@@ -575,7 +575,7 @@
   }
 
   function setAuthState(connectionId, status, loginBtn, logoutBtn, next, bridgeHint) {
-    const result = next || (aeditor.ai && aeditor.ai.authStatus ? aeditor.ai.authStatus(connectionId) : null)
+    const result = next || (aiditor.ai && aiditor.ai.authStatus ? aiditor.ai.authStatus(connectionId) : null)
     const state = result && result.state
     if (status) status.textContent = authResultText(result, state || 'Not signed in')
     const signedIn = state === 'signed_in'
@@ -589,16 +589,16 @@
   }
 
   function activateConnection(connectionId) {
-    if (!connectionId || !aeditor.ai) return
-    aeditor.settings.set('ai.defaultConnection', connectionId)
-    if (aeditor.ai.setActiveConnection) aeditor.ai.setActiveConnection(connectionId)
-    const agent = aeditor.ai.getActiveAgent ? aeditor.ai.getActiveAgent() : null
-    if (!agent || !aeditor.ai.updateAgent) return
+    if (!connectionId || !aiditor.ai) return
+    aiditor.settings.set('ai.defaultConnection', connectionId)
+    if (aiditor.ai.setActiveConnection) aiditor.ai.setActiveConnection(connectionId)
+    const agent = aiditor.ai.getActiveAgent ? aiditor.ai.getActiveAgent() : null
+    if (!agent || !aiditor.ai.updateAgent) return
     if (agent.connection && agent.connection !== 'mock' && agent.connection !== connectionId) return
-    const config = aeditor.ai.getConnectionConfig ? aeditor.ai.getConnectionConfig(connectionId) : {}
+    const config = aiditor.ai.getConnectionConfig ? aiditor.ai.getConnectionConfig(connectionId) : {}
     const opts = modelOptionsFor(connectionId, config.defaultModel || agent.model)
     const nextModel = config.defaultModel || (opts.length ? opts[0].value : '')
-    aeditor.ai.updateAgent(agent.id, {
+    aiditor.ai.updateAgent(agent.id, {
       connection: connectionId,
       model: nextModel,
       stream: !!config.stream,
@@ -606,14 +606,14 @@
   }
 
   function syncActiveAgentModel(connectionId, modelId) {
-    if (!connectionId || !modelId || !aeditor.ai || !aeditor.ai.getActiveAgent || !aeditor.ai.updateAgent) return
-    const agent = aeditor.ai.getActiveAgent()
+    if (!connectionId || !modelId || !aiditor.ai || !aiditor.ai.getActiveAgent || !aiditor.ai.updateAgent) return
+    const agent = aiditor.ai.getActiveAgent()
     if (!agent || agent.connection !== connectionId) return
-    aeditor.ai.updateAgent(agent.id, { model: modelId })
+    aiditor.ai.updateAgent(agent.id, { model: modelId })
   }
 
   function addCustomConnection(root) {
-    if (!aeditor.ai || !aeditor.ai.createCustomConnection) return
+    if (!aiditor.ai || !aiditor.ai.createCustomConnection) return
     ui.prompt({
       title: 'Add AI Connection',
       message: 'Connection name',
@@ -628,7 +628,7 @@
         okLabel: 'Add',
       }).then(function (baseUrl) {
         if (baseUrl == null) return
-        const c = aeditor.ai.createCustomConnection({ label: name || 'Custom OpenAI', baseUrl: baseUrl })
+        const c = aiditor.ai.createCustomConnection({ label: name || 'Custom OpenAI', baseUrl: baseUrl })
         activateConnection(c.id)
         if (ui.toast) ui.toast({ kind: 'success', message: 'Connection added' })
         refreshSettingsPage(root)
@@ -648,10 +648,10 @@
     const options = connectionOptions()
     for (let i = 0; i < options.length; i++) {
       const id = options[i].id
-      const conn = aeditor.ai && aeditor.ai.getConnection && aeditor.ai.getConnection(id)
+      const conn = aiditor.ai && aiditor.ai.getConnection && aiditor.ai.getConnection(id)
       const config = conn && conn.configDefaults || {}
       parts.push([id, options[i].label, options[i].provider, options[i].authType, options[i].transportType, Object.keys(config).join(' '), Object.keys(config).map(function (k) { return config[k] }).join(' ')].join(' '))
     }
     return parts.join(' ')
   }
-})(window.aeditor = window.aeditor || {})
+})(window.aiditor = window.aiditor || {})

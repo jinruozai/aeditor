@@ -4,18 +4,18 @@
 // their root elements into a single document-level container so they can
 // escape parent stacking contexts and `overflow:hidden` clippers (a common
 // problem when a popover is hosted inside a scrollable panel).
-;(function (aeditor) {
+;(function (aiditor) {
   'use strict'
-  const ui = aeditor.ui = aeditor.ui || {}
+  const ui = aiditor.ui = aiditor.ui || {}
 
   function root() {
-    let r = document.getElementById('aeditor-portal-root')
+    let r = document.getElementById('aiditor-portal-root')
     if (!r) {
       r = document.createElement('div')
-      r.id = 'aeditor-portal-root'
+      r.id = 'aiditor-portal-root'
       // z-index: use the popover token as the portal layer baseline; each
       // overlay stacks on top via calc() in _overlay.js.
-      r.style.cssText = 'position:fixed;left:0;top:0;width:0;height:0;z-index:var(--aeditor-z-popover);'
+      r.style.cssText = 'position:fixed;left:0;top:0;width:0;height:0;z-index:var(--aiditor-z-popover);'
       document.body.appendChild(r)
     }
     return r
@@ -27,4 +27,4 @@
     root().appendChild(el)
     return function () { if (el.parentNode) el.parentNode.removeChild(el) }
   }
-})(window.aeditor = window.aeditor || {})
+})(window.aiditor = window.aiditor || {})

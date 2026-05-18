@@ -1,4 +1,4 @@
-// aeditor.ui.dateInput — date entry via the browser's native date picker.
+// aiditor.ui.dateInput — date entry via the browser's native date picker.
 //
 // opts: {
 //   value: string | signal<string>   ISO 'YYYY-MM-DD' (empty = unset)
@@ -9,11 +9,11 @@
 // }
 //
 // The component is intentionally thin: we rely on the native `<input type=date>`
-// rather than re-implementing a calendar. The wrapper `.aeditor-ui-field` gives it
+// rather than re-implementing a calendar. The wrapper `.aiditor-ui-field` gives it
 // the same visual frame as ui.input, so dates and strings sit flush in forms.
-;(function (aeditor) {
+;(function (aiditor) {
   'use strict'
-  const ui = aeditor.ui = aeditor.ui || {}
+  const ui = aiditor.ui = aiditor.ui || {}
 
   ui.dateInput = function (opts) {
     const o = opts || {}
@@ -23,8 +23,8 @@
     const disabled = ui.asSig(o.disabled != null ? o.disabled : false)
     const doWrite = ui.writer(sig, o.onChange, 'ui.dateInput')
 
-    const wrap = ui.h('div', 'aeditor-ui-field')
-    const el = ui.h('input', 'aeditor-ui-input aeditor-ui-date-input', { type: 'date' })
+    const wrap = ui.h('div', 'aiditor-ui-field')
+    const el = ui.h('input', 'aiditor-ui-input aiditor-ui-date-input', { type: 'date' })
     wrap.appendChild(el)
 
     ui.bind(wrap, sig, function (v) {
@@ -34,11 +34,11 @@
     ui.bind(wrap, maxS,     function (v) { v ? el.setAttribute('max', v) : el.removeAttribute('max') })
     ui.bind(wrap, disabled, function (v) {
       el.disabled = !!v
-      wrap.classList.toggle('aeditor-ui-field-disabled', !!v)
+      wrap.classList.toggle('aiditor-ui-field-disabled', !!v)
     })
 
     el.addEventListener('change', function () { doWrite(el.value) })
     el.addEventListener('input',  function () { doWrite(el.value) })
     return wrap
   }
-})(window.aeditor = window.aeditor || {})
+})(window.aiditor = window.aiditor || {})

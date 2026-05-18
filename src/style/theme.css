@@ -1,9 +1,9 @@
-/* aeditor — theme tokens (source of truth for ALL colors / sizes / motion)
+/* aiditor — theme tokens (source of truth for ALL colors / sizes / motion)
  *
  * Theme v2 layers (read top → down):
- *   Authoring  : semantic custom-theme entry (--aeditor-surface-panel, --aeditor-brand)
- *   Primitives : compatibility / advanced ramp (--aeditor-c-04)
- *   Roles      : component-facing tokens (--aeditor-bg-1, --aeditor-fg-2)
+ *   Authoring  : semantic custom-theme entry (--aiditor-surface-panel, --aiditor-brand)
+ *   Primitives : compatibility / advanced ramp (--aiditor-c-04)
+ *   Roles      : component-facing tokens (--aiditor-bg-1, --aiditor-fg-2)
  *   Components : rare per-component tweaks that are not roles
  *
  * ALL non-token CSS in dock.css / component.css / ui-*.css must reference Layer 2
@@ -11,27 +11,27 @@
  * compatibility ramp + a few role mappings; component tokens stay put.
  *
  * Naming convention:
- *   --aeditor-surface-* semantic surface authoring tokens
- *   --aeditor-text-*    semantic text authoring tokens
- *   --aeditor-stroke-*  semantic border/stroke authoring tokens
- *   --aeditor-brand*    brand/accent authoring tokens
- *   --aeditor-state-*   success / warning / danger / info authoring tokens
- *   --aeditor-c-NN     12-step grayscale primitive (00 = darkest, 11 = lightest)
- *   --aeditor-c-NAME   semantic primitive (accent / success / warn / error / info)
- *   --aeditor-bg-N     background depth ramp role (0 = deepest)
- *   --aeditor-fg-N     foreground emphasis role (0 = strongest)
- *   --aeditor-border*  border roles
- *   --aeditor-r-N      radius scale
- *   --aeditor-space-N  spacing scale (4 8 12 16 24 32)
- *   --aeditor-size-N   control size scale (h: row heights / icons)
- *   --aeditor-dur-N    motion durations
- *   --aeditor-z-N      z-index scale
- *   --aeditor-shadow-N elevation shadows
- *   --aeditor-font-*   font stacks
+ *   --aiditor-surface-* semantic surface authoring tokens
+ *   --aiditor-text-*    semantic text authoring tokens
+ *   --aiditor-stroke-*  semantic border/stroke authoring tokens
+ *   --aiditor-brand*    brand/accent authoring tokens
+ *   --aiditor-state-*   success / warning / danger / info authoring tokens
+ *   --aiditor-c-NN     12-step grayscale primitive (00 = darkest, 11 = lightest)
+ *   --aiditor-c-NAME   semantic primitive (accent / success / warn / error / info)
+ *   --aiditor-bg-N     background depth ramp role (0 = deepest)
+ *   --aiditor-fg-N     foreground emphasis role (0 = strongest)
+ *   --aiditor-border*  border roles
+ *   --aiditor-r-N      radius scale
+ *   --aiditor-space-N  spacing scale (4 8 12 16 24 32)
+ *   --aiditor-size-N   control size scale (h: row heights / icons)
+ *   --aiditor-dur-N    motion durations
+ *   --aiditor-z-N      z-index scale
+ *   --aiditor-shadow-N elevation shadows
+ *   --aiditor-font-*   font stacks
  */
 
 :root,
-.aeditor-root[data-aeditor-theme="dark"] {
+.aiditor-root[data-aiditor-theme="dark"] {
   /* ── Layer 1 — Primitives (Dark theme — Godot-minimal default) ───
    *
    * Palette inspired by passivestar/godot-minimal-theme.tres: a neutral
@@ -41,514 +41,514 @@
 
   /* Authoring tokens: recommended custom-theme surface. Theme authors
    * change these semantic names; components keep consuming the role tokens
-   * below. The numeric --aeditor-c-* ramp stays as compatibility/advanced API. */
-  --aeditor-surface-canvas: #141414;
-  --aeditor-surface-lower:  #1a1a1a;
-  --aeditor-surface-frame:  #202020;
-  --aeditor-surface-panel:  #272727;
-  --aeditor-surface-field:  #1a1a1a;
-  --aeditor-surface-hover:  #2d2d2d;
-  --aeditor-surface-active: #333333;
-  --aeditor-surface-raised: #2d2d2d;
+   * below. The numeric --aiditor-c-* ramp stays as compatibility/advanced API. */
+  --aiditor-surface-canvas: #141414;
+  --aiditor-surface-lower:  #1a1a1a;
+  --aiditor-surface-frame:  #202020;
+  --aiditor-surface-panel:  #272727;
+  --aiditor-surface-field:  #1a1a1a;
+  --aiditor-surface-hover:  #2d2d2d;
+  --aiditor-surface-active: #333333;
+  --aiditor-surface-raised: #2d2d2d;
 
-  --aeditor-text-primary:  #d4d4d4;
-  --aeditor-text-body:     #bfbfbf;
-  --aeditor-text-label:    #9a9a9a;
-  --aeditor-text-muted:    #707070;
-  --aeditor-text-disabled: #5a5a5a;
+  --aiditor-text-primary:  #d4d4d4;
+  --aiditor-text-body:     #bfbfbf;
+  --aiditor-text-label:    #9a9a9a;
+  --aiditor-text-muted:    #707070;
+  --aiditor-text-disabled: #5a5a5a;
 
-  --aeditor-stroke-subtle: #2d2d2d;
-  --aeditor-stroke-strong: #3b3b3b;
-  --aeditor-stroke-field:  #333333;
-  --aeditor-stroke-hover:  #474747;
+  --aiditor-stroke-subtle: #2d2d2d;
+  --aiditor-stroke-strong: #3b3b3b;
+  --aiditor-stroke-field:  #333333;
+  --aiditor-stroke-hover:  #474747;
 
-  --aeditor-brand:          #569eff;
-  --aeditor-brand-hover:    #7fb5ff;
-  --aeditor-brand-contrast: #ffffff;
+  --aiditor-brand:          #569eff;
+  --aiditor-brand-hover:    #7fb5ff;
+  --aiditor-brand-contrast: #ffffff;
 
-  --aeditor-state-success: #4dcf68;
-  --aeditor-state-warning: #d4ba6b;
-  --aeditor-state-danger:  #e07a78;
-  --aeditor-state-info:    #569eff;
+  --aiditor-state-success: #4dcf68;
+  --aiditor-state-warning: #d4ba6b;
+  --aiditor-state-danger:  #e07a78;
+  --aiditor-state-info:    #569eff;
 
   /* 12-step neutral-gray ramp. c-03 is the Godot "surface_base". */
-  --aeditor-c-00: var(--aeditor-surface-canvas);   /* deepest viewport + inset wells */
-  --aeditor-c-01: var(--aeditor-surface-lower);    /* lower */
-  --aeditor-c-02: var(--aeditor-surface-frame);    /* frame */
-  --aeditor-c-03: var(--aeditor-surface-panel);    /* surface_base dock body */
-  --aeditor-c-04: var(--aeditor-surface-hover);    /* hover */
-  --aeditor-c-05: var(--aeditor-surface-active);   /* active / selected tab */
-  --aeditor-c-06: var(--aeditor-stroke-strong);    /* border-strong */
-  --aeditor-c-07: #474747;
-  --aeditor-c-08: var(--aeditor-text-disabled);
-  --aeditor-c-09: var(--aeditor-text-muted);       /* muted / placeholder */
-  --aeditor-c-10: var(--aeditor-text-label);       /* labels */
-  --aeditor-c-11: var(--aeditor-text-primary);     /* primary text (not pure white) */
+  --aiditor-c-00: var(--aiditor-surface-canvas);   /* deepest viewport + inset wells */
+  --aiditor-c-01: var(--aiditor-surface-lower);    /* lower */
+  --aiditor-c-02: var(--aiditor-surface-frame);    /* frame */
+  --aiditor-c-03: var(--aiditor-surface-panel);    /* surface_base dock body */
+  --aiditor-c-04: var(--aiditor-surface-hover);    /* hover */
+  --aiditor-c-05: var(--aiditor-surface-active);   /* active / selected tab */
+  --aiditor-c-06: var(--aiditor-stroke-strong);    /* border-strong */
+  --aiditor-c-07: #474747;
+  --aiditor-c-08: var(--aiditor-text-disabled);
+  --aiditor-c-09: var(--aiditor-text-muted);       /* muted / placeholder */
+  --aiditor-c-10: var(--aiditor-text-label);       /* labels */
+  --aiditor-c-11: var(--aiditor-text-primary);     /* primary text (not pure white) */
 
   /* Brand accent — Godot's canonical #569eff, with a soft derivative. */
-  --aeditor-c-accent:      var(--aeditor-brand);
-  --aeditor-c-accent-soft: var(--aeditor-brand-hover);
+  --aiditor-c-accent:      var(--aiditor-brand);
+  --aiditor-c-accent-soft: var(--aiditor-brand-hover);
 
   /* Semantic colors — calibrated to the low-contrast chassis. warn uses
    * Godot's khaki (warning_color ≈ 0.83,0.78,0.62); success keeps a more
    * "OK-button" green per design preference; error is a softer red so
    * it reads as "warning" rather than "alarm" against the neutral gray. */
-  --aeditor-c-success: var(--aeditor-state-success);
-  --aeditor-c-warn:    var(--aeditor-state-warning);
-  --aeditor-c-error:   var(--aeditor-state-danger);
-  --aeditor-c-info:    var(--aeditor-state-info);
+  --aiditor-c-success: var(--aiditor-state-success);
+  --aiditor-c-warn:    var(--aiditor-state-warning);
+  --aiditor-c-error:   var(--aiditor-state-danger);
+  --aiditor-c-info:    var(--aiditor-state-info);
 
   /* ── Layer 2 — Roles (semantic, point at primitives) ───────────── */
 
   /* Background depth ramp. Note bg-2 (inputs) is DEEPER than bg-1 (panel)
    * — the Godot "inset well" convention: fields recede, panels rise. */
-  --aeditor-bg-0: var(--aeditor-surface-canvas);   /* viewport */
-  --aeditor-bg-1: var(--aeditor-surface-panel);    /* dock body = Godot surface_base */
-  --aeditor-bg-2: var(--aeditor-surface-field);    /* input fields, inset wells */
-  --aeditor-bg-3: var(--aeditor-surface-hover);    /* hover surfaces, dropdowns */
-  --aeditor-bg-4: var(--aeditor-surface-active);   /* active surfaces */
+  --aiditor-bg-0: var(--aiditor-surface-canvas);   /* viewport */
+  --aiditor-bg-1: var(--aiditor-surface-panel);    /* dock body = Godot surface_base */
+  --aiditor-bg-2: var(--aiditor-surface-field);    /* input fields, inset wells */
+  --aiditor-bg-3: var(--aiditor-surface-hover);    /* hover surfaces, dropdowns */
+  --aiditor-bg-4: var(--aiditor-surface-active);   /* active surfaces */
   /* "Raised" surface — one step LIGHTER than dock body (bg-1). Reserved
    * for floating cards that should feel lifted off the panel. Pair with
-   * --aeditor-shadow-raised. Distinct from bg-3 (hover) semantically. */
-  --aeditor-bg-raised: var(--aeditor-surface-raised);
+   * --aiditor-shadow-raised. Distinct from bg-3 (hover) semantically. */
+  --aiditor-bg-raised: var(--aiditor-surface-raised);
 
   /* Foreground emphasis ramp (strongest → most muted). */
-  --aeditor-fg-0: var(--aeditor-text-primary);   /* primary text */
-  --aeditor-fg-1: var(--aeditor-text-body);      /* body text */
-  --aeditor-fg-2: var(--aeditor-text-label);     /* labels */
-  --aeditor-fg-3: var(--aeditor-text-muted);     /* placeholder / disabled */
+  --aiditor-fg-0: var(--aiditor-text-primary);   /* primary text */
+  --aiditor-fg-1: var(--aiditor-text-body);      /* body text */
+  --aiditor-fg-2: var(--aiditor-text-label);     /* labels */
+  --aiditor-fg-3: var(--aiditor-text-muted);     /* placeholder / disabled */
 
   /* Borders — low luminance difference, visible but never loud. */
-  --aeditor-border:        var(--aeditor-stroke-subtle);
-  --aeditor-border-strong: var(--aeditor-stroke-strong);
-  --aeditor-border-input:  var(--aeditor-stroke-field);
-  --aeditor-border-hover:  var(--aeditor-stroke-hover);
+  --aiditor-border:        var(--aiditor-stroke-subtle);
+  --aiditor-border-strong: var(--aiditor-stroke-strong);
+  --aiditor-border-input:  var(--aiditor-stroke-field);
+  --aiditor-border-hover:  var(--aiditor-stroke-hover);
 
   /* Brand. */
-  --aeditor-accent:      var(--aeditor-brand);
-  --aeditor-accent-soft: var(--aeditor-brand-hover);
-  --aeditor-accent-fg:   var(--aeditor-brand-contrast);
-  --aeditor-accent-bg:   color-mix(in srgb, var(--aeditor-c-accent) 14%, transparent);
-  --aeditor-accent-bg-strong: color-mix(in srgb, var(--aeditor-c-accent) 22%, transparent);
+  --aiditor-accent:      var(--aiditor-brand);
+  --aiditor-accent-soft: var(--aiditor-brand-hover);
+  --aiditor-accent-fg:   var(--aiditor-brand-contrast);
+  --aiditor-accent-bg:   color-mix(in srgb, var(--aiditor-c-accent) 14%, transparent);
+  --aiditor-accent-bg-strong: color-mix(in srgb, var(--aiditor-c-accent) 22%, transparent);
 
   /* States — derived from accent via color-mix so they shift with the theme. */
-  --aeditor-hover:       color-mix(in srgb, var(--aeditor-c-11)    6%, transparent);
-  --aeditor-active:      color-mix(in srgb, var(--aeditor-c-accent) 18%, transparent);
-  --aeditor-selected:    color-mix(in srgb, var(--aeditor-c-accent) 22%, transparent);
-  --aeditor-focus-ring:  var(--aeditor-c-accent);
-  --aeditor-scrim:       color-mix(in srgb, var(--aeditor-surface-canvas) 62%, transparent);
+  --aiditor-hover:       color-mix(in srgb, var(--aiditor-c-11)    6%, transparent);
+  --aiditor-active:      color-mix(in srgb, var(--aiditor-c-accent) 18%, transparent);
+  --aiditor-selected:    color-mix(in srgb, var(--aiditor-c-accent) 22%, transparent);
+  --aiditor-focus-ring:  var(--aiditor-c-accent);
+  --aiditor-scrim:       color-mix(in srgb, var(--aiditor-surface-canvas) 62%, transparent);
 
   /* Semantic state colors as text + bg pairs. */
-  --aeditor-success:    var(--aeditor-c-success);
-  --aeditor-success-bg: color-mix(in srgb, var(--aeditor-c-success) 12%, transparent);
-  --aeditor-success-fg: var(--aeditor-accent-fg);
-  --aeditor-warn:       var(--aeditor-c-warn);
-  --aeditor-warn-bg:    color-mix(in srgb, var(--aeditor-c-warn)    14%, transparent);
-  --aeditor-warn-fg:    #15120a;
-  --aeditor-error:      var(--aeditor-c-error);
-  --aeditor-error-bg:   color-mix(in srgb, var(--aeditor-c-error)   14%, transparent);
-  --aeditor-error-fg:   var(--aeditor-accent-fg);
-  --aeditor-info:       var(--aeditor-c-info);
-  --aeditor-info-bg:    color-mix(in srgb, var(--aeditor-c-info)    12%, transparent);
-  --aeditor-info-fg:    var(--aeditor-accent-fg);
+  --aiditor-success:    var(--aiditor-c-success);
+  --aiditor-success-bg: color-mix(in srgb, var(--aiditor-c-success) 12%, transparent);
+  --aiditor-success-fg: var(--aiditor-accent-fg);
+  --aiditor-warn:       var(--aiditor-c-warn);
+  --aiditor-warn-bg:    color-mix(in srgb, var(--aiditor-c-warn)    14%, transparent);
+  --aiditor-warn-fg:    #15120a;
+  --aiditor-error:      var(--aiditor-c-error);
+  --aiditor-error-bg:   color-mix(in srgb, var(--aiditor-c-error)   14%, transparent);
+  --aiditor-error-fg:   var(--aiditor-accent-fg);
+  --aiditor-info:       var(--aiditor-c-info);
+  --aiditor-info-bg:    color-mix(in srgb, var(--aiditor-c-info)    12%, transparent);
+  --aiditor-info-fg:    var(--aiditor-accent-fg);
 
   /* Subtle highlight lines used on raised controls. Components should use
    * this instead of hard-coded white/black alpha overlays. */
-  --aeditor-highlight-subtle: color-mix(in srgb, var(--aeditor-fg-0) 6%, transparent);
-  --aeditor-highlight-strong: color-mix(in srgb, var(--aeditor-fg-0) 12%, transparent);
+  --aiditor-highlight-subtle: color-mix(in srgb, var(--aiditor-fg-0) 6%, transparent);
+  --aiditor-highlight-strong: color-mix(in srgb, var(--aiditor-fg-0) 12%, transparent);
 
   /* ── Layer 1 — Spacing scale (4-pt grid) ───────────────────────── */
-  --aeditor-space-1: 4px;
-  --aeditor-space-2: 8px;
-  --aeditor-space-3: 12px;
-  --aeditor-space-4: 16px;
-  --aeditor-space-5: 24px;
-  --aeditor-space-6: 32px;
+  --aiditor-space-1: 4px;
+  --aiditor-space-2: 8px;
+  --aiditor-space-3: 12px;
+  --aiditor-space-4: 16px;
+  --aiditor-space-5: 24px;
+  --aiditor-space-6: 32px;
 
   /* ── Layer 1 — Sizing scale (control heights, icon sizes) ──────── */
-  --aeditor-size-h-xs: 18px;
-  --aeditor-size-h-sm: 22px;
-  --aeditor-size-h-md: 26px;   /* default control height */
-  --aeditor-size-h-lg: 32px;
-  --aeditor-size-icon-sm: 12px;
-  --aeditor-size-icon-md: 14px;
-  --aeditor-size-icon-lg: 18px;
+  --aiditor-size-h-xs: 18px;
+  --aiditor-size-h-sm: 22px;
+  --aiditor-size-h-md: 26px;   /* default control height */
+  --aiditor-size-h-lg: 32px;
+  --aiditor-size-icon-sm: 12px;
+  --aiditor-size-icon-md: 14px;
+  --aiditor-size-icon-lg: 18px;
 
   /* ── Layer 1 — Radius scale ────────────────────────────────────── */
-  --aeditor-r-1: 2px;
-  --aeditor-r-2: 3px;
-  --aeditor-r-3: 5px;
-  --aeditor-r-4: 7px;
-  --aeditor-r-pill: 999px;
+  --aiditor-r-1: 2px;
+  --aiditor-r-2: 3px;
+  --aiditor-r-3: 5px;
+  --aiditor-r-4: 7px;
+  --aiditor-r-pill: 999px;
 
   /* ── Layer 1 — Typography ──────────────────────────────────────── */
-  --aeditor-font-ui:   -apple-system, BlinkMacSystemFont, 'Geist', 'Inter', system-ui, sans-serif;
-  --aeditor-font-mono: 'Geist Mono', 'JetBrains Mono', 'SF Mono', 'Cascadia Code', Consolas, monospace;
-  --aeditor-fs-xs: 11px;
-  --aeditor-fs-sm: 12px;
-  --aeditor-fs-md: 13px;   /* default body */
-  --aeditor-fs-lg: 14px;
-  --aeditor-fs-xl: 16px;
-  --aeditor-lh-tight: 1.2;
-  --aeditor-lh-base:  1.5;
+  --aiditor-font-ui:   -apple-system, BlinkMacSystemFont, 'Geist', 'Inter', system-ui, sans-serif;
+  --aiditor-font-mono: 'Geist Mono', 'JetBrains Mono', 'SF Mono', 'Cascadia Code', Consolas, monospace;
+  --aiditor-fs-xs: 11px;
+  --aiditor-fs-sm: 12px;
+  --aiditor-fs-md: 13px;   /* default body */
+  --aiditor-fs-lg: 14px;
+  --aiditor-fs-xl: 16px;
+  --aiditor-lh-tight: 1.2;
+  --aiditor-lh-base:  1.5;
 
   /* ── Layer 1 — Motion ──────────────────────────────────────────── */
-  --aeditor-dur-fast: 80ms;    /* hover / focus / press */
-  --aeditor-dur-med:  160ms;   /* dropdowns, popovers */
-  --aeditor-dur-slow: 240ms;   /* drawers, modals */
-  --aeditor-ease:     cubic-bezier(.2, .8, .2, 1);
+  --aiditor-dur-fast: 80ms;    /* hover / focus / press */
+  --aiditor-dur-med:  160ms;   /* dropdowns, popovers */
+  --aiditor-dur-slow: 240ms;   /* drawers, modals */
+  --aiditor-ease:     cubic-bezier(.2, .8, .2, 1);
 
   /* ── Layer 1 — Z-index scale ───────────────────────────────────── */
-  --aeditor-z-content:  1;
-  --aeditor-z-sticky:   10;
-  --aeditor-z-dock-overlay: 100;     /* focus mode */
-  --aeditor-z-popover:  1000;
-  --aeditor-z-modal:    1100;
-  --aeditor-z-toast:    1200;
-  --aeditor-z-drag:     1300;        /* drag ghosts always on top */
+  --aiditor-z-content:  1;
+  --aiditor-z-sticky:   10;
+  --aiditor-z-dock-overlay: 100;     /* focus mode */
+  --aiditor-z-popover:  1000;
+  --aiditor-z-modal:    1100;
+  --aiditor-z-toast:    1200;
+  --aiditor-z-drag:     1300;        /* drag ghosts always on top */
 
   /* ── Layer 1 — Shadows ─────────────────────────────────────────
    * Dark default (low-contrast Godot chassis) uses restrained alphas so
    * popovers/modals don't read as ink blots. The Dracula theme below
    * overrides these back to stronger values to suit its deeper ramp. */
-  --aeditor-shadow-1: 0 1px 2px rgba(0,0,0,.22);
-  --aeditor-shadow-2: 0 2px 6px rgba(0,0,0,.30);
-  --aeditor-shadow-3: 0 4px 14px rgba(0,0,0,.40);
-  --aeditor-shadow-4: 0 8px 24px rgba(0,0,0,.50);
+  --aiditor-shadow-1: 0 1px 2px rgba(0,0,0,.22);
+  --aiditor-shadow-2: 0 2px 6px rgba(0,0,0,.30);
+  --aiditor-shadow-3: 0 4px 14px rgba(0,0,0,.40);
+  --aiditor-shadow-4: 0 8px 24px rgba(0,0,0,.50);
   /* Raised card shadow — subtle lift, not a modal drop. */
-  --aeditor-shadow-raised: 0 1px 2px rgba(0,0,0,.18), 0 2px 6px rgba(0,0,0,.22);
+  --aiditor-shadow-raised: 0 1px 2px rgba(0,0,0,.18), 0 2px 6px rgba(0,0,0,.22);
 
   /* ── Layer 3 — Component-specific (rare; only if not a role) ───── */
-  --aeditor-toolbar-h:    28px;
-  --aeditor-tab-h:        28px;
-  --aeditor-control-px:   8px;       /* default horizontal padding inside controls */
-  --aeditor-toolbar-bg:   var(--aeditor-bg-raised);
-  --aeditor-toolbar-border-w: 1px;
-  --aeditor-toolbar-border: var(--aeditor-border);
-  --aeditor-dock-border: var(--aeditor-border);
-  --aeditor-chrome-border: var(--aeditor-border);
-  --aeditor-view-bg:      var(--aeditor-bg-0);
-  --aeditor-view-radius:  var(--aeditor-r-3);
-  --aeditor-splitter-bg:  var(--aeditor-border);
-  --aeditor-splitter-active-bg: var(--aeditor-accent);
-  --aeditor-dock-tab-fg: var(--aeditor-fg-2);
-  --aeditor-dock-tab-active-fg: var(--aeditor-fg-0);
-  --aeditor-button-bg:    var(--aeditor-bg-2);
-  --aeditor-button-border: var(--aeditor-border-strong);
-  --aeditor-button-hover-bg: var(--aeditor-bg-3);
-  --aeditor-button-hover-border: var(--aeditor-border-hover);
-  --aeditor-button-active-bg: var(--aeditor-bg-4);
-  --aeditor-button-active-border: var(--aeditor-button-border);
+  --aiditor-toolbar-h:    28px;
+  --aiditor-tab-h:        28px;
+  --aiditor-control-px:   8px;       /* default horizontal padding inside controls */
+  --aiditor-toolbar-bg:   var(--aiditor-bg-raised);
+  --aiditor-toolbar-border-w: 1px;
+  --aiditor-toolbar-border: var(--aiditor-border);
+  --aiditor-dock-border: var(--aiditor-border);
+  --aiditor-chrome-border: var(--aiditor-border);
+  --aiditor-view-bg:      var(--aiditor-bg-0);
+  --aiditor-view-radius:  var(--aiditor-r-3);
+  --aiditor-splitter-bg:  var(--aiditor-border);
+  --aiditor-splitter-active-bg: var(--aiditor-accent);
+  --aiditor-dock-tab-fg: var(--aiditor-fg-2);
+  --aiditor-dock-tab-active-fg: var(--aiditor-fg-0);
+  --aiditor-button-bg:    var(--aiditor-bg-2);
+  --aiditor-button-border: var(--aiditor-border-strong);
+  --aiditor-button-hover-bg: var(--aiditor-bg-3);
+  --aiditor-button-hover-border: var(--aiditor-border-hover);
+  --aiditor-button-active-bg: var(--aiditor-bg-4);
+  --aiditor-button-active-border: var(--aiditor-button-border);
 
   /* ── Layer 3 — Interaction thresholds (JS reads via ui.readNum) ── */
-  --aeditor-drag-threshold: 6;       /* px before a pointerdown becomes a drag */
+  --aiditor-drag-threshold: 6;       /* px before a pointerdown becomes a drag */
 
   /* ── Layer 3 — Status icon glyphs (consumed by CSS `content:`) ─── */
-  --aeditor-icon-info:    "ⓘ";
-  --aeditor-icon-success: "✓";
-  --aeditor-icon-warn:    "⚠";
-  --aeditor-icon-error:   "⨯";
+  --aiditor-icon-info:    "ⓘ";
+  --aiditor-icon-success: "✓";
+  --aiditor-icon-warn:    "⚠";
+  --aiditor-icon-error:   "⨯";
 
   /* Compatibility aliases for existing theme consumers. */
-  --aeditor-color-bg-0:        var(--aeditor-bg-0);
-  --aeditor-color-bg-1:        var(--aeditor-bg-1);
-  --aeditor-color-border:      var(--aeditor-border);
-  --aeditor-color-fg-0:        var(--aeditor-fg-0);
-  --aeditor-color-fg-2:        var(--aeditor-fg-2);
-  --aeditor-color-accent:      var(--aeditor-accent);
-  --aeditor-color-accent-soft: var(--aeditor-accent-soft);
+  --aiditor-color-bg-0:        var(--aiditor-bg-0);
+  --aiditor-color-bg-1:        var(--aiditor-bg-1);
+  --aiditor-color-border:      var(--aiditor-border);
+  --aiditor-color-fg-0:        var(--aiditor-fg-0);
+  --aiditor-color-fg-2:        var(--aiditor-fg-2);
+  --aiditor-color-accent:      var(--aiditor-accent);
+  --aiditor-color-accent-soft: var(--aiditor-accent-soft);
 }
 
 /* ── Dracula theme — a richer, violet-accented dark with raised fields.
  * Deeper grayscale ramp, cool-violet accent, stronger shadows, and the
  * "raised input" role mapping (bg-2 LIGHTER than bg-1) that contrasts
  * the default Godot "inset input" convention. Selected via
- * [data-aeditor-theme="dracula"]. */
-:root[data-aeditor-density="compact"],
-.aeditor-root[data-aeditor-density="compact"] {
-  --aeditor-fs-xs: 10px;
-  --aeditor-fs-sm: 11px;
-  --aeditor-fs-md: 12px;
-  --aeditor-fs-lg: 13px;
-  --aeditor-fs-xl: 14px;
+ * [data-aiditor-theme="dracula"]. */
+:root[data-aiditor-density="compact"],
+.aiditor-root[data-aiditor-density="compact"] {
+  --aiditor-fs-xs: 10px;
+  --aiditor-fs-sm: 11px;
+  --aiditor-fs-md: 12px;
+  --aiditor-fs-lg: 13px;
+  --aiditor-fs-xl: 14px;
 }
 
-:root[data-aeditor-density="comfortable"],
-.aeditor-root[data-aeditor-density="comfortable"] {
-  --aeditor-fs-xs: 12px;
-  --aeditor-fs-sm: 13px;
-  --aeditor-fs-md: 14px;
-  --aeditor-fs-lg: 16px;
-  --aeditor-fs-xl: 18px;
+:root[data-aiditor-density="comfortable"],
+.aiditor-root[data-aiditor-density="comfortable"] {
+  --aiditor-fs-xs: 12px;
+  --aiditor-fs-sm: 13px;
+  --aiditor-fs-md: 14px;
+  --aiditor-fs-lg: 16px;
+  --aiditor-fs-xl: 18px;
 }
 
-:root[data-aeditor-theme="dracula"],
-.aeditor-root[data-aeditor-theme="dracula"] {
-  --aeditor-surface-canvas: #0c0c0e;
-  --aeditor-surface-lower:  #111113;
-  --aeditor-surface-frame:  #16161a;
-  --aeditor-surface-panel:  #111113;
-  --aeditor-surface-field:  #1c1c20;
-  --aeditor-surface-hover:  #2a2a30;
-  --aeditor-surface-active: #38383f;
-  --aeditor-surface-raised: #1c1c20;
+:root[data-aiditor-theme="dracula"],
+.aiditor-root[data-aiditor-theme="dracula"] {
+  --aiditor-surface-canvas: #0c0c0e;
+  --aiditor-surface-lower:  #111113;
+  --aiditor-surface-frame:  #16161a;
+  --aiditor-surface-panel:  #111113;
+  --aiditor-surface-field:  #1c1c20;
+  --aiditor-surface-hover:  #2a2a30;
+  --aiditor-surface-active: #38383f;
+  --aiditor-surface-raised: #1c1c20;
 
-  --aeditor-text-primary:  #e8e8f0;
-  --aeditor-text-body:     #c4c4cc;
-  --aeditor-text-label:    #9494a0;
-  --aeditor-text-muted:    #72727c;
-  --aeditor-text-disabled: #5e5e66;
+  --aiditor-text-primary:  #e8e8f0;
+  --aiditor-text-body:     #c4c4cc;
+  --aiditor-text-label:    #9494a0;
+  --aiditor-text-muted:    #72727c;
+  --aiditor-text-disabled: #5e5e66;
 
-  --aeditor-stroke-subtle: #1c1c20;
-  --aeditor-stroke-strong: #2a2a30;
-  --aeditor-stroke-field:  #2a2a30;
-  --aeditor-stroke-hover:  #4a4a52;
+  --aiditor-stroke-subtle: #1c1c20;
+  --aiditor-stroke-strong: #2a2a30;
+  --aiditor-stroke-field:  #2a2a30;
+  --aiditor-stroke-hover:  #4a4a52;
 
-  --aeditor-brand:          #7b6ef6;
-  --aeditor-brand-hover:    #a89ff8;
-  --aeditor-brand-contrast: #ffffff;
+  --aiditor-brand:          #7b6ef6;
+  --aiditor-brand-hover:    #a89ff8;
+  --aiditor-brand-contrast: #ffffff;
 
-  --aeditor-state-success: #3ecf8e;
-  --aeditor-state-warning: #f0a050;
-  --aeditor-state-danger:  #e05555;
-  --aeditor-state-info:    #38bdf8;
+  --aiditor-state-success: #3ecf8e;
+  --aiditor-state-warning: #f0a050;
+  --aiditor-state-danger:  #e05555;
+  --aiditor-state-info:    #38bdf8;
 
-  --aeditor-c-00: #0c0c0e;
-  --aeditor-c-01: #111113;
-  --aeditor-c-02: #16161a;
-  --aeditor-c-03: #1c1c20;
-  --aeditor-c-04: #24242a;
-  --aeditor-c-05: #2a2a30;
-  --aeditor-c-06: #38383f;
-  --aeditor-c-07: #4a4a52;
-  --aeditor-c-08: #5e5e66;
-  --aeditor-c-09: #72727c;
-  --aeditor-c-10: #9494a0;
-  --aeditor-c-11: #e8e8f0;
+  --aiditor-c-00: #0c0c0e;
+  --aiditor-c-01: #111113;
+  --aiditor-c-02: #16161a;
+  --aiditor-c-03: #1c1c20;
+  --aiditor-c-04: #24242a;
+  --aiditor-c-05: #2a2a30;
+  --aiditor-c-06: #38383f;
+  --aiditor-c-07: #4a4a52;
+  --aiditor-c-08: #5e5e66;
+  --aiditor-c-09: #72727c;
+  --aiditor-c-10: #9494a0;
+  --aiditor-c-11: #e8e8f0;
 
-  --aeditor-c-accent:      #7b6ef6;
-  --aeditor-c-accent-soft: #a89ff8;
+  --aiditor-c-accent:      #7b6ef6;
+  --aiditor-c-accent-soft: #a89ff8;
 
-  --aeditor-c-success: #3ecf8e;
-  --aeditor-c-warn:    #f0a050;
-  --aeditor-c-error:   #e05555;
-  --aeditor-c-info:    #38bdf8;
+  --aiditor-c-success: #3ecf8e;
+  --aiditor-c-warn:    #f0a050;
+  --aiditor-c-error:   #e05555;
+  --aiditor-c-info:    #38bdf8;
 
   /* Raised-input role mapping: field sits ABOVE panel, opposite of the
    * Godot default. This is the single substantive layout difference
    * between the two dark themes — everything else is palette. */
-  --aeditor-bg-1: var(--aeditor-surface-panel);   /* dock body */
-  --aeditor-bg-2: var(--aeditor-surface-field);   /* input (lighter than panel) */
-  --aeditor-bg-3: var(--aeditor-surface-hover);
-  --aeditor-bg-4: var(--aeditor-surface-active);
-  --aeditor-bg-raised: var(--aeditor-surface-raised);   /* raised cards sit above bg-1 */
+  --aiditor-bg-1: var(--aiditor-surface-panel);   /* dock body */
+  --aiditor-bg-2: var(--aiditor-surface-field);   /* input (lighter than panel) */
+  --aiditor-bg-3: var(--aiditor-surface-hover);
+  --aiditor-bg-4: var(--aiditor-surface-active);
+  --aiditor-bg-raised: var(--aiditor-surface-raised);   /* raised cards sit above bg-1 */
 
-  --aeditor-border:        var(--aeditor-stroke-subtle);
-  --aeditor-border-strong: var(--aeditor-stroke-strong);
-  --aeditor-border-input:  var(--aeditor-stroke-field);
-  --aeditor-border-hover:  var(--aeditor-stroke-hover);
+  --aiditor-border:        var(--aiditor-stroke-subtle);
+  --aiditor-border-strong: var(--aiditor-stroke-strong);
+  --aiditor-border-input:  var(--aiditor-stroke-field);
+  --aiditor-border-hover:  var(--aiditor-stroke-hover);
 
-  --aeditor-fg-1: var(--aeditor-text-body);
+  --aiditor-fg-1: var(--aiditor-text-body);
 
-  --aeditor-shadow-1: 0 1px 2px rgba(0,0,0,.4);
-  --aeditor-shadow-2: 0 2px 8px rgba(0,0,0,.5);
-  --aeditor-shadow-3: 0 4px 16px rgba(0,0,0,.6);
-  --aeditor-shadow-4: 0 8px 32px rgba(0,0,0,.7);
-  --aeditor-shadow-raised: 0 1px 2px rgba(0,0,0,.30), 0 2px 6px rgba(0,0,0,.35);
+  --aiditor-shadow-1: 0 1px 2px rgba(0,0,0,.4);
+  --aiditor-shadow-2: 0 2px 8px rgba(0,0,0,.5);
+  --aiditor-shadow-3: 0 4px 16px rgba(0,0,0,.6);
+  --aiditor-shadow-4: 0 8px 32px rgba(0,0,0,.7);
+  --aiditor-shadow-raised: 0 1px 2px rgba(0,0,0,.30), 0 2px 6px rgba(0,0,0,.35);
 }
 
 /* ── Light theme — only the primitives flip; roles inherit. ────────── */
 /* Harbor theme - layered charcoal editor palette with quiet translucent tabs. */
-:root[data-aeditor-theme="harbor"],
-.aeditor-root[data-aeditor-theme="harbor"] {
-  --aeditor-surface-canvas: #18181a;
-  --aeditor-surface-lower:  #272729;
-  --aeditor-surface-frame:  #313035;
-  --aeditor-surface-panel:  #3f4045;
-  --aeditor-surface-field:  #313035;
-  --aeditor-surface-hover:  #37363b;
-  --aeditor-surface-active: #3f4045;
-  --aeditor-surface-raised: #313035;
+:root[data-aiditor-theme="harbor"],
+.aiditor-root[data-aiditor-theme="harbor"] {
+  --aiditor-surface-canvas: #18181a;
+  --aiditor-surface-lower:  #272729;
+  --aiditor-surface-frame:  #313035;
+  --aiditor-surface-panel:  #3f4045;
+  --aiditor-surface-field:  #313035;
+  --aiditor-surface-hover:  #37363b;
+  --aiditor-surface-active: #3f4045;
+  --aiditor-surface-raised: #313035;
 
-  --aeditor-text-primary:  #cacbd0;
-  --aeditor-text-body:     #cacbd0;
-  --aeditor-text-label:    #97969c;
-  --aeditor-text-muted:    #65656c;
-  --aeditor-text-disabled: #55555b;
+  --aiditor-text-primary:  #cacbd0;
+  --aiditor-text-body:     #cacbd0;
+  --aiditor-text-label:    #97969c;
+  --aiditor-text-muted:    #65656c;
+  --aiditor-text-disabled: #55555b;
 
-  --aeditor-stroke-subtle: #37363b;
-  --aeditor-stroke-strong: #4a4a51;
-  --aeditor-stroke-field:  #37363b;
-  --aeditor-stroke-hover:  #55555b;
+  --aiditor-stroke-subtle: #37363b;
+  --aiditor-stroke-strong: #4a4a51;
+  --aiditor-stroke-field:  #37363b;
+  --aiditor-stroke-hover:  #55555b;
 
-  --aeditor-brand:          #72d6b4;
-  --aeditor-brand-hover:    #8effd5;
-  --aeditor-brand-contrast: #10211b;
+  --aiditor-brand:          #72d6b4;
+  --aiditor-brand-hover:    #8effd5;
+  --aiditor-brand-contrast: #10211b;
 
-  --aeditor-state-success: #72d6b4;
-  --aeditor-state-warning: #d4b76a;
-  --aeditor-state-danger:  #ef746b;
-  --aeditor-state-info:    #7eb6d8;
+  --aiditor-state-success: #72d6b4;
+  --aiditor-state-warning: #d4b76a;
+  --aiditor-state-danger:  #ef746b;
+  --aiditor-state-info:    #7eb6d8;
 
-  --aeditor-c-00: #18181a;
-  --aeditor-c-01: #272729;
-  --aeditor-c-02: #313035;
-  --aeditor-c-03: #3f4045;
-  --aeditor-c-04: #37363b;
-  --aeditor-c-05: #4a4a51;
-  --aeditor-c-06: #55555b;
-  --aeditor-c-07: #65656c;
-  --aeditor-c-08: #7b7b82;
-  --aeditor-c-09: #97969c;
-  --aeditor-c-10: #b4b5ba;
-  --aeditor-c-11: #cacbd0;
+  --aiditor-c-00: #18181a;
+  --aiditor-c-01: #272729;
+  --aiditor-c-02: #313035;
+  --aiditor-c-03: #3f4045;
+  --aiditor-c-04: #37363b;
+  --aiditor-c-05: #4a4a51;
+  --aiditor-c-06: #55555b;
+  --aiditor-c-07: #65656c;
+  --aiditor-c-08: #7b7b82;
+  --aiditor-c-09: #97969c;
+  --aiditor-c-10: #b4b5ba;
+  --aiditor-c-11: #cacbd0;
 
-  --aeditor-c-accent:      var(--aeditor-brand);
-  --aeditor-c-accent-soft: var(--aeditor-brand-hover);
-  --aeditor-c-success: var(--aeditor-state-success);
-  --aeditor-c-warn:    var(--aeditor-state-warning);
-  --aeditor-c-error:   var(--aeditor-state-danger);
-  --aeditor-c-info:    var(--aeditor-state-info);
+  --aiditor-c-accent:      var(--aiditor-brand);
+  --aiditor-c-accent-soft: var(--aiditor-brand-hover);
+  --aiditor-c-success: var(--aiditor-state-success);
+  --aiditor-c-warn:    var(--aiditor-state-warning);
+  --aiditor-c-error:   var(--aiditor-state-danger);
+  --aiditor-c-info:    var(--aiditor-state-info);
 
-  --aeditor-bg-0: var(--aeditor-surface-canvas);
-  --aeditor-bg-1: var(--aeditor-surface-panel);
-  --aeditor-bg-2: var(--aeditor-surface-field);
-  --aeditor-bg-3: var(--aeditor-surface-hover);
-  --aeditor-bg-4: var(--aeditor-surface-active);
-  --aeditor-bg-raised: var(--aeditor-surface-raised);
+  --aiditor-bg-0: var(--aiditor-surface-canvas);
+  --aiditor-bg-1: var(--aiditor-surface-panel);
+  --aiditor-bg-2: var(--aiditor-surface-field);
+  --aiditor-bg-3: var(--aiditor-surface-hover);
+  --aiditor-bg-4: var(--aiditor-surface-active);
+  --aiditor-bg-raised: var(--aiditor-surface-raised);
 
-  --aeditor-fg-0: var(--aeditor-text-primary);
-  --aeditor-fg-1: var(--aeditor-text-body);
-  --aeditor-fg-2: var(--aeditor-text-label);
-  --aeditor-fg-3: var(--aeditor-text-muted);
+  --aiditor-fg-0: var(--aiditor-text-primary);
+  --aiditor-fg-1: var(--aiditor-text-body);
+  --aiditor-fg-2: var(--aiditor-text-label);
+  --aiditor-fg-3: var(--aiditor-text-muted);
 
-  --aeditor-border:        var(--aeditor-stroke-subtle);
-  --aeditor-border-strong: var(--aeditor-stroke-strong);
-  --aeditor-border-input:  var(--aeditor-stroke-field);
-  --aeditor-border-hover:  var(--aeditor-stroke-hover);
+  --aiditor-border:        var(--aiditor-stroke-subtle);
+  --aiditor-border-strong: var(--aiditor-stroke-strong);
+  --aiditor-border-input:  var(--aiditor-stroke-field);
+  --aiditor-border-hover:  var(--aiditor-stroke-hover);
 
-  --aeditor-accent:      var(--aeditor-brand);
-  --aeditor-accent-soft: var(--aeditor-brand-hover);
-  --aeditor-accent-fg:   var(--aeditor-brand-contrast);
-  --aeditor-accent-bg:   color-mix(in srgb, var(--aeditor-brand) 16%, transparent);
-  --aeditor-accent-bg-strong: color-mix(in srgb, var(--aeditor-brand) 26%, transparent);
+  --aiditor-accent:      var(--aiditor-brand);
+  --aiditor-accent-soft: var(--aiditor-brand-hover);
+  --aiditor-accent-fg:   var(--aiditor-brand-contrast);
+  --aiditor-accent-bg:   color-mix(in srgb, var(--aiditor-brand) 16%, transparent);
+  --aiditor-accent-bg-strong: color-mix(in srgb, var(--aiditor-brand) 26%, transparent);
 
-  --aeditor-hover:    color-mix(in srgb, var(--aeditor-text-primary) 5%, transparent);
-  --aeditor-active:   color-mix(in srgb, var(--aeditor-brand) 16%, transparent);
-  --aeditor-selected: color-mix(in srgb, var(--aeditor-brand) 20%, transparent);
-  --aeditor-scrim:    color-mix(in srgb, var(--aeditor-surface-canvas) 66%, transparent);
+  --aiditor-hover:    color-mix(in srgb, var(--aiditor-text-primary) 5%, transparent);
+  --aiditor-active:   color-mix(in srgb, var(--aiditor-brand) 16%, transparent);
+  --aiditor-selected: color-mix(in srgb, var(--aiditor-brand) 20%, transparent);
+  --aiditor-scrim:    color-mix(in srgb, var(--aiditor-surface-canvas) 66%, transparent);
 
-  --aeditor-toolbar-bg: transparent;
-  --aeditor-toolbar-border-w: 0px;
-  --aeditor-toolbar-border: transparent;
-  --aeditor-dock-border: transparent;
-  --aeditor-chrome-border: transparent;
-  --aeditor-view-bg: var(--aeditor-bg-2);
-  --aeditor-view-radius: var(--aeditor-r-4);
-  --aeditor-splitter-bg: transparent;
-  --aeditor-splitter-active-bg: var(--aeditor-accent);
-  --aeditor-dock-tab-fg: #65656c;
-  --aeditor-dock-tab-active-fg: #cacbd0;
-  --aeditor-button-bg: #272729;
-  --aeditor-button-border: #313235;
-  --aeditor-button-hover-bg: #313035;
-  --aeditor-button-hover-border: #313235;
-  --aeditor-button-active-bg: #3f4045;
-  --aeditor-button-active-border: #313235;
+  --aiditor-toolbar-bg: transparent;
+  --aiditor-toolbar-border-w: 0px;
+  --aiditor-toolbar-border: transparent;
+  --aiditor-dock-border: transparent;
+  --aiditor-chrome-border: transparent;
+  --aiditor-view-bg: var(--aiditor-bg-2);
+  --aiditor-view-radius: var(--aiditor-r-4);
+  --aiditor-splitter-bg: transparent;
+  --aiditor-splitter-active-bg: var(--aiditor-accent);
+  --aiditor-dock-tab-fg: #65656c;
+  --aiditor-dock-tab-active-fg: #cacbd0;
+  --aiditor-button-bg: #272729;
+  --aiditor-button-border: #313235;
+  --aiditor-button-hover-bg: #313035;
+  --aiditor-button-hover-border: #313235;
+  --aiditor-button-active-bg: #3f4045;
+  --aiditor-button-active-border: #313235;
 
-  --aeditor-highlight-subtle: color-mix(in srgb, var(--aeditor-fg-0) 3%, transparent);
-  --aeditor-highlight-strong: color-mix(in srgb, var(--aeditor-fg-0) 8%, transparent);
+  --aiditor-highlight-subtle: color-mix(in srgb, var(--aiditor-fg-0) 3%, transparent);
+  --aiditor-highlight-strong: color-mix(in srgb, var(--aiditor-fg-0) 8%, transparent);
 
-  --aeditor-shadow-1: 0 1px 2px rgba(0,0,0,.20);
-  --aeditor-shadow-2: 0 2px 8px rgba(0,0,0,.28);
-  --aeditor-shadow-3: 0 4px 16px rgba(0,0,0,.36);
-  --aeditor-shadow-4: 0 8px 32px rgba(0,0,0,.46);
-  --aeditor-shadow-raised: none;
+  --aiditor-shadow-1: 0 1px 2px rgba(0,0,0,.20);
+  --aiditor-shadow-2: 0 2px 8px rgba(0,0,0,.28);
+  --aiditor-shadow-3: 0 4px 16px rgba(0,0,0,.36);
+  --aiditor-shadow-4: 0 8px 32px rgba(0,0,0,.46);
+  --aiditor-shadow-raised: none;
 }
 
-:root[data-aeditor-theme="light"],
-.aeditor-root[data-aeditor-theme="light"] {
-  --aeditor-surface-canvas: #f4f4f7;
-  --aeditor-surface-lower:  #ffffff;
-  --aeditor-surface-frame:  #f8f8fa;
-  --aeditor-surface-panel:  #ffffff;
-  --aeditor-surface-field:  #e6e6ec;
-  --aeditor-surface-hover:  #c8c8d2;
-  --aeditor-surface-active: #b0b0bc;
-  --aeditor-surface-raised: #f8f8fa;
+:root[data-aiditor-theme="light"],
+.aiditor-root[data-aiditor-theme="light"] {
+  --aiditor-surface-canvas: #f4f4f7;
+  --aiditor-surface-lower:  #ffffff;
+  --aiditor-surface-frame:  #f8f8fa;
+  --aiditor-surface-panel:  #ffffff;
+  --aiditor-surface-field:  #e6e6ec;
+  --aiditor-surface-hover:  #c8c8d2;
+  --aiditor-surface-active: #b0b0bc;
+  --aiditor-surface-raised: #f8f8fa;
 
-  --aeditor-text-primary:  #18181c;
-  --aeditor-text-body:     #2a2a30;
-  --aeditor-text-label:    #38383f;
-  --aeditor-text-muted:    #54545e;
-  --aeditor-text-disabled: #6e6e7a;
+  --aiditor-text-primary:  #18181c;
+  --aiditor-text-body:     #2a2a30;
+  --aiditor-text-label:    #38383f;
+  --aiditor-text-muted:    #54545e;
+  --aiditor-text-disabled: #6e6e7a;
 
-  --aeditor-stroke-subtle: #e6e6ec;
-  --aeditor-stroke-strong: #c8c8d2;
-  --aeditor-stroke-field:  #c8c8d2;
-  --aeditor-stroke-hover:  #8e8e9c;
+  --aiditor-stroke-subtle: #e6e6ec;
+  --aiditor-stroke-strong: #c8c8d2;
+  --aiditor-stroke-field:  #c8c8d2;
+  --aiditor-stroke-hover:  #8e8e9c;
 
-  --aeditor-brand:          #5b4ee0;
-  --aeditor-brand-hover:    #8278f0;
-  --aeditor-brand-contrast: #ffffff;
+  --aiditor-brand:          #5b4ee0;
+  --aiditor-brand-hover:    #8278f0;
+  --aiditor-brand-contrast: #ffffff;
 
-  --aeditor-state-success: #16a163;
-  --aeditor-state-warning: #c97a1a;
-  --aeditor-state-danger:  #c53030;
-  --aeditor-state-info:    #1e88c4;
+  --aiditor-state-success: #16a163;
+  --aiditor-state-warning: #c97a1a;
+  --aiditor-state-danger:  #c53030;
+  --aiditor-state-info:    #1e88c4;
 
-  --aeditor-c-00: #f4f4f7;
-  --aeditor-c-01: #ffffff;
-  --aeditor-c-02: #f8f8fa;
-  --aeditor-c-03: #e6e6ec;
-  --aeditor-c-04: #d8d8e0;
-  --aeditor-c-05: #c8c8d2;
-  --aeditor-c-06: #b0b0bc;
-  --aeditor-c-07: #8e8e9c;
-  --aeditor-c-08: #6e6e7a;
-  --aeditor-c-09: #54545e;
-  --aeditor-c-10: #38383f;
-  --aeditor-c-11: #18181c;
+  --aiditor-c-00: #f4f4f7;
+  --aiditor-c-01: #ffffff;
+  --aiditor-c-02: #f8f8fa;
+  --aiditor-c-03: #e6e6ec;
+  --aiditor-c-04: #d8d8e0;
+  --aiditor-c-05: #c8c8d2;
+  --aiditor-c-06: #b0b0bc;
+  --aiditor-c-07: #8e8e9c;
+  --aiditor-c-08: #6e6e7a;
+  --aiditor-c-09: #54545e;
+  --aiditor-c-10: #38383f;
+  --aiditor-c-11: #18181c;
 
-  --aeditor-c-accent:      #5b4ee0;
-  --aeditor-c-accent-soft: #8278f0;
+  --aiditor-c-accent:      #5b4ee0;
+  --aiditor-c-accent-soft: #8278f0;
 
-  --aeditor-c-success: #16a163;
-  --aeditor-c-warn:    #c97a1a;
-  --aeditor-c-error:   #c53030;
-  --aeditor-c-info:    #1e88c4;
+  --aiditor-c-success: #16a163;
+  --aiditor-c-warn:    #c97a1a;
+  --aiditor-c-error:   #c53030;
+  --aiditor-c-info:    #1e88c4;
 
   /* Light theme needs lighter shadows or they look like ink blots. */
-  --aeditor-shadow-1: 0 1px 2px rgba(20,20,40,.08);
-  --aeditor-shadow-2: 0 2px 8px rgba(20,20,40,.10);
-  --aeditor-shadow-3: 0 4px 16px rgba(20,20,40,.12);
-  --aeditor-shadow-4: 0 8px 32px rgba(20,20,40,.16);
+  --aiditor-shadow-1: 0 1px 2px rgba(20,20,40,.08);
+  --aiditor-shadow-2: 0 2px 8px rgba(20,20,40,.10);
+  --aiditor-shadow-3: 0 4px 16px rgba(20,20,40,.12);
+  --aiditor-shadow-4: 0 8px 32px rgba(20,20,40,.16);
 
   /* Light mode locks the "white panel + slightly grey inset field" role
    * mapping. :root uses Godot's "inset-in-dark" convention which, when
    * inherited with light primitives, would invert into "raised-in-light".
    * Light mode reads more naturally with white panels and inset fields. */
-  --aeditor-bg-1: var(--aeditor-surface-panel);   /* dock body = white */
-  --aeditor-bg-2: var(--aeditor-surface-field);   /* input = light gray (inset) */
-  --aeditor-bg-3: var(--aeditor-surface-hover);
-  --aeditor-bg-4: var(--aeditor-surface-active);
-  --aeditor-bg-raised: var(--aeditor-surface-raised);   /* slightly off-white to separate from bg-1 */
+  --aiditor-bg-1: var(--aiditor-surface-panel);   /* dock body = white */
+  --aiditor-bg-2: var(--aiditor-surface-field);   /* input = light gray (inset) */
+  --aiditor-bg-3: var(--aiditor-surface-hover);
+  --aiditor-bg-4: var(--aiditor-surface-active);
+  --aiditor-bg-raised: var(--aiditor-surface-raised);   /* slightly off-white to separate from bg-1 */
 
-  --aeditor-border:        var(--aeditor-stroke-subtle);
-  --aeditor-border-strong: var(--aeditor-stroke-strong);
-  --aeditor-border-input:  var(--aeditor-stroke-field);
-  --aeditor-border-hover:  var(--aeditor-stroke-hover);
+  --aiditor-border:        var(--aiditor-stroke-subtle);
+  --aiditor-border-strong: var(--aiditor-stroke-strong);
+  --aiditor-border-input:  var(--aiditor-stroke-field);
+  --aiditor-border-hover:  var(--aiditor-stroke-hover);
 
-  --aeditor-shadow-raised: 0 1px 2px rgba(20,20,40,.08), 0 2px 6px rgba(20,20,40,.10);
+  --aiditor-shadow-raised: 0 1px 2px rgba(20,20,40,.08), 0 2px 6px rgba(20,20,40,.10);
 
-  --aeditor-fg-1: var(--aeditor-text-body);
-  --aeditor-accent-fg: var(--aeditor-brand-contrast);
+  --aiditor-fg-1: var(--aiditor-text-body);
+  --aiditor-accent-fg: var(--aiditor-brand-contrast);
 }
 
 @media (prefers-reduced-motion: reduce) {
   :root {
-    --aeditor-dur-fast: 0ms;
-    --aeditor-dur-med:  0ms;
-    --aeditor-dur-slow: 0ms;
+    --aiditor-dur-fast: 0ms;
+    --aiditor-dur-med:  0ms;
+    --aiditor-dur-slow: 0ms;
   }
 }

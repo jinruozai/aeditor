@@ -1,8 +1,8 @@
-// aeditor.ui.menu — context / dropdown menu.
+// aiditor.ui.menu — context / dropdown menu.
 //
 // This is just a normal UI component; the framework does NOT bind global menu
 // hotkeys or right-click handlers. Callers wire it up: pointerdown / Ctrl+K /
-// button click → call aeditor.ui.menu({ ... }) to open it.
+// button click → call aiditor.ui.menu({ ... }) to open it.
 //
 // opts:
 //   anchor   : HTMLElement                    required (popover anchor)
@@ -15,9 +15,9 @@
 //   onDismiss?
 //
 // Returns a popover handle.
-;(function (aeditor) {
+;(function (aiditor) {
   'use strict'
-  const ui = aeditor.ui = aeditor.ui || {}
+  const ui = aiditor.ui = aiditor.ui || {}
 
   // Build a menu element. Submenus are absolute descendants of the parent
   // menu, not independent popovers. That keeps the whole menu tree in one
@@ -37,7 +37,7 @@
   }
 
   function buildMenu(items, onSelect) {
-    const list = ui.h('div', 'aeditor-ui-menu')
+    const list = ui.h('div', 'aiditor-ui-menu')
     const openSubs = []  // { row, list }
     function closeSubs() {
       while (openSubs.length) {
@@ -53,37 +53,37 @@
     for (let i = 0; i < items.length; i++) {
       const it = items[i]
       if (it.type === 'divider') {
-        list.appendChild(ui.h('div', 'aeditor-ui-menu-divider'))
+        list.appendChild(ui.h('div', 'aiditor-ui-menu-divider'))
         continue
       }
       if (it.type === 'header') {
-        list.appendChild(ui.h('div', 'aeditor-ui-menu-header', { text: it.label }))
+        list.appendChild(ui.h('div', 'aiditor-ui-menu-header', { text: it.label }))
         continue
       }
-      const row = ui.h('button', 'aeditor-ui-menu-item' +
-        (it.disabled ? ' aeditor-ui-menu-item-disabled' : '') +
-        (it.danger ? ' aeditor-ui-menu-item-danger' : ''),
+      const row = ui.h('button', 'aiditor-ui-menu-item' +
+        (it.disabled ? ' aiditor-ui-menu-item-disabled' : '') +
+        (it.danger ? ' aiditor-ui-menu-item-danger' : ''),
         { type: 'button' })
       // ui.icon resolves `name` against the registered icon set (rendering
       // an SVG); unknown names fall back to text. Passing the consumer's
       // string as `name` keeps "icon: 'copy'" working as a real icon.
       if (it.icon) row.appendChild(ui.icon({ name: it.icon, size: 'sm' }))
-      row.appendChild(ui.h('span', 'aeditor-ui-menu-item-label', { text: it.label || '' }))
+      row.appendChild(ui.h('span', 'aiditor-ui-menu-item-label', { text: it.label || '' }))
       if (it.kbd) {
-        const k = ui.kbd(it.kbd); k.classList.add('aeditor-ui-menu-item-kbd'); row.appendChild(k)
+        const k = ui.kbd(it.kbd); k.classList.add('aiditor-ui-menu-item-kbd'); row.appendChild(k)
       }
 
       if (it.items && it.items.length) {
-        row.classList.add('aeditor-ui-menu-item-submenu')
+        row.classList.add('aiditor-ui-menu-item-submenu')
         row.setAttribute('aria-haspopup', 'menu')
         row.setAttribute('aria-expanded', 'false')
-        row.appendChild(ui.h('span', 'aeditor-ui-menu-item-sub', { text: '▸' }))
+        row.appendChild(ui.h('span', 'aiditor-ui-menu-item-sub', { text: '▸' }))
         function openSub() {
           if (it.disabled) return
           if (openSubs.length && openSubs[openSubs.length - 1].row === row) return
           closeSubs()
           const subList = buildMenu(it.items, onSelect)
-          subList.classList.add('aeditor-ui-menu-submenu')
+          subList.classList.add('aiditor-ui-menu-submenu')
           list.appendChild(subList)
           subList.style.display = 'flex'
           placeSubmenu(row, subList)
@@ -134,4 +134,4 @@
     })
     return pop
   }
-})(window.aeditor = window.aeditor || {})
+})(window.aiditor = window.aiditor || {})

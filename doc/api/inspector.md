@@ -2,31 +2,31 @@
 
 Generated from structured API comments in `src/`.
 
-## `aeditor.inspector.refresh`
+## `aiditor.inspector.refresh`
 
 Notify inspector panels to re-read the current selection after external state changes.
 
 ```js
-aeditor.inspector.refresh()
+aiditor.inspector.refresh()
 ```
 
 Returns: `void` No return value.
 
 ```js
 cubeState.color = '#ffcc00'
-aeditor.inspector.refresh()
+aiditor.inspector.refresh()
 ```
 
-Related: `aeditor.inspector.select`, `aeditor.inspector.registerProvider`
+Related: `aiditor.inspector.select`, `aiditor.inspector.registerProvider`
 
 Source: `src/ui/inspector.js`
 
-## `aeditor.inspector.registerProvider`
+## `aiditor.inspector.registerProvider`
 
 Register the editor-owned provider that turns selected targets of one type into an inspector schema, values, and write handlers.
 
 ```js
-aeditor.inspector.registerProvider(type, provider, meta?)
+aiditor.inspector.registerProvider(type, provider, meta?)
 ```
 
 | Param | Type | Description |
@@ -38,7 +38,7 @@ aeditor.inspector.registerProvider(type, provider, meta?)
 Returns: `Function` unregister callback.
 
 ```js
-aeditor.inspector.registerProvider('cube', {
+aiditor.inspector.registerProvider('cube', {
   inspect: function (targets) {
     return {
       schema: {
@@ -59,23 +59,23 @@ aeditor.inspector.registerProvider('cube', {
 Avoid:
 
 ```js
-aeditor.inspector.registerProvider({
+aiditor.inspector.registerProvider({
   id: 'cube',
   getProperties: function () {},
   patchProperties: function () {},
 })
 ```
 
-Related: `aeditor.inspector.select`, `aeditor.inspector.refresh`, `aeditor.ui.propertyForm`
+Related: `aiditor.inspector.select`, `aiditor.inspector.refresh`, `aiditor.ui.propertyForm`
 
 Source: `src/ui/inspector.js`
 
-## `aeditor.inspector.select`
+## `aiditor.inspector.select`
 
 Set the ordered inspector selection. The first target is primary; multi-edit uses only fields present and writable on every target.
 
 ```js
-aeditor.inspector.select(targets, meta?)
+aiditor.inspector.select(targets, meta?)
 ```
 
 | Param | Type | Description |
@@ -86,11 +86,11 @@ aeditor.inspector.select(targets, meta?)
 Returns: `void` No return value.
 
 ```js
-aeditor.inspector.select([
+aiditor.inspector.select([
   { type: 'cube', id: 'cube-1', value: cubeState },
 ])
 ```
 
-Related: `aeditor.inspector.registerProvider`, `aeditor.inspector.refresh`
+Related: `aiditor.inspector.registerProvider`, `aiditor.inspector.refresh`
 
 Source: `src/ui/inspector.js`

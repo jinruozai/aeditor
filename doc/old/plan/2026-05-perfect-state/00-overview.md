@@ -2,13 +2,13 @@
 
 ## Product thesis
 
-aeditor is a zero-dependency editor UI framework built around one compositional idea:
+aiditor is a zero-dependency editor UI framework built around one compositional idea:
 
 ```text
 registered component -> panel / toolbar item -> dock -> editor layout
 ```
 
-The developer should not build an editor by wiring direct object references between panes. They should build small panels and toolbar components, register them, place them in docks, and communicate through explicit signals, panel props, and `aeditor.bus` topics.
+The developer should not build an editor by wiring direct object references between panes. They should build small panels and toolbar components, register them, place them in docks, and communicate through explicit signals, panel props, and `aiditor.bus` topics.
 
 The dock system is therefore not decorative layout code. It is the application shell:
 
@@ -42,7 +42,7 @@ Current high-risk areas:
 
 1. Lifecycle cleanup is not system-wide yet.
 2. UI cleanup conventions are documented but not consistently enforced.
-3. `ctx` derived signals and some `aeditor.effect` calls can outlive their components.
+3. `ctx` derived signals and some `aiditor.effect` calls can outlive their components.
 4. Transient panel eviction and direct tree replacement can leave orphan runtimes.
 5. Bus errors do not yet carry subscriber-side panel/dock attribution.
 6. Pop-out migration loses some `PanelData` fields and has fragile `file://` origin behavior.
@@ -56,7 +56,7 @@ To call the project "excellent", the following must be true:
 
 - Repeated create/destroy cycles leave no live framework effects, panel runtimes, overlays, or bus subscriptions.
 - Any panel removal path disposes the same resources: explicit close, transient eviction, LRU eviction, merge discard, dock removal, layout destroy.
-- User-created panel components can safely compose `aeditor.ui.*` primitives without memorizing special cleanup rituals.
+- User-created panel components can safely compose `aiditor.ui.*` primitives without memorizing special cleanup rituals.
 - Bus errors identify the topic and the subscriber context when the subscriber was registered through `ctx.bus`.
 - Pop-out migration preserves the complete portable part of `PanelData`.
 - `file://` remains a first-class runtime mode.

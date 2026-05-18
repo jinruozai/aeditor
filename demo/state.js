@@ -25,7 +25,7 @@
     return null
   }
 
-  Demo.selected = aeditor.signal(null)
+  Demo.selected = aiditor.signal(null)
 
   const sigCache = {}
   Demo.getSignals = function (id) {
@@ -82,10 +82,10 @@
   }
 
   function selectInspector(id) {
-    if (!aeditor.inspector) return
+    if (!aiditor.inspector) return
     const entry = Demo.byId(id)
-    if (!entry) { aeditor.inspector.clear(); return }
-    aeditor.inspector.select({
+    if (!entry) { aiditor.inspector.clear(); return }
+    aiditor.inspector.select({
       type: 'demo.component',
       id: id,
       title: entry.name,
@@ -93,8 +93,8 @@
     }, { source: 'demo' })
   }
 
-  if (aeditor.inspector) {
-    aeditor.inspector.registerProvider('demo.component', {
+  if (aiditor.inspector) {
+    aiditor.inspector.registerProvider('demo.component', {
       inspect: function (targets) {
         const id = targets[0].id
         const entry = Demo.byId(id)
@@ -117,7 +117,7 @@
       },
     }, { owner: 'demo' })
 
-    aeditor.effect(function () { selectInspector(Demo.selected()) })
+    aiditor.effect(function () { selectInspector(Demo.selected()) })
   }
 
   Demo.dump = function () {

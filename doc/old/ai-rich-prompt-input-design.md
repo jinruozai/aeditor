@@ -1,7 +1,7 @@
 # AI Rich Prompt Input
 
 Status: final design contract
-Scope: AEditor framework-level rich prompt input for AI chat/send panels
+Scope: Aiditor framework-level rich prompt input for AI chat/send panels
 
 This document defines how AI prompt input embeds resources, editor targets, files, images, paths, and other AI-addressable objects directly inside the text flow. It replaces the "attachment chips above the textarea" mental model with inline references that preserve natural language context.
 
@@ -36,7 +36,7 @@ Only these inline atom types are in scope for v1:
 
 ## Core Decision
 
-AEditor uses a **plain string with private token characters plus a sidecar token map**.
+Aiditor uses a **plain string with private token characters plus a sidecar token map**.
 
 ```js
 {
@@ -115,7 +115,7 @@ Rules:
 }
 ```
 
-`resourceId` points to an entry in `aeditor.ai` resource storage. The token is only the inline reference. The resource pool owns payload resolution, deduplication, permissions, and persistence.
+`resourceId` points to an entry in `aiditor.ai` resource storage. The token is only the inline reference. The resource pool owns payload resolution, deduplication, permissions, and persistence.
 
 ### Normalization
 
@@ -128,7 +128,7 @@ Every draft write must normalize:
 - convert CRLF/CR to LF
 - keep text as a JavaScript string, not HTML
 
-No business code should mutate `text` and `tokens` separately. All mutations go through `aeditor.ui.richPromptInput` helpers.
+No business code should mutate `text` and `tokens` separately. All mutations go through `aiditor.ui.richPromptInput` helpers.
 
 ## Resource Lifecycle
 
@@ -190,15 +190,15 @@ Chip DOM:
 
 ```html
 <span
-  class="aeditor-richprompt-token"
-  data-aeditor-token="..."
-  data-aeditor-resource-id="res_icon"
+  class="aiditor-richprompt-token"
+  data-aiditor-token="..."
+  data-aiditor-resource-id="res_icon"
   contenteditable="false"
   role="button"
   aria-label="Reference icon.png"
 >
-  <span class="aeditor-richprompt-token-label">icon.png</span>
-  <button class="aeditor-richprompt-token-remove" type="button" tabindex="-1">x</button>
+  <span class="aiditor-richprompt-token-label">icon.png</span>
+  <button class="aiditor-richprompt-token-remove" type="button" tabindex="-1">x</button>
 </span>
 ```
 
@@ -234,9 +234,9 @@ Backspace/Delete behavior:
 Clipboard channels:
 
 ```txt
-application/x-aeditor-rich-prompt
-application/x-aeditor-ai-target-list
-application/x-aeditor-ai-target
+application/x-aiditor-rich-prompt
+application/x-aiditor-ai-target-list
+application/x-aiditor-ai-target
 text/html
 text/plain
 Files
@@ -244,7 +244,7 @@ Files
 
 Priority:
 
-1. `application/x-aeditor-rich-prompt`: restore draft fragment and referenced resources.
+1. `application/x-aiditor-rich-prompt`: restore draft fragment and referenced resources.
 2. AI target MIME: insert target refs.
 3. Files: create file resources and insert refs.
 4. Sanitized HTML: extract text only, plus safe links if explicitly supported later.
@@ -256,7 +256,7 @@ Do not import arbitrary HTML nodes into the editor.
 
 Copy must write two representations:
 
-1. `application/x-aeditor-rich-prompt`: preserves token refs inside AEditor.
+1. `application/x-aiditor-rich-prompt`: preserves token refs inside Aiditor.
 2. `text/plain`: user-readable fallback.
 
 Plain text conversion:
@@ -347,7 +347,7 @@ Assistant messages may continue to store markdown/plain text unless they intenti
 ### UI Component
 
 ```js
-aeditor.ui.richPromptInput({
+aiditor.ui.richPromptInput({
   value,             // signal<RichPromptDraft>
   resources,         // optional signal/resource accessor for labels/thumbnails
   placeholder,
@@ -363,17 +363,17 @@ aeditor.ui.richPromptInput({
 ### Draft Helpers
 
 ```js
-aeditor.ai.richPrompt.empty()
-aeditor.ai.richPrompt.normalize(draft)
-aeditor.ai.richPrompt.allocateToken(draft)
-aeditor.ai.richPrompt.insertText(draft, index, text)
-aeditor.ai.richPrompt.insertRef(draft, index, resource)
-aeditor.ai.richPrompt.deleteRange(draft, start, end)
-aeditor.ai.richPrompt.refs(draft)
-aeditor.ai.richPrompt.toPlainText(draft)
-aeditor.ai.richPrompt.toModelText(draft)
-aeditor.ai.richPrompt.toClipboard(draft)
-aeditor.ai.richPrompt.fromClipboard(data)
+aiditor.ai.richPrompt.empty()
+aiditor.ai.richPrompt.normalize(draft)
+aiditor.ai.richPrompt.allocateToken(draft)
+aiditor.ai.richPrompt.insertText(draft, index, text)
+aiditor.ai.richPrompt.insertRef(draft, index, resource)
+aiditor.ai.richPrompt.deleteRange(draft, start, end)
+aiditor.ai.richPrompt.refs(draft)
+aiditor.ai.richPrompt.toPlainText(draft)
+aiditor.ai.richPrompt.toModelText(draft)
+aiditor.ai.richPrompt.toClipboard(draft)
+aiditor.ai.richPrompt.fromClipboard(data)
 ```
 
 All helpers return new draft objects. They never mutate the input draft.
@@ -431,14 +431,14 @@ Delta advantages:
 - good operation model
 - familiar to rich text developers
 
-Delta drawbacks for AEditor prompt input:
+Delta drawbacks for Aiditor prompt input:
 
 - array operation normalization is required
 - business code may be tempted to splice ops directly
 - cursor mapping between DOM and ops is more complex than string offsets
 - it suggests support for rich formatting we explicitly do not want
 
-AEditor can still export/import a Delta-like shape later if needed. Internally, the PUA token string is smaller and more stable for this exact use case.
+Aiditor can still export/import a Delta-like shape later if needed. Internally, the PUA token string is smaller and more stable for this exact use case.
 
 ## Why Not Markdown Links as Canonical Format
 
@@ -462,7 +462,7 @@ Markdown refs are generated for AI readability only.
 Formats like:
 
 ```txt
-{{aeditor-ref:res_icon|icon.png}}
+{{aiditor-ref:res_icon|icon.png}}
 ```
 
 are easy to parse, but they are not elegant:
@@ -479,7 +479,7 @@ They are acceptable for debugging, not as the final internal contract.
 1. Add `src/ai/rich-prompt.js` pure draft helpers and tests.
 2. Add `src/ui/editor/richPromptInput.js` as a focused contenteditable component.
 3. Add CSS in a dedicated UI stylesheet section, using existing theme tokens.
-4. Replace `ai-chatinput` textarea with `aeditor.ui.richPromptInput`.
+4. Replace `ai-chatinput` textarea with `aiditor.ui.richPromptInput`.
 5. Route dropped files/targets/assets to `insertRef`.
 6. Convert send path to `toModelText(draft)` plus `refs(draft)`.
 7. Store submitted user messages as rich prompt content.

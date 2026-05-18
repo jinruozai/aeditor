@@ -13,7 +13,7 @@ function storage() {
 }
 
 const memory = storage()
-global.window = { aeditor: {}, localStorage: memory }
+global.window = { aiditor: {}, localStorage: memory }
 global.document = {
   createElement: function (tag) {
     return {
@@ -55,41 +55,41 @@ for (const file of [
   vm.runInThisContext(readFileSync(file, 'utf8'), { filename: file })
 }
 
-const aeditor = window.aeditor
-const ai = aeditor.ai
-assert.equal(ai.tools.get('aeditor.createPanel'), undefined)
-assert.equal(ai.operations.get('aeditor.createPanel'), null)
-assert.equal(typeof ai.tools.get('aeditor.inspectDocks').run, 'function')
-assert.equal(typeof ai.tools.get('aeditor.installExtension').preview, 'function')
-assert.equal(typeof ai.tools.get('aeditor.addPanelToDock').preview, 'function')
-assert.equal(typeof ai.tools.get('aeditor.reloadPanel').preview, 'function')
+const aiditor = window.aiditor
+const ai = aiditor.ai
+assert.equal(ai.tools.get('aiditor.createPanel'), undefined)
+assert.equal(ai.operations.get('aiditor.createPanel'), null)
+assert.equal(typeof ai.tools.get('aiditor.inspectDocks').run, 'function')
+assert.equal(typeof ai.tools.get('aiditor.installExtension').preview, 'function')
+assert.equal(typeof ai.tools.get('aiditor.addPanelToDock').preview, 'function')
+assert.equal(typeof ai.tools.get('aiditor.reloadPanel').preview, 'function')
 const extensionAgent = ai.createAgent({ name: 'Extension Agent' })
 const extensionRequest = ai.makeRequest(extensionAgent, null, 'run_extension_tools', 'user', 0)
-assert.equal(extensionRequest.tools.includes('aeditor.installExtension'), false)
-assert.equal(extensionRequest.tools.includes('aeditor.inspectDocks'), true)
-assert.equal(extensionRequest.tools.includes('aeditor.addPanelToDock'), true)
-assert.equal(extensionRequest.tools.includes('aeditor.previewOperation'), false)
-assert.equal(extensionRequest.tools.includes('aeditor.applyOperation'), false)
+assert.equal(extensionRequest.tools.includes('aiditor.installExtension'), false)
+assert.equal(extensionRequest.tools.includes('aiditor.inspectDocks'), true)
+assert.equal(extensionRequest.tools.includes('aiditor.addPanelToDock'), true)
+assert.equal(extensionRequest.tools.includes('aiditor.previewOperation'), false)
+assert.equal(extensionRequest.tools.includes('aiditor.applyOperation'), false)
 assert.throws(function () {
-  ai.tools.get('aeditor.previewOperation').run({ op: 'aeditor.installExtension', input: { manifest: {} } }, { actor: 'user', agent: extensionAgent })
+  ai.tools.get('aiditor.previewOperation').run({ op: 'aiditor.installExtension', input: { manifest: {} } }, { actor: 'user', agent: extensionAgent })
 }, /not available/)
-let tree = aeditor.dock({ name: 'main' })
+let tree = aiditor.dock({ name: 'main' })
 let panelTextSamples = {}
 let reloadedPanelId = null
 const layout = {
   tree: function () { return tree },
   addPanel: function (dockName, partial, opts) {
-    const found = aeditor.findByName(tree, dockName)
+    const found = aiditor.findByName(tree, dockName)
     const dockId = found ? found.node.id : dockName
-    const r = aeditor.addPanel(tree, dockId, partial, opts || {})
+    const r = aiditor.addPanel(tree, dockId, partial, opts || {})
     tree = r.tree
     return { panelId: r.panelId }
   },
   removePanel: function (panelId) {
-    tree = aeditor.removePanel(tree, panelId)
+    tree = aiditor.removePanel(tree, panelId)
   },
   replacePanel: function (panelId, partial, opts) {
-    const r = aeditor.replacePanel(tree, panelId, partial, opts || {})
+    const r = aiditor.replacePanel(tree, panelId, partial, opts || {})
     tree = r.tree
     return { panelId: r.panelId }
   },
@@ -105,30 +105,30 @@ const layout = {
   },
 }
 
-aeditor.extensions.registerLayout('default', layout)
-aeditor.ai.setWorkspace(aeditor.workspace.memory({
+aiditor.extensions.registerLayout('default', layout)
+aiditor.ai.setWorkspace(aiditor.workspace.memory({
   'runtime-panel.js': [
-    ';(function (aeditor) {',
+    ';(function (aiditor) {',
     "  'use strict'",
-    "  aeditor.registerComponent('runtime.panel', {",
+    "  aiditor.registerComponent('runtime.panel', {",
     "    defaults: function () { return { title: 'Runtime Panel', icon: 'box', props: {} } },",
     '    factory: function () { return { tagName: "DIV" } }',
     '  })',
-    '})(window.aeditor = window.aeditor || {})',
+    '})(window.aiditor = window.aiditor || {})',
     '',
   ].join('\n'),
   'replacement-panel.js': [
-    ';(function (aeditor) {',
+    ';(function (aiditor) {',
     "  'use strict'",
-    "  aeditor.registerComponent('replacement.panel', {",
+    "  aiditor.registerComponent('replacement.panel', {",
     "    defaults: function () { return { title: 'Replacement Panel', icon: 'box', props: {} } },",
     '    factory: function () { return { tagName: "DIV" } }',
     '  })',
-    '})(window.aeditor = window.aeditor || {})',
+    '})(window.aiditor = window.aiditor || {})',
     '',
   ].join('\n'),
 }), { id: 'memory:runtime-panel', label: 'Runtime Panel', kind: 'memory' })
-assert.deepEqual(ai.tools.get('aeditor.inspectDocks').run({}), [{
+assert.deepEqual(ai.tools.get('aiditor.inspectDocks').run({}), [{
   layout: 'default',
   dockId: tree.id,
   name: 'main',
@@ -141,63 +141,63 @@ assert.deepEqual(ai.tools.get('aeditor.inspectDocks').run({}), [{
   collapsed: false,
   focused: false,
 }])
-const runtimePanelPreview = await ai.tools.get('aeditor.addPanelToDock').preview({
+const runtimePanelPreview = await ai.tools.get('aiditor.addPanelToDock').preview({
   dock: 'main',
   component: 'runtime.panel',
 })
 assert.equal(runtimePanelPreview.ok, true)
 assert.equal(runtimePanelPreview.input.path, 'runtime-panel.js')
-const runtimePanelAdded = await ai.tools.get('aeditor.addPanelToDock').apply(runtimePanelPreview)
+const runtimePanelAdded = await ai.tools.get('aiditor.addPanelToDock').apply(runtimePanelPreview)
 assert.equal(runtimePanelAdded.applied, true)
-assert.equal(aeditor.componentRegistration('runtime.panel').owner, 'workspace:memory:runtime-panel')
-assert.equal(aeditor.findPanel(tree, runtimePanelAdded.panelId).panel.component, 'runtime.panel')
+assert.equal(aiditor.componentRegistration('runtime.panel').owner, 'workspace:memory:runtime-panel')
+assert.equal(aiditor.findPanel(tree, runtimePanelAdded.panelId).panel.component, 'runtime.panel')
 layout.removePanel(runtimePanelAdded.panelId)
-aeditor.runtime.unloadOwner('workspace:memory:runtime-panel')
-const explicitRuntimePanelPreview = await ai.tools.get('aeditor.addPanelToDock').preview({
+aiditor.runtime.unloadOwner('workspace:memory:runtime-panel')
+const explicitRuntimePanelPreview = await ai.tools.get('aiditor.addPanelToDock').preview({
   dock: 'main',
   component: 'runtime.panel',
   path: 'runtime-panel.js',
 })
 assert.equal(explicitRuntimePanelPreview.ok, true)
-const explicitRuntimePanelAdded = await ai.tools.get('aeditor.addPanelToDock').apply(explicitRuntimePanelPreview)
+const explicitRuntimePanelAdded = await ai.tools.get('aiditor.addPanelToDock').apply(explicitRuntimePanelPreview)
 assert.equal(explicitRuntimePanelAdded.applied, true)
-assert.equal(aeditor.componentRegistration('runtime.panel').owner, 'workspace:memory:runtime-panel')
-assert.equal(aeditor.findPanel(tree, explicitRuntimePanelAdded.panelId).panel.component, 'runtime.panel')
-assert.equal(aeditor.findPanel(tree, explicitRuntimePanelAdded.panelId).panel.sourcePath, 'runtime-panel.js')
+assert.equal(aiditor.componentRegistration('runtime.panel').owner, 'workspace:memory:runtime-panel')
+assert.equal(aiditor.findPanel(tree, explicitRuntimePanelAdded.panelId).panel.component, 'runtime.panel')
+assert.equal(aiditor.findPanel(tree, explicitRuntimePanelAdded.panelId).panel.sourcePath, 'runtime-panel.js')
 await ai.currentWorkspace().write('runtime-panel.js', [
-  ';(function (aeditor) {',
+  ';(function (aiditor) {',
   "  'use strict'",
-  "  aeditor.registerComponent('runtime.panel', {",
+  "  aiditor.registerComponent('runtime.panel', {",
   "    defaults: function () { return { title: 'Runtime Panel Reloaded', icon: 'box', props: {} } },",
   '    factory: function () { return { tagName: "DIV" } }',
   '  })',
-  '})(window.aeditor = window.aeditor || {})',
+  '})(window.aiditor = window.aiditor || {})',
   '',
 ].join('\n'))
-const reloadPreview = await ai.tools.get('aeditor.reloadPanel').preview({
+const reloadPreview = await ai.tools.get('aiditor.reloadPanel').preview({
   panelId: explicitRuntimePanelAdded.panelId,
   path: 'runtime-panel.js',
 })
 assert.equal(reloadPreview.ok, true)
-const reloaded = await ai.tools.get('aeditor.reloadPanel').apply(reloadPreview)
+const reloaded = await ai.tools.get('aiditor.reloadPanel').apply(reloadPreview)
 assert.equal(reloaded.applied, true)
 assert.equal(reloaded.panelId, explicitRuntimePanelAdded.panelId)
 assert.equal(reloadedPanelId, explicitRuntimePanelAdded.panelId)
-assert.equal(aeditor.componentDefaults('runtime.panel').title, 'Runtime Panel Reloaded')
-const replacementPreview = await ai.tools.get('aeditor.replacePanel').preview({
+assert.equal(aiditor.componentDefaults('runtime.panel').title, 'Runtime Panel Reloaded')
+const replacementPreview = await ai.tools.get('aiditor.replacePanel').preview({
   panelId: explicitRuntimePanelAdded.panelId,
   component: 'replacement.panel',
 })
 assert.equal(replacementPreview.ok, true)
 assert.equal(replacementPreview.input.path, 'replacement-panel.js')
-const replacement = await ai.tools.get('aeditor.replacePanel').apply(replacementPreview)
+const replacement = await ai.tools.get('aiditor.replacePanel').apply(replacementPreview)
 assert.equal(replacement.applied, true)
-assert.equal(aeditor.findPanel(tree, explicitRuntimePanelAdded.panelId), null)
-assert.equal(aeditor.findPanel(tree, replacement.panelId).panel.component, 'replacement.panel')
+assert.equal(aiditor.findPanel(tree, explicitRuntimePanelAdded.panelId), null)
+assert.equal(aiditor.findPanel(tree, replacement.panelId).panel.component, 'replacement.panel')
 layout.removePanel(replacement.panelId)
-aeditor.runtime.unloadOwner('workspace:memory:runtime-panel')
-aeditor.extensions.configureStorage({ key: 'test.extensions', load: false })
-const installTool = ai.tools.get('aeditor.installExtension')
+aiditor.runtime.unloadOwner('workspace:memory:runtime-panel')
+aiditor.extensions.configureStorage({ key: 'test.extensions', load: false })
+const installTool = ai.tools.get('aiditor.installExtension')
 const directInstallPreview = installTool.preview({
   manifest: {
     id: 'direct.tool',
@@ -210,13 +210,13 @@ const directInstallPreview = installTool.preview({
 assert.equal(directInstallPreview.canApply, true)
 const directInstalled = installTool.apply(directInstallPreview, { actor: 'user', agent: { id: 'agent' } })
 assert.equal(directInstalled.applied, true)
-assert.equal(aeditor.componentRegistration('direct.tool.panel').owner, 'extension:direct.tool')
+assert.equal(aiditor.componentRegistration('direct.tool.panel').owner, 'extension:direct.tool')
 assert.equal(ai.permissionAuditRecords().some(function (item) {
   return item.scope === 'extension.install' && item.target === 'direct.tool' && item.decision === 'allow'
 }), true)
-aeditor.extensions.uninstall('direct.tool', { save: false })
+aiditor.extensions.uninstall('direct.tool', { save: false })
 
-aeditor.extensions.install({
+aiditor.extensions.install({
   id: 'nested',
   contributes: {
     components: [{ id: 'panel', title: 'Nested Panel', ui: null }],
@@ -229,7 +229,7 @@ aeditor.extensions.install({
     settings: [{ section: { id: 'nested', title: 'Nested' }, schema: { key: 'nested.enabled', type: 'boolean' } }],
   },
 }, { save: false })
-aeditor.extensions.install({
+aiditor.extensions.install({
   id: 'nested.child',
   contributes: {
     components: [{ id: 'panel', title: 'Nested Child Panel', ui: null }],
@@ -242,28 +242,28 @@ aeditor.extensions.install({
     settings: [{ section: { id: 'nested.child', title: 'Nested Child' }, schema: { key: 'nested.child.enabled', type: 'boolean' } }],
   },
 }, { save: false })
-aeditor.extensions.uninstall('nested', { save: false })
-assert.equal(aeditor.componentRegistration('nested.panel'), null)
+aiditor.extensions.uninstall('nested', { save: false })
+assert.equal(aiditor.componentRegistration('nested.panel'), null)
 assert.equal(ai.references.get('nested.data'), null)
 assert.equal(ai.operations.get('nested.patch'), null)
 assert.equal(ai.tools.get('nested.read'), undefined)
 assert.equal(ai.context.get('nested.ctx'), undefined)
-assert.equal(aeditor.commands.get('nested.refresh'), null)
-assert.equal(aeditor.commands.menuMeta('nested.dock.panel.context:refresh').owner, undefined)
-assert.equal(aeditor.settings.schemaMeta('nested.enabled').owner, undefined)
-assert.notEqual(aeditor.componentRegistration('nested.child.panel'), null)
+assert.equal(aiditor.commands.get('nested.refresh'), null)
+assert.equal(aiditor.commands.menuMeta('nested.dock.panel.context:refresh').owner, undefined)
+assert.equal(aiditor.settings.schemaMeta('nested.enabled').owner, undefined)
+assert.notEqual(aiditor.componentRegistration('nested.child.panel'), null)
 assert.notEqual(ai.references.get('nested.child.data'), null)
 assert.notEqual(ai.operations.get('nested.child.patch'), null)
 assert.notEqual(ai.tools.get('nested.child.read'), undefined)
 assert.notEqual(ai.context.get('nested.child.ctx'), null)
-assert.notEqual(aeditor.commands.get('nested.child.refresh'), null)
-assert.equal(aeditor.commands.menuMeta('nested.child.dock.panel.context:refresh').owner, 'extension:nested.child')
-assert.equal(aeditor.settings.schemaMeta('nested.child.enabled').owner, 'extension:nested.child')
+assert.notEqual(aiditor.commands.get('nested.child.refresh'), null)
+assert.equal(aiditor.commands.menuMeta('nested.child.dock.panel.context:refresh').owner, 'extension:nested.child')
+assert.equal(aiditor.settings.schemaMeta('nested.child.enabled').owner, 'extension:nested.child')
 assert.equal(ai.context.meta('nested.child.ctx').owner, 'extension:nested.child')
-aeditor.extensions.uninstall('nested.child', { save: false })
+aiditor.extensions.uninstall('nested.child', { save: false })
 
 let applied = null
-aeditor.extensions.registerAdapter('case.adapter', {
+aiditor.extensions.registerAdapter('case.adapter', {
   preview: function (input) { return { ok: true, next: input.next } },
   apply: function (preview) { applied = preview.next; return { applied: true, value: applied } },
   run: function () { applied = 'command'; return { ok: true } },
@@ -328,26 +328,26 @@ const manifest = {
   },
 }
 
-const preview = aeditor.extensions.preview(manifest)
+const preview = aiditor.extensions.preview(manifest)
 assert.equal(preview.ok, true)
 assert.equal(preview.changes.some(function (item) { return item.id === 'case.roleBag' }), true)
-assert.equal(aeditor.extensions.preview({
+assert.equal(aiditor.extensions.preview({
   id: 'bad.adapter',
   contributes: { operations: [{ id: 'op', adapter: 'missing.adapter' }] },
 }).ok, false)
-assert.match(aeditor.extensions.preview({
+assert.match(aiditor.extensions.preview({
   id: 'bad.ui',
   contributes: {
     components: [{ id: 'panel', ui: { component: 'missingWidget' } }],
   },
 }).errors[0].message, /UI component not registered/)
-const badUiPreview = ai.operations.preview('aeditor.installExtension', {
+const badUiPreview = ai.operations.preview('aiditor.installExtension', {
   id: 'bad.ui.operation',
   contributes: { components: [{ id: 'panel', ui: { component: 'missingWidget' } }] },
 })
 assert.equal(badUiPreview.ok, false)
 assert.equal(ai.operations.apply(badUiPreview).applied, false)
-assert.match(aeditor.extensions.preview({
+assert.match(aiditor.extensions.preview({
   id: 'bad.dock',
   contributes: {
     components: [{ id: 'panel', ui: null }],
@@ -355,14 +355,14 @@ assert.match(aeditor.extensions.preview({
   },
 }).errors[0].message, /Dock not found/)
 
-aeditor.registerComponent('conflict.panel', { factory: function () { return document.createElement('div') } }, { owner: 'host' })
+aiditor.registerComponent('conflict.panel', { factory: function () { return document.createElement('div') } }, { owner: 'host' })
 ai.tools.register('conflict.read', {}, { owner: 'host' })
 ai.context.register('conflict.context', {})
 ai.references.register('conflict.data', {}, { owner: 'host' })
 ai.operations.register('conflict.setValue', {}, { owner: 'host' })
-aeditor.commands.register('conflict.refresh', {}, { owner: 'host' })
-aeditor.commands.registerMenu('conflict.menu', { target: 'global' }, { owner: 'host' })
-const conflictPreview = aeditor.extensions.preview({
+aiditor.commands.register('conflict.refresh', {}, { owner: 'host' })
+aiditor.commands.registerMenu('conflict.menu', { target: 'global' }, { owner: 'host' })
+const conflictPreview = aiditor.extensions.preview({
   id: 'conflict',
   contributes: {
     components: [{ id: 'panel', ui: null }],
@@ -382,29 +382,29 @@ assert.equal(conflictPreview.errors.some(function (item) { return /Reference pro
 assert.equal(conflictPreview.errors.some(function (item) { return /Operation already registered: conflict\.setValue/.test(item.message) }), true)
 assert.equal(conflictPreview.errors.some(function (item) { return /Command already registered: conflict\.refresh/.test(item.message) }), true)
 assert.equal(conflictPreview.errors.some(function (item) { return /Menu already registered: conflict\.menu/.test(item.message) }), true)
-aeditor.unregisterComponent('conflict.panel', { owner: 'host' })
+aiditor.unregisterComponent('conflict.panel', { owner: 'host' })
 ai.tools.unregister('conflict.read', { owner: 'host' })
 ai.context.unregister('conflict.context')
 ai.references.unregister('conflict.data', { owner: 'host' })
 ai.operations.unregister('conflict.setValue', { owner: 'host' })
-aeditor.commands.unregister('conflict.refresh', { owner: 'host' })
-aeditor.commands.unregisterMenu('conflict.menu', { owner: 'host' })
+aiditor.commands.unregister('conflict.refresh', { owner: 'host' })
+aiditor.commands.unregisterMenu('conflict.menu', { owner: 'host' })
 
-const installed = aeditor.extensions.install(manifest)
+const installed = aiditor.extensions.install(manifest)
 assert.equal(installed.ok, true)
-assert.equal(aeditor.componentRegistration('case.roleBag').owner, 'extension:case')
-assert.equal(aeditor.componentRegistration('case.roleBag').layer, 'user')
-assert.equal(aeditor.componentDefaults('case.roleBag').extensionId, 'case')
-assert.deepEqual(aeditor.listComponents({ owner: 'extension:case' }).map(function (item) { return item.name }).sort(), ['case.roleBag', 'case.roleBagInner'])
-assert.equal(aeditor.findDock(tree, tree.id).node.panels[0].owner, 'extension:case')
-assert.equal(aeditor.findDock(tree, tree.id).node.panels[0].component, 'case.roleBag')
+assert.equal(aiditor.componentRegistration('case.roleBag').owner, 'extension:case')
+assert.equal(aiditor.componentRegistration('case.roleBag').layer, 'user')
+assert.equal(aiditor.componentDefaults('case.roleBag').extensionId, 'case')
+assert.deepEqual(aiditor.listComponents({ owner: 'extension:case' }).map(function (item) { return item.name }).sort(), ['case.roleBag', 'case.roleBagInner'])
+assert.equal(aiditor.findDock(tree, tree.id).node.panels[0].owner, 'extension:case')
+assert.equal(aiditor.findDock(tree, tree.id).node.panels[0].component, 'case.roleBag')
 assert.equal(ai.tools.get('case.read').title, 'Read Case')
 assert.equal(ai.context.get('case.context') != null, true)
 assert.equal(ai.references.list({ owner: 'extension:case' })[0], 'case.data')
 assert.equal(ai.operations.list({ owner: 'extension:case' })[0], 'case.setValue')
-assert.equal(aeditor.commands.list({ owner: 'extension:case' })[0], 'case.refresh')
-assert.equal(aeditor.commands.menuItems('dock.panel.context')[0].command, 'case.refresh')
-assert.equal(aeditor.settings.schemaMeta('case.enabled').owner, 'extension:case')
+assert.equal(aiditor.commands.list({ owner: 'extension:case' })[0], 'case.refresh')
+assert.equal(aiditor.commands.menuItems('dock.panel.context')[0].command, 'case.refresh')
+assert.equal(aiditor.settings.schemaMeta('case.enabled').owner, 'extension:case')
 assert.deepEqual(ai.references.read({ resolver: 'case.data', uri: 'case.data://row/1' }), { uri: 'case.data://row/1', value: 1 })
 assert.equal(JSON.parse(memory.data['test.extensions']).entries[0].enabled, true)
 
@@ -412,82 +412,82 @@ const opPreview = ai.operations.preview('case.setValue', { next: 9 })
 const opApplied = ai.operations.apply(opPreview)
 assert.equal(opApplied.value, 9)
 assert.equal(applied, 9)
-aeditor.commands.run('case.refresh')
+aiditor.commands.run('case.refresh')
 assert.equal(applied, 'command')
 
 const external = layout.addPanel('main', { component: 'case.roleBag', title: 'External Bag' }).panelId
 
-const disabled = aeditor.extensions.disable('case')
+const disabled = aiditor.extensions.disable('case')
 assert.equal(disabled.disabled, true)
-assert.equal(aeditor.componentRegistration('case.roleBag'), null)
-assert.equal(aeditor.findPanel(tree, external).panel.component, 'extension-disabled')
-assert.equal(aeditor.findDock(tree, tree.id).node.panels.length, 1)
-assert.deepEqual(aeditor.commands.list({ owner: 'extension:case' }), [])
+assert.equal(aiditor.componentRegistration('case.roleBag'), null)
+assert.equal(aiditor.findPanel(tree, external).panel.component, 'extension-disabled')
+assert.equal(aiditor.findDock(tree, tree.id).node.panels.length, 1)
+assert.deepEqual(aiditor.commands.list({ owner: 'extension:case' }), [])
 assert.equal(ai.tools.get('case.read'), undefined)
 assert.equal(ai.context.get('case.context'), undefined)
-assert.equal(aeditor.settings.schemaMeta('case.enabled').owner, undefined)
+assert.equal(aiditor.settings.schemaMeta('case.enabled').owner, undefined)
 assert.equal(JSON.parse(memory.data['test.extensions']).entries[0].enabled, false)
 
-const enabled = aeditor.extensions.enable('case')
+const enabled = aiditor.extensions.enable('case')
 assert.equal(enabled.enabled, true)
 assert.equal(enabled.active, true)
-assert.equal(aeditor.componentRegistration('case.roleBag').owner, 'extension:case')
-assert.equal(aeditor.findDock(tree, tree.id).node.panels.length, 2)
-assert.equal(aeditor.findPanel(tree, external).panel.component, 'case.roleBag')
+assert.equal(aiditor.componentRegistration('case.roleBag').owner, 'extension:case')
+assert.equal(aiditor.findDock(tree, tree.id).node.panels.length, 2)
+assert.equal(aiditor.findPanel(tree, external).panel.component, 'case.roleBag')
 assert.equal(JSON.parse(memory.data['test.extensions']).entries[0].enabled, true)
 
-aeditor.extensions.safeMode(true)
-assert.equal(aeditor.componentRegistration('case.roleBag'), null)
-assert.equal(aeditor.extensions.get('case').enabled, true)
-assert.equal(aeditor.extensions.get('case').active, false)
-aeditor.extensions.safeMode(false)
-assert.equal(aeditor.componentRegistration('case.roleBag').owner, 'extension:case')
+aiditor.extensions.safeMode(true)
+assert.equal(aiditor.componentRegistration('case.roleBag'), null)
+assert.equal(aiditor.extensions.get('case').enabled, true)
+assert.equal(aiditor.extensions.get('case').active, false)
+aiditor.extensions.safeMode(false)
+assert.equal(aiditor.componentRegistration('case.roleBag').owner, 'extension:case')
 
 const appManifest = {
   id: 'app.case',
   layer: 'app',
   contributes: { components: [{ id: 'panel', ui: null }] },
 }
-aeditor.extensions.install(appManifest, { save: false })
-aeditor.extensions.safeMode(true, { allowApp: true })
-assert.equal(aeditor.componentRegistration('app.case.panel').owner, 'extension:app.case')
-aeditor.extensions.safeMode(false)
-aeditor.extensions.uninstall('app.case', { save: false })
+aiditor.extensions.install(appManifest, { save: false })
+aiditor.extensions.safeMode(true, { allowApp: true })
+assert.equal(aiditor.componentRegistration('app.case.panel').owner, 'extension:app.case')
+aiditor.extensions.safeMode(false)
+aiditor.extensions.uninstall('app.case', { save: false })
 
-const maxApp = aeditor.extensions.setMaxLayer('app')
+const maxApp = aiditor.extensions.setMaxLayer('app')
 assert.equal(maxApp.maxLayer, 'app')
-assert.equal(aeditor.componentRegistration('case.roleBag'), null)
-assert.equal(aeditor.extensions.get('case').filtered, true)
-const maxSession = aeditor.extensions.setMaxLayer('session')
+assert.equal(aiditor.componentRegistration('case.roleBag'), null)
+assert.equal(aiditor.extensions.get('case').filtered, true)
+const maxSession = aiditor.extensions.setMaxLayer('session')
 assert.equal(maxSession.maxLayer, 'session')
-assert.equal(aeditor.componentRegistration('case.roleBag').owner, 'extension:case')
+assert.equal(aiditor.componentRegistration('case.roleBag').owner, 'extension:case')
 
-aeditor.extensions.disableLayer('user')
-assert.equal(aeditor.componentRegistration('case.roleBag'), null)
-assert.equal(aeditor.extensions.get('case').filtered, true)
-aeditor.extensions.enableLayer('user')
-assert.equal(aeditor.componentRegistration('case.roleBag').owner, 'extension:case')
+aiditor.extensions.disableLayer('user')
+assert.equal(aiditor.componentRegistration('case.roleBag'), null)
+assert.equal(aiditor.extensions.get('case').filtered, true)
+aiditor.extensions.enableLayer('user')
+assert.equal(aiditor.componentRegistration('case.roleBag').owner, 'extension:case')
 
-const promotedPreview = ai.operations.preview('aeditor.promoteExtensionLayer', { id: 'case', layer: 'session' })
+const promotedPreview = ai.operations.preview('aiditor.promoteExtensionLayer', { id: 'case', layer: 'session' })
 const promoted = ai.operations.apply(promotedPreview)
 assert.equal(promoted.installed, true)
-assert.equal(aeditor.extensions.get('case').manifest.layer, 'session')
+assert.equal(aiditor.extensions.get('case').manifest.layer, 'session')
 
-const panelToRemove = aeditor.findDock(tree, tree.id).node.panels.find(function (p) { return p.owner === 'extension:case' }).id
-const removePanelPreview = ai.operations.preview('aeditor.removePanelFromDock', { panelId: panelToRemove })
+const panelToRemove = aiditor.findDock(tree, tree.id).node.panels.find(function (p) { return p.owner === 'extension:case' }).id
+const removePanelPreview = ai.operations.preview('aiditor.removePanelFromDock', { panelId: panelToRemove })
 const panelRemoved = ai.operations.apply(removePanelPreview)
 assert.deepEqual(panelRemoved.removed, [panelToRemove])
-assert.equal(aeditor.findPanel(tree, panelToRemove), null)
+assert.equal(aiditor.findPanel(tree, panelToRemove), null)
 
 assert.throws(function () {
-  aeditor.extensions.install({
+  aiditor.extensions.install({
     id: 'code.bad',
     trust: { code: 'trusted' },
     contributes: { components: [{ id: 'panel', kind: 'factory', source: 'function(){ return document.createElement("div") }' }] },
   })
 }, /allowCode/)
 
-const codeReview = aeditor.extensions.review({
+const codeReview = aiditor.extensions.review({
   id: 'code.review',
   layer: 'user',
   trust: { code: 'trusted' },
@@ -498,89 +498,89 @@ assert.equal(codeReview.canApply, false)
 assert.equal(codeReview.requiredConsent, 'allowCode')
 assert.equal(codeReview.permissions.includes('extensions.code.install'), true)
 assert.equal(codeReview.permissions.includes('extensions.layer.user.write'), true)
-const reviewOnly = await aeditor.extensions.installWithReview({
+const reviewOnly = await aiditor.extensions.installWithReview({
   id: 'code.review.only',
   trust: { code: 'trusted' },
   contributes: { components: [{ id: 'panel', kind: 'factory', source: 'function(){ return document.createElement("div") }' }] },
 })
 assert.equal(reviewOnly.canApply, false)
-assert.equal(aeditor.componentRegistration('code.review.only.panel'), null)
+assert.equal(aiditor.componentRegistration('code.review.only.panel'), null)
 
-aeditor.extensions.configurePermissions({
+aiditor.extensions.configurePermissions({
   install: function (details) { return details.manifest.id !== 'blocked.extension' },
 })
-assert.equal(aeditor.extensions.review({ id: 'blocked.extension' }).canInstall, false)
+assert.equal(aiditor.extensions.review({ id: 'blocked.extension' }).canInstall, false)
 assert.throws(function () {
-  aeditor.extensions.install({ id: 'blocked.extension' })
+  aiditor.extensions.install({ id: 'blocked.extension' })
 }, /permission denied/)
-aeditor.extensions.configurePermissions(null)
+aiditor.extensions.configurePermissions(null)
 
-const codeInstalled = aeditor.extensions.install({
+const codeInstalled = aiditor.extensions.install({
   id: 'code.ok',
   trust: { code: 'trusted' },
   contributes: { components: [{ id: 'panel', kind: 'factory', source: 'function(){ return document.createElement("div") }' }] },
 }, { allowCode: true, save: false })
 assert.equal(codeInstalled.installed, true)
-assert.equal(aeditor.componentRegistration('code.ok.panel').owner, 'extension:code.ok')
-aeditor.extensions.uninstall('code.ok', { save: false })
+assert.equal(aiditor.componentRegistration('code.ok.panel').owner, 'extension:code.ok')
+aiditor.extensions.uninstall('code.ok', { save: false })
 
 assert.throws(function () {
-  aeditor.extensions.install({
+  aiditor.extensions.install({
     id: 'code.hash.bad',
     trust: { code: 'sandbox' },
     contributes: { components: [{ id: 'panel', kind: 'iframe', srcdoc: '<p>x</p>', hash: 'bad' }] },
   }, { allowCode: true, save: false })
 }, /hash mismatch/)
 const srcdoc = '<p>isolated</p>'
-const iframeInstalled = aeditor.extensions.install({
+const iframeInstalled = aiditor.extensions.install({
   id: 'code.iframe',
   trust: { code: 'sandbox' },
-  contributes: { components: [{ id: 'panel', kind: 'iframe', srcdoc: srcdoc, hash: aeditor.extensions.hashSource(srcdoc) }] },
+  contributes: { components: [{ id: 'panel', kind: 'iframe', srcdoc: srcdoc, hash: aiditor.extensions.hashSource(srcdoc) }] },
 }, { allowCode: true, save: false })
 assert.equal(iframeInstalled.installed, true)
-assert.equal(aeditor.componentRegistration('code.iframe.panel').owner, 'extension:code.iframe')
-aeditor.extensions.uninstall('code.iframe', { save: false })
+assert.equal(aiditor.componentRegistration('code.iframe.panel').owner, 'extension:code.iframe')
+aiditor.extensions.uninstall('code.iframe', { save: false })
 
-aeditor.extensions.uninstall('case', { save: false })
-assert.equal(aeditor.componentRegistration('case.roleBag'), null)
-const booted = aeditor.extensions.boot()
+aiditor.extensions.uninstall('case', { save: false })
+assert.equal(aiditor.componentRegistration('case.roleBag'), null)
+const booted = aiditor.extensions.boot()
 assert.equal(booted.count, 1)
-assert.equal(aeditor.componentRegistration('case.roleBag').owner, 'extension:case')
+assert.equal(aiditor.componentRegistration('case.roleBag').owner, 'extension:case')
 
-const removePreview = ai.operations.preview('aeditor.removeExtension', { id: 'case' })
+const removePreview = ai.operations.preview('aiditor.removeExtension', { id: 'case' })
 const removed = ai.operations.apply(removePreview)
 assert.equal(removed.removed, true)
-assert.equal(aeditor.componentRegistration('case.roleBag'), null)
+assert.equal(aiditor.componentRegistration('case.roleBag'), null)
 assert.deepEqual(ai.references.list({ owner: 'extension:case' }), [])
 assert.deepEqual(ai.operations.list({ owner: 'extension:case' }), [])
 assert.equal(ai.tools.get('case.read'), undefined)
 assert.equal(ai.context.get('case.context'), undefined)
-assert.equal(aeditor.findDock(tree, tree.id).node.panels.length, 0)
+assert.equal(aiditor.findDock(tree, tree.id).node.panels.length, 0)
 
 const delayedMemory = storage()
 global.window.localStorage = delayedMemory
-aeditor.extensions.configureStorage({ key: 'delayed.extensions', storage: delayedMemory, load: false })
-let delayedTree = aeditor.dock({ name: 'main' })
-aeditor.extensions.install({
+aiditor.extensions.configureStorage({ key: 'delayed.extensions', storage: delayedMemory, load: false })
+let delayedTree = aiditor.dock({ name: 'main' })
+aiditor.extensions.install({
   id: 'delayed',
   contributes: {
     components: [{ id: 'panel', ui: null }],
     dockPanels: [{ layout: 'delayed', dock: 'main', component: 'panel' }],
   },
 }, { deferLayout: true })
-assert.equal(aeditor.extensions.get('delayed').active, true)
-assert.equal(aeditor.extensions.get('delayed').panels.length, 0)
-aeditor.extensions.registerLayout('delayed', {
+assert.equal(aiditor.extensions.get('delayed').active, true)
+assert.equal(aiditor.extensions.get('delayed').panels.length, 0)
+aiditor.extensions.registerLayout('delayed', {
   tree: function () { return delayedTree },
   addPanel: function (dockName, partial, opts) {
-    const found = aeditor.findByName(delayedTree, dockName)
-    const r = aeditor.addPanel(delayedTree, found ? found.node.id : dockName, partial, opts || {})
+    const found = aiditor.findByName(delayedTree, dockName)
+    const r = aiditor.addPanel(delayedTree, found ? found.node.id : dockName, partial, opts || {})
     delayedTree = r.tree
     return { panelId: r.panelId }
   },
-  removePanel: function (panelId) { delayedTree = aeditor.removePanel(delayedTree, panelId) },
+  removePanel: function (panelId) { delayedTree = aiditor.removePanel(delayedTree, panelId) },
   setTree: function (next) { delayedTree = next },
 })
-assert.equal(aeditor.findDock(delayedTree, delayedTree.id).node.panels[0].component, 'delayed.panel')
+assert.equal(aiditor.findDock(delayedTree, delayedTree.id).node.panels[0].component, 'delayed.panel')
 
 console.log('extension runtime tests ok')

@@ -1,23 +1,23 @@
 {
-  "name": "@gooooo/aeditor",
+  "name": "@gooooo/aiditor",
   "version": "1.1.1",
-  "description": "Blender-style dock layout UI framework - zero build, zero dependencies, pure IIFE. Drop-in <script> tag, everything hangs on window.aeditor.",
-  "main": "dist/aeditor-core.js",
-  "style": "dist/aeditor-core.css",
+  "description": "Blender-style dock layout UI framework - zero build, zero dependencies, pure IIFE. Drop-in <script> tag, everything hangs on window.aiditor.",
+  "main": "dist/aiditor-core.js",
+  "style": "dist/aiditor-core.css",
   "files": [
-    "dist/aeditor.css",
-    "dist/aeditor.js",
-    "dist/aeditor-ai.css",
-    "dist/aeditor-ai.js",
-    "dist/aeditor-core.css",
-    "dist/aeditor-core.js",
-    "dist/aeditor-api.json",
-    "dist/aeditor-full.css",
-    "dist/aeditor-full.js",
-    "dist/aeditor-kernel.css",
-    "dist/aeditor-kernel.js",
-    "dist/aeditor-ui.css",
-    "dist/aeditor-ui.js",
+    "dist/aiditor.css",
+    "dist/aiditor.js",
+    "dist/aiditor-ai.css",
+    "dist/aiditor-ai.js",
+    "dist/aiditor-core.css",
+    "dist/aiditor-core.js",
+    "dist/aiditor-api.json",
+    "dist/aiditor-full.css",
+    "dist/aiditor-full.js",
+    "dist/aiditor-kernel.css",
+    "dist/aiditor-kernel.js",
+    "dist/aiditor-ui.css",
+    "dist/aiditor-ui.js",
     "README.md",
     "LICENSE"
   ],
@@ -37,11 +37,11 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://gitee.com/lazygoo/aeditor.git"
+    "url": "git+https://gitee.com/lazygoo/aiditor.git"
   },
-  "homepage": "https://gitee.com/lazygoo/aeditor",
+  "homepage": "https://gitee.com/lazygoo/aiditor",
   "bugs": {
-    "url": "https://gitee.com/lazygoo/aeditor/issues"
+    "url": "https://gitee.com/lazygoo/aiditor/issues"
   },
   "author": "gooooo",
   "license": "MIT",

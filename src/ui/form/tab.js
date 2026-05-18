@@ -1,10 +1,10 @@
-// aeditor.ui.tab — general-purpose tab strip.
+// aiditor.ui.tab — general-purpose tab strip.
 //
 // This is the single implementation of "tab bar" for the whole framework.
 // All visuals live here; the dock-tabs panel component (src/ui/panel/dock-tabs.js)
 // is a thin shell that just wires ctx.dock.* signals/methods into this.
 //
-// Signal-first API (like every other aeditor.ui.* component):
+// Signal-first API (like every other aiditor.ui.* component):
 //   items    : signal<[{ id, title?, icon?, dirty?, transient?, badge? }]>
 //   active   : signal<string|null>
 //   variant  : 'bar' | 'compact' | 'sidebar'   (default 'bar')
@@ -25,16 +25,16 @@
 //   onDragStart(ev, id)       — pointerdown on a tab button (for drag-out logic)
 //
 // DOM contract (stable-DOM reconciliation, keyed by item.id):
-//   <div class="aeditor-ui-tab aeditor-ui-tab-{variant}[ aeditor-ui-tab-vertical]">
-//     <button class="aeditor-ui-tab-btn" data-tab-id="..."> ... </button> × N
-//     <button class="aeditor-ui-tab-add">+</button>?
+//   <div class="aiditor-ui-tab aiditor-ui-tab-{variant}[ aiditor-ui-tab-vertical]">
+//     <button class="aiditor-ui-tab-btn" data-tab-id="..."> ... </button> × N
+//     <button class="aiditor-ui-tab-add">+</button>?
 //   </div>
 //
-// The root element's `__aeditorCleanups` carries the effect subscription, so
-// aeditor.ui.dispose(el) tears everything down cleanly.
-;(function (aeditor) {
+// The root element's `__aiditorCleanups` carries the effect subscription, so
+// aiditor.ui.dispose(el) tears everything down cleanly.
+;(function (aiditor) {
   'use strict'
-  const ui = aeditor.ui = aeditor.ui || {}
+  const ui = aiditor.ui = aiditor.ui || {}
 
   ui.tab = function (opts) {
     // Paint a name-or-glyph value into an icon host span. If the value is a
@@ -55,9 +55,9 @@
         svg.setAttribute('aria-hidden', 'true')
         svg.innerHTML = ui._getIcon(v)
         host.appendChild(svg)
-        host.classList.add('aeditor-ui-icon-svg')
+        host.classList.add('aiditor-ui-icon-svg')
       } else {
-        host.classList.remove('aeditor-ui-icon-svg')
+        host.classList.remove('aiditor-ui-icon-svg')
         host.textContent = v
       }
     }
@@ -79,10 +79,10 @@
     const addable  = !!o.addable
     const minShow  = o.minShowCount != null ? o.minShowCount : 0
 
-    const root = ui.h('div', 'aeditor-ui-tab aeditor-ui-tab-' + variant)
-    if (vertical) root.classList.add('aeditor-ui-tab-vertical')
-    if (iconOnly) root.classList.add('aeditor-ui-tab-icon-only')
-    if (closable) root.classList.add('aeditor-ui-tab-closable')
+    const root = ui.h('div', 'aiditor-ui-tab aiditor-ui-tab-' + variant)
+    if (vertical) root.classList.add('aiditor-ui-tab-vertical')
+    if (iconOnly) root.classList.add('aiditor-ui-tab-icon-only')
+    if (closable) root.classList.add('aiditor-ui-tab-closable')
 
     // Stable entry registry. Each entry caches the last-painted field values
     // so we skip DOM writes that would be no-ops. Without this, clicking a
@@ -96,15 +96,15 @@
       let e = entries.get(it.id)
       if (e) return e
 
-      const btn = ui.h('button', 'aeditor-ui-tab-btn', { type: 'button' })
+      const btn = ui.h('button', 'aiditor-ui-tab-btn', { type: 'button' })
       btn.dataset.tabId = it.id
 
-      const iconEl  = ui.h('span', 'aeditor-ui-tab-icon')
-      const titleEl = iconOnly ? null : ui.h('span', 'aeditor-ui-tab-title')
-      const badgeEl = ui.h('span', 'aeditor-ui-tab-badge')
+      const iconEl  = ui.h('span', 'aiditor-ui-tab-icon')
+      const titleEl = iconOnly ? null : ui.h('span', 'aiditor-ui-tab-title')
+      const badgeEl = ui.h('span', 'aiditor-ui-tab-badge')
       let closeEl = null
       if (closable && !iconOnly) {
-        closeEl = ui.h('button', 'aeditor-ui-tab-close', { type: 'button', text: '×' })
+        closeEl = ui.h('button', 'aiditor-ui-tab-close', { type: 'button', text: '×' })
         closeEl.addEventListener('pointerdown', function (ev) { ev.stopPropagation() })
         closeEl.addEventListener('click', function (ev) {
           ev.stopPropagation()
@@ -129,7 +129,7 @@
 
       btn.addEventListener('pointerdown', function (ev) {
         if (ev.button !== 0) return
-        if (ev.target && ev.target.classList && ev.target.classList.contains('aeditor-ui-tab-close')) return
+        if (ev.target && ev.target.classList && ev.target.classList.contains('aiditor-ui-tab-close')) return
         if (o.onDragStart) o.onDragStart(ev, btn.dataset.tabId)
       })
 
@@ -147,15 +147,15 @@
       const tran  = !!it.transient
 
       if (last.active !== isActive) {
-        e.btn.classList.toggle('aeditor-ui-tab-btn-active', isActive)
+        e.btn.classList.toggle('aiditor-ui-tab-btn-active', isActive)
         last.active = isActive
       }
       if (last.transient !== tran) {
-        e.btn.classList.toggle('aeditor-ui-tab-btn-transient', tran)
+        e.btn.classList.toggle('aiditor-ui-tab-btn-transient', tran)
         last.transient = tran
       }
       if (last.dirty !== dirty) {
-        e.btn.classList.toggle('aeditor-ui-tab-btn-dirty', dirty)
+        e.btn.classList.toggle('aiditor-ui-tab-btn-dirty', dirty)
         last.dirty = dirty
       }
       if (last.title !== title) {
@@ -195,7 +195,7 @@
 
     function ensureAddBtn() {
       if (addBtn) return addBtn
-      addBtn = ui.h('button', 'aeditor-ui-tab-add', { type: 'button', text: '+' })
+      addBtn = ui.h('button', 'aiditor-ui-tab-add', { type: 'button', text: '+' })
       addBtn.addEventListener('click', function () {
         if (o.onAdd) o.onAdd()
       })
@@ -203,9 +203,9 @@
     }
 
     // Reactive render. Runs once synchronously, then on every items/active
-    // change. Cleanup is collected onto root.__aeditorCleanups so ui.dispose(root)
+    // change. Cleanup is collected onto root.__aiditorCleanups so ui.dispose(root)
     // tears the effect down.
-    ui.collect(root, aeditor.effect(function () {
+    ui.collect(root, aiditor.effect(function () {
       const items = itemsSig() || []
       const active = activeSig()
 
@@ -252,4 +252,4 @@
 
     return root
   }
-})(window.aeditor = window.aeditor || {})
+})(window.aiditor = window.aiditor || {})
