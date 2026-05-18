@@ -1,7 +1,7 @@
 {
   "name": "@gooooo/aiditor",
   "version": "1.1.1",
-  "description": "Blender-style dock layout UI framework - zero build, zero dependencies, pure IIFE. Drop-in <script> tag, everything hangs on window.aiditor.",
+  "description": "A pure frontend UI framework for building editors, with built-in AI Agent capabilities.",
   "main": "dist/aiditor-core.js",
   "style": "dist/aiditor-core.css",
   "files": [
