@@ -13,6 +13,10 @@ controls, workspace contracts, optional AI agents, and optional extension
 loading. It is plain browser JavaScript: no framework, no bundler, no module
 system, and no runtime dependencies.
 
+![AIditor editor workspace](./screenshots/screenshot_01.jpg)
+
+![AIditor AI agent panel](./screenshots/screenshot_02.jpg)
+
 ```html
 <div id="app" style="height:100vh"></div>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@gooooo/aiditor@1/dist/aiditor-core.css">
