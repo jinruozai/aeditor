@@ -33,8 +33,10 @@ for (const file of [
   'src/core/signal.js',
   'src/core/log.js',
   'src/core/names.js',
+  'src/core/runtime.js',
   'src/core/settings.js',
   'src/core/commands.js',
+  'src/core/workspace.js',
   'src/tree/tree.js',
   'src/core/registry.js',
   'src/ai/name-generator.js',
@@ -42,6 +44,7 @@ for (const file of [
   'src/ai/store.js',
   'src/ai/registries.js',
   'src/ai/context.js',
+  'src/ai/workdir.js',
   'src/ai/reference.js',
   'src/extensions/manifest.js',
   'src/extensions/install.js',
@@ -59,6 +62,7 @@ assert.equal(ai.operations.get('aeditor.createPanel'), null)
 assert.equal(typeof ai.tools.get('aeditor.inspectDocks').run, 'function')
 assert.equal(typeof ai.tools.get('aeditor.installExtension').preview, 'function')
 assert.equal(typeof ai.tools.get('aeditor.addPanelToDock').preview, 'function')
+assert.equal(typeof ai.tools.get('aeditor.reloadPanel').preview, 'function')
 const extensionAgent = ai.createAgent({ name: 'Extension Agent' })
 const extensionRequest = ai.makeRequest(extensionAgent, null, 'run_extension_tools', 'user', 0)
 assert.equal(extensionRequest.tools.includes('aeditor.installExtension'), false)
@@ -71,6 +75,7 @@ assert.throws(function () {
 }, /not available/)
 let tree = aeditor.dock({ name: 'main' })
 let panelTextSamples = {}
+let reloadedPanelId = null
 const layout = {
   tree: function () { return tree },
   addPanel: function (dockName, partial, opts) {
@@ -83,6 +88,15 @@ const layout = {
   removePanel: function (panelId) {
     tree = aeditor.removePanel(tree, panelId)
   },
+  replacePanel: function (panelId, partial, opts) {
+    const r = aeditor.replacePanel(tree, panelId, partial, opts || {})
+    tree = r.tree
+    return { panelId: r.panelId }
+  },
+  reloadPanel: function (panelId) {
+    reloadedPanelId = panelId
+    return { panelId: panelId }
+  },
   setTree: function (next) {
     tree = next
   },
@@ -92,6 +106,28 @@ const layout = {
 }
 
 aeditor.extensions.registerLayout('default', layout)
+aeditor.ai.setWorkspace(aeditor.workspace.memory({
+  'runtime-panel.js': [
+    ';(function (aeditor) {',
+    "  'use strict'",
+    "  aeditor.registerComponent('runtime.panel', {",
+    "    defaults: function () { return { title: 'Runtime Panel', icon: 'box', props: {} } },",
+    '    factory: function () { return { tagName: "DIV" } }',
+    '  })',
+    '})(window.aeditor = window.aeditor || {})',
+    '',
+  ].join('\n'),
+  'replacement-panel.js': [
+    ';(function (aeditor) {',
+    "  'use strict'",
+    "  aeditor.registerComponent('replacement.panel', {",
+    "    defaults: function () { return { title: 'Replacement Panel', icon: 'box', props: {} } },",
+    '    factory: function () { return { tagName: "DIV" } }',
+    '  })',
+    '})(window.aeditor = window.aeditor || {})',
+    '',
+  ].join('\n'),
+}), { id: 'memory:runtime-panel', label: 'Runtime Panel', kind: 'memory' })
 assert.deepEqual(ai.tools.get('aeditor.inspectDocks').run({}), [{
   layout: 'default',
   dockId: tree.id,
@@ -105,6 +141,61 @@ assert.deepEqual(ai.tools.get('aeditor.inspectDocks').run({}), [{
   collapsed: false,
   focused: false,
 }])
+const runtimePanelPreview = await ai.tools.get('aeditor.addPanelToDock').preview({
+  dock: 'main',
+  component: 'runtime.panel',
+})
+assert.equal(runtimePanelPreview.ok, true)
+assert.equal(runtimePanelPreview.input.path, 'runtime-panel.js')
+const runtimePanelAdded = await ai.tools.get('aeditor.addPanelToDock').apply(runtimePanelPreview)
+assert.equal(runtimePanelAdded.applied, true)
+assert.equal(aeditor.componentRegistration('runtime.panel').owner, 'workspace:memory:runtime-panel')
+assert.equal(aeditor.findPanel(tree, runtimePanelAdded.panelId).panel.component, 'runtime.panel')
+layout.removePanel(runtimePanelAdded.panelId)
+aeditor.runtime.unloadOwner('workspace:memory:runtime-panel')
+const explicitRuntimePanelPreview = await ai.tools.get('aeditor.addPanelToDock').preview({
+  dock: 'main',
+  component: 'runtime.panel',
+  path: 'runtime-panel.js',
+})
+assert.equal(explicitRuntimePanelPreview.ok, true)
+const explicitRuntimePanelAdded = await ai.tools.get('aeditor.addPanelToDock').apply(explicitRuntimePanelPreview)
+assert.equal(explicitRuntimePanelAdded.applied, true)
+assert.equal(aeditor.componentRegistration('runtime.panel').owner, 'workspace:memory:runtime-panel')
+assert.equal(aeditor.findPanel(tree, explicitRuntimePanelAdded.panelId).panel.component, 'runtime.panel')
+assert.equal(aeditor.findPanel(tree, explicitRuntimePanelAdded.panelId).panel.sourcePath, 'runtime-panel.js')
+await ai.currentWorkspace().write('runtime-panel.js', [
+  ';(function (aeditor) {',
+  "  'use strict'",
+  "  aeditor.registerComponent('runtime.panel', {",
+  "    defaults: function () { return { title: 'Runtime Panel Reloaded', icon: 'box', props: {} } },",
+  '    factory: function () { return { tagName: "DIV" } }',
+  '  })',
+  '})(window.aeditor = window.aeditor || {})',
+  '',
+].join('\n'))
+const reloadPreview = await ai.tools.get('aeditor.reloadPanel').preview({
+  panelId: explicitRuntimePanelAdded.panelId,
+  path: 'runtime-panel.js',
+})
+assert.equal(reloadPreview.ok, true)
+const reloaded = await ai.tools.get('aeditor.reloadPanel').apply(reloadPreview)
+assert.equal(reloaded.applied, true)
+assert.equal(reloaded.panelId, explicitRuntimePanelAdded.panelId)
+assert.equal(reloadedPanelId, explicitRuntimePanelAdded.panelId)
+assert.equal(aeditor.componentDefaults('runtime.panel').title, 'Runtime Panel Reloaded')
+const replacementPreview = await ai.tools.get('aeditor.replacePanel').preview({
+  panelId: explicitRuntimePanelAdded.panelId,
+  component: 'replacement.panel',
+})
+assert.equal(replacementPreview.ok, true)
+assert.equal(replacementPreview.input.path, 'replacement-panel.js')
+const replacement = await ai.tools.get('aeditor.replacePanel').apply(replacementPreview)
+assert.equal(replacement.applied, true)
+assert.equal(aeditor.findPanel(tree, explicitRuntimePanelAdded.panelId), null)
+assert.equal(aeditor.findPanel(tree, replacement.panelId).panel.component, 'replacement.panel')
+layout.removePanel(replacement.panelId)
+aeditor.runtime.unloadOwner('workspace:memory:runtime-panel')
 aeditor.extensions.configureStorage({ key: 'test.extensions', load: false })
 const installTool = ai.tools.get('aeditor.installExtension')
 const directInstallPreview = installTool.preview({

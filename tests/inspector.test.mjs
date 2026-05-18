@@ -44,6 +44,14 @@ const targets = [
 ]
 aeditor.inspector.select(targets)
 assert.deepEqual(aeditor.inspector.selection.peek().map(function (target) { return target.id }), ['a', 'b'])
+let refreshed = 0
+const stopRefresh = aeditor.effect(function () {
+  aeditor.inspector.selection()
+  refreshed++
+})
+aeditor.inspector.refresh()
+assert.equal(refreshed, 2)
+stopRefresh()
 
 const inspection = aeditor.inspector.inspect(aeditor.inspector.selection.peek())
 assert.equal(inspection.values[0].name, 'A')

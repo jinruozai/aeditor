@@ -61,21 +61,36 @@ Agents enable skills by listing skill ids in `agent.skillRefs`. During request
 construction, enabled skills contribute their `systemPrompt` and `rules` into
 the runtime guide.
 
-The framework ships one built-in authoring skill:
+The framework ships focused built-in authoring skills:
 
 ```text
-aeditor.authoring
+aeditor.runtime-authoring   live editor agent: write workspace files, mount/replace dock panels
+aeditor.library-authoring   repository agent: use AEditor as a plain JavaScript library
+aeditor.authoring           compatibility alias for older combined guidance
 ```
 
-It teaches the model the AEditor component contract: plain `.js` files,
+They teach the model the AEditor component contract: plain `.js` files,
 registered components, `factory(propsSig, ctx) -> HTMLElement`, `aeditor.ui.*`
-controls, dock-responsive layout, and no React/TSX/import/export unless the
-workspace explicitly provides such a build system. The request builder enables
-this skill automatically for UI/panel/dock authoring requests and for
-workspace-backed editing sessions.
+controls, dock-responsive layout, generated API references, and no
+React/TSX/import/export unless the workspace explicitly provides such a build
+system. The request builder enables the runtime skill automatically for
+UI/panel/dock authoring requests and for workspace-backed editing sessions.
 
-The copyable documentation form for external agents is
-[skill/aeditor-authoring/SKILL.md](./skill/aeditor-authoring/SKILL.md).
+The copyable documentation forms are:
+
+- [skill/aeditor-runtime-authoring/SKILL.md](./skill/aeditor-runtime-authoring/SKILL.md)
+- [skill/aeditor-library-authoring/SKILL.md](./skill/aeditor-library-authoring/SKILL.md)
+
+The same registry is exposed to agents as references:
+
+```text
+aeditor://skills
+aeditor://skills/aeditor.runtime-authoring
+aeditor://skills/aeditor.library-authoring
+```
+
+Agents use this index to choose the right workflow instead of relying on a
+large always-on prompt.
 
 Skills are not a fourth AI action registry:
 

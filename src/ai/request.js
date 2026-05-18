@@ -92,19 +92,16 @@
     const seen = {}
     const explicit = agent.skillRefs || []
     for (let i = 0; i < explicit.length; i++) addUnique(refs, seen, explicit[i])
-    if (
-      ai.skills &&
-      ai.skills.get &&
-      ai.skills.get('aeditor.authoring') &&
-      (uiAuthoringIntent(input) || (ai.currentWorkspace && ai.currentWorkspace()))
-    ) {
-      addUnique(refs, seen, 'aeditor.authoring')
+    const needsRuntimeAuthoring = uiAuthoringIntent(input) || (ai.currentWorkspace && ai.currentWorkspace())
+    if (ai.skills && ai.skills.get && needsRuntimeAuthoring) {
+      if (ai.skills.get('aeditor.runtime-authoring')) addUnique(refs, seen, 'aeditor.runtime-authoring')
+      else if (ai.skills.get('aeditor.authoring')) addUnique(refs, seen, 'aeditor.authoring')
     }
     if (ai.skills && ai.skills.list && ai.skills.get) {
       const names = ai.skills.list()
       for (let j = 0; j < names.length; j++) {
         const id = names[j]
-        if (id === 'aeditor.authoring' || seen[id]) continue
+        if (id === 'aeditor.authoring' || id === 'aeditor.runtime-authoring' || seen[id]) continue
         const skill = ai.skills.get(id)
         if (skill && typeof skill.auto === 'function' && skill.auto(ctx || {})) addUnique(refs, seen, id)
       }

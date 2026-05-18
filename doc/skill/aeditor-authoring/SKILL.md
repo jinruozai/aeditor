@@ -5,6 +5,13 @@ description: Use when an AI agent needs to build, modify, review, or mount AEdit
 
 # AEditor Authoring
 
+This is the compatibility umbrella skill. Prefer the focused skills:
+
+- `aeditor-runtime-authoring`: live AEditor agent, workspace files, runtime dock
+  mounting/replacing.
+- `aeditor-library-authoring`: Codex-like repository work using AEditor as a
+  library.
+
 Use AEditor as a zero-dependency, zero-build editor framework. Build durable
 editor UI as plain JavaScript files that register AEditor components, then mount
 those registered component names into dock panels.
@@ -29,12 +36,15 @@ surface before using optional layers.
 
 1. Inspect the host workspace before writing code. Find how it loads scripts,
    registers components, creates the layout, and stores demo or project state.
-2. Use one component registration path for each file. Standalone code uses
+2. When an API shape is unclear, search the generated runtime API references
+   before guessing. Use `aeditor.searchReferences` with the API name, then
+   `aeditor.readReference` on the returned `aeditor://api/...` URI.
+3. Use one component registration path for each file. Standalone code uses
    `aeditor.registerComponent(name, spec)`. If the host provides a wrapper, use
    that wrapper instead.
-3. Prefer editing or adding real source files. Do not pass source code inside
+4. Prefer editing or adding real source files. Do not pass source code inside
    dock, panel, or extension tool arguments.
-4. Keep changes small and framework-shaped: Component for UI, Dock for layout,
+5. Keep changes small and framework-shaped: Component for UI, Dock for layout,
    Panel for mounted content, Tool/Context Reference/Operation/ChangeSet for AI
    work.
 
@@ -64,7 +74,13 @@ surface before using optional layers.
 - In the AEditor demo project runtime, component entry files use
   `Demo.project.component(componentId, spec)`. Do not hand-write layout JSON or
   guess dock names. Use `aeditor.inspectDocks`, choose a returned `dockId`, then
-  call `aeditor.addPanelToDock` with the registered `component`.
+  call `aeditor.addPanelToDock` with the registered `component`; include `path`
+  when the component file was just written and has not been loaded yet. If
+  `path` is omitted, the tool can infer a single matching JS file; retry with an
+  explicit `path` if it reports ambiguity. When replacing one existing panel,
+  use `aeditor.replacePanel` with the returned `panelId` instead of add/remove
+  choreography. After editing the file for the same mounted component, use
+  `aeditor.reloadPanel({ panelId, path })` instead of `replacePanel`.
 
 ## Component Pattern
 
@@ -124,7 +140,7 @@ wants properties to appear.
 
 ```js
 aeditor.inspector.registerProvider('app.node', {
-  inspect: function (targets) {
+  inspect: function (targets, inspectCtx) {
     return {
       schema: {
         name: { type: 'string' },
@@ -141,6 +157,19 @@ aeditor.inspector.registerProvider('app.node', {
     }
   },
 })
+
+aeditor.inspector.select({ type: 'app.node', id: 'node-1', title: 'Node 1' })
+```
+
+The provider API is `registerProvider(type, provider, meta)`. Do not pass a
+single object with `id/get/set`; that is not the AEditor Inspector protocol.
+If inspected state changes outside the form and no `subscribe(refresh)` hook is
+available, call `aeditor.inspector.refresh()`.
+
+For the exact generated API document, search:
+
+```text
+aeditor.searchReferences({ query: "aeditor.inspector.registerProvider" })
 ```
 
 Multi-target Inspector edits show the first selected target as primary. A field
@@ -155,10 +184,16 @@ When an AI agent modifies AEditor code, use the workspace-backed path:
 2. Read the exact range you will edit.
 3. For existing files, use exact edits with the current base hash and exact
    `oldText`.
-4. For new files, write the component file, then make sure the host loads it.
+4. For new files, write the component file.
 5. Inspect docks with `aeditor.inspectDocks`, then mount by registered
-   component name and returned dock id with `aeditor.addPanelToDock`.
-6. If the edit is stale or ambiguous, reread and retry with a narrower change.
+   component name and returned dock id with `aeditor.addPanelToDock`. Include
+   the workspace file `path` so the runtime loads the component before mounting.
+   If the tool can infer one matching JS file, it may fill `path` itself.
+   To replace an existing panel, use `aeditor.replacePanel` with the target
+   `panelId`; it keeps dock position and returns a fresh panel id.
+6. After editing the file for an already-mounted panel, use
+   `aeditor.reloadPanel({ panelId, path })` to rebuild the same panel instance.
+7. If the edit is stale or ambiguous, reread and retry with a narrower change.
 
 For AI registry details, read
 `doc/skill/aeditor-authoring/references/ai-workflow.md`.

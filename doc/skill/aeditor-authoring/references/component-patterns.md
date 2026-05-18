@@ -109,6 +109,29 @@ and a shared dock panel should inspect it. Register one provider per domain
 target type, call `aeditor.inspector.select(targets)` from selection surfaces,
 and mount the built-in `inspector` component.
 
+```js
+aeditor.inspector.registerProvider('three.cube', {
+  inspect: function (targets, ctx) {
+    return {
+      title: 'Cube',
+      schema: {
+        position: { type: 'struct', struct_def: { x: 'float', y: 'float', z: 'float' } },
+        size: { type: 'struct', struct_def: { x: 'float', y: 'float', z: 'float' } },
+        color: { type: 'string', type_render: 'color', type_agv: { valueKind: 'hex' } },
+      },
+      values: [cubeState],
+      write: function (field, change, writeCtx) {
+        cubeState[field] = writeCtx.valueForChange(change, writeCtx.primary, 0, writeCtx)
+        applyCubeState(cubeState)
+        aeditor.inspector.refresh()
+      },
+    }
+  },
+})
+
+aeditor.inspector.select({ type: 'three.cube', id: 'cube', title: 'Cube' })
+```
+
 Inspector multi-selection is ordered. The first target is primary and supplies
 displayed values. A field is editable only when every selected target has that
 field and the provider allows writing it. Do not invent a mixed-value state.

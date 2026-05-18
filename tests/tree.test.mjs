@@ -79,6 +79,20 @@ assert.equal(closedRoot.id, closeRoot.id)
 assert.equal(closedRoot.panels.length, 0)
 assert.equal(closedRoot.activeId, null)
 
+const replaceRoot = aeditor.dock({
+  panels: [
+    aeditor.panel({ component: 'old.panel', title: 'Old' }),
+    aeditor.panel({ component: 'side.panel', title: 'Side' }),
+  ],
+})
+const oldId = replaceRoot.panels[0].id
+const replaced = aeditor.replacePanel(replaceRoot, oldId, { component: 'new.panel', title: 'New' })
+assert.notEqual(replaced.panelId, oldId)
+assert.equal(aeditor.findPanel(replaced.tree, oldId), null)
+assert.equal(aeditor.findPanel(replaced.tree, replaced.panelId).panel.component, 'new.panel')
+assert.equal(aeditor.findPanel(replaced.tree, replaced.panelId).dockId, replaceRoot.id)
+assert.equal(replaced.tree.activeId, replaced.panelId)
+
 const merge = aeditor.mergeDocks(movedTree, sideId, dockId)
 assert.ok(Array.isArray(merge.discardedPanels))
 assert.equal(aeditor.findDock(merge.tree, dockId), null)

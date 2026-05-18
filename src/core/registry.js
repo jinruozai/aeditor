@@ -42,15 +42,46 @@
     versionSig.set(versionSig.peek() + 1)
   }
 
+  /**
+   * @aeditorApi aeditor.registerComponent
+   * @group component
+   * @layer core
+   * @kind js-api
+   * @signature aeditor.registerComponent(name, spec, meta?)
+   * @summary Register a component that can be used as a panel, toolbar item, UI tree node, or palette item.
+   * @param {string} name - Unique component id.
+   * @param {object} spec - Component spec with factory(propsSig, ctx), plus optional defaults/dispose/serialize/deserialize/schema metadata.
+   * @param {object} meta - Optional owner/layer metadata, normally supplied by runtime.loadScript.
+   * @returns {object} The registered component spec.
+   * @example
+   * aeditor.registerComponent('hello-panel', {
+   *   label: 'Hello Panel',
+   *   factory: function (propsSig, ctx) {
+   *     var el = document.createElement('div')
+   *     el.textContent = 'Hello'
+   *     return el
+   *   },
+   *   defaults: function () { return { title: 'Hello' } },
+   * })
+   * @wrong
+   * aeditor.registerComponent('hello-panel', { render: function () {} })
+   * @related aeditor.runtime.loadScript,aeditor.addPanelToDock
+   */
   function registerComponent(name, spec, meta) {
     if (typeof name !== 'string' || name.length === 0)
       throw new Error('registerComponent: name must be a non-empty string')
-    if (components.has(name))
-      throw new Error('registerComponent: duplicate name "' + name + '"')
+    const m = normalizeMeta(meta)
+    if (components.has(name)) {
+      if (!m.replace) throw new Error('registerComponent: duplicate name "' + name + '"')
+      const existing = componentMeta.get(name) || {}
+      if ((existing.owner || '') !== (m.owner || '')) {
+        throw new Error('registerComponent: cannot replace component "' + name + '" with different owner')
+      }
+    }
     if (!spec || typeof spec.factory !== 'function')
       throw new Error('registerComponent: spec.factory must be a function')
     components.set(name, spec)
-    componentMeta.set(name, normalizeMeta(meta))
+    componentMeta.set(name, m)
     bumpVersion()
     return spec
   }
@@ -124,10 +155,12 @@
   }
 
   function normalizeMeta(meta) {
+    if (aeditor.runtime && aeditor.runtime.registrationMeta) meta = aeditor.runtime.registrationMeta(meta)
     meta = meta || {}
     const out = {}
     if (meta.owner != null) out.owner = String(meta.owner)
     if (meta.layer != null) out.layer = String(meta.layer)
+    if (meta.replace === true) out.replace = true
     return out
   }
 

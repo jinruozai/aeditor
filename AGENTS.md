@@ -141,6 +141,7 @@ aeditor/
     core/                          # ⚠ 原 src/core/ 已并入这里(重构后的现状)
       signal.js                    # signal / effect / derived / batch / onCleanup
       log.js                       # aeditor.log signal + reportError + safeCall + 全局 window 兜底
+      runtime.js                   # runtime script loader + owner-scoped contribution cleanup
       bus.js                       # aeditor.bus pub/sub + auto-unsubscribe
       registry.js                  # registerComponent / resolveComponent / componentDefaults
       context.js                   # ComponentContext 工厂(panel + dock + bus + signals)
@@ -215,6 +216,7 @@ aeditor/
 - 日志/错误系统 aeditor.log / reportError / safeCall + window error/unhandledrejection 全局兜底(§ 4.7)
 - 通讯总线 aeditor.bus(pub/sub + auto-unsubscribe + 每个 handler 独立 safeCall 包裹)(§ 4.13)
 - Component 注册表 + ComponentContext 工厂(§ 4.8 / § 4.9)
+- Runtime loader `aeditor.runtime.loadScript` + owner-scoped cleanup。AI 新写 workspace panel 文件时,`aeditor.addPanelToDock({ component, dock, path })` 会先加载 `path` 注册 component,再放入 dock。
 - Dock 多 panel + detached DOM activate(§ 4.3)+ LRU dispose(§ 4.3)
 - Toolbar 两段渲染(static + dynamic items)(§ 4.10)
 - Focus mode / Collapsed / Transient(§ 4.4 / § 4.5)

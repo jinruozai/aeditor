@@ -5,6 +5,7 @@
   const LANG_KEY = 'aeditor.lang'
   const LAST_WORKSPACE_KEY = 'aeditor.demo.lastWorkspace'
   const RECENT_WORKSPACES_KEY = 'aeditor.demo.recentWorkspaces'
+  const LAYOUT_PATH_KEY = 'aeditor.demo.layoutPath'
 
   function savedLang() {
     return localStorage.getItem(LANG_KEY) || document.documentElement.lang || 'en'
@@ -60,6 +61,289 @@
     )
   }
 
+  function isMissingWorkspaceFile(err) {
+    const text = String(err && (err.message || err) || '')
+    return err && err.name === 'NotFoundError' || /file not found|path not found|not found/i.test(text)
+  }
+
+  function currentProject() {
+    return window.Demo && Demo.project && Demo.project.current && Demo.project.current()
+  }
+
+  function currentWorkspace() {
+    return aeditor.ai && aeditor.ai.currentWorkspace && aeditor.ai.currentWorkspace()
+  }
+
+  function currentWorkspaceLayoutKey() {
+    const meta = aeditor.ai && aeditor.ai.workspaceMeta && aeditor.ai.workspaceMeta()
+    const ws = currentWorkspace()
+    const id = meta && meta.id || ws && ws.rootId && ws.rootId() || 'workspace'
+    return LAYOUT_PATH_KEY + '.' + id
+  }
+
+  function currentWorkspaceLayoutPath() {
+    return localStorage.getItem(currentWorkspaceLayoutKey()) || 'aeditor.layout.json'
+  }
+
+  function currentWorkspaceOwner() {
+    const meta = aeditor.ai && aeditor.ai.workspaceMeta && aeditor.ai.workspaceMeta()
+    return 'workspace:' + String(meta && meta.id || meta && meta.label || 'current')
+  }
+
+  async function readFileOrNull(ws, path) {
+    try {
+      return await ws.read(path)
+    } catch (err) {
+      if (isMissingWorkspaceFile(err)) return null
+      throw err
+    }
+  }
+
+  function canSaveLayout() {
+    const project = currentProject()
+    if (project && project.saveLayout) return true
+    return !!(currentWorkspace() && window.Demo && Demo.layout && Demo.layout.tree)
+  }
+
+  function htmlAttr(value) {
+    return String(value == null ? '' : value)
+      .replace(/&/g, '&amp;')
+      .replace(/"/g, '&quot;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+  }
+
+  function scriptJson(value) {
+    return JSON.stringify(value, null, 2).replace(/</g, '\\u003c')
+  }
+
+  function assetUrl(path) {
+    return new URL(path, document.baseURI).href
+  }
+
+  async function fetchText(path) {
+    const res = await fetch(assetUrl(path), { cache: 'no-store' })
+    if (!res.ok) throw new Error('Failed to read runtime asset: ' + path)
+    return res.text()
+  }
+
+  async function writeTextFile(ws, path, text) {
+    const previous = await readFileOrNull(ws, path)
+    return ws.write(path, text, previous ? { baseHash: previous.hash } : {})
+  }
+
+  function isStandaloneAssetPath(path) {
+    path = String(path || '').replace(/\\/g, '/')
+    const lower = path.toLowerCase()
+    if (!lower || lower === 'index.html') return false
+    if (lower.indexOf('aeditor-runtime/') === 0) return false
+    if (lower.indexOf('node_modules/') === 0 || lower.indexOf('.git/') === 0) return false
+    return /\.js$/.test(lower) || /\.css$/.test(lower)
+  }
+
+  async function collectStandaloneAssets(ws) {
+    const scripts = []
+    const styles = []
+    const seen = {}
+    async function walk(path) {
+      let entries = []
+      try { entries = await ws.list(path || '') } catch (_) { return }
+      for (let i = 0; i < entries.length; i++) {
+        const item = entries[i]
+        const itemPath = String(item.path || '').replace(/\\/g, '/')
+        const lower = itemPath.toLowerCase()
+        if (!itemPath || seen[itemPath]) continue
+        seen[itemPath] = true
+        if (item.kind === 'directory') {
+          if (lower === 'aeditor-runtime' || lower === 'node_modules' || lower === '.git') continue
+          await walk(itemPath)
+          continue
+        }
+        if (!isStandaloneAssetPath(itemPath)) continue
+        if (/\.css$/i.test(itemPath)) styles.push(itemPath)
+        else scripts.push(itemPath)
+      }
+    }
+    await walk('')
+    scripts.sort()
+    styles.sort()
+    return { scripts: scripts, styles: styles }
+  }
+
+  function walkPanels(node, fn) {
+    if (!node) return
+    if (node.type === 'dock') {
+      const panels = node.panels || []
+      for (let i = 0; i < panels.length; i++) fn(panels[i])
+      return
+    }
+    for (let j = 0; node.children && j < node.children.length; j++) walkPanels(node.children[j], fn)
+  }
+
+  function registrationPattern(component) {
+    const escaped = String(component || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    return new RegExp(
+      '(aeditor\\s*\\.\\s*registerComponent|registerComponent|Demo\\s*\\.\\s*project\\s*\\.\\s*component)' +
+      '\\s*\\(\\s*[\'"]' + escaped + '[\'"]'
+    )
+  }
+
+  function layoutRoot(raw) {
+    if (!raw || typeof raw !== 'object') return null
+    if (raw.root) return raw.root
+    if (raw.type === 'dock' || raw.type === 'split') return raw
+    return null
+  }
+
+  async function loadWorkspaceScript(ws, path) {
+    const file = await ws.read(path)
+    if (!aeditor.runtime || !aeditor.runtime.loadScript) throw new Error('aeditor.runtime.loadScript is not available')
+    await aeditor.runtime.loadScript({
+      id: path,
+      path: path,
+      source: file.text,
+      type: 'script',
+      owner: currentWorkspaceOwner(),
+      layer: 'workspace',
+      replace: true,
+    })
+    return file
+  }
+
+  async function loadLayoutPanelScripts(ws, root) {
+    const needed = {}
+    const paths = {}
+    walkPanels(root, function (panel) {
+      const component = panel && panel.component
+      if (!component || aeditor.componentRegistration && aeditor.componentRegistration(component)) return
+      needed[component] = true
+      const sourcePath = panel.sourcePath || panel.path || panel.entryPath
+      if (sourcePath) paths[sourcePath] = true
+    })
+    let names = Object.keys(needed)
+    if (!names.length) return []
+
+    const loaded = []
+    const pathList = Object.keys(paths)
+    for (let i = 0; i < pathList.length; i++) {
+      await loadWorkspaceScript(ws, pathList[i])
+      loaded.push(pathList[i])
+    }
+    names = names.filter(function (component) {
+      return !(aeditor.componentRegistration && aeditor.componentRegistration(component))
+    })
+    if (!names.length) return loaded
+
+    const assets = await collectStandaloneAssets(ws)
+    for (let j = 0; j < assets.scripts.length && names.length; j++) {
+      const path = assets.scripts[j]
+      if (paths[path]) continue
+      const file = await readFileOrNull(ws, path)
+      if (!file) continue
+      const matches = names.filter(function (component) { return registrationPattern(component).test(file.text) })
+      if (!matches.length) continue
+      await aeditor.runtime.loadScript({
+        id: path,
+        path: path,
+        source: file.text,
+        type: 'script',
+        owner: currentWorkspaceOwner(),
+        layer: 'workspace',
+        replace: true,
+      })
+      loaded.push(path)
+      names = names.filter(function (component) {
+        return !(aeditor.componentRegistration && aeditor.componentRegistration(component))
+      })
+    }
+    return loaded
+  }
+
+  async function restoreWorkspaceLayout(ws) {
+    const layout = window.Demo && Demo.layout
+    if (!ws || !layout || !layout.setTree) return false
+    const primaryPath = currentWorkspaceLayoutPath()
+    let file = await readFileOrNull(ws, primaryPath)
+    let layoutPath = primaryPath
+    if (!file && primaryPath !== 'aeditor.layout.json') {
+      file = await readFileOrNull(ws, 'aeditor.layout.json')
+      layoutPath = 'aeditor.layout.json'
+    }
+    if (!file) return false
+    const root = layoutRoot(JSON.parse(file.text))
+    if (!root) throw new Error('Invalid workspace layout: ' + layoutPath)
+    const loaded = await loadLayoutPanelScripts(ws, root)
+    layout.setTree(root)
+    localStorage.setItem(currentWorkspaceLayoutKey(), layoutPath)
+    info('Workspace layout restored', { layoutPath: layoutPath, scripts: loaded })
+    return true
+  }
+
+  function standaloneHtml(root, assets) {
+    const styles = (assets.styles || []).map(function (path) {
+      return '  <link rel="stylesheet" href="./' + htmlAttr(path) + '">'
+    }).join('\n')
+    const scripts = (assets.scripts || []).map(function (path) {
+      return '  <script src="./' + htmlAttr(path) + '"></script>'
+    }).join('\n')
+    return [
+      '<!DOCTYPE html>',
+      '<html lang="en">',
+      '<head>',
+      '  <meta charset="UTF-8">',
+      '  <title>AEditor Workspace</title>',
+      '  <meta name="viewport" content="width=device-width, initial-scale=1">',
+      '  <link rel="stylesheet" href="./aeditor-runtime/aeditor-full.css">',
+      styles,
+      '  <style>',
+      '    html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: var(--aeditor-bg-0, #07070a); }',
+      '    #app { width: 100vw; height: 100dvh; }',
+      '  </style>',
+      '</head>',
+      '<body>',
+      '  <div id="app"></div>',
+      '  <script src="./aeditor-runtime/aeditor-full.js"></script>',
+      scripts,
+      '  <script>',
+      '    ;(function () {',
+      '      var saved = ' + scriptJson({ root: root }) + ';',
+      '      var layout = aeditor.createDockLayout(document.getElementById("app"), {',
+      '        tree: saved.root,',
+      '        lru: { max: -1 },',
+      '        dockMenu: true',
+      '      });',
+      '      window.aeditorDebug = {',
+      '        layout: layout,',
+      '        tree: function () { return layout.tree(); }',
+      '      };',
+      '    })()',
+      '  </script>',
+      '</body>',
+      '</html>',
+      '',
+    ].filter(function (line) { return line != null && line !== '' }).join('\n')
+  }
+
+  async function writeStandaloneWorkspace(ws, root) {
+    const assets = await collectStandaloneAssets(ws)
+    const css = await fetchText('./dist/aeditor-full.css?v=13')
+    const js = await fetchText('./dist/aeditor-full.js?v=13')
+    await writeTextFile(ws, 'aeditor-runtime/aeditor-full.css', css)
+    await writeTextFile(ws, 'aeditor-runtime/aeditor-full.js', js)
+    await writeTextFile(ws, 'index.html', standaloneHtml(root, assets))
+    return { ok: true, indexPath: 'index.html', scripts: assets.scripts.length, styles: assets.styles.length }
+  }
+
+  async function tryWriteStandaloneWorkspace(ws, root) {
+    try {
+      return await writeStandaloneWorkspace(ws, root)
+    } catch (err) {
+      report(err)
+      toast('warn', 'Layout saved, standalone index export failed')
+      return null
+    }
+  }
+
   async function useWorkspace(ws, source) {
     const label = ws && ws.rootId ? ws.rootId() : 'Workspace'
     const kind = ws && ws.kind ? ws.kind() : 'workspace'
@@ -77,6 +361,12 @@
     if (aeditor.ai && aeditor.ai.setWorkspace) {
       aeditor.ai.setWorkspace(ws, { id: 'workspace:' + label, label: label, kind: kind })
       info(source + ': AI workspace set', { label: label, kind: kind })
+    }
+    try {
+      await restoreWorkspaceLayout(ws)
+    } catch (err) {
+      report(err)
+      toast('warn', 'Workspace opened, layout restore failed')
     }
     return true
   }
@@ -122,12 +412,21 @@
   }
 
   async function saveProjectLayout(opts) {
-    if (!window.Demo || !Demo.project || !Demo.project.current) return false
-    const project = Demo.project.current()
-    if (!project || !project.saveLayout) return false
+    const project = currentProject()
     try {
-      const result = await project.saveLayout(opts || {})
-      toast('success', 'Layout saved: ' + result.layoutPath)
+      let result = null
+      let standalone = null
+      if (project && project.saveLayout) {
+        result = await project.saveLayout(opts || {})
+        if (project.workspace && project.handle && project.handle.tree) {
+          standalone = await tryWriteStandaloneWorkspace(project.workspace, project.handle.tree())
+        }
+      } else {
+        result = await saveWorkspaceLayout(opts || {})
+        standalone = result && result.standalone
+      }
+      if (!result) return false
+      toast('success', 'Layout saved: ' + result.layoutPath + (standalone ? ' + index.html' : ''))
       return true
     } catch (err) {
       report(err)
@@ -136,9 +435,26 @@
     }
   }
 
+  async function saveWorkspaceLayout(opts) {
+    const ws = currentWorkspace()
+    const layout = window.Demo && Demo.layout
+    if (!ws || !layout || !layout.tree) return null
+    const o = opts || {}
+    const layoutPath = String(o.path || o.layoutPath || currentWorkspaceLayoutPath()).trim() || 'aeditor.layout.json'
+    const previous = await readFileOrNull(ws, layoutPath)
+    const saved = await ws.write(
+      layoutPath,
+      JSON.stringify({ root: layout.tree() }, null, 2),
+      previous ? { baseHash: previous.hash } : {}
+    )
+    localStorage.setItem(currentWorkspaceLayoutKey(), layoutPath)
+    const standalone = await tryWriteStandaloneWorkspace(ws, layout.tree())
+    return { ok: true, layoutPath: layoutPath, layout: saved, standalone: standalone }
+  }
+
   function saveProjectLayoutAs() {
-    const project = window.Demo && Demo.project && Demo.project.current && Demo.project.current()
-    const currentPath = project && project.descriptor && project.descriptor.layout || 'aeditor.layout.json'
+    const project = currentProject()
+    const currentPath = project && project.descriptor && project.descriptor.layout || currentWorkspaceLayoutPath()
     ui.prompt({
       title: 'Save Layout As',
       message: 'Workspace path',
@@ -146,7 +462,7 @@
       okLabel: 'Save',
     }).then(function (path) {
       path = String(path || '').trim()
-      if (path) saveProjectLayout({ layoutPath: path, updateDescriptor: true })
+      if (path) saveProjectLayout({ layoutPath: path, updateDescriptor: !!project })
     })
   }
 
@@ -184,7 +500,7 @@
   }
 
   function currentTitle() {
-    const project = window.Demo && Demo.project && Demo.project.current && Demo.project.current()
+    const project = currentProject()
     if (project && project.title) return project.title
     if (aeditor.ai && aeditor.ai.workspaceLabel) return aeditor.ai.workspaceLabel()
     return 'Untitled'
@@ -268,7 +584,7 @@
     language.classList.add('aed-lang-btn')
 
     brand.addEventListener('click', function (ev) {
-      const projectOpen = !!(window.Demo && Demo.project && Demo.project.current && Demo.project.current())
+      const saveReady = canSaveLayout()
       const refreshTitle = function () { titleTick.set(titleTick.peek() + 1) }
       toggleMenu(brandMenu, ev.currentTarget, {
         side: 'bottom',
@@ -282,8 +598,8 @@
           } },
           { label: 'Open Recent', items: recentWorkspaceItems(refreshTitle) },
           { type: 'divider' },
-          { label: 'Save', disabled: !projectOpen, onSelect: function () { saveProjectLayout() } },
-          { label: 'Save As', disabled: !projectOpen, onSelect: saveProjectLayoutAs },
+          { label: 'Save', disabled: !saveReady, onSelect: function () { saveProjectLayout() } },
+          { label: 'Save As', disabled: !saveReady, onSelect: saveProjectLayoutAs },
           { type: 'divider' },
           { label: 'Settings', onSelect: openSettings },
         ],

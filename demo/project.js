@@ -668,9 +668,11 @@
   }
 
   function projectDiagnostics(input) {
-    const runtime = projectForTool(input && input.projectId)
+    input = input || {}
+    const runtime = input.projectId ? projects[input.projectId] : projects[activeId]
+    if (!runtime) return []
     const last = checkResults[runtime.id] || null
-    if (last && last.diagnostics && last.diagnostics.length) return last.diagnostics.slice(0, input && input.maxItems || 100)
+    if (last && last.diagnostics && last.diagnostics.length) return last.diagnostics.slice(0, input.maxItems || 100)
     const panels = runtime.handle && runtime.handle.inspectPanels ? runtime.handle.inspectPanels() : []
     const out = []
     for (let i = 0; i < panels.length; i++) {
@@ -684,7 +686,7 @@
         })
       }
     }
-    return out.slice(0, input && input.maxItems || 100)
+    return out.slice(0, input.maxItems || 100)
   }
 
   function bridgeBaseUrl() {
@@ -1321,7 +1323,7 @@
         'A demo project is a workspace folder with aeditor.project.json, optional aeditor.layout.json, and plain .js entry files.',
         'Demo project component files register with Demo.project.component(componentId, spec). Use this instead of aeditor.registerComponent inside demo project entry files.',
         'Use generic dotted component ids such as app.mainPanel or tool.timeline. Do not copy ids from examples unless they match the requested feature.',
-        'After writing or editing a component file, make sure the demo project has loaded that file before adding its component.',
+        'After writing or editing a component file, pass that file path to aeditor.addPanelToDock so the runtime loads it before adding the panel.',
         'Before adding a panel, call aeditor.inspectDocks and choose a returned dockId from its position, size, and existing panels.',
         'Add panels with aeditor.addPanelToDock using the registered component id and returned dock id. This is the AI-facing version of choosing a component from the dock Add Panel menu.',
         'Pass title, icon, or props only when overriding component defaults; otherwise defaults() supplies them.',

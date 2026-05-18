@@ -357,7 +357,7 @@
       'This demo has an open workspace-backed editor project.',
       'For durable UI, inspect and edit files with workspace.* and code.* tools; demo.project.* is only for demo-specific descriptor and health checks.',
       'Project panel files should call Demo.project.component(componentId, spec).',
-      'After writing a panel file, inspect docks with aeditor.inspectDocks and add the registered component with aeditor.addPanelToDock.',
+      'After writing a panel file, inspect docks with aeditor.inspectDocks, then call aeditor.addPanelToDock with component, dock, and path so the runtime loads it before adding the panel. To replace one existing panel, use aeditor.replacePanel with the returned panelId and the same component/path/title/icon/props shape. If path is omitted, the tool can infer one matching JS file and will ask for an explicit path when ambiguous.',
       'Runtime panel placement is separate from descriptor/layout persistence; the host Save command decides when to persist layout.',
     ] : workspace ? [
       'An AI workspace is selected, but it is not opened as a demo project yet.',
@@ -404,15 +404,16 @@
           registration: "Demo.project.component('" + project.id + ".mainPanel', { defaults: function () { return { title: 'Main Panel', icon: 'columns', props: {} } }, factory: function (propsSig, ctx) { const root = document.createElement('div'); root.style.cssText = 'height:100%;min-height:0;box-sizing:border-box;display:flex;flex-direction:column;'; const view = aeditor.ui.view({ children: [] }); view.style.flex = '1 1 auto'; view.style.minHeight = '0'; root.appendChild(view); return root } })",
           inspectTool: 'aeditor.inspectDocks',
           addPanelTool: 'aeditor.addPanelToDock',
+          replacePanelTool: 'aeditor.replacePanel',
         } : null,
       },
       capabilities: [
         project
-          ? { op: 'aeditor.addPanelToDock', risk: 'edit', purpose: 'Place an already registered component into a runtime dock.' }
+          ? { op: 'aeditor.addPanelToDock', risk: 'edit', purpose: 'Place a component into a runtime dock; pass path for newly written workspace files, or let the tool infer one unique matching JS file. Use aeditor.replacePanel when replacing an existing panelId.' }
           : null
       ].filter(Boolean),
       tools: project
-        ? ['aeditor.readReference', 'aeditor.getCapabilities', 'workspace.fileSummary', 'workspace.searchFiles', 'workspace.readFile', 'workspace.readFileRange', 'workspace.editFile', 'workspace.patchFile', 'workspace.writeFile', 'code.map', 'code.outline', 'aeditor.inspectDocks', 'aeditor.addPanelToDock', 'demo.project.readDescriptor', 'demo.project.readSource', 'demo.project.inspectPanel', 'demo.project.runCheck']
+        ? ['aeditor.readReference', 'aeditor.getCapabilities', 'workspace.fileSummary', 'workspace.searchFiles', 'workspace.readFile', 'workspace.readFileRange', 'workspace.editFile', 'workspace.patchFile', 'workspace.writeFile', 'code.map', 'code.outline', 'aeditor.inspectDocks', 'aeditor.addPanelToDock', 'aeditor.replacePanel', 'demo.project.readDescriptor', 'demo.project.readSource', 'demo.project.inspectPanel', 'demo.project.runCheck']
         : ['aeditor.readReference', 'aeditor.getCapabilities'],
     }
   }

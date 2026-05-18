@@ -14,6 +14,7 @@
 import { readFileSync, writeFileSync, mkdirSync, watch } from 'node:fs'
 import { dirname, join, relative, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { generateApiDocs } from './api-docs.mjs'
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const SRC  = join(ROOT, 'src')
@@ -29,6 +30,7 @@ const JS_ORDER = [
   'core/signal.js',
   'core/log.js',
   'core/names.js',
+  'core/runtime.js',
   'core/theme.js',
   'core/bus.js',
   'core/shortcuts.js',
@@ -65,6 +67,9 @@ const JS_ORDER = [
   'ai/git.js',
   'ai/verify.js',
   'ai/reference.js',
+  'ai/api-docs.generated.js',
+  'ai/api-reference.js',
+  'ai/skill-reference.js',
 
   // Layer 2.6 - optional extension runtime
   'extensions/manifest.js',
@@ -286,6 +291,7 @@ function bundle(order, kind) {
 
 function buildOnce() {
   mkdirSync(DIST, { recursive: true })
+  const apiDocs = generateApiDocs()
   const kernelJs  = bundle(KERNEL_JS_ORDER, 'Kernel JS')
   const kernelCss = bundle(KERNEL_CSS_ORDER, 'Kernel CSS')
   const uiJs      = bundle(UI_JS_ORDER, 'UI JS')
@@ -329,6 +335,7 @@ function buildOnce() {
               (JS_ORDER.length - fullJs.missing.length) + '/' + JS_ORDER.length + ' files), ' +
               'dist/aeditor-full.css (' + fullCss.text.length + ' bytes, ' +
               (CSS_ORDER.length - fullCss.missing.length) + '/' + CSS_ORDER.length + ' files)')
+  console.log('[' + stamp + '] generated dist/aeditor-api.json (' + apiDocs.entries.length + ' entries)')
   if (kernelJs.missing.length || kernelCss.missing.length || uiJs.missing.length || uiCss.missing.length ||
       aiJs.missing.length || aiCss.missing.length || coreJs.missing.length || coreCss.missing.length ||
       fullJs.missing.length || fullCss.missing.length) {

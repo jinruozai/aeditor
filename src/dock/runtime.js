@@ -86,6 +86,28 @@
     // callers (handle, interactions.js panel drag, etc.) route here so
     // markActivation is never forgotten. No LRU eviction: move doesn't
     // create new runtimes, only re-homes existing ones.
+    layout.replacePanel = function (panelId, partial, opts) {
+      if (layout.disposed) return null
+      const r = aeditor.replacePanel(treeSig.peek(), panelId, partial, opts)
+      layout.setTree(r.tree)
+      layout.markActivation(r.panelId)
+      maybeEvictLRU(layout)
+      return r.panelId
+    }
+
+    layout.reloadPanel = function (panelId) {
+      if (layout.disposed) return null
+      const dr = findOwningDockRuntime(layout, panelId)
+      const pr = dr && dr.panelRuntimes.get(panelId)
+      if (!dr || !pr) return panelId
+      const wasActive = dr.dataSig.peek().activeId === panelId
+      disposePanelRuntime(pr)
+      dr.panelRuntimes.delete(panelId)
+      if (wasActive) syncActivePanel(dr, dr.dataSig.peek(), layout)
+      layout.markActivation(panelId)
+      return panelId
+    }
+
     layout.movePanel = function (panelId, dstDockId, dstIndex) {
       if (layout.disposed) return
       layout.setTree(aeditor.movePanel(treeSig.peek(), panelId, dstDockId, dstIndex))
@@ -484,6 +506,7 @@
   // component body, which establishes its own effect scope.
   function materializeComponentEl(runtime, srcExtra) {
     const spec = aeditor.resolveComponent(runtime.component)
+    runtime.spec = spec
     const src = Object.assign({ scope: 'component', component: runtime.component }, srcExtra || {})
     // propsSig source per kind:
     //   panel runtimes track props live via ctx.panel.props (derived off
@@ -531,7 +554,7 @@
       if (runtime.kind === 'panel' && aeditor.ui && aeditor.ui.closeScope) {
         aeditor.ui.closeScope(runtime.contentEl)
       }
-      const spec = aeditor.resolveComponent(runtime.component)
+      const spec = runtime.spec || aeditor.resolveComponent(runtime.component)
       if (spec.dispose) {
         aeditor.safeCall({ scope: 'component', component: runtime.component },
           function () { spec.dispose(runtime.contentEl) })
@@ -541,6 +564,7 @@
         runtime.contentEl.remove()
       }
       runtime.contentEl = null
+      runtime.spec = null
     }
     if (runtime.active) runtime.active.set(false)
   }

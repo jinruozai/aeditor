@@ -74,6 +74,7 @@
     if (partial.transient)            p.transient    = true
     if (partial.owner != null)        p.owner        = partial.owner
     if (partial.extensionId != null)  p.extensionId  = partial.extensionId
+    if (partial.sourcePath != null)   p.sourcePath   = partial.sourcePath
     if (partial.toolbarItems)         p.toolbarItems = partial.toolbarItems.map(normalizeToolbarItem)
     return p
   }
@@ -364,6 +365,26 @@
     return replaceAt(tree, found.path, newDock)
   }
 
+  function replacePanel(tree, panelId, partial, opts) {
+    const found = findPanel(tree, panelId)
+    if (!found) throw new Error('replacePanel: panel not found: ' + panelId)
+    if (!partial || typeof partial.component !== 'string')
+      throw new Error('replacePanel: component (string) required')
+    const dockNode = getAt(tree, found.path)
+    if (!checkAccept(dockNode, partial.component))
+      throw new Error('replacePanel: dock "' + found.dockId + '" does not accept component "' + partial.component + '"')
+    const idx = dockNode.panels.findIndex(function (p) { return p.id === panelId })
+    const p = panel(partial)
+    if (opts && opts.transient) p.transient = true
+    const newPanels = dockNode.panels.slice()
+    newPanels[idx] = p
+    const newDock = Object.assign({}, dockNode, {
+      panels: newPanels,
+      activeId: dockNode.activeId === panelId ? p.id : dockNode.activeId,
+    })
+    return { tree: replaceAt(tree, found.path, newDock), panelId: p.id, oldPanel: dockNode.panels[idx] }
+  }
+
   function activatePanel(tree, panelId) {
     const found = findPanel(tree, panelId)
     if (!found) return tree
@@ -605,6 +626,7 @@
   aeditor.addPanel      = addPanel
   aeditor.removePanel   = removePanel
   aeditor.updatePanel   = updatePanel
+  aeditor.replacePanel  = replacePanel
   aeditor.activatePanel = activatePanel
   aeditor.promotePanel  = promotePanel
   aeditor.movePanel     = movePanel

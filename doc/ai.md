@@ -18,6 +18,17 @@ prefixes, and product prefixes all use the same registries.
 Skills are agent behavior profiles. They add prompt guidance and rules to an
 agent; they are not tools, context references, or operations.
 
+Generated API references are the exact-call companion to skills. Structured
+comments in `src/` generate `doc/api`, `dist/aeditor-api.json`, and runtime
+`aeditor://api/...` references. Skills may explain when to use a concept, but
+agents should read generated API references before calling unfamiliar framework
+APIs.
+
+Skills are discoverable too. `aeditor://skills` lists registered skills and
+when to use them; concrete skill URIs contain the full rules. This keeps the
+default prompt small while still letting agents choose the correct AEditor
+workflow.
+
 ## Public Concept Model
 
 Expose only five concepts at the architecture level:

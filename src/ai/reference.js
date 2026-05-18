@@ -19,6 +19,9 @@
 
   function inferResolver(uri, kind) {
     const text = String(uri || '')
+    if (text === 'aeditor://api' || text.indexOf('aeditor://api/') === 0) return 'api'
+    if (text === 'aeditor://skills' || text.indexOf('aeditor://skills/') === 0) return 'skills'
+    if (text === 'aeditor://host' || text.indexOf('aeditor://host/') === 0) return 'editor'
     const idx = text.indexOf('://')
     if (idx > 0) return text.slice(0, idx)
     const dot = String(kind || '').indexOf('.')
@@ -72,6 +75,7 @@
   }
 
   function normalizeMeta(meta) {
+    if (aeditor.runtime && aeditor.runtime.registrationMeta) meta = aeditor.runtime.registrationMeta(meta)
     meta = meta || {}
     const out = {}
     if (meta.owner != null) out.owner = String(meta.owner)
@@ -516,6 +520,14 @@
   ai.transactions = {
     configure: configureTransactions,
     run: runTransaction,
+  }
+  if (aeditor.runtime && aeditor.runtime.registerOwnerCleanup) {
+    aeditor.runtime.registerOwnerCleanup(function (owner) {
+      return {
+        references: unregisterReferenceProviderOwner(owner),
+        operations: unregisterOperationOwner(owner),
+      }
+    })
   }
 
   registerEditorTools()

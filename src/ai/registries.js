@@ -16,6 +16,7 @@
   function keys(obj) { return Object.keys(obj) }
 
   function normalizeMeta(meta) {
+    if (aeditor.runtime && aeditor.runtime.registrationMeta) meta = aeditor.runtime.registrationMeta(meta)
     meta = meta || {}
     const out = {}
     if (meta.owner != null) out.owner = String(meta.owner)
@@ -336,5 +337,13 @@
       const names = keys(bundles)
       return prefix ? names.filter(function (name) { return matchesPrefix(name, prefix) }) : names
     },
+  }
+  if (aeditor.runtime && aeditor.runtime.registerOwnerCleanup) {
+    aeditor.runtime.registerOwnerCleanup(function (owner) {
+      return {
+        tools: unregisterToolOwner(owner),
+        context: unregisterContextProviderOwner(owner),
+      }
+    })
   }
 })(window.aeditor = window.aeditor || {})

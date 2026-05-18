@@ -288,6 +288,127 @@
     return input.dock || input.dockId || input.target || 'main'
   }
 
+  function runtimeScriptPath(input) {
+    return input.path || input.entryPath || input.src || ''
+  }
+
+  function runtimeScriptOwner(input) {
+    if (input.owner) return String(input.owner)
+    const meta = aeditor.ai && aeditor.ai.workspaceMeta && aeditor.ai.workspaceMeta()
+    return 'workspace:' + String(meta && meta.id || meta && meta.label || 'current')
+  }
+
+  function currentWorkspace() {
+    return aeditor.ai && aeditor.ai.currentWorkspace && aeditor.ai.currentWorkspace()
+  }
+
+  function escapeRegExp(text) {
+    return String(text || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  }
+
+  function registrationPattern(component) {
+    return new RegExp(
+      '(aeditor\\s*\\.\\s*registerComponent|registerComponent|Demo\\s*\\.\\s*project\\s*\\.\\s*component)' +
+      '\\s*\\(\\s*[\'"]' + escapeRegExp(component) + '[\'"]'
+    )
+  }
+
+  function uniqueJsPaths(results) {
+    const seen = {}
+    const out = []
+    for (let i = 0; i < (results || []).length; i++) {
+      const path = String(results[i] && results[i].path || '').replace(/\\/g, '/')
+      const lower = path.toLowerCase()
+      if (!path || seen[path]) continue
+      if (!/\.js$/.test(lower)) continue
+      if (lower.indexOf('node_modules/') === 0 || lower.indexOf('.git/') === 0 || lower.indexOf('aeditor-runtime/') === 0) continue
+      seen[path] = true
+      out.push(path)
+    }
+    return out
+  }
+
+  function findComponentScript(component) {
+    const ws = currentWorkspace()
+    const pattern = registrationPattern(component)
+    if (!ws || !ws.search) return Promise.resolve({ matches: [], reason: 'Current workspace is required to find component script.' })
+    return ws.search(component, {
+      limit: 50,
+      include: ['*.js', '**/*.js'],
+      exclude: ['node_modules/**', '.git/**', 'aeditor-runtime/**'],
+    }).then(function (results) {
+      const paths = uniqueJsPaths(results)
+      const matches = []
+      function readNext(index) {
+        if (index >= paths.length) return Promise.resolve({ matches: matches })
+        return ws.read(paths[index]).then(function (file) {
+          if (pattern.test(file.text)) matches.push({ path: paths[index], file: file })
+          return readNext(index + 1)
+        }, function () {
+          return readNext(index + 1)
+        })
+      }
+      return readNext(0)
+    }, function (err) {
+      return { matches: [], reason: String(err && err.message || err) }
+    })
+  }
+
+  function loadRuntimeScriptForPanel(input, preview) {
+    const path = runtimeScriptPath(input)
+    if (!path || aeditor.componentRegistration && aeditor.componentRegistration(input.component)) return Promise.resolve(null)
+    const ws = currentWorkspace()
+    if (!ws) return Promise.reject(new Error('aeditor.addPanelToDock: current workspace is required to load ' + path))
+    if (!aeditor.runtime || !aeditor.runtime.loadScript) return Promise.reject(new Error('aeditor.runtime.loadScript is not available'))
+    return ws.read(path).then(function (file) {
+      if (preview && preview.hash && file.hash !== preview.hash) throw new Error('aeditor.addPanelToDock: script changed since preview')
+      return aeditor.runtime.loadScript({
+        id: input.id || path,
+        path: path,
+        source: file.text,
+        type: 'script',
+        owner: runtimeScriptOwner(input),
+        layer: input.layer || 'workspace',
+      })
+    })
+  }
+
+  function loadRuntimeScriptForReload(input, preview) {
+    const path = runtimeScriptPath(input)
+    if (!path) return Promise.resolve(null)
+    const ws = currentWorkspace()
+    if (!ws) return Promise.reject(new Error('aeditor.reloadPanel: current workspace is required to load ' + path))
+    if (!aeditor.runtime || !aeditor.runtime.loadScript) return Promise.reject(new Error('aeditor.runtime.loadScript is not available'))
+    return ws.read(path).then(function (file) {
+      if (preview && preview.hash && file.hash !== preview.hash) throw new Error('aeditor.reloadPanel: script changed since preview')
+      return aeditor.runtime.loadScript({
+        id: input.id || path,
+        path: path,
+        source: file.text,
+        type: 'script',
+        owner: runtimeScriptOwner(input),
+        layer: input.layer || 'workspace',
+        replace: true,
+      })
+    })
+  }
+
+  function panelPartialFromInput(input, opts) {
+    opts = opts || {}
+    const component = resolveComponentRef(opts.componentMap || {}, input.component)
+    const partial = {
+      component: component,
+      title: input.title,
+      icon: input.icon,
+      props: clone(input.props || {}),
+      owner: input.owner || opts.owner || null,
+      extensionId: input.extensionId || opts.extensionId || null,
+    }
+    const sourcePath = runtimeScriptPath(input)
+    if (sourcePath) partial.sourcePath = sourcePath
+    return partial
+  }
+
   function placePanel(input, opts) {
     opts = opts || {}
     input = input || {}
@@ -297,14 +418,7 @@
       throw new Error('Layout not registered: ' + (input.layout || 'default'))
     }
     const component = resolveComponentRef(opts.componentMap || {}, input.component)
-    const result = layout.addPanel(panelDockTarget(input), {
-      component: component,
-      title: input.title,
-      icon: input.icon,
-      props: clone(input.props || {}),
-      owner: input.owner || opts.owner || null,
-      extensionId: input.extensionId || opts.extensionId || null,
-    }, { transient: !!input.transient })
+    const result = layout.addPanel(panelDockTarget(input), panelPartialFromInput(input, opts), { transient: !!input.transient })
     if (!result || !result.panelId) {
       if (opts.deferLayout) return { pendingLayout: true }
       throw new Error('Dock not found: ' + panelDockTarget(input))
@@ -987,13 +1101,15 @@
     const layoutName = input.layout || 'default'
     const dockName = input.dock || 'main'
     const component = input.component
+    const path = runtimeScriptPath(input)
     const layout = resolveLayout(input.layout)
     if (!layout) errors.push({ path: 'layout', message: 'Layout not registered: ' + layoutName })
     else if (!dockExists(layout.tree(), dockName)) errors.push({ path: 'dock', message: 'Dock not found: ' + dockName })
     if (!component) errors.push({ path: 'component', message: 'Component is required' })
-    else if (!(aeditor.componentRegistration && aeditor.componentRegistration(component))) {
-      errors.push({ path: 'component', message: 'Component not registered: ' + component })
+    else if (!(aeditor.componentRegistration && aeditor.componentRegistration(component)) && !path) {
+      return previewAddPanelAutoScript(input, errors, dockName, component)
     }
+    if (path) return previewAddPanelScript(input, errors, dockName, component, path)
     return {
       ok: errors.length === 0,
       risk: 'edit',
@@ -1004,15 +1120,291 @@
     }
   }
 
+  function previewAddPanelScript(input, errors, dockName, component, path) {
+    const ws = currentWorkspace()
+    if (!ws) {
+      errors.push({ path: 'path', message: 'Current workspace is required to load script: ' + path })
+      return previewAddPanelObject(input, errors, dockName, component, path, null)
+    }
+    return ws.read(path).then(function (file) {
+      return previewAddPanelObject(input, errors, dockName, component, path, file)
+    }, function (err) {
+      errors.push({ path: 'path', message: String(err && err.message || err) })
+      return previewAddPanelObject(input, errors, dockName, component, path, null)
+    })
+  }
+
+  function previewAddPanelAutoScript(input, errors, dockName, component) {
+    return findComponentScript(component).then(function (found) {
+      const matches = found.matches || []
+      if (matches.length === 1) {
+        const path = matches[0].path
+        const nextInput = Object.assign({}, input, { path: path })
+        return previewAddPanelObject(nextInput, errors, dockName, component, path, matches[0].file)
+      }
+      if (matches.length > 1) {
+        errors.push({ path: 'component', message: 'Component not registered: ' + component + '. Multiple candidate scripts found; retry with path: ' + matches.map(function (m) { return m.path }).join(', ') })
+      } else {
+        errors.push({ path: 'component', message: 'Component not registered: ' + component + '. If this component was just written to the workspace, retry with path, for example { path: "your-panel.js" }.' })
+        if (found.reason) errors.push({ path: 'path', message: found.reason })
+      }
+      return previewAddPanelObject(input, errors, dockName, component, '', null)
+    })
+  }
+
+  function previewAddPanelObject(input, errors, dockName, component, path, file) {
+    const nextInput = Object.assign({}, input, {
+      owner: runtimeScriptOwner(input),
+      layer: input.layer || 'workspace',
+    })
+    const changes = []
+    if (path) changes.push({ type: 'runtimeScript', path: path, owner: nextInput.owner })
+    changes.push({ type: 'dockPanel', dock: dockName, component: component })
+    return {
+      ok: errors.length === 0,
+      risk: 'edit',
+      title: 'Add panel: ' + (component || ''),
+      input: clone(nextInput),
+      resourceVersion: file ? { type: 'workspaceFile', path: path, version: file.hash } : null,
+      hash: file && file.hash || null,
+      changes: changes,
+      errors: errors,
+    }
+  }
+
   function applyAddPanelToDock(preview) {
     if (preview && preview.ok === false) return { applied: false, ok: false, errors: preview.errors || [], preview: preview }
     const input = preview.input || {}
-    try {
+    return loadRuntimeScriptForPanel(input, preview).then(function () {
+      if (input.component && aeditor.componentRegistration && !aeditor.componentRegistration(input.component)) {
+        throw new Error('Component not registered after loading script: ' + input.component)
+      }
       const placed = placePanel(input)
       return Object.assign({ applied: true }, placed)
-    } catch (err) {
+    }, function (err) {
       return { applied: false, ok: false, error: String(err && err.message || err) }
+    })
+  }
+
+  function previewReplacePanel(input) {
+    input = input || {}
+    const errors = []
+    const layoutName = input.layout || 'default'
+    const layout = resolveLayout(input.layout)
+    const panelId = input.panelId || input.panel || input.target || input.id || ''
+    const component = input.component
+    const path = runtimeScriptPath(input)
+    let target = null
+    if (!layout) errors.push({ path: 'layout', message: 'Layout not registered: ' + layoutName })
+    else {
+      target = aeditor.findPanel(layout.tree(), panelId)
+      if (!target) errors.push({ path: 'panelId', message: 'Panel not found: ' + panelId })
+      else if (target.panel && target.panel.dirty && !input.discardDirty) {
+        errors.push({ path: 'discardDirty', message: 'Panel is dirty. Pass discardDirty: true to replace it.' })
+      }
     }
+    if (!panelId) errors.push({ path: 'panelId', message: 'panelId is required' })
+    if (!component) errors.push({ path: 'component', message: 'Component is required' })
+    else if (!(aeditor.componentRegistration && aeditor.componentRegistration(component)) && !path) {
+      return previewReplacePanelAutoScript(input, errors, panelId, target, component)
+    }
+    if (path) return previewReplacePanelScript(input, errors, panelId, target, component, path)
+    return previewReplacePanelObject(input, errors, panelId, target, component, '', null)
+  }
+
+  function previewReplacePanelScript(input, errors, panelId, target, component, path) {
+    const ws = currentWorkspace()
+    if (!ws) {
+      errors.push({ path: 'path', message: 'Current workspace is required to load script: ' + path })
+      return previewReplacePanelObject(input, errors, panelId, target, component, path, null)
+    }
+    return ws.read(path).then(function (file) {
+      return previewReplacePanelObject(input, errors, panelId, target, component, path, file)
+    }, function (err) {
+      errors.push({ path: 'path', message: String(err && err.message || err) })
+      return previewReplacePanelObject(input, errors, panelId, target, component, path, null)
+    })
+  }
+
+  function previewReplacePanelAutoScript(input, errors, panelId, target, component) {
+    return findComponentScript(component).then(function (found) {
+      const matches = found.matches || []
+      if (matches.length === 1) {
+        const path = matches[0].path
+        const nextInput = Object.assign({}, input, { path: path })
+        return previewReplacePanelObject(nextInput, errors, panelId, target, component, path, matches[0].file)
+      }
+      if (matches.length > 1) {
+        errors.push({ path: 'component', message: 'Component not registered: ' + component + '. Multiple candidate scripts found; retry with path: ' + matches.map(function (m) { return m.path }).join(', ') })
+      } else {
+        errors.push({ path: 'component', message: 'Component not registered: ' + component + '. If this component was just written to the workspace, retry with path, for example { path: "your-panel.js" }.' })
+        if (found.reason) errors.push({ path: 'path', message: found.reason })
+      }
+      return previewReplacePanelObject(input, errors, panelId, target, component, '', null)
+    })
+  }
+
+  function previewReplacePanelObject(input, errors, panelId, target, component, path, file) {
+    const nextInput = Object.assign({}, input, {
+      panelId: panelId,
+      owner: runtimeScriptOwner(input),
+      layer: input.layer || 'workspace',
+    })
+    delete nextInput.panel
+    delete nextInput.target
+    delete nextInput.id
+    const changes = []
+    if (path) changes.push({ type: 'runtimeScript', path: path, owner: nextInput.owner })
+    changes.push({
+      type: 'dockPanelReplace',
+      panelId: panelId,
+      dock: target && target.dockId || null,
+      from: target && target.panel && target.panel.component || null,
+      to: component,
+    })
+    return {
+      ok: errors.length === 0,
+      risk: 'edit',
+      title: 'Replace panel: ' + (panelId || ''),
+      input: clone(nextInput),
+      resourceVersion: file ? { type: 'workspaceFile', path: path, version: file.hash } : null,
+      hash: file && file.hash || null,
+      changes: changes,
+      errors: errors,
+    }
+  }
+
+  function restorePanelData(layout, panelId, panelData) {
+    const tree = layout.tree()
+    const found = aeditor.findPanel(tree, panelId)
+    if (!found) return false
+    const dockNode = aeditor.getAt(tree, found.path)
+    const idx = dockNode.panels.findIndex(function (p) { return p.id === panelId })
+    if (idx < 0) return false
+    const panels = dockNode.panels.slice()
+    panels[idx] = panelData
+    const dock = Object.assign({}, dockNode, {
+      panels: panels,
+      activeId: dockNode.activeId === panelId ? panelData.id : dockNode.activeId,
+    })
+    layout.setTree(aeditor.replaceAt(tree, found.path, dock))
+    return true
+  }
+
+  function applyReplacePanel(preview) {
+    if (preview && preview.ok === false) return { applied: false, ok: false, errors: preview.errors || [], preview: preview }
+    const input = preview.input || {}
+    return loadRuntimeScriptForPanel(input, preview).then(function () {
+      if (input.component && aeditor.componentRegistration && !aeditor.componentRegistration(input.component)) {
+        throw new Error('Component not registered after loading script: ' + input.component)
+      }
+      const layout = resolveLayout(input.layout)
+      if (!layout) throw new Error('Layout not registered: ' + (input.layout || 'default'))
+      const target = aeditor.findPanel(layout.tree(), input.panelId)
+      if (!target) throw new Error('Panel not found: ' + input.panelId)
+      if (target.panel && target.panel.dirty && !input.discardDirty) throw new Error('Panel is dirty. Pass discardDirty: true to replace it.')
+      const result = layout.replacePanel(input.panelId, panelPartialFromInput(input), { transient: !!input.transient })
+      const newPanelId = result && result.panelId
+      const failure = newPanelId ? panelHealthError(layout, newPanelId) : null
+      if (failure) {
+        restorePanelData(layout, newPanelId, target.panel)
+        throw new Error(failure)
+      }
+      return { applied: true, ok: true, panelId: newPanelId, replacedPanelId: input.panelId, component: input.component }
+    }, function (err) {
+      return { applied: false, ok: false, error: String(err && err.message || err) }
+    })
+  }
+
+  function previewReloadPanel(input) {
+    input = input || {}
+    const errors = []
+    const layoutName = input.layout || 'default'
+    const layout = resolveLayout(input.layout)
+    const panelId = input.panelId || input.panel || input.target || input.id || ''
+    const path = runtimeScriptPath(input)
+    let target = null
+    if (!layout) errors.push({ path: 'layout', message: 'Layout not registered: ' + layoutName })
+    else {
+      target = aeditor.findPanel(layout.tree(), panelId)
+      if (!target) errors.push({ path: 'panelId', message: 'Panel not found: ' + panelId })
+    }
+    if (!panelId) errors.push({ path: 'panelId', message: 'panelId is required' })
+    const component = input.component || target && target.panel && target.panel.component || ''
+    if (input.component && target && target.panel && target.panel.component !== input.component) {
+      errors.push({ path: 'component', message: 'reloadPanel keeps the existing panel component. Use replacePanel to change component from ' + target.panel.component + ' to ' + input.component + '.' })
+    }
+    if (!component) errors.push({ path: 'component', message: 'Component is required or panel must exist' })
+    if (path) return previewReloadPanelScript(input, errors, panelId, target, component, path)
+    return previewReloadPanelObject(input, errors, panelId, target, component, '', null)
+  }
+
+  function previewReloadPanelScript(input, errors, panelId, target, component, path) {
+    const ws = currentWorkspace()
+    if (!ws) {
+      errors.push({ path: 'path', message: 'Current workspace is required to load script: ' + path })
+      return previewReloadPanelObject(input, errors, panelId, target, component, path, null)
+    }
+    return ws.read(path).then(function (file) {
+      return previewReloadPanelObject(input, errors, panelId, target, component, path, file)
+    }, function (err) {
+      errors.push({ path: 'path', message: String(err && err.message || err) })
+      return previewReloadPanelObject(input, errors, panelId, target, component, path, null)
+    })
+  }
+
+  function previewReloadPanelObject(input, errors, panelId, target, component, path, file) {
+    const nextInput = Object.assign({}, input, {
+      panelId: panelId,
+      component: component,
+      owner: runtimeScriptOwner(input),
+      layer: input.layer || 'workspace',
+    })
+    delete nextInput.panel
+    delete nextInput.target
+    delete nextInput.id
+    const changes = []
+    if (path) changes.push({ type: 'runtimeScript', path: path, owner: nextInput.owner, replace: true })
+    changes.push({
+      type: 'dockPanelReload',
+      panelId: panelId,
+      dock: target && target.dockId || null,
+      component: component,
+    })
+    return {
+      ok: errors.length === 0,
+      risk: 'edit',
+      title: 'Reload panel: ' + (panelId || ''),
+      input: clone(nextInput),
+      resourceVersion: file ? { type: 'workspaceFile', path: path, version: file.hash } : null,
+      hash: file && file.hash || null,
+      changes: changes,
+      errors: errors,
+    }
+  }
+
+  function applyReloadPanel(preview) {
+    if (preview && preview.ok === false) return { applied: false, ok: false, errors: preview.errors || [], preview: preview }
+    const input = preview.input || {}
+    return loadRuntimeScriptForReload(input, preview).then(function () {
+      if (input.component && aeditor.componentRegistration && !aeditor.componentRegistration(input.component)) {
+        throw new Error('Component not registered after loading script: ' + input.component)
+      }
+      const layout = resolveLayout(input.layout)
+      if (!layout) throw new Error('Layout not registered: ' + (input.layout || 'default'))
+      const target = aeditor.findPanel(layout.tree(), input.panelId)
+      if (!target) throw new Error('Panel not found: ' + input.panelId)
+      if (input.component && target.panel && target.panel.component !== input.component) {
+        throw new Error('reloadPanel keeps the existing panel component. Use replacePanel to change component from ' + target.panel.component + ' to ' + input.component + '.')
+      }
+      const result = layout.reloadPanel(input.panelId)
+      const panelId = result && result.panelId || input.panelId
+      const failure = panelHealthError(layout, panelId)
+      if (failure) throw new Error(failure)
+      return { applied: true, ok: true, panelId: panelId, component: target.panel.component }
+    }, function (err) {
+      return { applied: false, ok: false, error: String(err && err.message || err) }
+    })
   }
 
   aeditor.extensions = {
@@ -1031,6 +1423,10 @@
     removePanelFromDock: removePanelFromDock,
     previewAddPanelToDock: previewAddPanelToDock,
     applyAddPanelToDock: applyAddPanelToDock,
+    previewReplacePanel: previewReplacePanel,
+    applyReplacePanel: applyReplacePanel,
+    previewReloadPanel: previewReloadPanel,
+    applyReloadPanel: applyReloadPanel,
     safeMode: setSafeMode,
     boot: bootExtensions,
     list: listExtensions,

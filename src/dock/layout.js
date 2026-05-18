@@ -68,6 +68,8 @@
         const id = resolveDockId(tree.peek(), dockId)
         return id ? layout.addPanelToSplit(id, dir, side, ratio, partial) : { newDockId: null, newPanelId: null }
       },
+      replacePanel:  function (panelId, partial, opts)       { return { panelId: layout.replacePanel(panelId, partial, opts) } },
+      reloadPanel:   function (panelId)                      { return { panelId: layout.reloadPanel(panelId) } },
       removePanel:   function (panelId)                      { layout.removePanel(panelId) },
       activatePanel: function (panelId)                      { layout.activatePanel(panelId) },
       promotePanel:  function (panelId)                      { layout.promotePanel(panelId) },

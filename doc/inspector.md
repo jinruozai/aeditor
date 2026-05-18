@@ -49,6 +49,10 @@ aeditor.inspector.select([
 Target shape is intentionally open. The required field is `type` (or `kind` for
 host compatibility). Providers decide how to resolve `id`, `uri`, and `meta`.
 
+Call `aeditor.inspector.refresh()` when the selected object changed outside the
+form and no provider `subscribe(refresh)` hook exists. It re-runs the current
+selection through the active provider without changing selection.
+
 ## Provider
 
 ```js
@@ -84,6 +88,43 @@ aeditor.inspector.registerProvider('game.achievement', {
     }
   },
 })
+```
+
+Minimal object inspector:
+
+```js
+const cube = {
+  position: { x: 0, y: 0, z: 0 },
+  size: { x: 1, y: 1, z: 1 },
+  color: '#ff6a00',
+}
+
+aeditor.inspector.registerProvider('three.cube', {
+  inspect: function () {
+    return {
+      title: 'Cube',
+      subtitle: 'Three.js object',
+      schema: {
+        position: {
+          type: 'struct',
+          struct_def: { x: 'float', y: 'float', z: 'float' },
+        },
+        size: {
+          type: 'struct',
+          struct_def: { x: 'float', y: 'float', z: 'float' },
+        },
+        color: { type: 'string', type_render: 'color', type_agv: { valueKind: 'hex' } },
+      },
+      values: [cube],
+      write: function (field, change, ctx) {
+        cube[field] = ctx.valueForChange(change, ctx.primary, 0, ctx)
+        aeditor.inspector.refresh()
+      },
+    }
+  },
+})
+
+aeditor.inspector.select({ type: 'three.cube', id: 'cube', title: 'Cube' })
 ```
 
 `inspect(targets, ctx)` returns an Inspection object:

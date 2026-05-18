@@ -16,12 +16,15 @@ Agents must not create UI by passing large code strings into a tool call.
 Editor UI is normal workspace code:
 
 ```text
-write component file -> load/register component -> add panel by component name
+write component file -> add panel by component name, loading the file when needed
 ```
 
 The workspace-backed path is the only agent authoring path. Agents write or
-patch files first. Host/demo tools may then load those files and mount a panel by
-registered component name.
+patch files first, then call `aeditor.addPanelToDock` with the registered
+component name. If the component file has not been loaded yet, pass its
+workspace `path`; the runtime loads it before placing the panel. If `path` is
+omitted, the tool attempts to infer one unique matching JS file and uses that;
+ambiguous or missing matches are reported as retry errors.
 
 ## Framework Tool Groups
 
@@ -161,11 +164,23 @@ aeditor.inspectDocks({})
 aeditor.addPanelToDock({
   dock: "dock id returned by inspectDocks",
   component: "sample.panel",
+  path: "src/panels/sample.panel.js",
+  title: "Sample Panel",
+  icon: "box"
+})
+
+aeditor.replacePanel({
+  panelId: "panel id returned by inspectDocks",
+  component: "sample.panel",
+  path: "src/panels/sample.panel.js",
   title: "Sample Panel",
   icon: "box"
 })
 ```
 
+`path` is only needed for newly written or not-yet-loaded workspace scripts.
+Use `replacePanel` when the user asks to turn one existing panel into another;
+it keeps the dock position and creates a fresh panel instance id.
 `aeditor.inspectDocks` returns the current dock ids, viewport rects, active
 panels, and panel summaries. Choose a returned `dockId` from that runtime state;
 do not guess names such as `main`, and do not hand-write layout JSON. Runtime

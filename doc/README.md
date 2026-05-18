@@ -61,6 +61,7 @@ dist/aeditor-ai.js
 dist/aeditor-ai.css
 dist/aeditor.js
 dist/aeditor.css
+dist/aeditor-api.json
 README.md
 LICENSE
 ```
@@ -145,6 +146,9 @@ extension runtime, AI panels, or AI-specific styles.
 - [resource-versioning.md](./resource-versioning.md): versioned mutation contract, CAS apply, and conflict handling.
 - [agent-workspace-editing.md](./agent-workspace-editing.md): recommended file-first agent workflow for demo workspace code edits.
 - [extensions.md](./extensions.md): extension packaging, trust tiers, and lifecycle.
-- [skill/aeditor-authoring/SKILL.md](./skill/aeditor-authoring/SKILL.md): copyable AI skill for authoring AEditor components, panels, dock layouts, AI contributions, and extensions.
+- [api/index.md](./api/index.md): generated API reference built from structured source comments.
+- [skill/aeditor-runtime-authoring/SKILL.md](./skill/aeditor-runtime-authoring/SKILL.md): copyable AI skill for live AEditor agents that edit workspace files and mount panels into current docks.
+- [skill/aeditor-library-authoring/SKILL.md](./skill/aeditor-library-authoring/SKILL.md): copyable AI skill for Codex-like agents using AEditor as a library in a repository or host app.
+- [skill/aeditor-authoring/SKILL.md](./skill/aeditor-authoring/SKILL.md): compatibility umbrella for the older combined authoring guidance.
 - [implementation-map.md](./implementation-map.md): source-file coverage map for current implementation.
 - [architecture-notes.md](./architecture-notes.md): intentional implementation notes for review-sensitive areas.

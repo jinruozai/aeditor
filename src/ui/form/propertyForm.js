@@ -34,6 +34,27 @@
     shadow:     'Shadow',
   }
 
+  /**
+   * @aeditorApi aeditor.ui.propertyForm
+   * @group ui
+   * @layer core-ui
+   * @kind js-api
+   * @signature aeditor.ui.propertyForm(opts)
+   * @summary Render a schema-driven property editor for one target or a multi-target batch edit. Multi-target reads use the first target value; writes fan out only through enabled fields.
+   * @param {object} opts - Form options.
+   * @param {Signal<object[]>|object[]} opts.targets - Targets to edit.
+   * @param {Signal<object>|object} opts.schema - Field schema passed to editorFor.
+   * @param {Function} opts.onChange - Optional persistence hook: (field, newValue, targets, meta) => void.
+   * @param {boolean} opts.requireAllTargets - When true, disable fields missing from any target.
+   * @param {Function} opts.canEdit - Optional field gate: (field, targets, rawField) => boolean.
+   * @returns {HTMLElement} Property form root element.
+   * @example
+   * var form = aeditor.ui.propertyForm({
+   *   targets: aeditor.signal([{ x: 0, color: '#44aaff' }]),
+   *   schema: { x: { type: 'number' }, color: { type: 'color' } },
+   * })
+   * @related aeditor.inspector.registerProvider
+   */
   ui.propertyForm = function (opts) {
     const o = opts || {}
     const targets   = ui.isSignal(o.targets) ? o.targets : aeditor.signal(o.targets || [])

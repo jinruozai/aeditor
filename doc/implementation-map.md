@@ -11,6 +11,7 @@ preserved or deliberately replaced.
 | `src/core/signal.js` | [core.md](./core.md) | Signals, effects, derived values, cleanup. |
 | `src/core/log.js` | [core.md](./core.md) | Log stream, error reporting, safe call boundary. |
 | `src/core/names.js` | [core.md](./core.md), [architecture.md](./architecture.md) | Dotted-prefix name matching helper. |
+| `src/core/runtime.js` | [core.md](./core.md), [agent-workspace-editing.md](./agent-workspace-editing.md) | Runtime script loader and owner-scoped contribution cleanup. |
 | `src/core/bus.js` | [core.md](./core.md) | Pub/sub communication. |
 | `src/core/history.js` | [core.md](./core.md) | Generic history, transactions, undo/redo. |
 | `src/core/theme.js` | [core.md](./core.md), [ui.md](./ui.md) | Theme mode and tokens. |
@@ -54,12 +55,12 @@ preserved or deliberately replaced.
 | `src/ai/request.js` | [ai-runtime.md](./ai-runtime.md), [ai-context-assembly.md](./ai-context-assembly.md), [ai-context-compaction.md](./ai-context-compaction.md), [ai-registries.md](./ai-registries.md) | Runtime request assembly: context cards, attachments, compaction, tool visibility, and budgeted transcript fallback. |
 | `src/ai/registries.js` | [ai-runtime.md](./ai-runtime.md), [ai-registries.md](./ai-registries.md) | Tool, skill, context provider, agent template, and bundle registries. |
 | `src/ai/context.js` | [ai-runtime.md](./ai-runtime.md) | Tool-call lifecycle and run context helpers. |
-| `src/ai/skills.js` | [ai-runtime.md](./ai-runtime.md) | Built-in framework skills, including `aeditor.authoring`. |
+| `src/ai/skills.js` | [ai-runtime.md](./ai-runtime.md) | Built-in framework skills, including runtime and library AEditor authoring skills. |
 | `src/ai/reference.js` | [ai-registries.md](./ai-registries.md) | Reference provider and operation protocol with owner cleanup and dotted-prefix helpers. |
 | `src/ai/target.js` | [ai-registries.md](./ai-registries.md) | Add-to-chat targets, drag/drop, file targets. |
 | `src/ai/rich-prompt.js` | [ai-registries.md](./ai-registries.md) | Inline references in prompt text. |
 | `src/ai/change-set.js` | [ai-registries.md](./ai-registries.md) | Grouped review and apply/reject. |
-| `src/ai/workdir.js` | [workspace.md](./workspace.md), [workspace-precise-editing.md](./workspace-precise-editing.md) | Workspace module tool contributions and preview/apply file writes/edits. |
+| `src/ai/workdir.js` | [workspace.md](./workspace.md), [workspace-precise-editing.md](./workspace-precise-editing.md), [agent-workspace-editing.md](./agent-workspace-editing.md) | Workspace module tool contributions and preview/apply file writes/edits. |
 
 ## Outside Framework Bundle
 

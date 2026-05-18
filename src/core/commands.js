@@ -14,6 +14,7 @@
   function keys(obj) { return Object.keys(obj) }
 
   function normalizeMeta(meta) {
+    if (aeditor.runtime && aeditor.runtime.registrationMeta) meta = aeditor.runtime.registrationMeta(meta)
     meta = meta || {}
     const out = {}
     if (meta.owner != null) out.owner = String(meta.owner)

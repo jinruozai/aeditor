@@ -4540,6 +4540,27 @@
     shadow:     'Shadow',
   }
 
+  /**
+   * @aeditorApi aeditor.ui.propertyForm
+   * @group ui
+   * @layer core-ui
+   * @kind js-api
+   * @signature aeditor.ui.propertyForm(opts)
+   * @summary Render a schema-driven property editor for one target or a multi-target batch edit. Multi-target reads use the first target value; writes fan out only through enabled fields.
+   * @param {object} opts - Form options.
+   * @param {Signal<object[]>|object[]} opts.targets - Targets to edit.
+   * @param {Signal<object>|object} opts.schema - Field schema passed to editorFor.
+   * @param {Function} opts.onChange - Optional persistence hook: (field, newValue, targets, meta) => void.
+   * @param {boolean} opts.requireAllTargets - When true, disable fields missing from any target.
+   * @param {Function} opts.canEdit - Optional field gate: (field, targets, rawField) => boolean.
+   * @returns {HTMLElement} Property form root element.
+   * @example
+   * var form = aeditor.ui.propertyForm({
+   *   targets: aeditor.signal([{ x: 0, color: '#44aaff' }]),
+   *   schema: { x: { type: 'number' }, color: { type: 'color' } },
+   * })
+   * @related aeditor.inspector.registerProvider
+   */
   ui.propertyForm = function (opts) {
     const o = opts || {}
     const targets   = ui.isSignal(o.targets) ? o.targets : aeditor.signal(o.targets || [])
@@ -4756,10 +4777,46 @@
     return target && (target.type || target.kind)
   }
 
+  /**
+   * @aeditorApi aeditor.inspector.registerProvider
+   * @group inspector
+   * @layer core-ui
+   * @kind js-api
+   * @signature aeditor.inspector.registerProvider(type, provider, meta?)
+   * @summary Register the editor-owned provider that turns selected targets of one type into an inspector schema, values, and write handlers.
+   * @param {string} type - Target type matched against target.type or target.kind.
+   * @param {object} provider - Provider with inspect(targets, ctx), plus optional accept(targets).
+   * @param {object} meta - Optional owner/layer metadata; pass { replace: true } only when intentionally replacing an existing provider.
+   * @returns {Function} unregister callback.
+   * @example
+   * aeditor.inspector.registerProvider('cube', {
+   *   inspect: function (targets) {
+   *     return {
+   *       schema: {
+   *         x: { type: 'number', label: 'X', step: 0.1 },
+   *         color: { type: 'color', label: 'Color' },
+   *       },
+   *       values: targets.map(function (target) { return target.value }),
+   *       write: function (field, change, ctx) {
+   *         ctx.targets.forEach(function (target, index) {
+   *           target.value[field] = ctx.valueForChange(change, target, index)
+   *         })
+   *       },
+   *     }
+   *   },
+   * })
+   * @wrong
+   * aeditor.inspector.registerProvider({
+   *   id: 'cube',
+   *   getProperties: function () {},
+   *   patchProperties: function () {},
+   * })
+   * @related aeditor.inspector.select,aeditor.inspector.refresh,aeditor.ui.propertyForm
+   */
   function registerProvider(type, provider, meta) {
     if (!type || typeof type !== 'string') throw new Error('inspector.registerProvider: type is required')
     if (!provider || typeof provider.inspect !== 'function') throw new Error('inspector.registerProvider: provider.inspect is required')
-    const m = meta || {}
+    const m = aeditor.runtime && aeditor.runtime.registrationMeta ? aeditor.runtime.registrationMeta(meta) : (meta || {})
     if (providers[type] && !m.replace) throw new Error('inspector.registerProvider: duplicate provider "' + type + '"')
     providers[type] = provider
     providerMeta[type] = Object.assign({}, m)
@@ -4876,10 +4933,48 @@
     throw new Error('inspector.valueForChange: unsupported change mode "' + change.mode + '"')
   }
 
+  function emitSelection() {
+    if (aeditor.bus && aeditor.bus.emit) aeditor.bus.emit('inspector:selection', selectionSig.peek())
+  }
+
+  /**
+   * @aeditorApi aeditor.inspector.select
+   * @group inspector
+   * @layer core-ui
+   * @kind js-api
+   * @signature aeditor.inspector.select(targets, meta?)
+   * @summary Set the ordered inspector selection. The first target is primary; multi-edit uses only fields present and writable on every target.
+   * @param {object|object[]} targets - One target or ordered targets; each target should include type or kind.
+   * @param {object} meta - Optional selection metadata for the host/editor.
+   * @returns {void} No return value.
+   * @example
+   * aeditor.inspector.select([
+   *   { type: 'cube', id: 'cube-1', value: cubeState },
+   * ])
+   * @related aeditor.inspector.registerProvider,aeditor.inspector.refresh
+   */
   function select(targets, meta) {
     selectionSig.set(cloneTargets(targets))
     metaSig.set(meta || {})
-    if (aeditor.bus && aeditor.bus.emit) aeditor.bus.emit('inspector:selection', selectionSig.peek())
+    emitSelection()
+  }
+
+  /**
+   * @aeditorApi aeditor.inspector.refresh
+   * @group inspector
+   * @layer core-ui
+   * @kind js-api
+   * @signature aeditor.inspector.refresh()
+   * @summary Notify inspector panels to re-read the current selection after external state changes.
+   * @returns {void} No return value.
+   * @example
+   * cubeState.color = '#ffcc00'
+   * aeditor.inspector.refresh()
+   * @related aeditor.inspector.select,aeditor.inspector.registerProvider
+   */
+  function refresh() {
+    selectionSig.set(selectionSig.peek().slice())
+    emitSelection()
   }
 
   function clear() {
@@ -4890,6 +4985,7 @@
     selection: selectionSig,
     meta: metaSig,
     select: select,
+    refresh: refresh,
     clear: clear,
     registerProvider: registerProvider,
     unregisterProvider: unregisterProvider,
@@ -4902,6 +4998,11 @@
     literalChange: literalChange,
     valueForChange: valueForChange,
     setFormulaEvaluator: function (fn) { formulaEvaluator = fn || null },
+  }
+  if (aeditor.runtime && aeditor.runtime.registerOwnerCleanup) {
+    aeditor.runtime.registerOwnerCleanup(function (owner) {
+      return { inspector: unregisterOwner(owner) }
+    })
   }
 })(window.aeditor = window.aeditor || {})
 

@@ -37,6 +37,7 @@ for (const file of [
   'src/core/log.js',
   'src/core/bus.js',
   'src/core/names.js',
+  'src/core/runtime.js',
   'src/core/settings.js',
   'src/core/commands.js',
   'src/core/workspace.js',

@@ -267,7 +267,9 @@ settings, log, tabs, and AI-specific panels in `aeditor-ai` / `aeditor-full`.
 Inspector is provider-based: editor surfaces call `aeditor.inspector.select(...)`,
 domain code registers `aeditor.inspector.registerProvider(type, { inspect })`,
 and the built-in `inspector` panel renders the primary target while applying
-edits to every selected target whose field is present and writable.
+edits to every selected target whose field is present and writable. Call
+`aeditor.inspector.refresh()` after external state changes when no provider
+subscription is available.
 
 ```js
 aeditor.inspector.registerProvider('app.node', {
@@ -333,10 +335,23 @@ Register context providers or operations when the editor needs to expose current
 selection, bounded reads, previews, or reviewed mutations. All writes should go
 through permission and preview/apply paths.
 
-`aeditor-ai` and `aeditor-full` include the built-in `aeditor.authoring` skill,
-which teaches agents to create file-backed AEditor components instead of
-inventing ad hoc panel code. The copyable skill document lives at
-[`doc/skill/aeditor-authoring/SKILL.md`](./doc/skill/aeditor-authoring/SKILL.md).
+`aeditor-ai` and `aeditor-full` include built-in AEditor authoring skills.
+`aeditor.runtime-authoring` teaches in-editor agents to create file-backed
+components and mount them into live docks. `aeditor.library-authoring` teaches
+Codex-like agents to use AEditor as a plain JavaScript library in a repository.
+Copyable skill documents live under [`doc/skill`](./doc/skill).
+
+Runtime API docs are generated from structured comments in `src/` during
+`node tools/build.mjs`. The same source creates
+[`dist/aeditor-api.json`](./dist/aeditor-api.json),
+[`doc/api`](./doc/api), and AI-searchable references such as
+`aeditor://api/aeditor.inspector.registerProvider`. Agents should use
+`aeditor.searchReferences` / `aeditor.readReference` for exact API shape before
+calling unfamiliar framework APIs.
+
+Runtime skill discovery is also exposed through references. Agents can read
+`aeditor://skills` to choose between `aeditor.runtime-authoring` and
+`aeditor.library-authoring`, then read the chosen skill for full rules.
 
 ## Optional Extension Runtime
 
@@ -363,14 +378,24 @@ manifest, reviews trust and conflicts, installs contributions with
 For durable AI-generated UI:
 
 1. Open or select a workspace.
-2. Let the agent inspect files with `workspace.*` / `code.*`.
-3. Edit or create plain `.js` component files with exact workspace edits.
-4. Register the component by name. Demo project files use
+2. Let the agent read `aeditor://skills` and choose the focused skill for the
+   task.
+3. Let the agent inspect files with `workspace.*` / `code.*`.
+4. Edit or create plain `.js` component files with exact workspace edits.
+5. Register the component by name. Demo project files use
    `Demo.project.component(...)`; standalone hosts can use
    `aeditor.registerComponent(...)`.
-5. Inspect docks with `aeditor.inspectDocks`.
-6. Add the registered component with `aeditor.addPanelToDock`.
-7. Verify with `verify.*` or host project checks.
+6. Inspect docks with `aeditor.inspectDocks`.
+7. Add the component with `aeditor.addPanelToDock`, or replace an existing
+   panel instance with `aeditor.replacePanel({ panelId, component, ... })`.
+   For a new workspace file, pass `path` so the runtime loads the script before
+   adding or replacing the panel. If `path` is omitted, the tool tries to infer
+   a single matching workspace JS file before asking the agent to retry
+   explicitly.
+8. After editing the file for an already-mounted panel, call
+   `aeditor.reloadPanel({ panelId, path })` to keep the same panel id and dock
+   position while rebuilding the runtime.
+9. Verify with `verify.*` or host project checks.
 
 Do not pass panel source code through dock or extension arguments. Source files
 are the durable artifact; dock data only references registered component names.
@@ -398,6 +423,8 @@ npm run check:dist
 `dist/aeditor-kernel.*`, `dist/aeditor-ui.*`, `dist/aeditor-ai.*`,
 `dist/aeditor-core.*`, `dist/aeditor-full.*`, and the `dist/aeditor.*` core
 aliases are generated artifacts that stay in the repository for zero-build use.
+`dist/aeditor-api.json` is generated from source comments and is published with
+the runtime bundles.
 
 ## Documentation
 
@@ -407,7 +434,9 @@ aliases are generated artifacts that stay in the repository for zero-build use.
 - [UI and dock runtime](./doc/ui.md)
 - [AI Host](./doc/ai.md)
 - [Extension Runtime](./doc/extensions.md)
-- [AEditor authoring skill](./doc/skill/aeditor-authoring/SKILL.md)
+- [Generated API docs](./doc/api/index.md)
+- [AEditor runtime authoring skill](./doc/skill/aeditor-runtime-authoring/SKILL.md)
+- [AEditor library authoring skill](./doc/skill/aeditor-library-authoring/SKILL.md)
 
 ## License
 

@@ -25,6 +25,7 @@ aeditor.i18n
 aeditor.settings
 aeditor.commands
 aeditor.shortcuts
+aeditor.runtime
 aeditor.workspace
 ```
 
@@ -175,6 +176,29 @@ infrastructure; dictionaries are provided outside Core.
 
 `aeditor.workspace` is documented in [workspace.md](./workspace.md). It is part
 of Core because it only defines bounded file access, not a project model.
+
+## Runtime Contributions
+
+`aeditor.runtime.loadScript(options)` executes host-provided JavaScript source
+with a default registration owner:
+
+```js
+aeditor.runtime.loadScript({
+  id: 'sample.panel',
+  source: sourceText,
+  owner: 'workspace:sample',
+  layer: 'workspace',
+})
+```
+
+The framework does not read arbitrary files here. Hosts or AI workspace tools
+resolve paths into source text, then call this loader. During the load,
+owner-aware registries such as components, commands, settings, AI tools,
+references, operations, and Inspector providers inherit the default owner unless
+the registration call provides its own metadata.
+
+`aeditor.runtime.unloadOwner(owner)` removes owner-scoped registrations from the
+known registries. It is the cleanup boundary for runtime-loaded contributions.
 
 ## Metadata Note
 
