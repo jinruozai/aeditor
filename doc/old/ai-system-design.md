@@ -1,11 +1,11 @@
-# Aiditor AI System Design
+# AIditor AI System Design
 
 Status: final model contract  
 Scope: framework-level AI runtime, panels, extension contracts
 
 ## 1. Goal
 
-Aiditor provides a generic AI workbench for editor applications:
+AIditor provides a generic AI workbench for editor applications:
 
 - parallel agents
 - connection/model abstraction

@@ -234,7 +234,7 @@ Rules:
 - Use aiditor.ui.* where useful; prefer framework components over hand-built
   controls when the library already has a suitable component.
 - Use aiditor.ui.scrollArea for scrollable content instead of raw native overflow
-  scrollbars so the panel matches Aiditor styling.
+  scrollbars so the panel matches AIditor styling.
 - Use aiditor.ui.tooltip/popover/menu for anchored floating UI. Scoped aiditor.ui overlays
   close automatically when the panel is no longer active. If a panel manually
   appends floating DOM outside its root, register it with

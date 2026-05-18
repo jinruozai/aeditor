@@ -304,7 +304,7 @@ class JsonRpcProcess {
     this.initialized = this.request('initialize', {
       clientInfo: {
         name: 'aiditor_ai_bridge',
-        title: 'Aiditor AI Bridge',
+        title: 'AIditor AI Bridge',
         version: '0.1.0',
       },
       capabilities: {
@@ -542,7 +542,7 @@ const server = http.createServer((req, res) => {
 })
 
 server.listen(PORT, HOST, () => {
-  console.log('Aiditor AI Bridge listening on http://' + HOST + ':' + PORT)
+  console.log('AIditor AI Bridge listening on http://' + HOST + ':' + PORT)
   console.log('Codex app-server command: ' + [CODEX_COMMAND].concat(CODEX_ARGS).join(' '))
   if (CODEX_CHAT_COMMAND) console.log('Codex chat command override: ' + [CODEX_CHAT_COMMAND].concat(CODEX_CHAT_ARGS).join(' '))
 })

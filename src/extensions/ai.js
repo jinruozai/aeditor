@@ -140,7 +140,7 @@
     }, META)
     ai.tools.register('aiditor.installExtension', {
       title: 'Install Editor Extension',
-      description: 'Install a low-level Aiditor extension manifest for commands, menus, references, context, operations, settings, dock panels, or pre-registered component contributions. Agent-authored panels must be written as workspace files and added by registered component name.',
+      description: 'Install a low-level AIditor extension manifest for commands, menus, references, context, operations, settings, dock panels, or pre-registered component contributions. Agent-authored panels must be written as workspace files and added by registered component name.',
       schema: {
         type: 'object',
         required: ['manifest'],

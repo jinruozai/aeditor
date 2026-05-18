@@ -1,11 +1,11 @@
 # AI Workflow
 
-Load this reference when the task touches Aiditor AI Host behavior or asks an
+Load this reference when the task touches AIditor AI Host behavior or asks an
 agent to modify editor source code.
 
 ## Concepts
 
-Aiditor AI Host keeps the model-facing concept set small:
+AIditor AI Host keeps the model-facing concept set small:
 
 ```text
 Agent       runtime identity and transcript
@@ -67,7 +67,7 @@ explicit replacement path provided by the registry or host.
 
 ## Authoring Skill
 
-`aiditor-ai` and `aiditor-full` include focused Aiditor skills:
+`aiditor-ai` and `aiditor-full` include focused AIditor skills:
 
 ```text
 aiditor.runtime-authoring
@@ -77,7 +77,7 @@ aiditor.authoring
 
 `aiditor.runtime-authoring` tells live editor agents to:
 
-- write plain JavaScript Aiditor components;
+- write plain JavaScript AIditor components;
 - avoid React, TSX, JSX, import/export, and TypeScript syntax in zero-build
   projects;
 - prefer `aiditor.ui.*`;
@@ -89,7 +89,7 @@ aiditor.authoring
   component file.
 
 `aiditor.library-authoring` is for repository or host-app code that uses
-Aiditor as a library. `aiditor.authoring` remains as a compatibility umbrella.
+AIditor as a library. `aiditor.authoring` remains as a compatibility umbrella.
 
 Host apps may add domain-specific skills. Domain skills should explain project
 data and workflows, not create private tool systems.

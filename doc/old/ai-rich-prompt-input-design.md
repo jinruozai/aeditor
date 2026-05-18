@@ -1,7 +1,7 @@
 # AI Rich Prompt Input
 
 Status: final design contract
-Scope: Aiditor framework-level rich prompt input for AI chat/send panels
+Scope: AIditor framework-level rich prompt input for AI chat/send panels
 
 This document defines how AI prompt input embeds resources, editor targets, files, images, paths, and other AI-addressable objects directly inside the text flow. It replaces the "attachment chips above the textarea" mental model with inline references that preserve natural language context.
 
@@ -36,7 +36,7 @@ Only these inline atom types are in scope for v1:
 
 ## Core Decision
 
-Aiditor uses a **plain string with private token characters plus a sidecar token map**.
+AIditor uses a **plain string with private token characters plus a sidecar token map**.
 
 ```js
 {
@@ -256,7 +256,7 @@ Do not import arbitrary HTML nodes into the editor.
 
 Copy must write two representations:
 
-1. `application/x-aiditor-rich-prompt`: preserves token refs inside Aiditor.
+1. `application/x-aiditor-rich-prompt`: preserves token refs inside AIditor.
 2. `text/plain`: user-readable fallback.
 
 Plain text conversion:
@@ -431,14 +431,14 @@ Delta advantages:
 - good operation model
 - familiar to rich text developers
 
-Delta drawbacks for Aiditor prompt input:
+Delta drawbacks for AIditor prompt input:
 
 - array operation normalization is required
 - business code may be tempted to splice ops directly
 - cursor mapping between DOM and ops is more complex than string offsets
 - it suggests support for rich formatting we explicitly do not want
 
-Aiditor can still export/import a Delta-like shape later if needed. Internally, the PUA token string is smaller and more stable for this exact use case.
+AIditor can still export/import a Delta-like shape later if needed. Internally, the PUA token string is smaller and more stable for this exact use case.
 
 ## Why Not Markdown Links as Canonical Format
 

@@ -13,4 +13,4 @@ Do not implement from files in this directory unless a current document
 explicitly references one.
 
 Terms such as "final", "target", "contract", or "architecture" inside this
-directory describe historical design attempts, not current Aiditor authority.
+directory describe historical design attempts, not current AIditor authority.

@@ -1,11 +1,11 @@
 # AI Target System
 
 Status: historical background, superseded by `doc/ai-reference-operation-architecture.md`
-Scope: generic Aiditor AI target protocol plus GameDataEditor target map
+Scope: generic AIditor AI target protocol plus GameDataEditor target map
 
 New code should use `aiditor.ai.attach(...)`, `aiditor.ai.references`, and `aiditor.ai.operations`.
 
-Aiditor AI is not tied to a specific editor. The framework defines how UI objects become stable AI-addressable targets; applications define how those targets resolve into domain data and tools.
+AIditor AI is not tied to a specific editor. The framework defines how UI objects become stable AI-addressable targets; applications define how those targets resolve into domain data and tools.
 
 ## Goals
 

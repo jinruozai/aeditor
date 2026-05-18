@@ -1,6 +1,6 @@
 # Component Patterns
 
-Load this reference when you are writing or reviewing Aiditor component code.
+Load this reference when you are writing or reviewing AIditor component code.
 
 ## Component Contract
 
@@ -24,7 +24,7 @@ any resources it creates.
 
 ## Signals
 
-Use Aiditor signals for component state:
+Use AIditor signals for component state:
 
 ```js
 const value = aiditor.signal('hello')
@@ -55,7 +55,7 @@ areas. Avoid fixed viewport sizes inside panels.
 
 ## UI Library
 
-Prefer Aiditor UI primitives when the UI layer is loaded:
+Prefer AIditor UI primitives when the UI layer is loaded:
 
 ```js
 const name = aiditor.signal('Untitled')
@@ -182,5 +182,5 @@ aiditor.registerComponent('demo.toolbar.tabs', {
 - Registering the same component twice.
 - Passing source code as a panel prop.
 - Writing large app state into `ctx.panel.updateProps` on every animation frame.
-- Using hidden DOM panels instead of Aiditor's detached inactive panel model.
+- Using hidden DOM panels instead of AIditor's detached inactive panel model.
 - Adding application shortcuts to framework source.

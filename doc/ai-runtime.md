@@ -65,11 +65,11 @@ The framework ships focused built-in authoring skills:
 
 ```text
 aiditor.runtime-authoring   live editor agent: write workspace files, mount/replace dock panels
-aiditor.library-authoring   repository agent: use Aiditor as a plain JavaScript library
+aiditor.library-authoring   repository agent: use AIditor as a plain JavaScript library
 aiditor.authoring           compatibility alias for older combined guidance
 ```
 
-They teach the model the Aiditor component contract: plain `.js` files,
+They teach the model the AIditor component contract: plain `.js` files,
 registered components, `factory(propsSig, ctx) -> HTMLElement`, `aiditor.ui.*`
 controls, dock-responsive layout, generated API references, and no
 React/TSX/import/export unless the workspace explicitly provides such a build
@@ -456,4 +456,4 @@ aiditor.ai.clearStoredState()
 ```
 
 Persistence belongs to the AI runtime. Domain persistence remains outside
-Aiditor Core.
+AIditor Core.

@@ -2,7 +2,7 @@
 
 ## Purpose
 
-An extension packages things Aiditor already knows how to register.
+An extension packages things AIditor already knows how to register.
 
 ```text
 extension
@@ -80,7 +80,7 @@ reported before any registry is mutated.
 }
 ```
 
-Contribution ids are local by default. Aiditor publishes them with the extension
+Contribution ids are local by default. AIditor publishes them with the extension
 id as a dotted prefix:
 
 ```text

@@ -239,8 +239,8 @@
       }
     })
     return [
-      'SYSTEM: You are running inside Aiditor. Some user requests require changing editor state.',
-      'If a user asks you to create, delete, rename, move, reparent, send to, or inspect an Aiditor agent, quest, message, or attachment, you MUST request the matching Aiditor tool.',
+      'SYSTEM: You are running inside AIditor. Some user requests require changing editor state.',
+      'If a user asks you to create, delete, rename, move, reparent, send to, or inspect an AIditor agent, quest, message, or attachment, you MUST request the matching AIditor tool.',
       'Do not merely say you will do it. The host cannot act unless you emit an aiditor_tool_calls JSON block.',
       'Complete the user request end-to-end. For delegated work, prefer toolId "agent.delegate" because it creates/reuses an agent and sends the task in one workflow.',
       'If you use agent.create separately for a delegated task, do not stop after agent.create; continue with agent.send, then quest.read/message.read when the quest completes.',

@@ -11,7 +11,7 @@ platform inside Core. Host apps teach the model through references, tools,
 operations, skills, and normal registered UI components. They do not get a
 private AI path.
 
-Any Aiditor module can contribute to AI by registering tools, context
+Any AIditor module can contribute to AI by registering tools, context
 references, or operations. `workspace.*`, `theme.*`, `dock.*`, `ui.*`, extension
 prefixes, and product prefixes all use the same registries.
 
@@ -26,7 +26,7 @@ APIs.
 
 Skills are discoverable too. `aiditor://skills` lists registered skills and
 when to use them; concrete skill URIs contain the full rules. This keeps the
-default prompt small while still letting agents choose the correct Aiditor
+default prompt small while still letting agents choose the correct AIditor
 workflow.
 
 ## Public Concept Model

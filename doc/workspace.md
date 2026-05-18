@@ -171,7 +171,7 @@ declare allowed roots, timeouts, output limits, command policy, and audit fields
 The framework consumes their contract; it does not treat them as ordinary
 browser workspace APIs.
 
-The Aiditor demo uses this pattern for workspace-backed UI generation. See
+The AIditor demo uses this pattern for workspace-backed UI generation. See
 [agent-workspace-editing.md](./agent-workspace-editing.md): agents write
 workspace files, reload the demo workspace app, and add panels by registered
 component name.

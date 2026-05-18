@@ -1,5 +1,5 @@
 // Demo.project - demo-only file-backed editor project runtime.
-// This is product/demo behavior, not part of the Aiditor framework bundle.
+// This is product/demo behavior, not part of the AIditor framework bundle.
 ;(function (aiditor, Demo) {
   'use strict'
 
@@ -607,7 +607,7 @@
 
   function projectForTool(projectId) {
     const p = projectId ? projects[projectId] : projects[activeId]
-    if (!p) throw new Error('No open Aiditor project')
+    if (!p) throw new Error('No open AIditor project')
     return p
   }
 
@@ -1091,7 +1091,7 @@
     const owner = 'demo.project'
     aiditor.ai.tools.register('demo.project.openWorkspace', {
       title: 'Open Workspace Project',
-      description: 'Open the current AI workspace as an Aiditor demo project when it contains aiditor.project.json. Use this before demo.project.addPanel if files exist but no demo project is open.',
+      description: 'Open the current AI workspace as an AIditor demo project when it contains aiditor.project.json. Use this before demo.project.addPanel if files exist but no demo project is open.',
       schema: { type: 'object', properties: {} },
       permissions: ['tool.call', 'tool.apply'],
       exposeToModel: false,
@@ -1100,7 +1100,7 @@
     }, { owner: owner, layer: 'builtin' })
     aiditor.ai.tools.register('demo.project.readDescriptor', {
       title: 'Read Project Descriptor',
-      description: 'Read the current Aiditor project descriptor.',
+      description: 'Read the current AIditor project descriptor.',
       schema: { type: 'object', properties: { projectId: { type: 'string' } } },
       permissions: ['tool.call'],
       available: projectAvailable,
@@ -1246,7 +1246,7 @@
     }, { owner: owner, layer: 'builtin' })
     aiditor.ai.tools.register('demo.project.reload', {
       title: 'Reload Project',
-      description: 'Reload the current Aiditor project after file edits.',
+      description: 'Reload the current AIditor project after file edits.',
       schema: { type: 'object', properties: { projectId: { type: 'string' } } },
       permissions: ['tool.call', 'tool.apply'],
       exposeToModel: false,
@@ -1315,7 +1315,7 @@
     if (!aiditor.ai || !aiditor.ai.skills || !aiditor.ai.skills.register) return
     aiditor.ai.skills.register('demo.project.authoring', {
       title: 'Demo Project Authoring',
-      systemPrompt: 'Use the current demo project runtime as the host-specific Aiditor authoring environment. Keep UI code file-backed and add registered components to inspected docks by name.',
+      systemPrompt: 'Use the current demo project runtime as the host-specific AIditor authoring environment. Keep UI code file-backed and add registered components to inspected docks by name.',
       auto: function (ctx) {
         return !!(ctx && ctx.uiAuthoringIntent && (workspaceAvailable() || projectAvailable()))
       },

@@ -1,6 +1,6 @@
 # AI Agent Quest Runtime
 
-This document is the implementation target for the Aiditor AI agent runtime.
+This document is the implementation target for the AIditor AI agent runtime.
 
 The design intentionally removes the old `chat` / `goal` split. Every agent uses one runtime model: messages enter a queue, the scheduler runs the agent, tools are the only side-effect boundary, and cross-agent work is tracked by quests.
 
@@ -653,4 +653,4 @@ Provider= transport only
 UI      = projection of real runtime state
 ```
 
-This model supports Codex-style parallel collaboration while staying small enough for Aiditor: a parent can dispatch many child quests, continue its own work, process whatever child results have completed by the next scheduler checkpoint, and read exact results by `agentId/messageId` without contaminating context or losing task boundaries.
+This model supports Codex-style parallel collaboration while staying small enough for AIditor: a parent can dispatch many child quests, continue its own work, process whatever child results have completed by the next scheduler checkpoint, and read exact results by `agentId/messageId` without contaminating context or losing task boundaries.

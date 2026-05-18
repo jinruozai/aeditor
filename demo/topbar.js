@@ -291,7 +291,7 @@
       '<html lang="en">',
       '<head>',
       '  <meta charset="UTF-8">',
-      '  <title>Aiditor Workspace</title>',
+      '  <title>AIditor Workspace</title>',
       '  <meta name="viewport" content="width=device-width, initial-scale=1">',
       '  <link rel="stylesheet" href="./aiditor-runtime/aiditor-full.css">',
       styles,
@@ -351,7 +351,7 @@
     if (window.Demo && Demo.project && Demo.project.open) {
       try {
         await Demo.project.open(ws, { mount: {} })
-        info(source + ': opened as Aiditor project', { label: label })
+        info(source + ': opened as AIditor project', { label: label })
         return true
       } catch (err) {
         if (!isMissingProjectDescriptor(err)) throw err
@@ -559,7 +559,7 @@
     const brand = ui.h('button', 'aid-brand')
     brand.type = 'button'
     brand.appendChild(ui.h('span', 'aid-brand-icon'))
-    brand.appendChild(ui.h('span', 'aid-brand-name', { text: 'Aiditor' }))
+    brand.appendChild(ui.h('span', 'aid-brand-name', { text: 'AIditor' }))
     brand.appendChild(ui.icon({ name: 'chevron-down', size: 'sm' }))
 
     const project = ui.h('div', 'aid-project-name')
@@ -626,5 +626,5 @@
     })
   }
 
-  window.AiditorTopBar = { mount: mount }
+  window.AIditorTopBar = { mount: mount }
 })(window.aiditor = window.aiditor || {})

@@ -131,7 +131,7 @@ workspace, task, context, attachment, memory, compaction, queue, and transcript
 messages before a provider sees the request.
 
 The adapter layer formats that assembled request for a provider. It converts
-Aiditor messages, images, tools, and text-tool fallbacks into provider payload
+AIditor messages, images, tools, and text-tool fallbacks into provider payload
 shapes without owning context selection policy.
 
 Implemented helpers include:

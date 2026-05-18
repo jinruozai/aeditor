@@ -693,7 +693,7 @@ The final implementation is acceptable when:
 
 ## 19. Design Fit
 
-This design matches Aiditor's existing architecture:
+This design matches AIditor's existing architecture:
 
 - It uses stable ids and keyed reconciliation, same spirit as dock rendering.
 - It keeps component runtime state local to the panel.

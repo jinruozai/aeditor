@@ -53,8 +53,8 @@
       resolver: 'skills',
       uri: 'aiditor://skills',
       kind: 'aiditor.skill.index',
-      title: 'Aiditor Skills',
-      summary: 'Generated list of registered Aiditor skills and when to use them.',
+      title: 'AIditor Skills',
+      summary: 'Generated list of registered AIditor skills and when to use them.',
       meta: { count: skillNames().length },
       tools: ['aiditor.readReference'],
     }
@@ -80,8 +80,8 @@
         uri: 'aiditor://skills',
         id: 'aiditor.skills.index',
         kind: 'aiditor.skill.index',
-        title: 'Aiditor Skills',
-        summary: 'Registered Aiditor skill list. Read a skill URI for full rules.',
+        title: 'AIditor Skills',
+        summary: 'Registered AIditor skill list. Read a skill URI for full rules.',
         entries: skillNames().map(function (name) { return compactSkill(name, getSkill(name)) }),
       }
     }

@@ -1,15 +1,15 @@
 ---
 name: aiditor-library-authoring
-description: Use when coding an Aiditor-based project or host app directly in a repository, outside the live editor agent runtime. Covers using Aiditor as a zero-build JavaScript library.
+description: Use when coding an AIditor-based project or host app directly in a repository, outside the live editor agent runtime. Covers using AIditor as a zero-build JavaScript library.
 ---
 
-# Aiditor Library Authoring
+# AIditor Library Authoring
 
-Use this skill when writing project code that uses Aiditor as a library:
+Use this skill when writing project code that uses AIditor as a library:
 `index.html`, host scripts, registered components, layout creation, demo apps,
 or framework integration code.
 
-If you are an agent already inside an Aiditor editor and need to put a panel
+If you are an agent already inside an AIditor editor and need to put a panel
 into the current dock, use `aiditor-runtime-authoring`.
 
 ## Runtime Shape
@@ -24,7 +24,7 @@ aiditor-core      Kernel + UI
 aiditor-full      Kernel + UI + AI Host + Extension Runtime
 ```
 
-Aiditor is plain browser JavaScript. Source files are IIFEs; consumer projects
+AIditor is plain browser JavaScript. Source files are IIFEs; consumer projects
 can run with classic `<script>` tags and no bundler.
 
 ## Rules
@@ -32,7 +32,7 @@ can run with classic `<script>` tags and no bundler.
 - Write plain `.js` scripts unless the host app already owns a separate build
   system.
 - Do not use React, Vue, JSX, TSX, TypeScript annotations, `import`, or
-  `export` in zero-build Aiditor scripts.
+  `export` in zero-build AIditor scripts.
 - Register UI with `aiditor.registerComponent(name, spec)`.
 - Components receive `factory(propsSig, ctx)` and return one HTMLElement root.
 - Panel roots must fit resizable docks: `height:100%`, `minHeight:0`,

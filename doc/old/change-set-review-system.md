@@ -5,7 +5,7 @@ Scope: framework-level change review, AI previews, editor-specific semantic diff
 
 ## 1. Goal
 
-Aiditor needs one reusable review system for changes proposed by AI, plugins, imports, generators, or batch tools.
+AIditor needs one reusable review system for changes proposed by AI, plugins, imports, generators, or batch tools.
 
 The framework must support code diffs like Codex / Claude / Trae style editors, structured data diffs like GameDataEditor, and future editor domains such as animation timelines, material graphs, documents, images, and asset references.
 

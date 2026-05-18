@@ -1,4 +1,4 @@
-// AI settings sections for Aiditor.
+// AI settings sections for AIditor.
 ;(function (aiditor) {
   'use strict'
 
@@ -223,7 +223,7 @@
       return 'Subscription connections use the Local Bridge for browser login. Keep the bridge running while using ChatGPT/Codex or Claude Code auth.'
     }
     if (meta.authType === 'apiKey') {
-      return 'API keys are stored in local Aiditor settings. For team or production use, prefer a trusted proxy or host-managed secret store.'
+      return 'API keys are stored in local AIditor settings. For team or production use, prefer a trusted proxy or host-managed secret store.'
     }
     if (meta.provider === 'ollama') return 'Ollama uses the OpenAI-compatible local endpoint. Keep Ollama running before loading models.'
     return 'This connection is available without extra browser-side credentials.'

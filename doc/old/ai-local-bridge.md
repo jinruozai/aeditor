@@ -1,6 +1,6 @@
 # AI Local Bridge
 
-Aiditor keeps browser AI integration split into three layers:
+AIditor keeps browser AI integration split into three layers:
 
 1. `Connection`: provider identity, auth method, transport, model defaults.
 2. `Auth driver`: API key, local bridge, subscription bridge, or no auth.
@@ -45,7 +45,7 @@ All endpoints return JSON and allow local browser CORS.
 | `/connections/openai-codex/login` | `POST` | Start ChatGPT device-code login through Codex. |
 | `/connections/openai-codex/logout` | `POST` | Sign out through Codex. |
 | `/connections/openai-codex/models` | `GET` | Return Codex model choices. |
-| `/connections/openai-codex/chat` | `POST` | Send an Aiditor AI request through Codex. |
+| `/connections/openai-codex/chat` | `POST` | Send an AIditor AI request through Codex. |
 | `/models` | `GET` | Generic bridge alias for model listing. |
 | `/chat` | `POST` | Generic bridge alias for chat. |
 
@@ -67,7 +67,7 @@ Projects should register their own connections or tools instead of changing fram
 - Do not pass subscription tokens into browser settings.
 - Browser API keys are allowed only for personal/local use. Shared deployments should use `local-bridge`.
 - Subscription login must use official local tooling or a documented provider API. Do not implement cookie scraping.
-- The bridge accepts Aiditor request JSON, not arbitrary shell commands. `AIDITOR_CODEX_CHAT_COMMAND` is a developer override for local testing and controlled integrations.
+- The bridge accepts AIditor request JSON, not arbitrary shell commands. `AIDITOR_CODEX_CHAT_COMMAND` is a developer override for local testing and controlled integrations.
 
 ## Current Codex Integration
 

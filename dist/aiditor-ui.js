@@ -9942,7 +9942,7 @@
 })(window.aiditor = window.aiditor || {})
 
 /* ---- style/theme-settings.js ---- */
-// Theme settings contribution for Aiditor.
+// Theme settings contribution for AIditor.
 ;(function (aiditor) {
   'use strict'
 
@@ -9951,7 +9951,7 @@
   aiditor.settings.registerSection('theme', {
     title: 'Theme',
     icon: 'palette',
-    description: 'Aiditor appearance and visual density.',
+    description: 'AIditor appearance and visual density.',
     order: 10,
   })
 
@@ -9967,7 +9967,7 @@
         { value: 'harbor', label: 'Harbor' },
         { value: 'light', label: 'Light' },
       ],
-      description: 'Active Aiditor theme.',
+      description: 'Active AIditor theme.',
       order: 10,
     },
     {
@@ -10076,7 +10076,7 @@
   function renderThemeSettings() {
     const ui = aiditor.ui
     const root = ui.view({ scroll: 'hidden', className: 'aiditor-settings-page aiditor-settings-theme-page' })
-    root.appendChild(pageHead('Theme', 'Aiditor appearance and visual density.'))
+    root.appendChild(pageHead('Theme', 'AIditor appearance and visual density.'))
 
     const bar = ui.h('div', 'aiditor-settings-theme-bar')
     const tabSig = aiditor.signal('palette')

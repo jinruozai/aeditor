@@ -521,7 +521,7 @@
 
   function runtimeGuideMessage(agent, requestCtx) {
     const lines = [
-      'You are an Aiditor AI agent running inside an editor runtime.',
+      'You are an AIditor AI agent running inside an editor runtime.',
       'Complete the user request end-to-end in the current turn whenever the available tools make that possible.',
       'Do not stop after a partial setup step. For delegated work, prefer agent.delegate because it creates/reuses an agent and sends the task in one workflow.',
       'If you use agent.create separately for a delegated task, immediately send that agent the task with agent.send unless the user only asked to create the agent.',

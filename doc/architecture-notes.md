@@ -26,7 +26,7 @@ Readable URI/kind/meta pointers resolve through `aiditor.ai.references`.
 
 ## Project Runtime
 
-Aiditor framework has no built-in project model.
+AIditor framework has no built-in project model.
 
 The file-backed project loader is demo behavior:
 

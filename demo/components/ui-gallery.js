@@ -107,7 +107,7 @@
       uri: 'editor://component/' + encodeURIComponent(item.component),
       kind: 'editor.component',
       title: item.label,
-      summary: 'Registered Aiditor component ' + item.component + '.',
+      summary: 'Registered AIditor component ' + item.component + '.',
       meta: {
         component: item.component,
         label: item.label,

@@ -1,6 +1,6 @@
 # AI Context And Compaction
 
-This document defines how Aiditor keeps long agent sessions useful without
+This document defines how AIditor keeps long agent sessions useful without
 making every request carry the whole transcript.
 
 The design borrows the durable lessons from mainstream coding agents:
@@ -12,7 +12,7 @@ The design borrows the durable lessons from mainstream coding agents:
 - old noisy history is condensed into auditable summaries.
 
 It does not add a project model to the framework. File access is still
-`workspace.*`. Product semantics stay outside Aiditor or in extensions.
+`workspace.*`. Product semantics stay outside AIditor or in extensions.
 
 ## Mental Model
 

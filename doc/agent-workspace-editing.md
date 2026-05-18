@@ -1,12 +1,12 @@
 # Agent Workspace Editing
 
 This document describes the recommended workflow for agents that edit files
-through Aiditor. The framework has no project concept: it only knows registered
+through AIditor. The framework has no project concept: it only knows registered
 tools, a bounded workspace, and optional host adapters.
 
 ## Principle
 
-Aiditor framework stays simple:
+AIditor framework stays simple:
 
 ```text
 component registry -> panel data references component name -> dock runtime mounts component
@@ -51,10 +51,10 @@ lines. It helps the model decide what to read next without loading whole files.
 
 `git.*` is optional. A host may call `aiditor.ai.configureGit(adapter)` to expose
 status, diff, log, show, stage, restore, and commit through the same tool
-registry. Aiditor does not run shell commands itself.
+registry. AIditor does not run shell commands itself.
 
 `verify.*` is optional. A host may call `aiditor.ai.configureVerify(adapter)` to
-expose list, run, and diagnostics tools through the same registry. Aiditor does
+expose list, run, and diagnostics tools through the same registry. AIditor does
 not run tests, shell commands, linters, or typecheckers itself; it only calls the
 host adapter when present.
 
@@ -98,7 +98,7 @@ ani.timeline.insertKeyframes
 
 Those tools are domain-specific. They must not leak into framework APIs.
 
-The Aiditor demo also wires its project `check` hook into the optional
+The AIditor demo also wires its project `check` hook into the optional
 `verify.*` adapter. That keeps model guidance generic: after editing files, the
 agent can call `verify.run` when available instead of learning a second
 demo-only check path.

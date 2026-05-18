@@ -61,8 +61,8 @@
       resolver: 'api',
       uri: 'aiditor://api',
       kind: 'aiditor.api.index',
-      title: 'Aiditor API Index',
-      summary: 'Generated list of documented Aiditor APIs.',
+      title: 'AIditor API Index',
+      summary: 'Generated list of documented AIditor APIs.',
       meta: { count: entries().length },
       tools: ['aiditor.readReference'],
     }
@@ -116,7 +116,7 @@
         uri: 'aiditor://api',
         id: 'aiditor.api.index',
         kind: 'aiditor.api.index',
-        title: 'Aiditor API Index',
+        title: 'AIditor API Index',
         summary: 'Generated API list from structured source comments.',
         entries: entries().map(function (entry) {
           return {

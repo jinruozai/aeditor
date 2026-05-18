@@ -1,7 +1,7 @@
-# Aiditor Project Agent Architecture
+# AIditor Project Agent Architecture
 
 This document defines the final design for AI-assisted project editing in
-Aiditor.
+AIditor.
 
 The target quality bar:
 
@@ -29,7 +29,7 @@ state observation
 If any step is vague, the model guesses. If every step is typed and bounded, the
 model can act precisely.
 
-Therefore Aiditor needs five primitives:
+Therefore AIditor needs five primitives:
 
 1. `ProjectWorkspace` - the authorized root and file boundary.
 2. `ProjectMap` - a compact index of files, panels, components, data resources,
@@ -625,7 +625,7 @@ Phase 8: Subagents
 
 ## 19. Fit With Existing Architecture
 
-This design fits Aiditor because it does not replace the framework:
+This design fits AIditor because it does not replace the framework:
 
 - Dock still owns layout.
 - Panel still references registered components.

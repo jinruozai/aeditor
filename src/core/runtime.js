@@ -1,5 +1,5 @@
 // Runtime contribution loader.
-// Hosts provide source text or a URL; Aiditor executes it with a default owner
+// Hosts provide source text or a URL; AIditor executes it with a default owner
 // so plain register calls can be cleaned up as one contribution group.
 ;(function (aiditor) {
   'use strict'

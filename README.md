@@ -335,10 +335,10 @@ Register context providers or operations when the editor needs to expose current
 selection, bounded reads, previews, or reviewed mutations. All writes should go
 through permission and preview/apply paths.
 
-`aiditor-ai` and `aiditor-full` include built-in Aiditor authoring skills.
+`aiditor-ai` and `aiditor-full` include built-in AIditor authoring skills.
 `aiditor.runtime-authoring` teaches in-editor agents to create file-backed
 components and mount them into live docks. `aiditor.library-authoring` teaches
-Codex-like agents to use Aiditor as a plain JavaScript library in a repository.
+Codex-like agents to use AIditor as a plain JavaScript library in a repository.
 Copyable skill documents live under [`doc/skill`](./doc/skill).
 
 Runtime API docs are generated from structured comments in `src/` during
@@ -435,8 +435,8 @@ the runtime bundles.
 - [AI Host](./doc/ai.md)
 - [Extension Runtime](./doc/extensions.md)
 - [Generated API docs](./doc/api/index.md)
-- [Aiditor runtime authoring skill](./doc/skill/aiditor-runtime-authoring/SKILL.md)
-- [Aiditor library authoring skill](./doc/skill/aiditor-library-authoring/SKILL.md)
+- [AIditor runtime authoring skill](./doc/skill/aiditor-runtime-authoring/SKILL.md)
+- [AIditor library authoring skill](./doc/skill/aiditor-library-authoring/SKILL.md)
 
 ## License
 

@@ -2,7 +2,7 @@
 
 ## Goal
 
-Aiditor AI uses one canonical runtime pipeline. API-key models, Codex Auth,
+AIditor AI uses one canonical runtime pipeline. API-key models, Codex Auth,
 local bridge, Ollama, and future desktop hosts are all provider transports behind
 the same request/response contract.
 

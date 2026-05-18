@@ -192,7 +192,7 @@
       uri: 'demo://theme/token/' + encodeURIComponent(name),
       kind: 'demo.themeToken',
       title: 'Theme / ' + spec.label,
-      summary: 'Editable Aiditor demo theme token ' + name + '.',
+      summary: 'Editable AIditor demo theme token ' + name + '.',
       meta: {
         token: name,
         label: spec.label,
@@ -215,7 +215,7 @@
       uri: 'demo://theme/mode',
       kind: 'demo.themeMode',
       title: 'Theme / Mode',
-      summary: 'Current Aiditor demo theme mode.',
+      summary: 'Current AIditor demo theme mode.',
       meta: {
         value: themeMode(),
         options: ['dark', 'dracula', 'harbor', 'light'],
@@ -374,12 +374,12 @@
       resolver: 'editor',
       uri: 'aiditor://host',
       kind: 'aiditor.host',
-      title: 'Aiditor Demo Host',
+      title: 'AIditor Demo Host',
       summary: project
-        ? 'Current Aiditor demo shell with an open workspace-backed editor project. Durable UI should be created as project files, then placed by registered component name.'
+        ? 'Current AIditor demo shell with an open workspace-backed editor project. Durable UI should be created as project files, then placed by registered component name.'
         : (workspace
-          ? 'Current Aiditor demo shell with an AI workspace selected, but no demo project opened. Open the workspace project before mounting panels.'
-          : 'Current Aiditor demo shell. No workspace project is open, so the agent should inspect the shell but not generate panels.'),
+          ? 'Current AIditor demo shell with an AI workspace selected, but no demo project opened. Open the workspace project before mounting panels.'
+          : 'Current AIditor demo shell. No workspace project is open, so the agent should inspect the shell but not generate panels.'),
       meta: {
         project: project ? {
           id: project.id,
@@ -554,7 +554,7 @@
 
   aiditor.ai.tools.register('demo.setProp', {
     title: 'Set Demo Property',
-    description: 'Change an editable property in the Aiditor component explorer demo. Use only prop keys returned by demo.property refs or by component meta.props; never invent keys such as children if they are not listed.',
+    description: 'Change an editable property in the AIditor component explorer demo. Use only prop keys returned by demo.property refs or by component meta.props; never invent keys such as children if they are not listed.',
     schema: {
       type: 'object',
       required: ['componentId', 'prop', 'value'],
@@ -570,7 +570,7 @@
 
   aiditor.ai.tools.register('demo.setThemeToken', {
     title: 'Set Demo Theme Token',
-    description: 'Change an Aiditor component explorer theme token such as --aiditor-brand or --aiditor-surface-panel.',
+    description: 'Change an AIditor component explorer theme token such as --aiditor-brand or --aiditor-surface-panel.',
     schema: {
       type: 'object',
       required: ['token', 'value'],
@@ -585,7 +585,7 @@
 
   aiditor.ai.tools.register('demo.setThemeMode', {
     title: 'Set Demo Theme Mode',
-    description: 'Switch the Aiditor component explorer theme mode.',
+    description: 'Switch the AIditor component explorer theme mode.',
     schema: {
       type: 'object',
       required: ['mode'],

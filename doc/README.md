@@ -1,20 +1,20 @@
-# Aiditor Design
+# AIditor Design
 
-Aiditor is a zero-dependency frontend editor framework with optional upper
+AIditor is a zero-dependency frontend editor framework with optional upper
 layers. Its goal is simple: keep the kernel small, then let host apps build
 powerful editors and AI workflows on top of that small kernel.
 
 ```text
-Aiditor Kernel              core services, component registry, tree, dock runtime
-Aiditor UI                  optional widget and built-in panel layer
-Aiditor AI Host             optional agent/runtime layer
-Aiditor Extension Runtime   optional packaging/lifecycle layer
+AIditor Kernel              core services, component registry, tree, dock runtime
+AIditor UI                  optional widget and built-in panel layer
+AIditor AI Host             optional agent/runtime layer
+AIditor Extension Runtime   optional packaging/lifecycle layer
 Host Adapters               privileged bridges owned by the host app
 ```
 
-Applications built with Aiditor, including Demo Project Runtime, sit outside
+Applications built with AIditor, including Demo Project Runtime, sit outside
 the framework. They may load workspace files, register components, and mount
-panels, but they are examples of host code rather than Aiditor architecture.
+panels, but they are examples of host code rather than AIditor architecture.
 
 ## Authority
 
@@ -41,7 +41,7 @@ explicitly references one.
 | Host Adapters | File-system bridges, provider transports, git, verification, and other privileged integrations. | Framework policy bypasses. |
 
 Domain-specific editors, demos, project loaders, app menus, app shortcuts, and
-workflow decisions are host code. They use Aiditor; they are not Aiditor layers.
+workflow decisions are host code. They use AIditor; they are not AIditor layers.
 
 ## Distribution Contract
 
@@ -147,8 +147,8 @@ extension runtime, AI panels, or AI-specific styles.
 - [agent-workspace-editing.md](./agent-workspace-editing.md): recommended file-first agent workflow for demo workspace code edits.
 - [extensions.md](./extensions.md): extension packaging, trust tiers, and lifecycle.
 - [api/index.md](./api/index.md): generated API reference built from structured source comments.
-- [skill/aiditor-runtime-authoring/SKILL.md](./skill/aiditor-runtime-authoring/SKILL.md): copyable AI skill for live Aiditor agents that edit workspace files and mount panels into current docks.
-- [skill/aiditor-library-authoring/SKILL.md](./skill/aiditor-library-authoring/SKILL.md): copyable AI skill for Codex-like agents using Aiditor as a library in a repository or host app.
+- [skill/aiditor-runtime-authoring/SKILL.md](./skill/aiditor-runtime-authoring/SKILL.md): copyable AI skill for live AIditor agents that edit workspace files and mount panels into current docks.
+- [skill/aiditor-library-authoring/SKILL.md](./skill/aiditor-library-authoring/SKILL.md): copyable AI skill for Codex-like agents using AIditor as a library in a repository or host app.
 - [skill/aiditor-authoring/SKILL.md](./skill/aiditor-authoring/SKILL.md): compatibility umbrella for the older combined authoring guidance.
 - [implementation-map.md](./implementation-map.md): source-file coverage map for current implementation.
 - [architecture-notes.md](./architecture-notes.md): intentional implementation notes for review-sensitive areas.

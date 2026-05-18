@@ -1,6 +1,6 @@
 # AI Reference / Operation Architecture
 
-Aiditor treats AI as another editor operator. The framework should not know
+AIditor treats AI as another editor operator. The framework should not know
 game data tables, animation keyframes, theme tokens, or node graphs. It should
 know how to reference editor objects, ask the host how to read them, preview a
 host operation, and commit that operation through the host transaction path.

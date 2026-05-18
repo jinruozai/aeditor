@@ -1,8 +1,8 @@
-# Aiditor Architecture
+# AIditor Architecture
 
 ## One Mental Model
 
-Aiditor is a zero-dependency frontend editor framework. Kernel is the small
+AIditor is a zero-dependency frontend editor framework. Kernel is the small
 runtime base; UI, AI Host, and Extension Runtime are optional layers a host app
 may load.
 
@@ -244,4 +244,4 @@ workspace.readFile
 gde.table.readRows
 ```
 
-File access is generic. Domain access lives outside Aiditor Core.
+File access is generic. Domain access lives outside AIditor Core.

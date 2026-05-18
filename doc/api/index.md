@@ -1,4 +1,4 @@
-# Aiditor API
+# AIditor API
 
 Generated from structured API comments in `src/`.
 

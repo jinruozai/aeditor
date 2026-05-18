@@ -1,10 +1,10 @@
-# Aiditor Settings System
+# AIditor Settings System
 
 Status: final framework design.
 
 ## 1. Goal
 
-Aiditor provides a standard settings panel that applications and plugins can extend without rebuilding settings UI.
+AIditor provides a standard settings panel that applications and plugins can extend without rebuilding settings UI.
 
 The system has two layers:
 

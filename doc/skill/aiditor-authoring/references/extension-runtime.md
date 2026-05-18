@@ -1,6 +1,6 @@
 # Extension Runtime
 
-Load this reference when the task packages Aiditor capabilities as an extension.
+Load this reference when the task packages AIditor capabilities as an extension.
 
 ## When To Use An Extension
 

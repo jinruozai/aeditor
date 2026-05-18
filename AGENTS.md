@@ -11,12 +11,12 @@
 
 当前产品边界分四块:
 
-1. **Aiditor Core/UI**:稳定零依赖内核,提供 Dock/Panel/Component、UI 组件库、主题、signal/log/bus/settings/history/workspace contract。
-2. **Aiditor AI Host**:可选上层模块,提供 agent runtime、provider、tools/context/operations、permissions、ChangeSet、compaction。它依赖 Core/UI,但 Core/UI 不依赖 AI。
-3. **Aiditor Extension Runtime**:可选上层模块,把 component/tool/context/reference/operation/settings/command/menu/dock panel contribution 安装进已有 registry。它不是第二套组件或 AI 模型。
+1. **AIditor Core/UI**:稳定零依赖内核,提供 Dock/Panel/Component、UI 组件库、主题、signal/log/bus/settings/history/workspace contract。
+2. **AIditor AI Host**:可选上层模块,提供 agent runtime、provider、tools/context/operations、permissions、ChangeSet、compaction。它依赖 Core/UI,但 Core/UI 不依赖 AI。
+3. **AIditor Extension Runtime**:可选上层模块,把 component/tool/context/reference/operation/settings/command/menu/dock panel contribution 安装进已有 registry。它不是第二套组件或 AI 模型。
 4. **Demo Project Runtime**:示例宿主应用,用于演示“打开 workspace、加载文件、注册组件、挂到 dock”。它不属于框架层概念,不得写进 `src/` 的通用设计。
 
-Aiditor 仍坚持零依赖、零模块系统、单命名空间和 file:// 可运行。AI Host 和 Extension Runtime 是框架提供的可选能力,不是把 Core/UI 变成业务编辑器。
+AIditor 仍坚持零依赖、零模块系统、单命名空间和 file:// 可运行。AI Host 和 Extension Runtime 是框架提供的可选能力,不是把 Core/UI 变成业务编辑器。
 
 - **零构建**:经典 `<script>` 标签,直接 `file://` 双击 `index.html` 就能跑
 - **零依赖**:不用 npm,不用打包工具,不用任何框架

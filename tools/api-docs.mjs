@@ -190,7 +190,7 @@ function writeDocs(payload) {
     groups.get(entry.group).push(entry)
   })
 
-  const index = ['# Aiditor API', '', 'Generated from structured API comments in `src/`.', '']
+  const index = ['# AIditor API', '', 'Generated from structured API comments in `src/`.', '']
   Array.from(groups.keys()).sort().forEach((group) => {
     index.push('- [' + group + '](./' + group + '.md)')
   })

@@ -1,10 +1,10 @@
-# Aiditor Project Runtime Architecture
+# AIditor Project Runtime Architecture
 
-This document defines the final architecture for Aiditor as a local-first,
+This document defines the final architecture for AIditor as a local-first,
 AI-editable editor runtime.
 
 The goal is not to add another parallel plugin system. The goal is to make every
-editor built on Aiditor follow one simple shape:
+editor built on AIditor follow one simple shape:
 
 > Open a directory, read its project descriptor, load its registered editor
 > capabilities, mount its dock layout, and let AI edit the project through
@@ -29,7 +29,7 @@ The Project Runtime adds a file-backed application layer above it.
 
 4. Open directory equals open editor.
    A user can select `game-data-editor`, `gbox-ani-editor`, or a future editor
-   project directory and Aiditor can mount the corresponding app.
+   project directory and AIditor can mount the corresponding app.
 
 5. AI works like a code agent.
    AI should search files, read small ranges, patch with base hashes, reload the
@@ -52,7 +52,7 @@ The Project Runtime adds a file-backed application layer above it.
 
 ## 2. Core Mental Model
 
-Aiditor has three layers:
+AIditor has three layers:
 
 ```text
 Host Shell
@@ -449,7 +449,7 @@ Important boundary:
 
 Same-page `script` and `module` entries are not a JavaScript sandbox. Once loaded
 into the page, trusted project code can use ordinary browser APIs available to
-that origin. The workspace API bounds Aiditor and AI file access, but it does
+that origin. The workspace API bounds AIditor and AI file access, but it does
 not magically confine arbitrary same-page JavaScript. Therefore:
 
 1. Only load same-page project code after the user grants `project.code.load`.
@@ -508,7 +508,7 @@ strategies:
 2. Snapshot rollback: unload the old owner, install the candidate, and restore
    the previous owner snapshot if setup or mount fails.
 
-Aiditor's zero-build same-page runtime uses snapshot rollback today because
+AIditor's zero-build same-page runtime uses snapshot rollback today because
 it keeps the component model simple and avoids an alias layer in the registry.
 Versioned staging can be added later only if the registry grows first-class
 public-id aliasing.
@@ -553,7 +553,7 @@ window.GDEApp = {
 ```
 
 Then `index.html` can call `GDEApp.mount(document.getElementById('app'))`, while
-the Aiditor host can mount the same app into a dock.
+the AIditor host can mount the same app into a dock.
 
 ### 13.2 GBox Ani Editor
 
@@ -562,7 +562,7 @@ Current state:
 - ES module source.
 - Bundled IIFE output in `dist/gobjani-editor.bundle.js`.
 - Already exposes `GObjAniEditor.mount`, `createTree`, and `registerComponents`.
-- Uses Aiditor panels and bus topics.
+- Uses AIditor panels and bus topics.
 
 Recommended final shape:
 
@@ -682,7 +682,7 @@ Phase 6: Hardening
 
 ## 18. Final Shape
 
-Aiditor becomes:
+AIditor becomes:
 
 ```text
 Dock UI framework

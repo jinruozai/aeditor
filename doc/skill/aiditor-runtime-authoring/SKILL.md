@@ -1,11 +1,11 @@
 ---
 name: aiditor-runtime-authoring
-description: Use when an AI agent is running inside an Aiditor host and needs to create, edit, load, mount, or replace workspace-backed panels/components in the live editor dock runtime.
+description: Use when an AI agent is running inside an AIditor host and needs to create, edit, load, mount, or replace workspace-backed panels/components in the live editor dock runtime.
 ---
 
-# Aiditor Runtime Authoring
+# AIditor Runtime Authoring
 
-Use this skill when you are already inside an Aiditor-powered editor and the
+Use this skill when you are already inside an AIditor-powered editor and the
 user asks you to make UI appear in the current editor, such as "put a panel in
 the main dock" or "replace this panel".
 
@@ -127,7 +127,7 @@ path per file, never both.
 - Do not hand-write layout JSON for live placement.
 - Do not pass source code inside dock/panel tool arguments.
 - Do not use React, Vue, JSX, TSX, TypeScript annotations, `import`, or
-  `export` in zero-build Aiditor workspace scripts.
+  `export` in zero-build AIditor workspace scripts.
 - Prefer `aiditor.ui.*` controls when available.
 - Use `aiditor.ui.view` for primary scroll surfaces.
 - Use `aiditor.ui.propertyForm` for local schema-driven forms.

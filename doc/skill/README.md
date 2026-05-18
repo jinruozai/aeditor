@@ -1,10 +1,10 @@
-# Aiditor Skills
+# AIditor Skills
 
 This directory stores copyable AI skills for agents that need to work inside
-Aiditor projects, live Aiditor editor runtimes, or host apps.
+AIditor projects, live AIditor editor runtimes, or host apps.
 
 The framework also ships runtime skills in `src/ai/skills.js`. They are loaded
-by `aiditor-ai` and `aiditor-full`, and can be attached to Aiditor agents
+by `aiditor-ai` and `aiditor-full`, and can be attached to AIditor agents
 through `agent.skillRefs`.
 
 Use the document form when an external AI system, a host app, or a project
@@ -23,10 +23,10 @@ aiditor://api     read exact API signatures
 ```
 
 - [aiditor-runtime-authoring/SKILL.md](./aiditor-runtime-authoring/SKILL.md):
-  for agents running inside Aiditor, editing workspace files and mounting or
+  for agents running inside AIditor, editing workspace files and mounting or
   replacing live dock panels.
 - [aiditor-library-authoring/SKILL.md](./aiditor-library-authoring/SKILL.md):
-  for Codex-like agents using Aiditor as a library in a repository or host app.
+  for Codex-like agents using AIditor as a library in a repository or host app.
 - [aiditor-authoring/SKILL.md](./aiditor-authoring/SKILL.md): compatibility
   umbrella with the older combined guidance.
 

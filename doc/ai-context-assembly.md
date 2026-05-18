@@ -1,6 +1,6 @@
 # AI Context Assembly
 
-This document defines how Aiditor builds one provider request from an agent
+This document defines how AIditor builds one provider request from an agent
 transcript. It is an internal request-building contract, not a new public
 registry.
 
@@ -21,7 +21,7 @@ search, or range reads before they enter as full text.
 
 ## Context Layers
 
-Aiditor assembles context in this order:
+AIditor assembles context in this order:
 
 ```text
 runtime        current AI runtime rules and active skills

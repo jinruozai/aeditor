@@ -1,19 +1,19 @@
 ---
 name: aiditor-authoring
-description: Use when an AI agent needs to build, modify, review, or mount Aiditor editor UI: registered components, dock layouts, panels, toolbar items, aiditor.ui controls, AI tools/context/operations, extension manifests, or workspace-backed editor code. Use for zero-build plain JavaScript Aiditor projects and to avoid React, TSX, JSX, import/export, or bundled-module patterns.
+description: Use when an AI agent needs to build, modify, review, or mount AIditor editor UI: registered components, dock layouts, panels, toolbar items, aiditor.ui controls, AI tools/context/operations, extension manifests, or workspace-backed editor code. Use for zero-build plain JavaScript AIditor projects and to avoid React, TSX, JSX, import/export, or bundled-module patterns.
 ---
 
-# Aiditor Authoring
+# AIditor Authoring
 
 This is the compatibility umbrella skill. Prefer the focused skills:
 
-- `aiditor-runtime-authoring`: live Aiditor agent, workspace files, runtime dock
+- `aiditor-runtime-authoring`: live AIditor agent, workspace files, runtime dock
   mounting/replacing.
-- `aiditor-library-authoring`: Codex-like repository work using Aiditor as a
+- `aiditor-library-authoring`: Codex-like repository work using AIditor as a
   library.
 
-Use Aiditor as a zero-dependency, zero-build editor framework. Build durable
-editor UI as plain JavaScript files that register Aiditor components, then mount
+Use AIditor as a zero-dependency, zero-build editor framework. Build durable
+editor UI as plain JavaScript files that register AIditor components, then mount
 those registered component names into dock panels.
 
 ## Current Runtime Shape
@@ -58,7 +58,7 @@ surface before using optional layers.
 - Components receive `factory(propsSig, ctx)` and return one HTMLElement root.
   `propsSig` is a signal function: use `propsSig.peek()` for a one-time read,
   or `propsSig()` inside `aiditor.effect`.
-- Clean up with `ctx.onCleanup(fn)`. If you create nested Aiditor UI elements,
+- Clean up with `ctx.onCleanup(fn)`. If you create nested AIditor UI elements,
   call `aiditor.ui.dispose(root)` from cleanup when the subtree needs disposal.
 - Panel roots must survive resizable docks: set `height: 100%`, `minHeight: 0`,
   `boxSizing: border-box`, and use flex or grid layouts that adapt.
@@ -69,9 +69,9 @@ surface before using optional layers.
   inspect the current selection in a shared dock panel.
 - Toolbar tab components are normal toolbar components. Static toolbar items
   have `ctx.dock` but no `ctx.panel`.
-- Use `dockMenu: true` only when the host wants Aiditor default dock menu
+- Use `dockMenu: true` only when the host wants AIditor default dock menu
   contributions. Menus and commands are opt-in host choices.
-- In the Aiditor demo project runtime, component entry files use
+- In the AIditor demo project runtime, component entry files use
   `Demo.project.component(componentId, spec)`. Do not hand-write layout JSON or
   guess dock names. Use `aiditor.inspectDocks`, choose a returned `dockId`, then
   call `aiditor.addPanelToDock` with the registered `component`; include `path`
@@ -162,7 +162,7 @@ aiditor.inspector.select({ type: 'app.node', id: 'node-1', title: 'Node 1' })
 ```
 
 The provider API is `registerProvider(type, provider, meta)`. Do not pass a
-single object with `id/get/set`; that is not the Aiditor Inspector protocol.
+single object with `id/get/set`; that is not the AIditor Inspector protocol.
 If inspected state changes outside the form and no `subscribe(refresh)` hook is
 available, call `aiditor.inspector.refresh()`.
 
@@ -178,7 +178,7 @@ allows writing it. There is no mixed-value state.
 
 ## AI Authoring Workflow
 
-When an AI agent modifies Aiditor code, use the workspace-backed path:
+When an AI agent modifies AIditor code, use the workspace-backed path:
 
 1. Map or search files first.
 2. Read the exact range you will edit.

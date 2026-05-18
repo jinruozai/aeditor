@@ -1,6 +1,6 @@
 # Quality Optimization Plan
 
-This plan keeps Aiditor aligned with the product principles: simple, elegant, efficient, visually consistent, and cleanly separated from project code.
+This plan keeps AIditor aligned with the product principles: simple, elegant, efficient, visually consistent, and cleanly separated from project code.
 
 ## 1. Security And Permission Boundaries
 

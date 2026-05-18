@@ -206,7 +206,7 @@
 
 /* ---- core/runtime.js ---- */
 // Runtime contribution loader.
-// Hosts provide source text or a URL; Aiditor executes it with a default owner
+// Hosts provide source text or a URL; AIditor executes it with a default owner
 // so plain register calls can be cleaned up as one contribution group.
 ;(function (aiditor) {
   'use strict'
@@ -5152,8 +5152,8 @@
       }
     })
     return [
-      'SYSTEM: You are running inside Aiditor. Some user requests require changing editor state.',
-      'If a user asks you to create, delete, rename, move, reparent, send to, or inspect an Aiditor agent, quest, message, or attachment, you MUST request the matching Aiditor tool.',
+      'SYSTEM: You are running inside AIditor. Some user requests require changing editor state.',
+      'If a user asks you to create, delete, rename, move, reparent, send to, or inspect an AIditor agent, quest, message, or attachment, you MUST request the matching AIditor tool.',
       'Do not merely say you will do it. The host cannot act unless you emit an aiditor_tool_calls JSON block.',
       'Complete the user request end-to-end. For delegated work, prefer toolId "agent.delegate" because it creates/reuses an agent and sends the task in one workflow.',
       'If you use agent.create separately for a delegated task, do not stop after agent.create; continue with agent.send, then quest.read/message.read when the quest completes.',
@@ -6590,7 +6590,7 @@
 })(window.aiditor = window.aiditor || {})
 
 /* ---- ai/skills.js ---- */
-// Built-in AI skills for Aiditor.
+// Built-in AI skills for AIditor.
 ;(function (aiditor) {
   'use strict'
 
@@ -6598,7 +6598,7 @@
   if (!ai.skills || !ai.skills.register) return
 
   const COMMON_RULES = [
-    'Write Aiditor UI as plain .js scripts. Do not create .tsx, .jsx, TypeScript annotations, import/export statements, React hooks, or framework-specific component syntax in zero-build Aiditor code.',
+    'Write AIditor UI as plain .js scripts. Do not create .tsx, .jsx, TypeScript annotations, import/export statements, React hooks, or framework-specific component syntax in zero-build AIditor code.',
     'The UI authoring model is a registered component: spec.defaults() returns title/icon/props, and spec.factory(propsSig, ctx) returns one HTMLElement root.',
     'propsSig is a signal function. Read props with propsSig.peek() for one-shot reads, or with propsSig() inside aiditor.effect. Do not use propsSig.get() or propsSig.on().',
     'Panel roots must fit resizable docks: height:100%, minHeight:0, boxSizing:border-box, and flex/grid layouts that adapt to narrow and wide dock sizes.',
@@ -6608,7 +6608,7 @@
   ]
 
   const RUNTIME_RULES = COMMON_RULES.concat([
-    'Use this skill when running inside an Aiditor host and the user wants UI created, mounted, or replaced in the current live editor.',
+    'Use this skill when running inside an AIditor host and the user wants UI created, mounted, or replaced in the current live editor.',
     'Durable live UI is file-backed: inspect workspace files, edit/write component files, inspect docks, then call aiditor.addPanelToDock with component name, returned dock id, and path when the component file was just written.',
     'After editing the file for an already-mounted panel, call aiditor.reloadPanel with panelId and path. Do not use replacePanel to refresh the same component.',
     'To replace one existing panel, call aiditor.replacePanel with the returned panelId and the same component/path/title/icon/props shape. It keeps the dock position and returns a fresh panel id.',
@@ -6617,49 +6617,49 @@
   ])
 
   const LIBRARY_RULES = COMMON_RULES.concat([
-    'Use this skill when coding an Aiditor-based repository or host app directly, outside the live editor agent runtime.',
-    'Standalone Aiditor code registers with aiditor.registerComponent(name, spec). Host applications may provide their own wrapper; use exactly one registration path for a file.',
+    'Use this skill when coding an AIditor-based repository or host app directly, outside the live editor agent runtime.',
+    'Standalone AIditor code registers with aiditor.registerComponent(name, spec). Host applications may provide their own wrapper; use exactly one registration path for a file.',
     'Load the smallest bundle the host needs: aiditor-kernel for dock runtime, aiditor-ui for widgets, aiditor-ai for AI Host/Extension Runtime, aiditor-core for Kernel+UI, and aiditor-full for everything.',
     'App menus, save/open behavior, app shortcuts, project formats, provider transports, and privileged filesystem bridges belong to the host app, not framework core.',
-    'After changing Aiditor src/ in this repo, rebuild with node tools/build.mjs and run checks before handing off.',
+    'After changing AIditor src/ in this repo, rebuild with node tools/build.mjs and run checks before handing off.',
   ])
 
   ai.skills.register('aiditor.runtime-authoring', {
-    title: 'Aiditor Runtime Authoring',
-    description: 'Create, edit, load, mount, or replace workspace-backed Aiditor panels in the current live editor.',
-    whenToUse: 'Use when the agent is running inside an Aiditor host and the user asks for UI to appear in current docks.',
+    title: 'AIditor Runtime Authoring',
+    description: 'Create, edit, load, mount, or replace workspace-backed AIditor panels in the current live editor.',
+    whenToUse: 'Use when the agent is running inside an AIditor host and the user asks for UI to appear in current docks.',
     whenNotToUse: 'Do not use for standalone repository or host-app implementation work outside the live editor runtime.',
     relatedApis: ['aiditor.inspectDocks', 'aiditor.addPanelToDock', 'aiditor.reloadPanel', 'aiditor.replacePanel', 'aiditor.registerComponent', 'aiditor.runtime.loadScript'],
     relatedTools: ['workspace.fileSummary', 'workspace.writeFile', 'workspace.editFile', 'aiditor.inspectDocks', 'aiditor.addPanelToDock', 'aiditor.reloadPanel', 'aiditor.replacePanel'],
     docPath: 'doc/skill/aiditor-runtime-authoring/SKILL.md',
-    systemPrompt: 'You are running inside an Aiditor host. Create durable UI by writing plain JavaScript workspace component files, then mount or replace registered components in live docks through Aiditor tools.',
+    systemPrompt: 'You are running inside an AIditor host. Create durable UI by writing plain JavaScript workspace component files, then mount or replace registered components in live docks through AIditor tools.',
     rules: RUNTIME_RULES,
   })
 
   ai.skills.register('aiditor.library-authoring', {
-    title: 'Aiditor Library Authoring',
-    description: 'Use Aiditor as a zero-build JavaScript UI framework in a repository or host app.',
-    whenToUse: 'Use when coding an Aiditor-based project, host app, demo, layout, or component library outside the live editor agent runtime.',
+    title: 'AIditor Library Authoring',
+    description: 'Use AIditor as a zero-build JavaScript UI framework in a repository or host app.',
+    whenToUse: 'Use when coding an AIditor-based project, host app, demo, layout, or component library outside the live editor agent runtime.',
     whenNotToUse: 'Do not use when the task is to place UI into the currently running editor dock; use aiditor.runtime-authoring instead.',
     relatedApis: ['aiditor.registerComponent', 'aiditor.ui.propertyForm', 'aiditor.inspector.registerProvider', 'aiditor.runtime.loadScript'],
     relatedTools: ['workspace.searchFiles', 'workspace.readFile', 'workspace.editFile', 'workspace.writeFile'],
     docPath: 'doc/skill/aiditor-library-authoring/SKILL.md',
-    systemPrompt: 'Use Aiditor as a zero-build, plain JavaScript editor UI library in a repository or host app. Author registered components and host integration code without React, TSX, JSX, import/export, or bundled-module assumptions.',
+    systemPrompt: 'Use AIditor as a zero-build, plain JavaScript editor UI library in a repository or host app. Author registered components and host integration code without React, TSX, JSX, import/export, or bundled-module assumptions.',
     rules: LIBRARY_RULES,
   })
 
   ai.skills.register('aiditor.authoring', {
-    title: 'Aiditor Authoring',
-    description: 'Compatibility umbrella for Aiditor authoring. Prefer the focused runtime or library authoring skills.',
-    whenToUse: 'Use only for older agents or when a focused Aiditor authoring skill is unavailable.',
+    title: 'AIditor Authoring',
+    description: 'Compatibility umbrella for AIditor authoring. Prefer the focused runtime or library authoring skills.',
+    whenToUse: 'Use only for older agents or when a focused AIditor authoring skill is unavailable.',
     whenNotToUse: 'Prefer aiditor.runtime-authoring in live editor sessions and aiditor.library-authoring in repository work.',
     relatedApis: ['aiditor.registerComponent', 'aiditor.inspectDocks', 'aiditor.addPanelToDock'],
     relatedTools: ['aiditor.inspectDocks', 'aiditor.addPanelToDock'],
     docPath: 'doc/skill/aiditor-authoring/SKILL.md',
-    systemPrompt: 'Compatibility skill for Aiditor authoring. Prefer aiditor.runtime-authoring inside the live editor, and aiditor.library-authoring when coding a host app or repository.',
+    systemPrompt: 'Compatibility skill for AIditor authoring. Prefer aiditor.runtime-authoring inside the live editor, and aiditor.library-authoring when coding a host app or repository.',
     rules: [
       'Choose aiditor.runtime-authoring for live editor workspace edits and dock mounting.',
-      'Choose aiditor.library-authoring for repository or host-app code that uses Aiditor as a library.',
+      'Choose aiditor.library-authoring for repository or host-app code that uses AIditor as a library.',
     ].concat(COMMON_RULES),
   })
 })(window.aiditor = window.aiditor || {})
@@ -8599,8 +8599,8 @@
       resolver: 'api',
       uri: 'aiditor://api',
       kind: 'aiditor.api.index',
-      title: 'Aiditor API Index',
-      summary: 'Generated list of documented Aiditor APIs.',
+      title: 'AIditor API Index',
+      summary: 'Generated list of documented AIditor APIs.',
       meta: { count: entries().length },
       tools: ['aiditor.readReference'],
     }
@@ -8654,7 +8654,7 @@
         uri: 'aiditor://api',
         id: 'aiditor.api.index',
         kind: 'aiditor.api.index',
-        title: 'Aiditor API Index',
+        title: 'AIditor API Index',
         summary: 'Generated API list from structured source comments.',
         entries: entries().map(function (entry) {
           return {
@@ -8762,8 +8762,8 @@
       resolver: 'skills',
       uri: 'aiditor://skills',
       kind: 'aiditor.skill.index',
-      title: 'Aiditor Skills',
-      summary: 'Generated list of registered Aiditor skills and when to use them.',
+      title: 'AIditor Skills',
+      summary: 'Generated list of registered AIditor skills and when to use them.',
       meta: { count: skillNames().length },
       tools: ['aiditor.readReference'],
     }
@@ -8789,8 +8789,8 @@
         uri: 'aiditor://skills',
         id: 'aiditor.skills.index',
         kind: 'aiditor.skill.index',
-        title: 'Aiditor Skills',
-        summary: 'Registered Aiditor skill list. Read a skill URI for full rules.',
+        title: 'AIditor Skills',
+        summary: 'Registered AIditor skill list. Read a skill URI for full rules.',
         entries: skillNames().map(function (name) { return compactSkill(name, getSkill(name)) }),
       }
     }
@@ -10986,7 +10986,7 @@
     }, META)
     ai.tools.register('aiditor.installExtension', {
       title: 'Install Editor Extension',
-      description: 'Install a low-level Aiditor extension manifest for commands, menus, references, context, operations, settings, dock panels, or pre-registered component contributions. Agent-authored panels must be written as workspace files and added by registered component name.',
+      description: 'Install a low-level AIditor extension manifest for commands, menus, references, context, operations, settings, dock panels, or pre-registered component contributions. Agent-authored panels must be written as workspace files and added by registered component name.',
       schema: {
         type: 'object',
         required: ['manifest'],
@@ -13089,7 +13089,7 @@
 
   function runtimeGuideMessage(agent, requestCtx) {
     const lines = [
-      'You are an Aiditor AI agent running inside an editor runtime.',
+      'You are an AIditor AI agent running inside an editor runtime.',
       'Complete the user request end-to-end in the current turn whenever the available tools make that possible.',
       'Do not stop after a partial setup step. For delegated work, prefer agent.delegate because it creates/reuses an agent and sends the task in one workflow.',
       'If you use agent.create separately for a delegated task, immediately send that agent the task with agent.send unless the user only asked to create the agent.',
@@ -29505,7 +29505,7 @@
 })(window.aiditor = window.aiditor || {})
 
 /* ---- ai/panels/settings-ai.js ---- */
-// AI settings sections for Aiditor.
+// AI settings sections for AIditor.
 ;(function (aiditor) {
   'use strict'
 
@@ -29730,7 +29730,7 @@
       return 'Subscription connections use the Local Bridge for browser login. Keep the bridge running while using ChatGPT/Codex or Claude Code auth.'
     }
     if (meta.authType === 'apiKey') {
-      return 'API keys are stored in local Aiditor settings. For team or production use, prefer a trusted proxy or host-managed secret store.'
+      return 'API keys are stored in local AIditor settings. For team or production use, prefer a trusted proxy or host-managed secret store.'
     }
     if (meta.provider === 'ollama') return 'Ollama uses the OpenAI-compatible local endpoint. Keep Ollama running before loading models.'
     return 'This connection is available without extra browser-side credentials.'
@@ -30164,7 +30164,7 @@
 })(window.aiditor = window.aiditor || {})
 
 /* ---- style/theme-settings.js ---- */
-// Theme settings contribution for Aiditor.
+// Theme settings contribution for AIditor.
 ;(function (aiditor) {
   'use strict'
 
@@ -30173,7 +30173,7 @@
   aiditor.settings.registerSection('theme', {
     title: 'Theme',
     icon: 'palette',
-    description: 'Aiditor appearance and visual density.',
+    description: 'AIditor appearance and visual density.',
     order: 10,
   })
 
@@ -30189,7 +30189,7 @@
         { value: 'harbor', label: 'Harbor' },
         { value: 'light', label: 'Light' },
       ],
-      description: 'Active Aiditor theme.',
+      description: 'Active AIditor theme.',
       order: 10,
     },
     {
@@ -30298,7 +30298,7 @@
   function renderThemeSettings() {
     const ui = aiditor.ui
     const root = ui.view({ scroll: 'hidden', className: 'aiditor-settings-page aiditor-settings-theme-page' })
-    root.appendChild(pageHead('Theme', 'Aiditor appearance and visual density.'))
+    root.appendChild(pageHead('Theme', 'AIditor appearance and visual density.'))
 
     const bar = ui.h('div', 'aiditor-settings-theme-bar')
     const tabSig = aiditor.signal('palette')
