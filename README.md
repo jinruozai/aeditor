@@ -1,6 +1,12 @@
-# AIditor
+<p align="center">
+  <img src="./logo.png" width="96" height="96" alt="AIditor logo">
+</p>
 
-A pure frontend UI framework for building editors, with built-in AI Agent capabilities.
+<h1 align="center">AIditor</h1>
+
+<p align="center">
+  A pure frontend UI framework for building editors, with built-in AI Agent capabilities.
+</p>
 
 [![npm](https://img.shields.io/badge/npm-%40gooooo%2Faiditor-cb3837)](https://www.npmjs.com/package/@gooooo/aiditor)
 [![license](https://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE)
