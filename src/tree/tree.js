@@ -42,6 +42,7 @@
     if (partial.name != null)      d.name      = partial.name
     if (partial.toolbar)           d.toolbar   = normalizeToolbar(partial.toolbar)
     if (partial.accept != null)    d.accept    = partial.accept
+    if (partial.removeWhenEmpty === false) d.removeWhenEmpty = false
     if (partial.collapsed)         d.collapsed = true
     if (partial.focused)           d.focused   = true
     if (partial.panels && partial.panels.length > 0) {
@@ -236,6 +237,10 @@
     return replaceAt(tree, found.path, Object.assign({}, found.node, allowed))
   }
 
+  function shouldRemoveDockWhenEmpty(dockNode) {
+    return dockNode.removeWhenEmpty !== false
+  }
+
   function setCollapsed(tree, dockId, bool) {
     return updateDock(tree, dockId, { collapsed: !!bool })
   }
@@ -304,14 +309,15 @@
   }
 
   // removePanel — close semantics. Removing the last panel from a non-root
-  // dock removes that dock from the split tree, matching panel drag/pop-out.
+  // dock removes that dock from the split tree by default. Docks can opt out
+  // with removeWhenEmpty:false and stay as empty dock placeholders.
   // The root dock cannot disappear; it becomes an empty dock.
   function removePanel(tree, panelId) {
     const found = findPanel(tree, panelId)
     if (!found) return tree
     const dockNode = getAt(tree, found.path)
     const newPanels = dockNode.panels.filter(function (p) { return p.id !== panelId })
-    if (!newPanels.length && found.path.length > 0) return removeAt(tree, found.path)
+    if (!newPanels.length && found.path.length > 0 && shouldRemoveDockWhenEmpty(dockNode)) return removeAt(tree, found.path)
     let newActive = dockNode.activeId
     if (newActive === panelId) {
       newActive = newPanels.length > 0 ? newPanels[newPanels.length - 1].id : null
@@ -329,7 +335,7 @@
     const dockNode = getAt(tree, found.path)
     const panelData = dockNode.panels.find(function (p) { return p.id === panelId })
     const newPanels = dockNode.panels.filter(function (p) { return p.id !== panelId })
-    if (newPanels.length > 0 || found.path.length === 0) {
+    if (newPanels.length > 0 || found.path.length === 0 || !shouldRemoveDockWhenEmpty(dockNode)) {
       let newActive = dockNode.activeId
       if (newActive === panelId) newActive = newPanels.length ? newPanels[newPanels.length - 1].id : null
       return {

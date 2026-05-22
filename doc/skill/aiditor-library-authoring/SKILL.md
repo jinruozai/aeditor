@@ -42,6 +42,11 @@ can run with classic `<script>` tags and no bundler.
 - Use `aiditor.ui.propertyForm` for local object editing.
 - Use `aiditor.inspector` when multiple editor surfaces share one properties
   dock.
+- `tab-standard` is a normal toolbar component and does not show a `+` button
+  unless its toolbar item has `props.addPanel`, for example
+  `{ component: 'tab-standard', props: { addPanel: { component: 'app.emptyScene' } } }`.
+- Set `removeWhenEmpty:false` on `aiditor.dock(...)` when closing or moving the
+  last panel should leave an empty dock in the split tree.
 - App menus, save/open behavior, app shortcuts, and project formats belong to
   the host app, not framework core.
 

@@ -106,6 +106,17 @@ components by name. Docks own geometry and active-panel state. Components own
 rendered UI. Host applications own project formats, domain data, persistence,
 privileged bridges, and application shortcuts.
 
+`tab-standard` is a normal toolbar component. It does not show a `+` button
+unless the toolbar item declares what panel to create:
+
+```js
+{ component: 'tab-standard', props: { addPanel: { component: 'demo.editor' } } }
+```
+
+Non-root docks are removed when their last panel is closed or moved away by
+default. Use `removeWhenEmpty:false` on `aiditor.dock(...)` when the layout
+should keep an empty dock placeholder.
+
 ## Packages
 
 Install from npm:

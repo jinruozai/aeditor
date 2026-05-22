@@ -36,11 +36,11 @@ const layout = {
 
 aiditor._dock.installDefaultDockMenu()
 aiditor._dock.installDefaultDockMenu()
-assert.equal(aiditor.commands.list({ owner: 'aiditor:dock-menu' }).length, 10)
+assert.equal(aiditor.commands.list({ owner: 'aiditor:dock-menu' }).length, 11)
 aiditor.commands.unregisterOwner('aiditor:dock-menu')
 assert.equal(aiditor.commands.list({ owner: 'aiditor:dock-menu' }).length, 0)
 aiditor._dock.installDefaultDockMenu()
-assert.equal(aiditor.commands.list({ owner: 'aiditor:dock-menu' }).length, 10)
+assert.equal(aiditor.commands.list({ owner: 'aiditor:dock-menu' }).length, 11)
 
 const dock = aiditor.findDock(tree, 'dock-a').node
 const items = aiditor.commands.menuUiItems('dock.context', {
@@ -61,6 +61,11 @@ const panelMenu = items.find(function (item) { return item.label === 'Panel' })
 assert.equal(panelMenu.items.find(function (item) { return item.label === 'Pin Active' }).disabled, false)
 panelMenu.items.find(function (item) { return item.label === 'Pin Active' }).onSelect()
 assert.equal(promoted, 'panel-a')
+
+const removeWhenEmpty = panelMenu.items.find(function (item) { return item.label === 'Remove Dock When Empty' })
+assert.equal(removeWhenEmpty.icon, 'check')
+removeWhenEmpty.onSelect()
+assert.equal(aiditor.findDock(tree, 'dock-a').node.removeWhenEmpty, false)
 
 panelMenu.items.find(function (item) { return item.label === 'Close Active' }).onSelect()
 assert.equal(removed, 'panel-a')

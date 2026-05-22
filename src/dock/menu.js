@@ -46,6 +46,15 @@
       icon: 'pin',
       run: function (_, ctx) { if (ctx.activeId) ctx.layout.promotePanel(ctx.activeId) },
     }, { owner: OWNER, layer: 'core' })
+    commands.register('aiditor.dock.toggleRemoveWhenEmpty', {
+      title: 'Remove Dock When Empty',
+      icon: 'trash',
+      run: function (_, ctx) {
+        ctx.layout.setTree(aiditor.updateDock(ctx.layout.treeSig.peek(), ctx.dockId, {
+          removeWhenEmpty: ctx.dock.removeWhenEmpty === false,
+        }))
+      },
+    }, { owner: OWNER, layer: 'core' })
     commands.register('aiditor.dock.toolbar.setPosition', {
       title: 'Toolbar Position',
       run: function (input, ctx) {
@@ -125,6 +134,13 @@
       icon: function (ctx) { return ctx.active && ctx.active.transient ? 'pin' : 'check' },
       disabled: function (ctx) { return !ctx.active || !ctx.active.transient },
       order: 50,
+    })
+    menu(commands, 'aiditor.dock.panel.removeWhenEmpty', {
+      target: 'dock.context.panel',
+      command: 'aiditor.dock.toggleRemoveWhenEmpty',
+      label: 'Remove Dock When Empty',
+      icon: function (ctx) { return ctx.dock.removeWhenEmpty === false ? '' : 'check' },
+      order: 60,
     })
 
     menu(commands, 'aiditor.dock.toolbar.position', { target: 'dock.context.toolbar', label: 'Position', childrenTarget: 'dock.context.toolbar.position', order: 10 })

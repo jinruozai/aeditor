@@ -69,6 +69,14 @@ surface before using optional layers.
   inspect the current selection in a shared dock panel.
 - Toolbar tab components are normal toolbar components. Static toolbar items
   have `ctx.dock` but no `ctx.panel`.
+- `tab-standard` does not show a `+` button by default. To add one, configure
+  the toolbar item with JSON data such as
+  `{ props: { addPanel: { component: 'app.emptyScene' } } }`; the tab component
+  merges that record over the target component defaults and calls
+  `ctx.dock.addPanel`.
+- A non-root dock normally disappears when its last panel is closed or moved
+  away. Set `removeWhenEmpty:false` on `aiditor.dock(...)` when the host wants
+  an empty dock placeholder to remain.
 - Use `dockMenu: true` only when the host wants AIditor default dock menu
   contributions. Menus and commands are opt-in host choices.
 - In the AIditor demo project runtime, component entry files use

@@ -91,6 +91,7 @@
         const d = lookupDock()
         return d && d.toolbar ? (d.toolbar.direction || 'top') : null
       }),
+      removeWhenEmpty: scopedDerived(runtime, function () { const d = lookupDock(); return d ? d.removeWhenEmpty !== false : true }),
       collapsed:   scopedDerived(runtime, function () { const d = lookupDock(); return d ? !!d.collapsed : false }),
       focused:     scopedDerived(runtime, function () { const d = lookupDock(); return d ? !!d.focused   : false }),
       // Pure topology check — false when the dock has no toolbar, is root,
@@ -110,6 +111,7 @@
       },
       setFocus:     function (b) { layout.setTree(aiditor.setFocused(treeSig.peek(), dockIdSig(), !!b)) },
       setCollapsed: function (b) { layout.setTree(aiditor.setCollapsed(treeSig.peek(), dockIdSig(), !!b)) },
+      setRemoveWhenEmpty: function (b) { layout.setTree(aiditor.updateDock(treeSig.peek(), dockIdSig(), { removeWhenEmpty: !!b })) },
     }
   }
 

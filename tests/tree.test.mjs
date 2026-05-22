@@ -64,6 +64,34 @@ const singleMoved = aiditor.movePanelToSplit(singleTree, singlePanelId, singleTa
 assert.equal(aiditor.findDock(singleMoved.tree, singleSource.id), null)
 assert.equal(aiditor.findPanel(singleMoved.tree, singlePanelId).dockId, singleMoved.newDockId)
 
+const keepMoveSource = aiditor.dock({
+  name: 'keep-move-source',
+  removeWhenEmpty: false,
+  panels: [aiditor.panel({ component: 'editor', title: 'Only' })],
+})
+const keepMoveTarget = aiditor.dock({ name: 'keep-move-target' })
+const keepMoveTree = aiditor.split('horizontal', [keepMoveSource, keepMoveTarget], [0.5, 0.5])
+const keepMovePanelId = keepMoveSource.panels[0].id
+const keptAfterMove = aiditor.movePanel(keepMoveTree, keepMovePanelId, keepMoveTarget.id)
+const keptMoveSourceDock = aiditor.findDock(keptAfterMove, keepMoveSource.id).node
+assert.equal(keptMoveSourceDock.panels.length, 0)
+assert.equal(keptMoveSourceDock.activeId, null)
+assert.equal(aiditor.findPanel(keptAfterMove, keepMovePanelId).dockId, keepMoveTarget.id)
+
+const keepSplitSource = aiditor.dock({
+  name: 'keep-split-source',
+  removeWhenEmpty: false,
+  panels: [aiditor.panel({ component: 'editor', title: 'Only' })],
+})
+const keepSplitTarget = aiditor.dock({ name: 'keep-split-target' })
+const keepSplitTree = aiditor.split('horizontal', [keepSplitSource, keepSplitTarget], [0.5, 0.5])
+const keepSplitPanelId = keepSplitSource.panels[0].id
+const keptSplit = aiditor.movePanelToSplit(keepSplitTree, keepSplitPanelId, keepSplitTarget.id, 'horizontal', 'after', 0.3)
+const keptSplitSourceDock = aiditor.findDock(keptSplit.tree, keepSplitSource.id).node
+assert.equal(keptSplitSourceDock.panels.length, 0)
+assert.equal(keptSplitSourceDock.activeId, null)
+assert.equal(aiditor.findPanel(keptSplit.tree, keepSplitPanelId).dockId, keptSplit.newDockId)
+
 const closeSource = aiditor.dock({ name: 'close-source', panels: [aiditor.panel({ component: 'editor', title: 'Only' })] })
 const closeTarget = aiditor.dock({ name: 'close-target', panels: [aiditor.panel({ component: 'editor', title: 'Other' })] })
 const closeTree = aiditor.split('horizontal', [closeSource, closeTarget], [0.5, 0.5])
@@ -71,6 +99,20 @@ const closePanelId = closeSource.panels[0].id
 const closedTree = aiditor.removePanel(closeTree, closePanelId)
 assert.equal(aiditor.findDock(closedTree, closeSource.id), null)
 assert.equal(aiditor.findDock(closedTree, closeTarget.id).node.panels.length, 1)
+
+const keepCloseSource = aiditor.dock({
+  name: 'keep-close-source',
+  removeWhenEmpty: false,
+  panels: [aiditor.panel({ component: 'editor', title: 'Only' })],
+})
+const keepCloseTarget = aiditor.dock({ name: 'keep-close-target', panels: [aiditor.panel({ component: 'editor', title: 'Other' })] })
+const keepCloseTree = aiditor.split('horizontal', [keepCloseSource, keepCloseTarget], [0.5, 0.5])
+const keepClosePanelId = keepCloseSource.panels[0].id
+const keptClosedTree = aiditor.removePanel(keepCloseTree, keepClosePanelId)
+const keptCloseSourceDock = aiditor.findDock(keptClosedTree, keepCloseSource.id).node
+assert.equal(keptCloseSourceDock.removeWhenEmpty, false)
+assert.equal(keptCloseSourceDock.panels.length, 0)
+assert.equal(keptCloseSourceDock.activeId, null)
 
 const closeRoot = aiditor.dock({ name: 'close-root', panels: [aiditor.panel({ component: 'editor', title: 'Root Only' })] })
 const closeRootPanelId = closeRoot.panels[0].id

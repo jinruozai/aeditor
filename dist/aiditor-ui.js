@@ -10489,7 +10489,7 @@
 //   4. Tag the root with `.aiditor-dock-tabs` so interactions.js can hit-test it
 //
 // Registered presets (§ 4.6 — one implementation, four configurations):
-//   tab-standard    closeable + addable                    (editor)
+//   tab-standard    closeable; add button only with props.addPanel
 //   tab-compact     no close, hides when < 2 panels        (properties)
 //   tab-collapsible closeable + click-active collapses     (utility)
 //   tab-sidebar     icon-only + collapsible                (rail style)
@@ -10507,6 +10507,7 @@
   function buildDockTabs(p, ctx) {
     const dockDir = ctx.dock.toolbarDirection ? ctx.dock.toolbarDirection.peek() : null
     const autoDir = (dockDir === 'left' || dockDir === 'right') ? 'vertical' : 'horizontal'
+    const addPanel = p.addPanel || null
     const el = aiditor.ui.tab({
       items:        ctx.dock.panels,     // derived signal<PanelData[]>
       active:       ctx.dock.activeId,   // derived signal<string|null>
@@ -10514,7 +10515,7 @@
       direction:    p.direction || autoDir,
       iconOnly:     p.iconOnly,
       closable:     p.closable != null ? p.closable : true,
-      addable:      !!p.addable,
+      addable:      !!(addPanel && addPanel.component),
       // Dock tabs are the only built-in way to switch active panels inside a
       // dock, so every dock tab preset must show when there is more than one
       // panel. Presets may still hide the single-panel case with minShowCount:2.
@@ -10533,12 +10534,9 @@
         ctx.dock.removePanel(id)
       },
       onAdd: function () {
-        const panels = ctx.dock.panels()
-        const curId  = ctx.dock.activeId()
-        const active = panels.find(function (pp) { return pp.id === curId })
-        if (!active) return
-        const defaults = aiditor.componentDefaults(active.component)
-        ctx.dock.addPanel(Object.assign({}, defaults, { component: active.component }))
+        if (!addPanel || !addPanel.component) return
+        const defaults = aiditor.componentDefaults(addPanel.component)
+        ctx.dock.addPanel(Object.assign({}, defaults, addPanel, { component: addPanel.component }))
       },
       onDragStart: function (ev, panelId) {
         const fn = aiditor._dock && aiditor._dock.beginPanelDrag
@@ -10560,7 +10558,7 @@
   aiditor.registerComponent('tab-standard', {
     palette: false,
     defaults: function () { return { title: 'Tabs' } },
-    factory:  preset({ variant: 'bar', closable: true, addable: true }),
+    factory:  preset({ variant: 'bar', closable: true }),
   })
 
   aiditor.registerComponent('tab-compact', {

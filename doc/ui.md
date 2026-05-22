@@ -31,7 +31,7 @@ Data shape:
 
 ```text
 Split tree
-  -> DockData
+      -> DockData
        -> panels[]
             PanelData { id, component, title, icon, props, toolbarItems }
        -> toolbar.items[]
@@ -40,6 +40,22 @@ Split tree
 
 `PanelData.component` and `toolbar.items[].component` both point to names in the
 same component registry.
+
+`DockData.removeWhenEmpty` controls whether a non-root dock disappears when its
+last panel is closed or moved away. The default is `true`; set
+`removeWhenEmpty:false` to keep an empty dock placeholder:
+
+```js
+aiditor.dock({
+  name: 'side',
+  removeWhenEmpty: false,
+  toolbar: { direction: 'top', items: [{ component: 'tab-standard' }] },
+})
+```
+
+The root dock is never removed. The same rule applies to explicit close
+actions, tab dragging, and panel moves. When the built-in dock menu is enabled,
+`Panel -> Remove Dock When Empty` toggles the same flag for the selected dock.
 
 Implemented pure APIs include:
 
@@ -205,6 +221,31 @@ change what a component is.
 Toolbar items are ordinary component references stored in toolbar data. Tabs are
 not special framework objects; they are toolbar components that subscribe to
 dock panel state.
+
+Dock tab add buttons are explicit toolbar-item behavior. `tab-standard` does not
+show a `+` button by default, because the framework cannot know what kind of
+panel an application wants to create. A host that wants a tab add button
+configures the tab toolbar item with `props.addPanel`:
+
+```js
+aiditor.dock({
+  toolbar: {
+    direction: 'top',
+    items: [{
+      component: 'tab-standard',
+      props: {
+        addPanel: { component: 'scene.empty', title: 'Scene' },
+      },
+    }],
+  },
+})
+```
+
+When clicked, the tab component resolves `componentDefaults(addPanel.component)`
+and merges the configured `addPanel` record over those defaults before calling
+`ctx.dock.addPanel(...)`. Empty docks therefore do not show inert add buttons;
+applications that want Godot-style "new scene", editor-style "new file", or
+domain-specific creation behavior must declare it in the toolbar item props.
 
 Built-in panel components include:
 

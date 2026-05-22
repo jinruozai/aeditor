@@ -132,6 +132,9 @@ path per file, never both.
 - Use `aiditor.ui.view` for primary scroll surfaces.
 - Use `aiditor.ui.propertyForm` for local schema-driven forms.
 - Use `aiditor.inspector` providers for shared selection inspection.
+- Do not assume a dock tab `+` button can create arbitrary panels. Built-in
+  tabs show that button only when the toolbar item was configured with
+  `props.addPanel`; otherwise mount panels with `aiditor.addPanelToDock`.
 - If `addPanelToDock` says the component is not registered, pass the workspace
   file `path` explicitly.
 - After changing the file for an already-mounted panel, call

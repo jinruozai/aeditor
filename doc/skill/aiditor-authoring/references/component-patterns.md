@@ -159,6 +159,27 @@ Toolbar components use the same component contract. Static toolbar items have
 `ctx.dock` and no `ctx.panel`, because they belong to the dock rather than one
 panel.
 
+Built-in dock tabs are still ordinary toolbar items. `tab-standard` does not
+show an add button by default; configure `props.addPanel` when a host wants a
+domain-specific add action:
+
+```js
+aiditor.dock({
+  toolbar: {
+    direction: 'top',
+    items: [{
+      component: 'tab-standard',
+      props: { addPanel: { component: 'app.emptyScene', title: 'Scene' } },
+    }],
+  },
+})
+```
+
+The configured record is merged over the target component defaults before
+calling `ctx.dock.addPanel`. If a dock should remain as an empty placeholder
+after its last panel is closed or moved away, create it with
+`removeWhenEmpty:false`.
+
 ```js
 aiditor.registerComponent('demo.toolbar.tabs', {
   category: 'toolbar',

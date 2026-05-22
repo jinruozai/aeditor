@@ -1971,6 +1971,7 @@
     if (partial.name != null)      d.name      = partial.name
     if (partial.toolbar)           d.toolbar   = normalizeToolbar(partial.toolbar)
     if (partial.accept != null)    d.accept    = partial.accept
+    if (partial.removeWhenEmpty === false) d.removeWhenEmpty = false
     if (partial.collapsed)         d.collapsed = true
     if (partial.focused)           d.focused   = true
     if (partial.panels && partial.panels.length > 0) {
@@ -2165,6 +2166,10 @@
     return replaceAt(tree, found.path, Object.assign({}, found.node, allowed))
   }
 
+  function shouldRemoveDockWhenEmpty(dockNode) {
+    return dockNode.removeWhenEmpty !== false
+  }
+
   function setCollapsed(tree, dockId, bool) {
     return updateDock(tree, dockId, { collapsed: !!bool })
   }
@@ -2233,14 +2238,15 @@
   }
 
   // removePanel — close semantics. Removing the last panel from a non-root
-  // dock removes that dock from the split tree, matching panel drag/pop-out.
+  // dock removes that dock from the split tree by default. Docks can opt out
+  // with removeWhenEmpty:false and stay as empty dock placeholders.
   // The root dock cannot disappear; it becomes an empty dock.
   function removePanel(tree, panelId) {
     const found = findPanel(tree, panelId)
     if (!found) return tree
     const dockNode = getAt(tree, found.path)
     const newPanels = dockNode.panels.filter(function (p) { return p.id !== panelId })
-    if (!newPanels.length && found.path.length > 0) return removeAt(tree, found.path)
+    if (!newPanels.length && found.path.length > 0 && shouldRemoveDockWhenEmpty(dockNode)) return removeAt(tree, found.path)
     let newActive = dockNode.activeId
     if (newActive === panelId) {
       newActive = newPanels.length > 0 ? newPanels[newPanels.length - 1].id : null
@@ -2258,7 +2264,7 @@
     const dockNode = getAt(tree, found.path)
     const panelData = dockNode.panels.find(function (p) { return p.id === panelId })
     const newPanels = dockNode.panels.filter(function (p) { return p.id !== panelId })
-    if (newPanels.length > 0 || found.path.length === 0) {
+    if (newPanels.length > 0 || found.path.length === 0 || !shouldRemoveDockWhenEmpty(dockNode)) {
       let newActive = dockNode.activeId
       if (newActive === panelId) newActive = newPanels.length ? newPanels[newPanels.length - 1].id : null
       return {
@@ -2839,6 +2845,7 @@
         const d = lookupDock()
         return d && d.toolbar ? (d.toolbar.direction || 'top') : null
       }),
+      removeWhenEmpty: scopedDerived(runtime, function () { const d = lookupDock(); return d ? d.removeWhenEmpty !== false : true }),
       collapsed:   scopedDerived(runtime, function () { const d = lookupDock(); return d ? !!d.collapsed : false }),
       focused:     scopedDerived(runtime, function () { const d = lookupDock(); return d ? !!d.focused   : false }),
       // Pure topology check — false when the dock has no toolbar, is root,
@@ -2858,6 +2865,7 @@
       },
       setFocus:     function (b) { layout.setTree(aiditor.setFocused(treeSig.peek(), dockIdSig(), !!b)) },
       setCollapsed: function (b) { layout.setTree(aiditor.setCollapsed(treeSig.peek(), dockIdSig(), !!b)) },
+      setRemoveWhenEmpty: function (b) { layout.setTree(aiditor.updateDock(treeSig.peek(), dockIdSig(), { removeWhenEmpty: !!b })) },
     }
   }
 
@@ -15335,6 +15343,15 @@
       icon: 'pin',
       run: function (_, ctx) { if (ctx.activeId) ctx.layout.promotePanel(ctx.activeId) },
     }, { owner: OWNER, layer: 'core' })
+    commands.register('aiditor.dock.toggleRemoveWhenEmpty', {
+      title: 'Remove Dock When Empty',
+      icon: 'trash',
+      run: function (_, ctx) {
+        ctx.layout.setTree(aiditor.updateDock(ctx.layout.treeSig.peek(), ctx.dockId, {
+          removeWhenEmpty: ctx.dock.removeWhenEmpty === false,
+        }))
+      },
+    }, { owner: OWNER, layer: 'core' })
     commands.register('aiditor.dock.toolbar.setPosition', {
       title: 'Toolbar Position',
       run: function (input, ctx) {
@@ -15414,6 +15431,13 @@
       icon: function (ctx) { return ctx.active && ctx.active.transient ? 'pin' : 'check' },
       disabled: function (ctx) { return !ctx.active || !ctx.active.transient },
       order: 50,
+    })
+    menu(commands, 'aiditor.dock.panel.removeWhenEmpty', {
+      target: 'dock.context.panel',
+      command: 'aiditor.dock.toggleRemoveWhenEmpty',
+      label: 'Remove Dock When Empty',
+      icon: function (ctx) { return ctx.dock.removeWhenEmpty === false ? '' : 'check' },
+      order: 60,
     })
 
     menu(commands, 'aiditor.dock.toolbar.position', { target: 'dock.context.toolbar', label: 'Position', childrenTarget: 'dock.context.toolbar.position', order: 10 })
@@ -30711,7 +30735,7 @@
 //   4. Tag the root with `.aiditor-dock-tabs` so interactions.js can hit-test it
 //
 // Registered presets (§ 4.6 — one implementation, four configurations):
-//   tab-standard    closeable + addable                    (editor)
+//   tab-standard    closeable; add button only with props.addPanel
 //   tab-compact     no close, hides when < 2 panels        (properties)
 //   tab-collapsible closeable + click-active collapses     (utility)
 //   tab-sidebar     icon-only + collapsible                (rail style)
@@ -30729,6 +30753,7 @@
   function buildDockTabs(p, ctx) {
     const dockDir = ctx.dock.toolbarDirection ? ctx.dock.toolbarDirection.peek() : null
     const autoDir = (dockDir === 'left' || dockDir === 'right') ? 'vertical' : 'horizontal'
+    const addPanel = p.addPanel || null
     const el = aiditor.ui.tab({
       items:        ctx.dock.panels,     // derived signal<PanelData[]>
       active:       ctx.dock.activeId,   // derived signal<string|null>
@@ -30736,7 +30761,7 @@
       direction:    p.direction || autoDir,
       iconOnly:     p.iconOnly,
       closable:     p.closable != null ? p.closable : true,
-      addable:      !!p.addable,
+      addable:      !!(addPanel && addPanel.component),
       // Dock tabs are the only built-in way to switch active panels inside a
       // dock, so every dock tab preset must show when there is more than one
       // panel. Presets may still hide the single-panel case with minShowCount:2.
@@ -30755,12 +30780,9 @@
         ctx.dock.removePanel(id)
       },
       onAdd: function () {
-        const panels = ctx.dock.panels()
-        const curId  = ctx.dock.activeId()
-        const active = panels.find(function (pp) { return pp.id === curId })
-        if (!active) return
-        const defaults = aiditor.componentDefaults(active.component)
-        ctx.dock.addPanel(Object.assign({}, defaults, { component: active.component }))
+        if (!addPanel || !addPanel.component) return
+        const defaults = aiditor.componentDefaults(addPanel.component)
+        ctx.dock.addPanel(Object.assign({}, defaults, addPanel, { component: addPanel.component }))
       },
       onDragStart: function (ev, panelId) {
         const fn = aiditor._dock && aiditor._dock.beginPanelDrag
@@ -30782,7 +30804,7 @@
   aiditor.registerComponent('tab-standard', {
     palette: false,
     defaults: function () { return { title: 'Tabs' } },
-    factory:  preset({ variant: 'bar', closable: true, addable: true }),
+    factory:  preset({ variant: 'bar', closable: true }),
   })
 
   aiditor.registerComponent('tab-compact', {
