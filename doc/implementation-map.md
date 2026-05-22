@@ -20,7 +20,7 @@ preserved or deliberately replaced.
 | `src/core/settings.js` | [core.md](./core.md) | Settings sections, schemas, pages, persistence, owner cleanup, and dotted-prefix helpers. |
 | `src/core/commands.js` | [core.md](./core.md) | Commands, menus, owner cleanup, and dotted-prefix helpers. |
 | `src/core/shortcuts.js` | [core.md](./core.md) | Shortcut infrastructure. |
-| `src/core/workspace.js` | [workspace.md](./workspace.md), [workspace-precise-editing.md](./workspace-precise-editing.md) | Workspace adapters, path safety, search, and exact text edit helpers. |
+| `src/core/workspace.js` | [workspace.md](./workspace.md), [workspace-precise-editing.md](./workspace-precise-editing.md) | Workspace adapters, path safety, text/blob IO, path operations, URL leases, snapshots, search, and exact text edit helpers. |
 
 ## UI
 

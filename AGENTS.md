@@ -217,6 +217,7 @@ aiditor/
 - 通讯总线 aiditor.bus(pub/sub + auto-unsubscribe + 每个 handler 独立 safeCall 包裹)(§ 4.13)
 - Component 注册表 + ComponentContext 工厂(§ 4.8 / § 4.9)
 - Runtime loader `aiditor.runtime.loadScript` + owner-scoped cleanup。AI 新写 workspace panel 文件时,`aiditor.addPanelToDock({ component, dock, path })` 会先加载 `path` 注册 component,再放入 dock。
+- Workspace v2 bounded contract:文本/二进制 read/write、mkdir/copy/move/rename/delete、capabilities、稳定 stat(hash/mtime/size/kind)、object URL lease、bundle URL lease、snapshot/restore 基础能力。它仍然只是文件边界,不是 project/asset 数据模型。
 - Dock 多 panel + detached DOM activate(§ 4.3)+ LRU dispose(§ 4.3)
 - Toolbar 两段渲染(static + dynamic items)(§ 4.10)
 - Focus mode / Collapsed / Transient(§ 4.4 / § 4.5)
@@ -229,7 +230,7 @@ aiditor/
 - 全部基于 caller-owned `value: signal<T>` 的"信号优先"设计 —— 组件不持有自己的 state
 - 全部走统一 cleanup 协议:`el.__aiditorCleanups: fn[]` + `aiditor.ui.dispose(el)`
 - Overlay 走 `_portal.js` 的 `#aiditor-portal-root` 单例
-- 数据组件(list/tree/table)直接虚拟化,tree 先 flatten 再复用 list 行
+- 数据组件(list/tree/table)直接虚拟化,tree 先 flatten 再复用 list 行;`fileBrowser` 是中性文件/列表/网格 primitive,`assetBrowser` 是兼容别名
 - 全部 50+ 个组件 + 内部辅助 + 11 个 CSS 文件 = 已经 100% 编出 dist 并在 demo 里可以点
 - `aiditor.inspector` 是 UI 层通用检查器协议:ordered targets + provider.inspect + 内置 `inspector` dock panel。多选显示第一个 target,只有所有 target 都有且可写的字段才可编辑;业务对象语义、校验、持久化由 provider 所属编辑器负责。
 
@@ -910,6 +911,44 @@ git diff --check
 - rich prompt 使用 `refId`;chat attachments 不是新的 model-facing registry。
 - Extension 卸载按 owner 精确清理,并有 nested extension 回归测试覆盖主要 registry。
 - 发布边界的最终目标是 core/full 双 bundle 和干净 npm runtime 包;当前代码优化计划应优先落这里。
+
+2026-05-22 最新一轮 workspace/framework 优化已完成但接力时需要确认是否已 commit/push:
+
+- `src/core/workspace.js` 已升级为 Workspace v2 bounded contract:
+  - `capabilities()` 返回适配器能力 truth table。
+  - `mkdir(path)`、`copy(from,to)`、`move(from,to)` / `rename(from,to)`、`delete(path,{recursive})` 已接入 memory/FSA adapter。
+  - `readBlob(path)` / `writeBlob(path, blob)` 支持二进制 IO;`stat(path)` 对文件返回稳定 `hash/mtime/size/kind`。
+  - `createObjectUrl(path)` 返回 `{ url, path, hash, size, mime, release }` lease;支持 owner cleanup。
+  - `createUrlBundle(paths)` 为 glTF/模型这类多文件预览提供 bundle lease,但框架不解析资源图。
+  - `snapshot(path[, { binary:true }])` / `compareSnapshot()` / `restoreSnapshot()` 只提供 undo/redo 的底层快照存储和 CAS,不是 FileOperationJournal。
+- `src/ai/workdir.js` 新增 model-facing 通用 workspace tools:
+  - `workspace.capabilities`
+  - `workspace.mkdir`
+  - `workspace.copy`
+  - `workspace.move`
+  - `workspace.delete`
+  这些都是泛用文件操作,带 preview/apply;没有引入 project/asset 概念。
+- `src/ui/data/assetBrowser.js` 暴露 `aiditor.ui.fileBrowser = aiditor.ui.assetBrowser`。`fileBrowser` 是中性 primitive 名称,`assetBrowser` 保持兼容旧宿主。
+- 文档已对齐:
+  - `doc/workspace.md`
+  - `doc/resource-versioning.md`
+  - `doc/ui.md`
+  - `doc/ai.md`
+  - `doc/implementation-map.md`
+- 测试已通过:
+  - `node tests/workspace.test.mjs`
+  - `node tests/ai-workdir.test.mjs`
+  - `node tools/check-syntax.mjs`
+  - `node tools/build.mjs`
+  - `npm run api:docs`
+  - `npm run check`
+- 本轮改了 `src/`,所以 dist 已重建。若回家电脑拉取后看不到这些改动,优先检查当前电脑是否已 commit/push。
+
+本轮刻意没有接入的内容:
+
+- 不把 project/asset 数据库、资源导入规则、业务级 file operation journal 放进 Core。
+- 不让 workspace 解析 glTF、图片、场景、schema 或任何业务资源格式。
+- 不把 UI tree/inspector 的领域语义和 workspace 文件语义耦合。
 
 提交/交接时必须确认新增文件已纳入版本控制:
 

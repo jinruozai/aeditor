@@ -273,7 +273,7 @@ src/ui/base/        buttons, icons, text, badges, tags, tooltip, popover
 src/ui/form/        input controls and schema-driven property editors
 src/ui/editor/      editor-specific inputs such as code, curve, path, file
 src/ui/container/   layout and containers such as vbox, hbox, absolute, view, scrollArea
-src/ui/data/        list, tree, table, asset browser, change review
+src/ui/data/        list, tree, table, file/asset browser, change review
 src/ui/overlay/     menu, modal, drawer, toast, dialogs
 src/ui/panel/       generic dock panel components such as log/settings/tabs
 src/ui/_internal/   implementation helpers used by the UI library
@@ -284,6 +284,12 @@ the AI module, even though they are registered through `aiditor.registerComponen
 and usually use `category: 'panel'`.
 
 Domain-specific components live outside `src/ui/`.
+
+`aiditor.ui.fileBrowser` is the neutral file/list/grid browser primitive for
+workspace-like entries. `aiditor.ui.assetBrowser` remains as a compatibility
+alias for existing asset-oriented hosts. Both names use the same storage-agnostic
+component; callers provide listing, preview URL, import, move, rename, and delete
+hooks.
 
 The settings panel under `src/ui/panel/` is only the generic settings shell.
 Concrete settings are registered by the owning module, for example theme

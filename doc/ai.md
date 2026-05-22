@@ -73,6 +73,10 @@ workspace.searchFiles
 workspace.readFile
 workspace.editFile
 workspace.patchFile
+workspace.mkdir
+workspace.copy
+workspace.move
+workspace.delete
 theme.setMode
 ui.setProp
 gde.table.patchRows

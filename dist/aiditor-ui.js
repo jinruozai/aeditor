@@ -8873,6 +8873,7 @@
     paint()
     return root
   }
+  ui.fileBrowser = ui.assetBrowser
 })(window.aiditor = window.aiditor || {})
 
 /* ---- ui/data/changeReview.js ---- */

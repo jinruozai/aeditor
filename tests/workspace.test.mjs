@@ -59,6 +59,28 @@ assert.equal((await ws.list('src')).some(function (item) { return item.path === 
 await ws.delete('src/new.js')
 await assert.rejects(async function () { return ws.read('src/new.js') }, /file not found/)
 
+await ws.mkdir('assets/images')
+await ws.writeBlob('assets/images/logo.bin', new Blob([new Uint8Array([1, 2, 3])], { type: 'application/octet-stream' }))
+const blobRead = await ws.readBlob('assets/images/logo.bin')
+assert.equal(blobRead.size, 3)
+assert.equal(blobRead.mime, 'application/octet-stream')
+assert.equal((await ws.stat('assets/images/logo.bin')).hash, blobRead.hash)
+await ws.copy('assets/images/logo.bin', 'assets/images/copy.bin')
+assert.equal((await ws.stat('assets/images/copy.bin')).kind, 'file')
+await ws.move('assets/images/copy.bin', 'assets/images/moved.bin')
+await assert.rejects(async function () { return ws.stat('assets/images/copy.bin') }, /path not found/)
+assert.equal((await ws.stat('assets/images/moved.bin')).kind, 'file')
+await assert.rejects(async function () { return ws.delete('assets') }, /directory is not empty/)
+await ws.delete('assets', { recursive: true })
+await assert.rejects(async function () { return ws.stat('assets/images/moved.bin') }, /path not found/)
+
+await ws.write('undo.txt', 'before')
+const snapshot = await ws.snapshot('undo.txt')
+await ws.write('undo.txt', 'after')
+await ws.restoreSnapshot(snapshot, { currentHash: aiditor.workspace.hashText('after') })
+assert.equal((await ws.read('undo.txt')).text, 'before')
+assert.equal((await ws.capabilities()).mkdir, true)
+
 class FakeFileHandle {
   constructor(name, parent, text) {
     this.kind = 'file'

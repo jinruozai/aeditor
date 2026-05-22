@@ -32,30 +32,90 @@ aiditor.workspace.fromBridge(root)
 aiditor.workspace.memory(files)
 ```
 
-Utility helpers in the workspace module may normalize relative paths, hash text,
-derive parent paths, and build safe previews. Those helpers support file tools
-and adapters; they do not create a project concept.
+Utility helpers in the workspace module may normalize relative paths, hash text
+or bytes, derive parent paths, and build safe previews. Those helpers support
+file tools and adapters; they do not create a project concept.
 
 Implemented helpers include `normalizePath`, `parentPath`, `hashText`,
-`diffSummary`, `validateText`, `applyLinePatches`, and `applyTextEdits`.
+`hashBytes`, `hashBlob`, `diffSummary`, `validateText`, `applyLinePatches`, and
+`applyTextEdits`.
 
 Each workspace adapter should expose:
 
 ```js
 workspace.rootId()
 workspace.kind()
+workspace.capabilities()
 workspace.list(path)
 workspace.search(query, options)
 workspace.read(path)
 workspace.write(path, text, options)
+workspace.readBlob(path)
+workspace.writeBlob(path, blob, options)
 workspace.patch(path, baseHash, patches)
-workspace.delete(path)
+workspace.mkdir(path)
+workspace.copy(from, to, options)
+workspace.move(from, to, options)
+workspace.rename(from, to, options)
+workspace.delete(path, options)
 workspace.stat(path)
 workspace.resolveUrl(path)
 ```
 
 `watch(path, handler)` may exist when the backend can support it, but the rest of
 the system must not require watching.
+
+`capabilities()` is the adapter truth table. Hosts and panels can inspect it
+before enabling commands such as duplicate, import, recursive delete, or binary
+preview. A missing capability is a normal adapter limitation, not a project
+state.
+
+`stat(path)` returns a stable file identity shape:
+
+```js
+{ path, name, kind, size, hash, mtime }
+```
+
+For files, `hash` is the content version used by compare-and-set writes. For
+directories, `hash` may be omitted because directory versioning depends on the
+backend.
+
+## Preview URLs
+
+Binary previews are a workspace concern because they need access to bounded
+file bytes and lifecycle cleanup:
+
+```js
+const lease = await workspace.createObjectUrl('textures/wall.png', { owner })
+image.src = lease.url
+lease.release()
+```
+
+`createObjectUrl(path, options)` reads a blob and returns a lease with
+`url`, `path`, `hash`, `size`, `mime`, and `release()`. If an `owner` with
+`onCleanup(fn)` or `__aiditorCleanups` is provided, the lease is released with
+that owner.
+
+`createUrlBundle(paths, options)` returns `{ urls, resolve(path), release() }`
+for multi-file resources such as glTF packages. It is still only URL lifecycle
+management; the framework does not parse or own the resource graph.
+
+## Snapshots
+
+Workspace snapshots provide storage primitives for undo/redo and conflict
+checks. They are not a full file operation journal.
+
+```js
+const snap = await workspace.snapshot('scene.json')
+const binarySnap = await workspace.snapshot('textures/wall.png', { binary: true })
+await workspace.restoreSnapshot(snap, { currentHash })
+```
+
+Snapshots store text by default and file bytes when `{ binary: true }` is used,
+plus the hash observed at capture time.
+`compareSnapshot(snapshot)` reports whether the current file hash differs from
+the captured hash. `restoreSnapshot(snapshot, { currentHash })` writes the saved
+bytes back with CAS when `currentHash` is supplied.
 
 ## Tool Contributions
 
@@ -66,6 +126,7 @@ contribute tools to the AI tool registry. The standard workspace tool prefix is
 ```text
 workspace.listFiles
 workspace.fileSummary
+workspace.capabilities
 workspace.searchFiles
 workspace.readFile
 workspace.readFileRange
@@ -73,6 +134,10 @@ workspace.editFile
 workspace.writeFile
 workspace.patchFile
 workspace.deleteFile
+workspace.mkdir
+workspace.copy
+workspace.move
+workspace.delete
 workspace.stat
 ```
 
@@ -81,11 +146,11 @@ generic and do not know product descriptors, table schemas, panel registrations,
 or build scripts.
 
 Mutating tools (`workspace.editFile`, `workspace.writeFile`,
-`workspace.patchFile`, and `workspace.deleteFile`) expose preview/apply phases
-so the runtime can review and permission-check writes before applying them.
-Their direct `run` functions
-remain available for trusted local callers and tests, but model-facing flows
-should use preview/apply.
+`workspace.patchFile`, `workspace.deleteFile`, `workspace.mkdir`,
+`workspace.copy`, `workspace.move`, and `workspace.delete`) expose preview/apply
+phases so the runtime can review and permission-check writes before applying
+them. Their direct `run` functions remain available for trusted local callers
+and tests, but model-facing flows should use preview/apply.
 
 `workspace.editFile`, `workspace.writeFile`, and `workspace.patchFile` validate
 JS and JSON before commit. JSON must parse. JS must not contain known truncation

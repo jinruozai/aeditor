@@ -4086,6 +4086,75 @@
     })
   }
 
+  async function previewPathOperation(action, args) {
+    args = args || {}
+    const ws = requireWorkspace()
+    const source = args.path || args.from || ''
+    const titlePath = action === 'mkdir' ? args.path : source
+    let stat = null
+    if (action !== 'mkdir') {
+      try { stat = await ws.stat(source) } catch (err) {
+        return {
+          ok: false,
+          risk: action === 'delete' ? 'delete' : 'edit',
+          title: action + ': ' + titlePath,
+          input: clone(args),
+          code: 'PATH_NOT_FOUND',
+          error: String(err && err.message || err),
+        }
+      }
+      if (args.baseHash && stat.hash && stat.hash !== args.baseHash) {
+        return {
+          ok: false,
+          risk: action === 'delete' ? 'delete' : 'edit',
+          title: action + ': ' + titlePath,
+          input: clone(args),
+          code: 'STALE_FILE',
+          error: 'workspace.' + action + ': baseHash mismatch',
+        }
+      }
+    }
+    return {
+      ok: true,
+      risk: action === 'delete' ? 'delete' : 'edit',
+      title: action + ': ' + titlePath,
+      input: clone(args),
+      resourceVersion: stat && stat.hash ? { type: 'workspacePath', path: source, version: stat.hash } : null,
+      changes: [{
+        type: 'workspacePath',
+        action: action,
+        path: source || args.path,
+        to: args.to || null,
+        recursive: !!args.recursive,
+        baseHash: args.baseHash || stat && stat.hash || null,
+        kind: stat && stat.kind || (action === 'mkdir' ? 'directory' : null),
+      }],
+      before: stat,
+    }
+  }
+
+  function mkdirPath(args) {
+    return requireWorkspace().mkdir(args.path)
+  }
+
+  function copyPath(args) {
+    return requireWorkspace().copy(args.from, args.to, { baseHash: args.baseHash })
+  }
+
+  function movePath(args) {
+    return requireWorkspace().move(args.from, args.to, { baseHash: args.baseHash })
+  }
+
+  function deletePath(args) {
+    return requireWorkspace().delete(args.path, { recursive: !!args.recursive, baseHash: args.baseHash })
+  }
+
+  function applyPathOperation(action, fn, preview) {
+    return Promise.resolve(fn(preview.input || preview || {})).then(function (result) {
+      return Object.assign({ applied: true, action: action }, result)
+    })
+  }
+
   function baseHashFromPreview(preview) {
     const changes = preview && preview.changes || []
     return changes[0] && (changes[0].baseHash || changes[0].baseVersion) || preview && preview.baseHash || null
@@ -4138,6 +4207,17 @@
       permissions: ['tool.call'],
       available: workspaceAvailable,
       run: fileSummary,
+    }, { owner: owner, layer: 'builtin' })
+    ai.tools.register('workspace.capabilities', {
+      title: 'Workspace Capabilities',
+      description: 'Read the generic capabilities supported by the current workspace adapter.',
+      schema: { type: 'object', properties: {} },
+      permissions: ['tool.call'],
+      available: workspaceAvailable,
+      run: function () {
+        const ws = requireWorkspace()
+        return ws.capabilities ? ws.capabilities() : {}
+      },
     }, { owner: owner, layer: 'builtin' })
     ai.tools.register('workspace.searchFiles', {
       title: 'Search Workspace Files',
@@ -4222,6 +4302,46 @@
       preview: function (args) { return previewFileChange('delete', args) },
       apply: applyDeleteFile,
       run: deleteFile,
+    }, { owner: owner, layer: 'builtin' })
+    ai.tools.register('workspace.mkdir', {
+      title: 'Create Workspace Directory',
+      description: 'Create one directory inside the current workspace.',
+      schema: { type: 'object', required: ['path'], properties: { path: { type: 'string' } } },
+      permissions: ['tool.call', 'tool.apply'],
+      available: workspaceAvailable,
+      preview: function (args) { return previewPathOperation('mkdir', args) },
+      apply: function (preview) { return applyPathOperation('mkdir', mkdirPath, preview) },
+      run: mkdirPath,
+    }, { owner: owner, layer: 'builtin' })
+    ai.tools.register('workspace.copy', {
+      title: 'Copy Workspace Path',
+      description: 'Copy one file or directory inside the current workspace.',
+      schema: { type: 'object', required: ['from', 'to'], properties: { from: { type: 'string' }, to: { type: 'string' }, baseHash: { type: 'string' } } },
+      permissions: ['tool.call', 'tool.apply'],
+      available: workspaceAvailable,
+      preview: function (args) { return previewPathOperation('copy', args) },
+      apply: function (preview) { return applyPathOperation('copy', copyPath, preview) },
+      run: copyPath,
+    }, { owner: owner, layer: 'builtin' })
+    ai.tools.register('workspace.move', {
+      title: 'Move Workspace Path',
+      description: 'Move or rename one file or directory inside the current workspace.',
+      schema: { type: 'object', required: ['from', 'to'], properties: { from: { type: 'string' }, to: { type: 'string' }, baseHash: { type: 'string' } } },
+      permissions: ['tool.call', 'tool.apply'],
+      available: workspaceAvailable,
+      preview: function (args) { return previewPathOperation('move', args) },
+      apply: function (preview) { return applyPathOperation('move', movePath, preview) },
+      run: movePath,
+    }, { owner: owner, layer: 'builtin' })
+    ai.tools.register('workspace.delete', {
+      title: 'Delete Workspace Path',
+      description: 'Delete one file or directory inside the current workspace. Directories require recursive:true.',
+      schema: { type: 'object', required: ['path'], properties: { path: { type: 'string' }, recursive: { type: 'boolean' }, baseHash: { type: 'string' } } },
+      permissions: ['tool.call', 'tool.apply'],
+      available: workspaceAvailable,
+      preview: function (args) { return previewPathOperation('delete', args) },
+      apply: function (preview) { return applyPathOperation('delete', deletePath, preview) },
+      run: deletePath,
     }, { owner: owner, layer: 'builtin' })
     ai.tools.register('workspace.stat', {
       title: 'Stat Workspace Path',

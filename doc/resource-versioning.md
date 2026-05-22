@@ -17,6 +17,7 @@ Different resources use different version tokens, but the contract is the same:
 | Resource | Version |
 | --- | --- |
 | Workspace file | content hash |
+| Workspace path operation | source file content hash when available |
 | Dock layout tree | layout revision |
 | Settings record | settings version |
 | Extension registry | registry generation |
@@ -24,6 +25,12 @@ Different resources use different version tokens, but the contract is the same:
 | ChangeSet | ChangeSet revision |
 
 The version token is opaque to callers. It only needs equality comparison.
+
+For workspace files, text writes use `hashText(...)` and blob snapshots use the
+workspace blob/hash helpers. Directory operations such as `mkdir` may not have a
+source hash; `copy`, `move`, and recursive delete carry the source file hash
+when the source is a file. Backends that can version directories may include a
+directory hash, but Core does not require one.
 
 ## Preview / Apply Contract
 

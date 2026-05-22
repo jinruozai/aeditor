@@ -45,6 +45,8 @@ assert.match(escapedChineseUiRequest.messages[0].content, /CURRENT_REQUEST_BLOCK
 const dir = ai.setWorkspace(workspace, { id: 'memory:test', label: 'Test Workspace', kind: 'memory' })
 const workspaceRequest = ai.makeRequest(agent, null, 'run_workspace_tools', 'user', 0)
 assert.equal(workspaceRequest.tools.includes('workspace.fileSummary'), true)
+assert.equal(workspaceRequest.tools.includes('workspace.mkdir'), true)
+assert.equal(workspaceRequest.tools.includes('workspace.move'), true)
 assert.equal(workspaceRequest.tools.includes('code.map'), true)
 assert.equal(workspaceRequest.skills.includes('aiditor.runtime-authoring'), true)
 assert.match(workspaceRequest.messages[0].content, /workspace component files/)
@@ -71,6 +73,21 @@ const summary = await ai.tools.get('workspace.fileSummary').run({ maxFiles: 10 }
 assert.deepEqual(summary.files.map(function (file) { return file.path }).sort(), ['README.md', 'src/app.js'])
 assert.deepEqual(summary.directories.map(function (dir) { return dir.path }), ['src'])
 assert.equal(summary.truncated, false)
+
+const caps = await ai.tools.get('workspace.capabilities').run({}, ctx)
+assert.equal(caps.mkdir, true)
+await ai.tools.get('workspace.mkdir').run({ path: 'docs' }, ctx)
+await ai.tools.get('workspace.copy').run({ from: 'README.md', to: 'docs/README-copy.md' }, ctx)
+assert.equal((await ai.tools.get('workspace.readFile').run({ path: 'docs/README-copy.md' }, ctx)).text, 'hello workspace')
+const movePreview = await ai.tools.get('workspace.move').preview({ from: 'docs/README-copy.md', to: 'docs/README-moved.md' }, ctx)
+assert.equal(movePreview.ok, true)
+await ai.tools.get('workspace.move').apply(movePreview, ctx)
+assert.equal((await ai.tools.get('workspace.stat').run({ path: 'docs/README-moved.md' }, ctx)).kind, 'file')
+await ai.tools.get('workspace.delete').run({ path: 'docs', recursive: true }, ctx)
+await assert.rejects(
+  async () => ai.tools.get('workspace.stat').run({ path: 'docs/README-moved.md' }, ctx),
+  /path not found/
+)
 
 const read = await ai.tools.get('workspace.readFile').run({ path: 'src/app.js' }, ctx)
 assert.equal(read.hash, aiditor.workspace.hashText(read.text))
