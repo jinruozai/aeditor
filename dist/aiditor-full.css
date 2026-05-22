@@ -226,6 +226,8 @@
 
   /* ── Layer 3 — Component-specific (rare; only if not a role) ───── */
   --aiditor-toolbar-h:    28px;
+  --aiditor-panel-toolbar-h: 28px;
+  --aiditor-panel-toolbar-py: 2px;
   --aiditor-tab-h:        28px;
   --aiditor-control-px:   8px;       /* default horizontal padding inside controls */
   --aiditor-toolbar-bg:   var(--aiditor-bg-raised);
@@ -3895,21 +3897,22 @@ div.aiditor-ui-view {
   display: flex;
   gap: var(--aiditor-space-2);
   align-items: center;
-  padding: 4px var(--aiditor-space-2);
+  padding: var(--aiditor-panel-toolbar-py) var(--aiditor-space-2);
   border-bottom: var(--aiditor-toolbar-border-w) solid var(--aiditor-toolbar-border);
   background: var(--aiditor-toolbar-bg);
   flex: 0 0 auto;
-  min-height: 32px;
+  min-height: var(--aiditor-panel-toolbar-h);
   min-width: 0;
+  box-sizing: border-box;
 }
 .aiditor-ui-errlog-bar .aiditor-ui-select { flex: 0 0 96px; width: 96px; min-width: 0; }
 .aiditor-ui-errlog-bar .aiditor-ui-search-field { flex: 1 1 160px; min-width: 92px; max-width: 280px; }
-.aiditor-ui-errlog-bar .aiditor-ui-btn { flex: 0 0 auto; }
-.aiditor-ui-errlog-summary {
-  color: var(--aiditor-fg-3);
-  font: var(--aiditor-fs-xs) var(--aiditor-font-ui);
-  white-space: nowrap;
+.aiditor-ui-errlog-bar .aiditor-ui-select,
+.aiditor-ui-errlog-bar .aiditor-ui-field {
+  height: calc(var(--aiditor-panel-toolbar-h) - var(--aiditor-panel-toolbar-py) - var(--aiditor-panel-toolbar-py));
+  font-size: var(--aiditor-fs-sm);
 }
+.aiditor-ui-errlog-bar .aiditor-ui-btn { flex: 0 0 auto; }
 .aiditor-ui-errlog-spacer { flex: 1 1 auto; }
 .aiditor-ui-errlog-body {
   flex: 1 1 auto;

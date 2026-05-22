@@ -15865,8 +15865,6 @@
     const bar = ui.h('div', 'aiditor-ui-errlog-bar')
     bar.appendChild(ui.select({ value: levelSig, options: LEVEL_OPTS }))
     bar.appendChild(ui.searchInput({ value: querySig, placeholder: 'Search logs...' }))
-    const summary = ui.h('div', 'aiditor-ui-errlog-summary')
-    bar.appendChild(summary)
     bar.appendChild(ui.h('div', 'aiditor-ui-errlog-spacer'))
 
     const copyBtn = ui.button({ text: 'Copy', size: 'sm' })
@@ -15904,7 +15902,6 @@
     function render() {
       const list = aiditor.log()
       const visible = filteredEntries()
-      summary.textContent = summaryText(list, visible)
       clearBody(body)
       if (!visible.length) {
         body.appendChild(ui.h('div', 'aiditor-ui-errlog-empty', { text: list.length ? 'No matching log entries' : 'No log entries' }))
@@ -15963,13 +15960,6 @@
     el.appendChild(ui.h('span', 'aiditor-ui-errlog-detail-label', { text: label }))
     el.appendChild(ui.h('span', 'aiditor-ui-errlog-detail-value', { text: value }))
     return el
-  }
-
-  function summaryText(list, visible) {
-    const counts = { error: 0, warn: 0, info: 0, debug: 0 }
-    for (let i = 0; i < list.length; i++) if (counts[list[i].level] != null) counts[list[i].level]++
-    return visible.length + ' visible / ' + list.length + ' total · ' +
-      counts.error + ' error · ' + counts.warn + ' warn'
   }
 
   function searchable(entry) {

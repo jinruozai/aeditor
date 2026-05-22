@@ -226,6 +226,8 @@
 
   /* ── Layer 3 — Component-specific (rare; only if not a role) ───── */
   --aiditor-toolbar-h:    28px;
+  --aiditor-panel-toolbar-h: 28px;
+  --aiditor-panel-toolbar-py: 2px;
   --aiditor-tab-h:        28px;
   --aiditor-control-px:   8px;       /* default horizontal padding inside controls */
   --aiditor-toolbar-bg:   var(--aiditor-bg-raised);
