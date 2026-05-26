@@ -66,6 +66,7 @@ workspace.createObjectUrl(path, options)
 workspace.createUrlBundle(paths, options)
 workspace.revokeObjectUrl(url)
 workspace.releaseObjectUrls(owner)
+workspace.revealInSystem(path, options)
 workspace.mkdir(path)
 workspace.copy(from, to, options)
 workspace.move(from, to, options)
@@ -82,9 +83,8 @@ before enabling commands such as duplicate, import, recursive delete, or binary
 preview. A missing capability is a normal adapter limitation, not a project
 state.
 
-Current adapters may expose names such as `read` and `write`. Workspace V2's
-final model standardizes text IO as `readText` and `writeText`; see
-[workspace-v2.md](./workspace-v2.md) for the target API surface.
+Text IO uses `readText` and `writeText`; see [workspace-v2.md](./workspace-v2.md)
+for the final API surface.
 
 `stat(path)` returns a stable file identity shape:
 
@@ -115,6 +115,37 @@ that owner.
 `createUrlBundle(paths, options)` returns `{ urls, resolve(path), release() }`
 for multi-file resources such as glTF packages. It is still only URL lifecycle
 management; the framework does not parse or own the resource graph.
+
+## System File Manager
+
+Desktop-capable adapters can expose a system file manager action:
+
+```js
+workspace.capabilities().revealInSystem
+workspace.revealInSystem('src/panel.js', { select: true })
+```
+
+This API accepts only workspace-relative paths. It asks the adapter to reveal a
+file or directory in the host operating system file manager without exposing an
+absolute path, File System Access handle, or shell API to project code.
+
+Return reasons are stable:
+
+```text
+unsupported
+not_found
+permission_denied
+platform_error
+```
+
+Pure Web, memory, and File System Access adapters normally return
+`revealInSystem:false`. Electron, Tauri, native bridge, and desktop adapters can
+implement it. Calling hosts should show file-manager menu items only when the
+capability is true, and should handle failures through their own log or UI.
+
+This API is not a mutation, not a preview/apply operation, and not editor
+history. It is also distinct from editor-internal reveal behavior such as
+selecting a file in an application tree.
 
 ## Snapshots
 

@@ -1667,6 +1667,7 @@
   function capabilityValue(adapter, key) {
     if (key === 'objectUrl') return typeof URL !== 'undefined' && !!URL.createObjectURL && !!adapter.readBlob
     if (key === 'permissionRecovery') return !!adapter.recoverPermission
+    if (key === 'revealInSystem') return !!adapter.__aiditorRevealInSystemSupported
     if (key === 'previewOperation' || key === 'applyOperation') return true
     if (key === 'snapshot') return !!adapter.stat && !!adapter.readBlob && !!adapter.writeBlob
     return !!adapter[key]
@@ -1677,7 +1678,7 @@
       'list', 'readText', 'writeText', 'readBlob', 'writeBlob',
       'mkdir', 'move', 'copy', 'delete', 'recursiveDelete', 'stat',
       'objectUrl', 'snapshot', 'previewOperation', 'applyOperation',
-      'permissionRecovery', 'watch',
+      'revealInSystem', 'permissionRecovery', 'watch',
     ]
     const out = {}
     keys.forEach(function (key) { out[key] = capabilityValue(adapter, key) })
@@ -1704,6 +1705,26 @@
     return 'none'
   }
 
+  function revealReason(reason) {
+    if (reason === 'unsupported') return reason
+    if (reason === 'not_found') return reason
+    if (reason === 'permission_denied') return reason
+    if (reason === 'platform_error') return reason
+    return 'platform_error'
+  }
+
+  function normalizeRevealResult(result) {
+    if (result && result.ok === true) return { ok: true }
+    return { ok: false, reason: revealReason(result && result.reason) }
+  }
+
+  function revealErrorResult(err) {
+    const code = String(err && (err.code || err.name) || '')
+    if (code === 'NotFoundError' || code === 'ENOENT' || code === 'not_found') return { ok: false, reason: 'not_found' }
+    if (code === 'NotAllowedError' || code === 'SecurityError' || code === 'EACCES' || code === 'EPERM' || code === 'permission_denied') return { ok: false, reason: 'permission_denied' }
+    return { ok: false, reason: 'platform_error' }
+  }
+
   function ownerCleanup(owner, fn) {
     if (owner && owner.onCleanup) owner.onCleanup(fn)
     if (owner && owner.__aiditorCleanups) owner.__aiditorCleanups.push(fn)
@@ -1714,8 +1735,28 @@
     const snapshots = {}
     const previews = {}
     const api = adapter
+    const adapterCapabilities = api.capabilities
+    const adapterRevealInSystem = api.revealInSystem
+    api.__aiditorRevealInSystemSupported = typeof adapterRevealInSystem === 'function'
 
-    if (!api.capabilities) api.capabilities = function () { return defaultCapabilities(api) }
+    api.capabilities = function () {
+      const caps = adapterCapabilities ? adapterCapabilities.call(api) : defaultCapabilities(api)
+      if (caps.revealInSystem == null) caps.revealInSystem = !!api.__aiditorRevealInSystemSupported
+      return caps
+    }
+
+    api.revealInSystem = async function (path, opts) {
+      path = normalizePath(path)
+      if (!api.__aiditorRevealInSystemSupported) return { ok: false, reason: 'unsupported' }
+      if (api.stat) {
+        try { await api.stat(path) } catch (err) { return revealErrorResult(err) }
+      }
+      try {
+        return normalizeRevealResult(await adapterRevealInSystem.call(api, path, opts || {}))
+      } catch (err) {
+        return revealErrorResult(err)
+      }
+    }
 
     if (!api.readBlob && api.readText) {
       api.readBlob = async function (path) {
@@ -2137,7 +2178,8 @@
           list: true, readText: true, writeText: true, readBlob: true, writeBlob: true,
           mkdir: true, move: true, copy: true, delete: true, recursiveDelete: true, stat: true,
           objectUrl: typeof URL !== 'undefined' && !!URL.createObjectURL, snapshot: true,
-          previewOperation: true, applyOperation: true, permissionRecovery: true, watch: true,
+          previewOperation: true, applyOperation: true, revealInSystem: false,
+          permissionRecovery: true, watch: true,
         }
       },
       list: function (path) {
@@ -2473,8 +2515,8 @@
           list: true, readText: true, writeText: true, readBlob: true, writeBlob: true,
           mkdir: true, move: true, copy: true, delete: true, recursiveDelete: true, stat: true,
           objectUrl: typeof URL !== 'undefined' && !!URL.createObjectURL, snapshot: true,
-          previewOperation: true, applyOperation: true, permissionRecovery: !!rootHandle.requestPermission,
-          watch: true,
+          previewOperation: true, applyOperation: true, revealInSystem: false,
+          permissionRecovery: !!rootHandle.requestPermission, watch: true,
         }
       },
       list: async function (path) {

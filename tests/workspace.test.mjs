@@ -85,6 +85,8 @@ await ws.writeText('undo.txt', 'after', { baseHash: aiditor.workspace.hashText('
 await ws.restoreSnapshot(snapshot, { baseHash: aiditor.workspace.hashText('after') })
 assert.equal((await ws.readText('undo.txt')).text, 'before')
 assert.equal((await ws.capabilities()).mkdir, true)
+assert.equal((await ws.capabilities()).revealInSystem, false)
+assert.deepEqual(await ws.revealInSystem('undo.txt', { select: true }), { ok: false, reason: 'unsupported' })
 
 const createPreview = await ws.previewOperation({ op: 'writeText', path: 'preview/create.txt', text: 'one' })
 await ws.writeText('preview/create.txt', 'raced')
@@ -158,7 +160,32 @@ nested.entries['other.js'] = new FakeFileHandle('other.js', nested, 'beta\n')
 const fsa = aiditor.workspace.fromHandle(root)
 assert.equal((await fsa.search('beta', { path: 'src', limit: 10 })).length, 1)
 assert.equal((await fsa.search('beta', { path: 'src/panel.js', limit: 10 }))[0].path, 'src/panel.js')
+assert.equal((await fsa.capabilities()).revealInSystem, false)
+assert.deepEqual(await fsa.revealInSystem('src/panel.js'), { ok: false, reason: 'unsupported' })
 await fsa.delete('src/panel.js')
 await assert.rejects(async function () { return fsa.readText('src/panel.js') }, /file not found/)
+
+const revealed = []
+const bridge = aiditor.workspace.fromBridge({
+  kind: function () { return 'bridge' },
+  rootId: function () { return 'bridge' },
+  stat: async function (path) {
+    if (path === 'missing.txt') throw Object.assign(new Error('missing'), { code: 'ENOENT' })
+    return { path: path, name: path.split('/').pop(), kind: 'file', size: 1, hash: 'h', mtime: 1, mime: 'text/plain' }
+  },
+  revealInSystem: async function (path, opts) {
+    revealed.push({ path: path, select: !!(opts && opts.select) })
+    if (path === 'denied.txt') throw Object.assign(new Error('denied'), { code: 'EACCES' })
+    if (path === 'bad.txt') return { ok: false, reason: 'custom' }
+    return { ok: true, absolutePath: '/must/not/leak' }
+  },
+})
+assert.equal((await bridge.capabilities()).revealInSystem, true)
+assert.deepEqual(await bridge.revealInSystem('src//panel.js', { select: true }), { ok: true })
+assert.deepEqual(revealed[0], { path: 'src/panel.js', select: true })
+assert.deepEqual(await bridge.revealInSystem('missing.txt'), { ok: false, reason: 'not_found' })
+assert.deepEqual(await bridge.revealInSystem('denied.txt'), { ok: false, reason: 'permission_denied' })
+assert.deepEqual(await bridge.revealInSystem('bad.txt'), { ok: false, reason: 'platform_error' })
+await assert.rejects(async function () { return bridge.revealInSystem('../secret.txt') }, /escapes root/)
 
 console.log('workspace tests ok')

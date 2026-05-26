@@ -217,7 +217,7 @@ aiditor/
 - 通讯总线 aiditor.bus(pub/sub + auto-unsubscribe + 每个 handler 独立 safeCall 包裹)(§ 4.13)
 - Component 注册表 + ComponentContext 工厂(§ 4.8 / § 4.9)
 - Runtime loader `aiditor.runtime.loadScript` + owner-scoped cleanup。AI 新写 workspace panel 文件时,`aiditor.addPanelToDock({ component, dock, path })` 会先加载 `path` 注册 component,再放入 dock。
-- Workspace v2 bounded contract:文本/二进制 read/write、mkdir/copy/move/rename/delete、capabilities、稳定 stat(hash/mtime/size/kind)、object URL lease、bundle URL lease、snapshot/restore 基础能力。它仍然只是文件边界,不是 project/asset 数据模型。
+- Workspace v2 bounded contract:`readText/writeText`、二进制 blob IO、mkdir/copy/move/rename/delete、capabilities、稳定 stat(hash/mtime/size/kind)、object URL lease、bundle URL lease、snapshot/restore、可选 `revealInSystem` 平台能力。它仍然只是文件边界,不是 project/asset 数据模型。
 - Dock 多 panel + detached DOM activate(§ 4.3)+ LRU dispose(§ 4.3)
 - Toolbar 两段渲染(static + dynamic items)(§ 4.10)
 - Focus mode / Collapsed / Transient(§ 4.4 / § 4.5)
@@ -920,6 +920,7 @@ git diff --check
   - `readBlob(path)` / `writeBlob(path, blob)` 支持二进制 IO;`stat(path)` 对文件返回稳定 `hash/mtime/size/kind`。
   - `createObjectUrl(path)` 返回 `{ url, path, hash, size, mime, release }` lease;支持 owner cleanup。
   - `createUrlBundle(paths)` 为 glTF/模型这类多文件预览提供 bundle lease,但框架不解析资源图。
+  - `revealInSystem(path,{select})` 是可选平台 adapter capability;memory/FSA 默认 `false`,desktop/native bridge 可实现,返回稳定 reason,不暴露绝对路径。
   - `snapshot(path[, { binary:true }])` / `compareSnapshot()` / `restoreSnapshot()` 只提供 undo/redo 的底层快照存储和 CAS,不是 FileOperationJournal。
 - `src/ai/workdir.js` 新增 model-facing 通用 workspace tools:
   - `workspace.capabilities`

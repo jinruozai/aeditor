@@ -116,6 +116,7 @@ workspace.createUrlBundle(paths, options)
 workspace.revokeObjectUrl(url)
 workspace.releaseObjectUrls(owner)
 
+workspace.revealInSystem(path, options)
 workspace.recoverPermission(options)
 ```
 
@@ -145,6 +146,7 @@ The final design uses `readText` and `writeText` for text IO. Generic
   snapshot: boolean,
   previewOperation: boolean,
   applyOperation: boolean,
+  revealInSystem: boolean,
   permissionRecovery: boolean,
 }
 ```
@@ -156,6 +158,11 @@ Framework fallback is allowed when it produces a real bounded API. For example,
 a text adapter supports `readBlob` by wrapping returned text in a `Blob`.
 Fallback still reports unknown `mime`, `mtime`, or backend metadata as `null`;
 it must not invent facts.
+
+`revealInSystem` is a platform adapter capability. Pure Web, memory, and File
+System Access adapters normally report `false`. Electron, Tauri, native bridge,
+or desktop adapters can report `true` when they can ask the host operating
+system file manager to reveal a bounded workspace path.
 
 ## Entry Stat And Versions
 
@@ -479,6 +486,52 @@ Supported owner cleanup shapes:
 - arbitrary token released through `releaseObjectUrls(owner)`
 
 Without `watch`, leases do not auto-update when files change.
+
+## System File Manager Reveal
+
+```js
+workspace.revealInSystem(path, {
+  select?: boolean,
+})
+```
+
+`revealInSystem` asks the host platform to show a workspace-relative file or
+directory in the operating system file manager.
+
+Return shape:
+
+```js
+{
+  ok: boolean,
+  reason?: 'unsupported' | 'not_found' | 'permission_denied' | 'platform_error',
+}
+```
+
+Rules:
+
+- `path` is always workspace-relative.
+- The adapter validates that `path` stays inside the bounded workspace root.
+- The adapter must not expose absolute paths, File System Access handles, or
+  shell APIs to project code.
+- Files are revealed by opening the parent directory and selecting the file
+  when the platform supports selection.
+- Directories may be opened directly, or their parent may be opened with the
+  directory selected. The adapter chooses the best platform behavior.
+- `{ select:true }` requests selection when platform support exists; it is not a
+  guarantee.
+- Unsupported adapters return `{ ok:false, reason:'unsupported' }`.
+- Missing paths return `{ ok:false, reason:'not_found' }`.
+- Permission loss returns `{ ok:false, reason:'permission_denied' }`.
+- Host platform failures return `{ ok:false, reason:'platform_error' }`.
+- The API never opens framework UI and never logs on its own.
+
+This is not a file mutation. It does not use `previewOperation` /
+`applyOperation`, does not enter undo/redo, and does not create a history item.
+
+`revealInSystem` is also separate from editor-internal reveal APIs. For example,
+an `OpenService.reveal` style call moves focus to an editor tree, panel, or
+resource inside the application. `workspace.revealInSystem` delegates to the
+host operating system file manager.
 
 ## Permission Recovery
 

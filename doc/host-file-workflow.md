@@ -132,3 +132,50 @@ host validates project/domain correctness
 
 For example, Workspace can validate JSON syntax for a text edit helper, but it
 does not know whether that JSON is a valid material, prefab, animation, or table.
+
+## System File Manager Reveal
+
+Hosts can expose "Reveal in System File Manager" on file or directory context
+menus when the active workspace reports:
+
+```js
+workspace.capabilities().revealInSystem === true
+```
+
+This is a capability-gated platform action, not a project command. The menu item
+should be absent when the capability is false. A disabled always-visible action
+is misleading for pure Web, memory, and File System Access adapters that cannot
+reach the operating system file manager.
+
+Recommended host flow:
+
+```text
+1. User opens a file or directory context menu.
+2. Host checks workspace.capabilities().revealInSystem.
+3. Host converts any project URI to a workspace-relative path.
+4. Host calls workspace.revealInSystem(path, { select:true }).
+5. Host writes failures to Log or host UI using the stable reason.
+```
+
+`ProjectWorkspace` may forward this call, but it must preserve the boundary:
+project URIs are resolved to workspace-relative paths before reaching the
+adapter, and the adapter remains responsible for workspace root validation.
+Project code never receives an absolute system path, File System Access handle,
+or shell API.
+
+Failure reasons are stable:
+
+```text
+unsupported
+not_found
+permission_denied
+platform_error
+```
+
+The action is separate from editor-internal reveal behavior. An OpenService-like
+`reveal` call locates an item inside the editor UI. `workspace.revealInSystem`
+delegates to the system file manager.
+
+This action does not enter history, does not use `previewOperation` /
+`applyOperation`, does not refresh FileIndex by itself, and does not affect
+reference repair.
