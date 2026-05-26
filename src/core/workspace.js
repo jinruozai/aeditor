@@ -94,6 +94,35 @@
     return err
   }
 
+  function workspaceReason(err) {
+    const raw = String(err && (err.reason || err.code || err.name) || '').toLowerCase()
+    const message = String(err && err.message || '').toLowerCase()
+    if (raw.indexOf('notfound') >= 0 || raw === 'enoent' || raw === 'not_found' || message.indexOf('not found') >= 0) return 'not_found'
+    if (raw.indexOf('notallowed') >= 0 || raw.indexOf('security') >= 0 || raw === 'eacces' || raw === 'eperm' || raw === 'permission_denied') return 'permission_denied'
+    if (raw.indexOf('notreadable') >= 0 || raw === 'not_readable') return 'not_readable'
+    if (raw.indexOf('quota') >= 0 || raw === 'enospc' || raw === 'quota_exceeded') return 'quota_exceeded'
+    if (raw === 'missing_base_hash' || raw === 'stale_file' || raw === 'stale') return 'stale'
+    if (message.indexOf('appeared after preview') >= 0 || message.indexOf('disappeared after preview') >= 0 || message.indexOf('changed after preview') >= 0 || message.indexOf('basehash mismatch') >= 0 || message.indexOf('targetbasehash mismatch') >= 0) return 'stale'
+    if (raw === 'max_memory_bytes' || raw === 'size_limit') return 'size_limit'
+    if (raw === 'recursive_required') return 'recursive_required'
+    return 'platform_error'
+  }
+
+  function structuredWorkspaceError(op, path, err, extra) {
+    const reason = workspaceReason(err)
+    const code = String(err && err.code || reason).toUpperCase()
+    const safePath = normalizePath(path || '')
+    const detail = err && err.message ? ': ' + err.message : ''
+    const out = workspaceError(code, 'workspace.' + op + ': ' + reason + ': ' + safePath + detail, Object.assign({
+      op: op,
+      path: safePath,
+      reason: reason,
+      permissionRecovery: reason === 'permission_denied',
+    }, extra || {}))
+    out.cause = err
+    return out
+  }
+
   function diffSummary(before, after) {
     before = String(before == null ? '' : before)
     after = String(after == null ? '' : after)
@@ -457,10 +486,20 @@
 
     async function readTreeFingerprint(path) {
       path = normalizePath(path || '')
-      const entries = await api.list(path)
+      let entries
+      try {
+        entries = await api.list(path)
+      } catch (err) {
+        throw structuredWorkspaceError('list', path, err)
+      }
       const out = []
       for (let i = 0; i < entries.length; i++) {
-        const entry = stableStat(await api.stat(entries[i].path))
+        let entry
+        try {
+          entry = stableStat(await api.stat(entries[i].path))
+        } catch (err) {
+          throw structuredWorkspaceError('stat', entries[i].path, err)
+        }
         out.push({
           path: entry.path,
           kind: entry.kind,
@@ -606,14 +645,22 @@
       if ((input.overwrite || input.targetBaseHash) && !o.confirmOverwrite && (preview.op === 'copy' || preview.op === 'move' || preview.op === 'writeText' || preview.op === 'writeBlob')) {
         throw new Error('workspace.apply: overwrite requires confirmOverwrite:true')
       }
-      for (let i = 0; i < preview.base.length; i++) await assertBaseUnchanged(preview.base[i])
+      try {
+        for (let i = 0; i < preview.base.length; i++) await assertBaseUnchanged(preview.base[i])
+      } catch (err) {
+        throw structuredWorkspaceError('applyOperation', operationPath(preview), err, { operation: preview.op, previewId: preview.id })
+      }
       let result
-      if (preview.op === 'writeText') result = await api.writeText(input.path, input.text, { baseHash: input.baseHash || null, overwrite: !!input.overwrite })
-      else if (preview.op === 'writeBlob') result = await api.writeBlob(input.path, input.blob, { baseHash: input.baseHash || null, overwrite: !!input.overwrite })
-      else if (preview.op === 'mkdir') result = await api.mkdir(input.path, { recursive: !!input.recursive, overwrite: !!input.overwrite })
-      else if (preview.op === 'delete') result = await api.delete(input.path, { recursive: !!input.recursive, baseHash: input.baseHash || null })
-      else if (preview.op === 'copy') result = await api.copy(input.from, input.to, { recursive: !!input.recursive, baseHash: input.baseHash || null, targetBaseHash: input.targetBaseHash || null, overwrite: !!input.overwrite })
-      else if (preview.op === 'move') result = await api.move(input.from, input.to, { recursive: !!input.recursive, baseHash: input.baseHash || null, targetBaseHash: input.targetBaseHash || null, overwrite: !!input.overwrite })
+      try {
+        if (preview.op === 'writeText') result = await api.writeText(input.path, input.text, { baseHash: input.baseHash || null, overwrite: !!input.overwrite })
+        else if (preview.op === 'writeBlob') result = await api.writeBlob(input.path, input.blob, { baseHash: input.baseHash || null, overwrite: !!input.overwrite })
+        else if (preview.op === 'mkdir') result = await api.mkdir(input.path, { recursive: !!input.recursive, overwrite: !!input.overwrite })
+        else if (preview.op === 'delete') result = await api.delete(input.path, { recursive: !!input.recursive, baseHash: input.baseHash || null })
+        else if (preview.op === 'copy') result = await api.copy(input.from, input.to, { recursive: !!input.recursive, baseHash: input.baseHash || null, targetBaseHash: input.targetBaseHash || null, overwrite: !!input.overwrite })
+        else if (preview.op === 'move') result = await api.move(input.from, input.to, { recursive: !!input.recursive, baseHash: input.baseHash || null, targetBaseHash: input.targetBaseHash || null, overwrite: !!input.overwrite })
+      } catch (err) {
+        throw structuredWorkspaceError('applyOperation', operationPath(preview), err, { operation: preview.op, previewId: preview.id })
+      }
       const stats = []
       for (let i = 0; i < preview.effects.length; i++) {
         const effect = preview.effects[i]
@@ -621,6 +668,11 @@
         stats.push({ effect: effect, stat: stat })
       }
       return { applied: true, op: preview.op, effects: preview.effects, stats: stats, result: result }
+    }
+
+    function operationPath(preview) {
+      const input = preview && preview.input || {}
+      return input.path || input.to || input.from || ''
     }
 
     api.previewOperation = function (input) { return makePreview(input) }
@@ -687,25 +739,45 @@
       path = normalizePath(path)
       const o = opts || {}
       const maxMemoryBytes = o.maxMemoryBytes == null ? 16 * 1024 * 1024 : o.maxMemoryBytes
-      const stat = stableStat(await api.stat(path))
+      let stat
+      try {
+        stat = stableStat(await api.stat(path))
+      } catch (err) {
+        throw structuredWorkspaceError('snapshot', path, err)
+      }
       const id = path + '@' + (stat.hash || stat.mtime || 'unversioned') + '#' + Date.now()
       if (stat.kind === 'directory') {
-        if (!o.recursive) throw new Error('workspace.snapshot: directory snapshot requires recursive:true')
-        const entries = await readTreeFingerprint(path)
+        if (!o.recursive) throw structuredWorkspaceError('snapshot', path, workspaceError('RECURSIVE_REQUIRED', 'workspace.snapshot: directory snapshot requires recursive:true'), { rootPath: path })
+        let entries
+        try {
+          entries = await readTreeFingerprint(path)
+        } catch (err) {
+          throw structuredWorkspaceError('snapshot', err.path || path, err, { rootPath: path })
+        }
         let size = 0
         const files = []
         for (let i = 0; i < entries.length; i++) {
           if (entries[i].kind !== 'file') continue
-          const file = await api.readBlob(entries[i].path)
+          let file
+          try {
+            file = await api.readBlob(entries[i].path)
+          } catch (err) {
+            throw structuredWorkspaceError('snapshot', entries[i].path, err, { rootPath: path })
+          }
           size += file.size || 0
-          if (size > maxMemoryBytes) throw new Error('workspace.snapshot: maxMemoryBytes exceeded')
+          if (size > maxMemoryBytes) throw structuredWorkspaceError('snapshot', entries[i].path, workspaceError('MAX_MEMORY_BYTES', 'workspace.snapshot: maxMemoryBytes exceeded'), { rootPath: path, maxMemoryBytes: maxMemoryBytes })
           files.push({ path: entries[i].path, blob: file.blob, hash: file.hash, size: file.size, mime: file.mime || null })
         }
         snapshots[id] = { id: id, path: path, kind: 'directory', hash: stat.hash, mtime: stat.mtime, size: size, entries: entries, files: files }
         return { id: id, path: path, kind: 'directory', hash: stat.hash, mtime: stat.mtime, size: size, storage: 'memory' }
       }
-      const file = await api.readBlob(path)
-      if ((file.size || 0) > maxMemoryBytes) throw new Error('workspace.snapshot: maxMemoryBytes exceeded')
+      let file
+      try {
+        file = await api.readBlob(path)
+      } catch (err) {
+        throw structuredWorkspaceError('snapshot', path, err)
+      }
+      if ((file.size || 0) > maxMemoryBytes) throw structuredWorkspaceError('snapshot', path, workspaceError('MAX_MEMORY_BYTES', 'workspace.snapshot: maxMemoryBytes exceeded'), { maxMemoryBytes: maxMemoryBytes })
       snapshots[id] = { id: id, path: path, kind: 'file', hash: file.hash, mtime: stat.mtime, size: file.size, mime: file.mime || null, blob: file.blob }
       return { id: id, path: path, kind: 'file', hash: file.hash, mtime: stat.mtime, size: file.size, storage: 'memory' }
     }
@@ -730,18 +802,30 @@
       const targetPath = normalizePath(o.targetPath || ref.path)
       const baseHash = o.baseHash || null
       if (ref.kind === 'directory') {
-        await api.mkdir(targetPath, { recursive: true, overwrite: !!o.overwrite })
+        try {
+          await api.mkdir(targetPath, { recursive: true, overwrite: !!o.overwrite })
+        } catch (err) {
+          throw structuredWorkspaceError('restoreSnapshot', targetPath, err, { snapshotId: ref.id })
+        }
         const restored = []
         for (let i = 0; i < ref.files.length; i++) {
           const rel = ref.files[i].path === ref.path ? '' : ref.files[i].path.slice(ref.path.length + 1)
           const target = targetPath ? targetPath + '/' + rel : rel
           const parent = parentPath(target)
-          if (parent) await api.mkdir(parent, { recursive: true, overwrite: true })
-          restored.push(await api.writeBlob(target, ref.files[i].blob, { overwrite: !!o.overwrite }))
+          try {
+            if (parent) await api.mkdir(parent, { recursive: true, overwrite: true })
+            restored.push(await api.writeBlob(target, ref.files[i].blob, { overwrite: !!o.overwrite }))
+          } catch (err) {
+            throw structuredWorkspaceError('restoreSnapshot', target, err, { snapshotId: ref.id, sourcePath: ref.files[i].path })
+          }
         }
         return { path: targetPath, restored: true, effects: restored }
       }
-      return api.writeBlob(targetPath, ref.blob, { baseHash: baseHash, overwrite: !!o.overwrite })
+      try {
+        return await api.writeBlob(targetPath, ref.blob, { baseHash: baseHash, overwrite: !!o.overwrite })
+      } catch (err) {
+        throw structuredWorkspaceError('restoreSnapshot', targetPath, err, { snapshotId: ref.id })
+      }
     }
 
     return api
@@ -1162,55 +1246,83 @@
       },
       list: async function (path) {
         path = normalizePath(path || '')
-        const dir = await dirHandle(path, false)
-        const out = []
-        for await (const entry of dir.values()) out.push({ path: path ? path + '/' + entry.name : entry.name, name: entry.name, kind: entry.kind })
-        return out
+        try {
+          const dir = await dirHandle(path, false)
+          const out = []
+          for await (const entry of dir.values()) out.push({ path: path ? path + '/' + entry.name : entry.name, name: entry.name, kind: entry.kind })
+          return out
+        } catch (err) {
+          throw structuredWorkspaceError('list', path, err)
+        }
       },
       readText: async function (path) {
         path = normalizePath(path)
-        const h = await fileHandle(path, false)
-        const file = await h.getFile()
-        return textResult(path, await file.text(), file.lastModified || null)
+        try {
+          const h = await fileHandle(path, false)
+          const file = await h.getFile()
+          return textResult(path, await file.text(), file.lastModified || null)
+        } catch (err) {
+          throw structuredWorkspaceError('readText', path, err)
+        }
       },
       readBlob: async function (path) {
         path = normalizePath(path)
-        const h = await fileHandle(path, false)
-        const file = await h.getFile()
-        return blobResult(path, file.arrayBuffer ? file : makeBlob(await file.text(), file.type || ''))
+        try {
+          const h = await fileHandle(path, false)
+          const file = await h.getFile()
+          return blobResult(path, file.arrayBuffer ? file : makeBlob(await file.text(), file.type || ''))
+        } catch (err) {
+          throw structuredWorkspaceError('readBlob', path, err)
+        }
       },
       writeText: async function (path, text, opts) {
         path = normalizePath(path)
-        await assertWriteIntent(path, opts || {}, 'writeText')
-        const h = await fileHandle(path, true)
-        const w = await h.createWritable()
-        await w.write(String(text == null ? '' : text))
-        await w.close()
-        return textResult(path, String(text == null ? '' : text))
+        try {
+          await assertWriteIntent(path, opts || {}, 'writeText')
+          const h = await fileHandle(path, true)
+          const w = await h.createWritable()
+          await w.write(String(text == null ? '' : text))
+          await w.close()
+          return textResult(path, String(text == null ? '' : text))
+        } catch (err) {
+          throw structuredWorkspaceError('writeText', path, err)
+        }
       },
       writeBlob: async function (path, blob, opts) {
         path = normalizePath(path)
-        await assertWriteIntent(path, opts || {}, 'writeBlob')
-        const h = await fileHandle(path, true)
-        const w = await h.createWritable()
-        await w.write(makeBlob(blob))
-        await w.close()
-        return blobResult(path, makeBlob(blob))
+        try {
+          await assertWriteIntent(path, opts || {}, 'writeBlob')
+          const h = await fileHandle(path, true)
+          const w = await h.createWritable()
+          await w.write(makeBlob(blob))
+          await w.close()
+          return blobResult(path, makeBlob(blob))
+        } catch (err) {
+          throw structuredWorkspaceError('writeBlob', path, err)
+        }
       },
       mkdir: async function (path, opts) {
         path = normalizePath(path)
-        if (await statOrMissing(path)) {
-          if (!(opts && opts.overwrite)) throw new Error('workspace.mkdir: target already exists: ' + path)
-          return this.stat(path)
+        try {
+          if (await statOrMissing(path)) {
+            if (!(opts && opts.overwrite)) throw new Error('workspace.mkdir: target already exists: ' + path)
+            return this.stat(path)
+          }
+          await dirHandle(path, true)
+          return { path: path, name: fileName(path), kind: 'directory', size: null, hash: null, mtime: null, mime: null }
+        } catch (err) {
+          throw structuredWorkspaceError('mkdir', path, err)
         }
-        await dirHandle(path, true)
-        return { path: path, name: fileName(path), kind: 'directory', size: null, hash: null, mtime: null, mime: null }
       },
       delete: async function (path, opts) {
         path = normalizePath(path)
-        const dir = await dirHandle(parentPath(path), false)
-        await dir.removeEntry(fileName(path), { recursive: !!(opts && opts.recursive) })
-        return { path: path, deleted: true }
+        try {
+          const dir = await dirHandle(parentPath(path), false)
+          await dir.removeEntry(fileName(path), { recursive: !!(opts && opts.recursive) })
+          return { path: path, deleted: true }
+        } catch (err) {
+          throw structuredWorkspaceError('delete', path, err)
+        }
       },
       copy: async function (from, to, opts) {
         from = normalizePath(from)
@@ -1257,17 +1369,22 @@
       },
       stat: async function (path) {
         path = normalizePath(path)
-        const h = await handleFor(path)
-        if (h.kind === 'directory') return { path: path, name: fileName(path), kind: 'directory', size: null, hash: null, mtime: null, mime: null }
-        const file = await h.getFile()
-        const blob = file.arrayBuffer ? file : makeBlob(await file.text(), file.type || '')
-        return { path: path, name: fileName(path), kind: 'file', size: blob.size, hash: await hashBlob(blob), mtime: file.lastModified || null, mime: file.type || null }
+        try {
+          const h = await handleFor(path)
+          if (h.kind === 'directory') return { path: path, name: fileName(path), kind: 'directory', size: null, hash: null, mtime: null, mime: null }
+          const file = await h.getFile()
+          const blob = file.arrayBuffer ? file : makeBlob(await file.text(), file.type || '')
+          return { path: path, name: fileName(path), kind: 'file', size: blob.size, hash: await hashBlob(blob), mtime: file.lastModified || null, mime: file.type || null }
+        } catch (err) {
+          throw structuredWorkspaceError('stat', path, err)
+        }
       },
       watch: function () { return function () {} },
       resolveUrl: function (path) { return normalizePath(path) },
-      recoverPermission: async function (mode) {
+      recoverPermission: async function (options) {
         if (!rootHandle.requestPermission) return true
-        return await rootHandle.requestPermission({ mode: mode || 'readwrite' }) === 'granted'
+        const mode = typeof options === 'string' ? options : options && options.mode || 'readwrite'
+        return await rootHandle.requestPermission({ mode: mode }) === 'granted'
       },
     }
     return enhanceWorkspace(api)
@@ -1281,6 +1398,7 @@
   workspace.hashBlob = hashBlob
   workspace.hashText = hashText
   workspace.diffSummary = diffSummary
+  workspace.workspaceError = workspaceError
   workspace.validateText = validateText
   workspace.applyLinePatches = applyLinePatches
   workspace.applyTextEdits = applyTextEdits

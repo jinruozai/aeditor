@@ -81,10 +81,35 @@ Implemented abilities:
 
 - capture and apply snapshots
 - push and replace entries
-- jump, undo, redo
+- async-safe jump, undo, redo
 - pause recording
 - begin, commit, cancel transactions
 - record a function as one transaction
+
+`jump(index)`, `undo()`, and `redo()` return `Promise<Entry | null>`.
+Synchronous `apply(snapshot, ctx)` functions are still valid; the returned
+Promise resolves immediately after the synchronous apply succeeds. If `apply`
+returns a thenable, `history.applying()` stays true until that thenable settles.
+
+The timeline index moves only after `apply` succeeds. If synchronous or async
+apply fails, the Promise rejects and the previous index remains current. Callers
+can catch the error and decide how to surface it.
+
+`aiditor.history.bind(id, history, options)` exposes a named history instance to
+generic UI such as the built-in `history` panel. Binding options may include
+host-owned state such as `savedIndex` or an `onError(err, ctx)` display hook.
+The binding is only a reference surface; project saved policy and file journal
+policy remain host-owned.
+
+The built-in `history` component is a generic History panel primitive. It shows
+entries, current and saved markers, and calls `undo`, `redo`, or `jump`. It does
+not create history entries, infer project dirty state, inspect files, or repair
+references.
+
+History panel props stay JSON-serializable. Use `{ historyId:'main' }` in
+`panel.props`; register the actual history object and hooks with
+`aiditor.history.bind('main', history, options)`. Do not put functions or
+history instances into panel props.
 
 History is generic infrastructure. Domain history such as table edits, timeline
 keys, scene objects, or generated code must adapt their snapshots into this

@@ -217,14 +217,15 @@ aiditor/
 - 通讯总线 aiditor.bus(pub/sub + auto-unsubscribe + 每个 handler 独立 safeCall 包裹)(§ 4.13)
 - Component 注册表 + ComponentContext 工厂(§ 4.8 / § 4.9)
 - Runtime loader `aiditor.runtime.loadScript` + owner-scoped cleanup。AI 新写 workspace panel 文件时,`aiditor.addPanelToDock({ component, dock, path })` 会先加载 `path` 注册 component,再放入 dock。
-- Workspace v2 bounded contract:`readText/writeText`、二进制 blob IO、mkdir/copy/move/rename/delete、capabilities、稳定 stat(hash/mtime/size/kind)、object URL lease、bundle URL lease、snapshot/restore、可选 `revealInSystem` 平台能力。它仍然只是文件边界,不是 project/asset 数据模型。
+- History 支持同步/异步 apply;`jump/undo/redo` 返回 Promise,apply 失败时 index 不前移/后移。内置 `history` panel 是通用交互 primitive,只绑定 `aiditor.history` 实例,不接项目 saved/file journal 语义。
+- Workspace v2 bounded contract:`readText/writeText`、二进制 blob IO、mkdir/copy/move/rename/delete、capabilities、稳定 stat(hash/mtime/size/kind)、object URL lease、bundle URL lease、snapshot/restore、可选 `revealInSystem` 平台能力。FSA/adapter IO 错误带稳定 `path/op/reason/code` 和 permission recovery 建议。它仍然只是文件边界,不是 project/asset 数据模型。
 - Dock 多 panel + detached DOM activate(§ 4.3)+ LRU dispose(§ 4.3)
 - Toolbar 两段渲染(static + dynamic items)(§ 4.10)
 - Focus mode / Collapsed / Transient(§ 4.4 / § 4.5)
 - Blender 角拖 split + sibling merge + dirty 检查 + 3×3 hover(§ 4.1 / § 4.2)
 - Panel 跨 dock 拖放(detach contentEl → re-attach,零重建)(§ 4.14)
 - Pop out 独立窗口 + BroadcastChannel handshake + serialize/deserialize(§ 4.14)
-- 内置 component:`tab-standard` / `tab-compact` / `tab-collapsible` / `tab-sidebar` / `log`
+- 内置 component:`tab-standard` / `tab-compact` / `tab-collapsible` / `tab-sidebar` / `history` / `log`
 
 **UI 组件库(aiditor.ui.* 50 个组件)**:
 - 全部基于 caller-owned `value: signal<T>` 的"信号优先"设计 —— 组件不持有自己的 state

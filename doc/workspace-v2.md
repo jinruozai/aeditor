@@ -631,6 +631,12 @@ Workspace V2 implementation must cover:
   capability, or path boundary.
 - Versionless adapters surface `versioned:'none'`.
 - Snapshot over `maxMemoryBytes` fails clearly.
+- FSA `stat` / `readBlob` / `snapshot` / `restoreSnapshot` errors include
+  `path`, `op`, `reason`, `code`, and permission recovery guidance.
+- Recursive snapshot and restore failures identify the specific child file that
+  failed.
+- `applyOperation` wraps execution failures with enough structured data for host
+  logs without hiding the original cause.
 - Object URL `release`, `revokeObjectUrl`, and owner cleanup revoke URLs.
 - Adapter enhancement produces callable APIs without inventing metadata.
 - AI mutating tools use Core preview/apply.

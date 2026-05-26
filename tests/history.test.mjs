@@ -29,16 +29,16 @@ assert.equal(history.index(), 2)
 assert.equal(history.canUndo(), true)
 assert.equal(history.canRedo(), false)
 
-history.undo()
+await history.undo()
 assert.equal(state.value, 2)
 assert.equal(history.index(), 1)
 assert.equal(history.canRedo(), true)
 
-history.redo()
+await history.redo()
 assert.equal(state.value, 3)
 assert.deepEqual(applied, ['undo:2', 'redo:3'])
 
-history.undo()
+await history.undo()
 state.value = 4
 history.capture('Four')
 assert.equal(history.canRedo(), false)
@@ -60,5 +60,46 @@ history.record('Seven', () => {
   state.value = 7
 })
 assert.equal(history.current().label, 'Seven')
+
+let asyncState = { value: 1 }
+let releaseApply
+const asyncHistory = aiditor.history.create({
+  capture: () => ({ value: asyncState.value }),
+  apply: (snapshot) => new Promise(function (resolve) {
+    releaseApply = function () {
+      asyncState = { value: snapshot.value }
+      resolve()
+    }
+  }),
+})
+asyncHistory.reset('Initial')
+asyncState.value = 2
+asyncHistory.capture('Two')
+const pendingUndo = asyncHistory.undo()
+assert.equal(asyncHistory.applying(), true)
+assert.equal(asyncHistory.index(), 1)
+releaseApply()
+await pendingUndo
+assert.equal(asyncHistory.applying(), false)
+assert.equal(asyncHistory.index(), 0)
+assert.equal(asyncState.value, 1)
+
+let failingState = { value: 1 }
+const failingHistory = aiditor.history.create({
+  capture: () => ({ value: failingState.value }),
+  apply: () => Promise.reject(new Error('apply failed')),
+})
+failingHistory.reset('Initial')
+failingState.value = 2
+failingHistory.capture('Two')
+await assert.rejects(function () { return failingHistory.undo() }, /apply failed/)
+assert.equal(failingHistory.applying(), false)
+assert.equal(failingHistory.index(), 1)
+assert.equal(failingState.value, 2)
+
+const unbind = aiditor.history.bind('case', history, { savedIndex: 1 })
+assert.equal(aiditor.history.binding('case').history, history)
+unbind()
+assert.equal(aiditor.history.binding('case'), null)
 
 console.log('history tests ok')

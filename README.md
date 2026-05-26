@@ -243,8 +243,8 @@ var button = aiditor.ui.button({
 ```
 
 The UI layer includes base controls, form inputs, editor inputs, containers,
-virtualized data views, overlays, property forms, settings UI, tab/log panels,
-and the generic Inspector panel.
+virtualized data views, overlays, property forms, settings UI, tab/history/log
+panels, and the generic Inspector panel.
 
 ### Inspector
 

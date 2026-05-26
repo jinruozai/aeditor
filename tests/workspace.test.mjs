@@ -107,17 +107,20 @@ await assert.rejects(async function () { return ws.applyOperation(deletePreview,
 await assert.rejects(async function () { return ws.snapshot('tree', { recursive: true, maxMemoryBytes: 1 }) }, /maxMemoryBytes/)
 
 class FakeFileHandle {
-  constructor(name, parent, text) {
+  constructor(name, parent, text, opts) {
     this.kind = 'file'
     this.name = name
     this.parent = parent
     this.text = text || ''
+    this.opts = opts || {}
   }
   async getFile() {
+    if (this.opts.failRead) throw Object.assign(new Error('cannot read file'), { name: 'NotReadableError' })
     const self = this
     return { async text() { return self.text } }
   }
   async createWritable() {
+    if (this.opts.failWrite) throw Object.assign(new Error('permission denied'), { name: 'NotAllowedError' })
     const self = this
     return {
       async write(text) { self.text = String(text) },
@@ -162,8 +165,39 @@ assert.equal((await fsa.search('beta', { path: 'src', limit: 10 })).length, 1)
 assert.equal((await fsa.search('beta', { path: 'src/panel.js', limit: 10 }))[0].path, 'src/panel.js')
 assert.equal((await fsa.capabilities()).revealInSystem, false)
 assert.deepEqual(await fsa.revealInSystem('src/panel.js'), { ok: false, reason: 'unsupported' })
+src.entries['bad.bin'] = new FakeFileHandle('bad.bin', src, '', { failRead: true })
+await assert.rejects(async function () { return fsa.readBlob('src/bad.bin') }, function (err) {
+  assert.equal(err.path, 'src/bad.bin')
+  assert.equal(err.op, 'readBlob')
+  assert.equal(err.reason, 'not_readable')
+  assert.equal(err.code, 'NOT_READABLE')
+  return true
+})
+await assert.rejects(async function () { return fsa.snapshot('src', { recursive: true }) }, function (err) {
+  assert.equal(err.path, 'src/bad.bin')
+  assert.equal(err.op, 'snapshot')
+  assert.equal(err.reason, 'not_readable')
+  assert.equal(err.rootPath, 'src')
+  return true
+})
 await fsa.delete('src/panel.js')
 await assert.rejects(async function () { return fsa.readText('src/panel.js') }, /file not found/)
+
+const writableRoot = new FakeDirHandle('writable')
+const writableSrc = await writableRoot.getDirectoryHandle('src', { create: true })
+writableSrc.entries['ok.txt'] = new FakeFileHandle('ok.txt', writableSrc, 'ok')
+const writable = aiditor.workspace.fromHandle(writableRoot)
+const writableSnapshot = await writable.snapshot('src/ok.txt')
+writableSrc.entries['blocked.txt'] = new FakeFileHandle('blocked.txt', writableSrc, '', { failWrite: true })
+await assert.rejects(async function () {
+  return writable.restoreSnapshot(writableSnapshot, { targetPath: 'src/blocked.txt', overwrite: true })
+}, function (err) {
+  assert.equal(err.path, 'src/blocked.txt')
+  assert.equal(err.op, 'restoreSnapshot')
+  assert.equal(err.reason, 'permission_denied')
+  assert.equal(err.permissionRecovery, true)
+  return true
+})
 
 const revealed = []
 const bridge = aiditor.workspace.fromBridge({

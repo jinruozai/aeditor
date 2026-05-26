@@ -254,6 +254,7 @@ tab-standard
 tab-compact
 tab-collapsible
 tab-sidebar
+history
 log
 settings
 inspector

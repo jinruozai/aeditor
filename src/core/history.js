@@ -94,31 +94,46 @@
       const entries = entriesSig.peek()
       const nextIndex = Math.max(0, Math.min(entries.length - 1, Number(index)))
       const entry = entries[nextIndex]
-      if (!entry || nextIndex === indexSig.peek()) return entry || null
+      if (!entry || nextIndex === indexSig.peek()) return Promise.resolve(entry || null)
+      if (applyingSig.peek()) return Promise.reject(new Error('history.jump: apply already in progress'))
 
       applyingSig.set(true)
       pauseDepth++
-      try {
+      function finish() {
         indexSig.set(nextIndex)
-        apply(cloneSnapshot(entry.snapshot), {
+        return entry
+      }
+      function cleanup() {
+        pauseDepth--
+        applyingSig.set(false)
+      }
+      try {
+        const result = apply(cloneSnapshot(entry.snapshot), {
           reason: reason || 'jump',
           entry: entry,
           index: nextIndex,
         })
-      } finally {
-        pauseDepth--
-        applyingSig.set(false)
+        if (result && typeof result.then === 'function') {
+          return result.then(finish, function (err) {
+            throw err
+          }).finally(cleanup)
+        }
+        const applied = finish()
+        cleanup()
+        return Promise.resolve(applied)
+      } catch (err) {
+        cleanup()
+        return Promise.reject(err)
       }
-      return entry
     }
 
     function undo() {
-      if (!canUndo()) return null
+      if (!canUndo()) return Promise.resolve(null)
       return jump(indexSig.peek() - 1, 'undo')
     }
 
     function redo() {
-      if (!canRedo()) return null
+      if (!canRedo()) return Promise.resolve(null)
       return jump(indexSig.peek() + 1, 'redo')
     }
 
@@ -194,5 +209,26 @@
     }
   }
 
-  aiditor.history = { create: create }
+  const bindingsSig = aiditor.signal({})
+
+  function bind(id, history, options) {
+    id = String(id || 'default')
+    const current = Object.assign({}, bindingsSig.peek())
+    current[id] = Object.assign({ id: id, history: history }, options || {})
+    bindingsSig.set(current)
+    return function () { unbind(id) }
+  }
+
+  function unbind(id) {
+    id = String(id || 'default')
+    const current = Object.assign({}, bindingsSig.peek())
+    delete current[id]
+    bindingsSig.set(current)
+  }
+
+  function binding(id) {
+    return bindingsSig()[String(id || 'default')] || null
+  }
+
+  aiditor.history = { create: create, bind: bind, unbind: unbind, binding: binding, bindings: bindingsSig }
 })(window.aiditor = window.aiditor || {})

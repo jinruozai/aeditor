@@ -206,6 +206,7 @@ const JS_ORDER = [
   'style/theme-settings.js',
   'ui/panel/inspector.js',
   'ui/panel/dock-tabs.js',
+  'ui/panel/history.js',
   'ui/panel/log.js',
 
   // Layer 13 - palette metadata for built-in ui.* components. Must come last.

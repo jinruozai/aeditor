@@ -101,7 +101,7 @@ ui widgets
 propertyForm
 Inspector selection/providers
 settings UI
-built-in tab/log/inspector panels
+built-in tab/history/log/inspector panels
 ```
 
 The UI layer exposes:

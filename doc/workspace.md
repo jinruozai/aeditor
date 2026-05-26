@@ -96,6 +96,24 @@ For files, `hash` is the content version used by compare-and-set writes. For
 directories, `hash` may be omitted because directory versioning depends on the
 backend.
 
+Workspace IO errors use a stable structure at adapter boundaries:
+
+```js
+{
+  message: string,
+  code: string,
+  op: 'stat' | 'readBlob' | 'snapshot' | 'restoreSnapshot' | 'applyOperation' | string,
+  path: string,
+  reason: 'not_found' | 'permission_denied' | 'not_readable' | 'quota_exceeded' | 'stale' | 'size_limit' | 'recursive_required' | 'platform_error',
+  permissionRecovery: boolean
+}
+```
+
+`path` is workspace-relative. Recursive snapshot and restore failures point to
+the specific file that failed, with `rootPath` or `snapshotId` when useful for
+logging. UI should not infer permission recovery from browser exception names;
+it should read `reason` and `permissionRecovery`.
+
 ## Preview URLs
 
 Binary previews are a workspace concern because they need access to bounded

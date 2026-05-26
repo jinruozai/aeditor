@@ -35,7 +35,7 @@ explicitly references one.
 | Area | Responsibility | Does Not Own |
 | --- | --- | --- |
 | Kernel | Shared infrastructure: signals, log, bus, history, settings, commands, theme, i18n, workspace contracts, component registry, dock tree, and dock runtime. | Editor business rules, product project formats, or widget catalog breadth. |
-| UI | `aiditor.ui.*` widgets, schema-driven `propertyForm`, generic Inspector selection/providers, settings UI, built-in tab/log/inspector panel components, and theme consumption. | AI execution or domain data semantics. |
+| UI | `aiditor.ui.*` widgets, schema-driven `propertyForm`, generic Inspector selection/providers, settings UI, built-in tab/history/log/inspector panel components, and theme consumption. | AI execution or domain data semantics. |
 | AI Host | Agents, providers, streaming, permissions, tools, context references, operations, ChangeSet, compaction, and memory. | Product data models or hidden host privileges. |
 | Extension Runtime | Package, review, install, disable, and uninstall contributions through existing registries. | A second component/tool/context model. |
 | Host Adapters | File-system bridges, provider transports, git, verification, and other privileged integrations. | Framework policy bypasses. |
