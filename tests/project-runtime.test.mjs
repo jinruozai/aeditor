@@ -108,8 +108,11 @@ const ws = aiditor.workspace.memory({
     entry: { type: 'script', symbol: 'CaseProject' },
     layout: 'layout.json',
     permissions: {
-      'workspace.read': true,
-      'workspace.write': true,
+      'workspace.list': true,
+      'workspace.search': true,
+      'workspace.readText': true,
+      'workspace.writeText': true,
+      'workspace.stat': true,
       'workspace.delete': true,
       'project.code.load': true,
       'project.reload': true,
@@ -149,19 +152,19 @@ assert.equal(openProjectRequest.tools.includes('demo.project.patchFile'), false)
 assert.equal(openProjectRequest.tools.includes('demo.project.updateDescriptor'), false)
 assert.equal(openProjectRequest.tools.includes('demo.project.reload'), false)
 assert.equal(openProjectRequest.tools.includes('demo.project.mountPanel'), false)
-assert.equal(openProjectRequest.tools.includes('workspace.writeFile'), true)
-assert.equal(openProjectRequest.tools.includes('workspace.patchFile'), true)
+assert.equal(openProjectRequest.tools.includes('workspace.writeText'), true)
+assert.equal(openProjectRequest.tools.includes('workspace.patchText'), true)
 assert.equal(aiditor.componentRegistration('case.panel').owner.startsWith('project:case'), true)
 assert.equal(aiditor.ai.toolMeta('case.ping').owner.startsWith('project:case'), true)
 assert.deepEqual(aiditor.ai.references.read({ uri: 'case.ref://x', resolver: 'case.ref' }), { ok: true })
 
 const savedLayout = await project.saveLayout()
 assert.equal(savedLayout.layoutPath, 'layout.json')
-assert.equal((await ws.read('layout.json')).text.includes('saved-panel'), true)
+assert.equal((await ws.readText('layout.json')).text.includes('saved-panel'), true)
 const savedAsLayout = await window.Demo.project.saveLayout('case', { layoutPath: 'layout-copy.json', updateDescriptor: true })
 assert.equal(savedAsLayout.layoutPath, 'layout-copy.json')
-assert.equal(JSON.parse((await ws.read('aiditor.project.json')).text).layout, 'layout-copy.json')
-assert.equal((await ws.read('layout-copy.json')).text.includes('saved-panel'), true)
+assert.equal(JSON.parse((await ws.readText('aiditor.project.json')).text).layout, 'layout-copy.json')
+assert.equal((await ws.readText('layout-copy.json')).text.includes('saved-panel'), true)
 await project.saveLayout({ layoutPath: 'layout.json', updateDescriptor: true })
 
 const file = await aiditor.ai.tools.get('demo.project.readFile').run({ path: 'src/panel.js' })
@@ -179,7 +182,7 @@ await aiditor.ai.tools.get('demo.project.patchFile').run({
   baseHash: file.hash,
   patches: [{ startLine: 2, endLine: 2, replacement: '  return 2' }],
 })
-assert.equal((await ws.read('src/panel.js')).text.includes('return 2'), true)
+assert.equal((await ws.readText('src/panel.js')).text.includes('return 2'), true)
 
 assert.deepEqual(aiditor.ai.tools.get('demo.project.inspectPanel').run({ panelId: 'p1' }), { panelId: 'p1', status: 'ready' })
 assert.deepEqual(window.Demo.project.current().inspectDocks(), [{ dockId: 'dock-1', name: 'main', rect: { x: 1, y: 2, width: 300, height: 200 }, panels: [] }])
@@ -197,7 +200,7 @@ assert.ok(bridgeCalls.some(function (call) { return call.url.endsWith('/verify/r
 assert.equal(aiditor.ai.tools.get('demo.project.promotePanel'), undefined)
 assert.equal(window.Demo.project.promotePanel, undefined)
 
-await ws.write('src/panels/equipment.panel.js', [
+await ws.writeText('src/panels/equipment.panel.js', [
   ';(function (aiditor, Demo) {',
   "  'use strict'",
   "  Demo.project.component('case.equipment', {",
@@ -215,13 +218,13 @@ const addPanelResult = await aiditor.ai.tools.get('demo.project.addPanel').run({
   entryPath: 'src/panels/equipment.panel.js',
 })
 assert.equal(addPanelResult.component, 'case.equipment')
-assert.equal((await ws.read('layout.json')).text.includes('case.equipment'), true)
-assert.equal((await ws.read('aiditor.project.json')).text.includes('src/panels/equipment.panel.js'), true)
+assert.equal((await ws.readText('layout.json')).text.includes('case.equipment'), true)
+assert.equal((await ws.readText('aiditor.project.json')).text.includes('src/panels/equipment.panel.js'), true)
 assert.equal(aiditor.componentRegistration('case.equipment').owner.startsWith('project:case'), true)
 
-const stableDescriptor = await ws.read('aiditor.project.json')
-const stableLayout = await ws.read('layout.json')
-await ws.write('src/panels/broken.panel.js', 'throw new Error("broken panel file")\n')
+const stableDescriptor = await ws.readText('aiditor.project.json')
+const stableLayout = await ws.readText('layout.json')
+await ws.writeText('src/panels/broken.panel.js', 'throw new Error("broken panel file")\n')
 await assert.rejects(() => aiditor.ai.tools.get('demo.project.addPanel').run({
   component: 'case.broken',
   dock: 'main',
@@ -230,9 +233,9 @@ await assert.rejects(() => aiditor.ai.tools.get('demo.project.addPanel').run({
 }), /broken panel file/)
 assert.equal(window.Demo.project.current().id, 'case')
 assert.equal(aiditor.componentRegistration('case.panel').owner.startsWith('project:case'), true)
-assert.equal((await ws.read('aiditor.project.json')).text, stableDescriptor.text)
-assert.equal((await ws.read('layout.json')).text, stableLayout.text)
-await ws.write('layout.json', JSON.stringify({
+assert.equal((await ws.readText('aiditor.project.json')).text, stableDescriptor.text)
+assert.equal((await ws.readText('layout.json')).text, stableLayout.text)
+await ws.writeText('layout.json', JSON.stringify({
   root: {
     type: 'dock',
     id: 'dock-1',
@@ -240,14 +243,14 @@ await ws.write('layout.json', JSON.stringify({
     panels: [{ id: 'panel-inventory', component: 'case.inventory', title: 'Inventory', icon: '', props: {}, owner: 'project:case' }],
     activeId: 'panel-inventory',
   },
-}, null, 2), { baseHash: (await ws.read('layout.json')).hash })
+}, null, 2), { baseHash: (await ws.readText('layout.json')).hash })
 
-const descriptor = await ws.read('aiditor.project.json')
-await ws.write('aiditor.project.json', '{ broken')
+const descriptor = await ws.readText('aiditor.project.json')
+await ws.writeText('aiditor.project.json', '{ broken', { baseHash: descriptor.hash })
 await assert.rejects(() => window.Demo.project.reload('case'), /JSON/)
 assert.equal(window.Demo.project.current().id, 'case')
 assert.equal(aiditor.componentRegistration('case.panel').owner.startsWith('project:case'), true)
-await ws.write('aiditor.project.json', descriptor.text)
+await ws.writeText('aiditor.project.json', descriptor.text, { baseHash: aiditor.workspace.hashText('{ broken') })
 
 assert.equal(window.Demo.project.close('case'), true)
 assert.equal(aiditor.ai.currentWorkspace(), null)
@@ -279,7 +282,7 @@ const noWorkspaceReadWs = aiditor.workspace.memory({
 const noWorkspaceReadProject = await window.Demo.project.open(noWorkspaceReadWs)
 assert.equal(noWorkspaceReadProject.id, 'noread')
 assert.equal((await aiditor.ai.tools.get('demo.project.readFile').run({ projectId: 'noread', path: 'layout.json' })).path, 'layout.json')
-assert.throws(() => noWorkspaceReadProject.ctx.workspace.read('layout.json'), /workspace\.read/)
+assert.throws(() => noWorkspaceReadProject.ctx.workspace.readText('layout.json'), /workspace\.readText/)
 window.Demo.project.close('noread')
 
 const componentOnlyWs = aiditor.workspace.memory({
@@ -315,7 +318,7 @@ const componentOnlyMount = await aiditor.ai.tools.get('demo.project.mountPanel')
   title: 'Inventory',
 })
 assert.equal(componentOnlyMount.mounted, true)
-assert.equal((await componentOnlyWs.read('aiditor.layout.json')).text.includes('componentonly.inventory'), true)
+assert.equal((await componentOnlyWs.readText('aiditor.layout.json')).text.includes('componentonly.inventory'), true)
 window.Demo.project.close('componentonly')
 
 const bootstrapWs = aiditor.workspace.memory({
@@ -339,8 +342,8 @@ const bootstrapped = await aiditor.ai.tools.get('demo.project.mountPanel').run({
   title: 'Bootstrap',
 })
 assert.equal(bootstrapped.mounted, true)
-assert.equal(JSON.parse((await bootstrapWs.read('aiditor.project.json')).text).type, 'aiditor-project')
-assert.equal((await bootstrapWs.read('aiditor.layout.json')).text.includes('bootstrap.panel'), true)
+assert.equal(JSON.parse((await bootstrapWs.readText('aiditor.project.json')).text).type, 'aiditor-project')
+assert.equal((await bootstrapWs.readText('aiditor.layout.json')).text.includes('bootstrap.panel'), true)
 window.Demo.project.close('bootstrap-demo')
 
 const malformedWs = aiditor.workspace.memory({
@@ -375,10 +378,10 @@ const malformedMount = await aiditor.ai.tools.get('demo.project.mountPanel').run
   entryPath: 'panel.js',
 })
 assert.equal(malformedMount.mounted, true)
-const malformedDescriptor = JSON.parse((await malformedWs.read('aiditor.project.json')).text)
+const malformedDescriptor = JSON.parse((await malformedWs.readText('aiditor.project.json')).text)
 assert.equal(malformedDescriptor.layout, 'aiditor.layout.json')
 assert.equal(malformedDescriptor.entries.filter(function (entry) { return entry.src === 'panel.js' }).length, 1)
-assert.equal((await malformedWs.read('aiditor.layout.json')).text.includes('malformed.panel'), true)
+assert.equal((await malformedWs.readText('aiditor.layout.json')).text.includes('malformed.panel'), true)
 assert.equal((await malformedWs.list('')).some(function (entry) { return entry.path === '[object Object]' }), false)
 window.Demo.project.close('malformed-demo')
 
@@ -396,7 +399,7 @@ const noApplyWs = aiditor.workspace.memory({
     id: 'noapply',
     entry: { type: 'script', symbol: 'NoApplyProject' },
     permissions: {
-      'workspace.read': true,
+      'workspace.readText': true,
       'project.code.load': true,
     },
   }),

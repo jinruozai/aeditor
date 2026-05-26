@@ -89,7 +89,7 @@ function assertOpenToolSequenceIsProtected() {
       {
         role: 'assistant',
         content: '',
-        toolCalls: [{ id: 'call-open', toolId: 'workspace.writeFile', status: 'proposed', args: { path: 'x.js' } }],
+        toolCalls: [{ id: 'call-open', toolId: 'workspace.writeText', status: 'proposed', args: { path: 'x.js' } }],
       },
       { role: 'user', content: 'latest raw tail' },
     ],
@@ -111,20 +111,20 @@ function assertToolGroupBudgetStaysTogether() {
       {
         role: 'assistant',
         content: '',
-        toolCalls: [{ id: 'call-1', toolId: 'workspace.readFile', status: 'completed', args: { path: 'a.js' } }],
+        toolCalls: [{ id: 'call-1', toolId: 'workspace.readText', status: 'completed', args: { path: 'a.js' } }],
       },
       {
         role: 'tool',
-        from: 'tool:workspace.readFile',
+        from: 'tool:workspace.readText',
         content: 'read file result',
-        meta: { sourceMessageId: null, toolCallId: 'call-1', toolId: 'workspace.readFile' },
+        meta: { sourceMessageId: null, toolCallId: 'call-1', toolId: 'workspace.readText' },
       },
       { role: 'user', content: 'current task' },
     ],
   })
   const assistant = agent.messages[1]
   const tool = agent.messages[2]
-  ai.updateMessage(agent.id, tool.id, { meta: { sourceMessageId: assistant.id, toolCallId: 'call-1', toolId: 'workspace.readFile' } })
+  ai.updateMessage(agent.id, tool.id, { meta: { sourceMessageId: assistant.id, toolCallId: 'call-1', toolId: 'workspace.readText' } })
   const current = ai.findAgent(agent.id).messages[3]
   const request = ai.makeRequest(ai.findAgent(agent.id), current, 'run-budget', 'user', 0)
   const ids = request.messages.map(function (message) { return message.id }).filter(Boolean)

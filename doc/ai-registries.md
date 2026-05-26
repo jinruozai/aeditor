@@ -240,11 +240,15 @@ aiditor.ai.operations.apply(preview, ctx)
 aiditor.ai.operations.getPreview(id)
 ```
 
-Operations support validation, risk, preview storage, apply, and transaction
+Operations support validation, risk, preview storage, apply, and host history
 integration.
 
 Preview stores a reviewable operation preview. Apply consumes that preview and
 returns the operation result.
+
+Workspace file operations use the Core workspace review contract described in
+[workspace-v2.md](./workspace-v2.md). AI operations may wrap workspace previews,
+but they do not define separate file-system conflict semantics.
 
 ## Targets
 

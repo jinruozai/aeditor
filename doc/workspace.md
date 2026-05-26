@@ -4,6 +4,11 @@
 
 A workspace is a bounded file access surface.
 
+This document describes the current workspace module and its existing AI tool
+contributions. The next contract target is defined in
+[workspace-v2.md](./workspace-v2.md). Workspace V2 keeps the same boundary:
+generic file primitives only, no project or asset semantics.
+
 It can be backed by:
 
 ```text
@@ -48,18 +53,25 @@ workspace.kind()
 workspace.capabilities()
 workspace.list(path)
 workspace.search(query, options)
-workspace.read(path)
-workspace.write(path, text, options)
+workspace.readText(path)
+workspace.writeText(path, text, options)
 workspace.readBlob(path)
 workspace.writeBlob(path, blob, options)
-workspace.patch(path, baseHash, patches)
+workspace.previewOperation(input)
+workspace.applyOperation(previewOrId, options)
+workspace.snapshot(path, options)
+workspace.restoreSnapshot(snapshotRef, options)
+workspace.compareSnapshot(snapshotRef, path)
+workspace.createObjectUrl(path, options)
+workspace.createUrlBundle(paths, options)
+workspace.revokeObjectUrl(url)
+workspace.releaseObjectUrls(owner)
 workspace.mkdir(path)
 workspace.copy(from, to, options)
 workspace.move(from, to, options)
-workspace.rename(from, to, options)
 workspace.delete(path, options)
 workspace.stat(path)
-workspace.resolveUrl(path)
+workspace.recoverPermission(options)
 ```
 
 `watch(path, handler)` may exist when the backend can support it, but the rest of
@@ -69,6 +81,10 @@ the system must not require watching.
 before enabling commands such as duplicate, import, recursive delete, or binary
 preview. A missing capability is a normal adapter limitation, not a project
 state.
+
+Current adapters may expose names such as `read` and `write`. Workspace V2's
+final model standardizes text IO as `readText` and `writeText`; see
+[workspace-v2.md](./workspace-v2.md) for the target API surface.
 
 `stat(path)` returns a stable file identity shape:
 
@@ -128,12 +144,11 @@ workspace.listFiles
 workspace.fileSummary
 workspace.capabilities
 workspace.searchFiles
-workspace.readFile
-workspace.readFileRange
-workspace.editFile
-workspace.writeFile
-workspace.patchFile
-workspace.deleteFile
+workspace.readText
+workspace.readTextRange
+workspace.editText
+workspace.writeText
+workspace.patchText
 workspace.mkdir
 workspace.copy
 workspace.move
@@ -145,14 +160,13 @@ These are ordinary AI tools backed by the current workspace adapter. They are
 generic and do not know product descriptors, table schemas, panel registrations,
 or build scripts.
 
-Mutating tools (`workspace.editFile`, `workspace.writeFile`,
-`workspace.patchFile`, `workspace.deleteFile`, `workspace.mkdir`,
-`workspace.copy`, `workspace.move`, and `workspace.delete`) expose preview/apply
-phases so the runtime can review and permission-check writes before applying
-them. Their direct `run` functions remain available for trusted local callers
-and tests, but model-facing flows should use preview/apply.
+Mutating tools (`workspace.editText`, `workspace.writeText`,
+`workspace.patchText`, `workspace.mkdir`, `workspace.copy`, `workspace.move`,
+and `workspace.delete`) consume the Core `workspace.previewOperation` /
+`workspace.applyOperation` primitive so review, permission, overwrite intent,
+and CAS validation all share one implementation.
 
-`workspace.editFile`, `workspace.writeFile`, and `workspace.patchFile` validate
+`workspace.editText`, `workspace.writeText`, and `workspace.patchText` validate
 JS and JSON before commit. JSON must parse. JS must not contain known truncation
 markers, unterminated strings/comments, or unbalanced braces; classic non-module
 scripts also receive a syntax parse check. A failed validation leaves the
@@ -187,6 +201,13 @@ apply(diff, file current hashC) -> stale preview, reject and re-preview
 This is not a workspace-only rule. Dock trees, settings, extension registries,
 and other mutable surfaces use the same versioned-apply model described in
 [resource-versioning.md](./resource-versioning.md).
+
+Workspace V2 extends this rule to a Core-level
+`previewOperation` / `applyOperation` review primitive for file-system
+mutations. That primitive is not editor history and not a transaction database;
+it only describes, validates, and executes file operations. Undo grouping,
+reference repair, conflict UI, FileIndex refresh, and rollback strategy remain
+host responsibilities.
 
 ## AI Runtime Binding
 
@@ -250,7 +271,7 @@ component name.
 5. Large reads should use search or range reads first.
 6. Workspace adapters enforce the boundary. Tools should not accept absolute
    paths.
-7. Existing source files should usually be changed with `workspace.editFile`:
+7. Existing source files should usually be changed with `workspace.editText`:
    search, read the exact range, then replace a unique `oldText` with
    `baseHash`. See [workspace-precise-editing.md](./workspace-precise-editing.md).
 8. Full-file writes are for complete new files or deliberate replacement.

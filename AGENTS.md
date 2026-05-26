@@ -950,6 +950,14 @@ git diff --check
 - 不让 workspace 解析 glTF、图片、场景、schema 或任何业务资源格式。
 - 不把 UI tree/inspector 的领域语义和 workspace 文件语义耦合。
 
+2026-05-26 已补充 Workspace V2 定稿设计文档:
+
+- `doc/workspace-v2.md` 是目标设计,不是当前实现清单。
+- 最终边界:Core 提供 bounded file access、operation review、CAS/version check、snapshot storage primitive、object URL lease、permission recovery;Game Aiditor/宿主负责 EditorCommand、HistoryService、FileOperationJournal、FileIndex 刷新、引用更新、冲突 UI 和 domain validation。
+- `previewOperation/applyOperation` 是文件系统操作 review primitive,不是 editor history,不是事务数据库,不承诺跨文件原子性。
+- `doc/workspace-v2.md` 只描述最终模型:统一使用 `readText/writeText`、Core `previewOperation/applyOperation`、严格 CAS/overwrite 语义和完整 snapshot/URL lease 测试矩阵;不要把兼容/过渡层写进最终设计。
+- `doc/host-file-workflow.md` 描述宿主推荐方案:FileIndex、reference repair、FileOperationJournal、HistoryService、冲突 UI 和 domain validation 都属于宿主层,不能回流进 Core workspace。
+
 提交/交接时必须确认新增文件已纳入版本控制:
 
 ```text

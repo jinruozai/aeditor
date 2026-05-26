@@ -211,16 +211,16 @@ code.map(...)
 workspace.fileSummary(...)
 code.outline(...)
 workspace.searchFiles(...)
-workspace.readFileRange(...)
-workspace.editFile(...)
-workspace.patchFile(...)
+workspace.readTextRange(...)
+workspace.editText(...)
+workspace.patchText(...)
 demo.project.readSource({ projection: "outline" })
 demo.project.readSource({ projection: "events" })
 ```
 
-For existing source files, prefer `workspace.editFile`: copy `oldText` from a
-recent `readFileRange` result and include that file hash as `baseHash`.
-`workspace.patchFile` is for mechanical line patches. `workspace.writeFile` is
+For existing source files, prefer `workspace.editText`: copy `oldText` from a
+recent `readTextRange` result and include that file hash as `baseHash`.
+`workspace.patchText` is for mechanical line patches. `workspace.writeText` is
 for new files or deliberate full replacement.
 
 The transcript is not the source of truth for code. Workspace files are. After a

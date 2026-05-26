@@ -575,9 +575,9 @@
     const flow = [
       tools['workspace.fileSummary'] || tools['code.map'] ? '1. Inspect structure with workspace.fileSummary or code.map.' : null,
       tools['workspace.searchFiles'] ? '2. Locate candidates with workspace.searchFiles.' : null,
-      tools['workspace.readFileRange'] ? '3. Read exact current ranges with workspace.readFileRange.' : null,
-      tools['workspace.editFile'] ? '4. Edit existing files with workspace.editFile using baseHash and exact oldText/newText.' : null,
-      tools['workspace.writeFile'] ? '5. Use workspace.writeFile for new files or deliberate whole-file replacement.' : null,
+      tools['workspace.readTextRange'] ? '3. Read exact current ranges with workspace.readTextRange.' : null,
+      tools['workspace.editText'] ? '4. Edit existing files with workspace.editText using baseHash and exact oldText/newText.' : null,
+      tools['workspace.writeText'] ? '5. Use workspace.writeText for new files or deliberate whole-file replacement.' : null,
       tools['verify.run'] ? '6. Run the narrowest relevant verify.run check after edits.' : null,
     ].filter(Boolean)
     return contextCardMessage('workspace', 'workspace', 80, [

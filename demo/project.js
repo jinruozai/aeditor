@@ -55,7 +55,7 @@
   }
 
   async function readJson(workspace, path) {
-    const file = await workspace.read(path)
+    const file = await workspace.readText(path)
     return JSON.parse(file.text)
   }
 
@@ -88,8 +88,8 @@
     if (runtime.options && runtime.options.fullAccess) return true
     const p = runtime.descriptor.permissions || {}
     if (p[key] === true) return true
-    if (key === 'workspace.read' && p.workspace === 'read') return true
-    if ((key === 'workspace.read' || key === 'workspace.write') && p.workspace === 'readwrite') return true
+    if ((key === 'workspace.list' || key === 'workspace.search' || key === 'workspace.readText' || key === 'workspace.stat') && p.workspace === 'read') return true
+    if (key.indexOf('workspace.') === 0 && p.workspace === 'readwrite') return true
     return false
   }
 
@@ -103,12 +103,12 @@
       rootId: ws.rootId,
       kind: ws.kind,
       resolveUrl: ws.resolveUrl,
-      list: function (path) { requirePermission(runtime, 'workspace.read'); return ws.list(path || '') },
-      read: function (path) { requirePermission(runtime, 'workspace.read'); return ws.read(path) },
-      write: function (path, text, opts) { requirePermission(runtime, 'workspace.write'); return ws.write(path, text, opts || {}) },
-      patch: function (path, baseHash, patches) { requirePermission(runtime, 'workspace.write'); return ws.patch(path, baseHash, patches || []) },
-      search: function (query, opts) { requirePermission(runtime, 'workspace.read'); return ws.search(query, opts || {}) },
-      stat: function (path) { requirePermission(runtime, 'workspace.read'); return ws.stat(path) },
+      list: function (path) { requirePermission(runtime, 'workspace.list'); return ws.list(path || '') },
+      readText: function (path) { requirePermission(runtime, 'workspace.readText'); return ws.readText(path) },
+      writeText: function (path, text, opts) { requirePermission(runtime, 'workspace.writeText'); return ws.writeText(path, text, opts || {}) },
+      patchText: function (path, baseHash, patches) { requirePermission(runtime, 'workspace.writeText'); return ws.patchText(path, baseHash, patches || []) },
+      search: function (query, opts) { requirePermission(runtime, 'workspace.search'); return ws.search(query, opts || {}) },
+      stat: function (path) { requirePermission(runtime, 'workspace.stat'); return ws.stat(path) },
       watch: function (path, handler) { return ws.watch ? ws.watch(path, handler) : function () {} },
       delete: function (path) { requirePermission(runtime, 'workspace.delete'); return ws.delete(path) },
     }
@@ -150,15 +150,15 @@
   function writeProjectFile(runtime, path, text, opts) {
     text = String(text == null ? '' : text)
     validateWorkspaceText(path, text, opts || {})
-    return hostWorkspaceFor(runtime).write(path, text, opts || {}).then(omitFileText)
+    return hostWorkspaceFor(runtime).writeText(path, text, opts || {}).then(omitFileText)
   }
 
   async function patchProjectFile(runtime, path, baseHash, patches, opts) {
     const ws = hostWorkspaceFor(runtime)
-    const current = await ws.read(path)
+    const current = await ws.readText(path)
     const text = aiditor.workspace.applyLinePatches(current.text, baseHash, patches || [])
     validateWorkspaceText(path, text, opts || {})
-    return omitFileText(await ws.write(path, text, { baseHash: baseHash }))
+    return omitFileText(await ws.writeText(path, text, { baseHash: baseHash }))
   }
 
   function clearAiWorkspace(runtime) {
@@ -278,7 +278,7 @@
   }
 
   async function textUrl(runtime, path, mime) {
-    const file = await hostWorkspaceFor(runtime).read(path)
+    const file = await hostWorkspaceFor(runtime).readText(path)
     if (mime === 'text/javascript') validateScriptSyntax(path, file.text)
     if (typeof Blob === 'undefined' || !window.URL || !URL.createObjectURL) {
       throw new Error('Project loader requires object URLs for file-backed entries')
@@ -291,7 +291,7 @@
   async function loadScript(runtime, path) {
     if (!path) return
     if (typeof document === 'undefined' || !document.createElement) {
-      const file = await hostWorkspaceFor(runtime).read(path)
+      const file = await hostWorkspaceFor(runtime).readText(path)
       validateScriptSyntax(path, file.text)
       ;(new Function(file.text))()
       return
@@ -315,7 +315,7 @@
 
   async function installStyle(runtime, path) {
     if (typeof document === 'undefined' || !document.createElement) return null
-    const file = await hostWorkspaceFor(runtime).read(path)
+    const file = await hostWorkspaceFor(runtime).readText(path)
     const el = document.createElement('style')
     el.setAttribute('data-aiditor-project-style', runtime.id)
     el.textContent = file.text
@@ -413,7 +413,7 @@
       openedAt: Date.now(),
     }
     if (descriptor.layout) {
-      const layout = await hostWorkspaceFor(runtime).read(descriptor.layout)
+      const layout = await hostWorkspaceFor(runtime).readText(descriptor.layout)
       const parsed = JSON.parse(layout.text)
       runtime.layoutData = parsed.root || parsed
     }
@@ -623,14 +623,14 @@
     const root = runtime.handle && runtime.handle.tree ? runtime.handle.tree() : runtime.layoutData
     if (!root) throw new Error('Project layout is not available')
     const previous = await readJsonOrNull(ws, layoutPath)
-    const saved = omitFileText(await ws.write(layoutPath, JSON.stringify({ root: root }, null, 2), previous && previous.file ? { baseHash: previous.file.hash } : {}))
+    const saved = omitFileText(await ws.writeText(layoutPath, JSON.stringify({ root: root }, null, 2), previous && previous.file ? { baseHash: previous.file.hash } : {}))
     runtime.layoutData = clone(root)
     if (runtime.ctx) runtime.ctx.layout = runtime.layoutData
     if (o.updateDescriptor && runtime.descriptor.layout !== layoutPath) {
-      const descriptorFile = await ws.read('aiditor.project.json')
+      const descriptorFile = await ws.readText('aiditor.project.json')
       const descriptor = normalizeDescriptor(JSON.parse(descriptorFile.text))
       descriptor.layout = layoutPath
-      await ws.write('aiditor.project.json', JSON.stringify(descriptor, null, 2), { baseHash: descriptorFile.hash })
+      await ws.writeText('aiditor.project.json', JSON.stringify(descriptor, null, 2), { baseHash: descriptorFile.hash })
       runtime.descriptor = descriptor
     }
     return { ok: true, projectId: runtime.id, layoutPath: layoutPath, layout: saved }
@@ -757,7 +757,7 @@
   }
 
   async function readProjectFile(runtime, path, options) {
-    const file = await hostWorkspaceFor(runtime).read(path)
+    const file = await hostWorkspaceFor(runtime).readText(path)
     if (options && options.full === true) return file
     const max = options && options.maxChars || DEFAULT_PREVIEW_CHARS
     if (file.size <= max) return file
@@ -806,18 +806,18 @@
   async function ensureDescriptorEntry(runtime, path) {
     if (!path) return null
     const ws = hostWorkspaceFor(runtime)
-    const file = await ws.read('aiditor.project.json')
+    const file = await ws.readText('aiditor.project.json')
     const descriptor = normalizeDescriptor(JSON.parse(file.text))
     for (let i = 0; i < descriptor.entries.length; i++) {
       if (entryMatchesPath(descriptor.entries[i], path)) return null
     }
     descriptor.entries.push({ type: 'script', src: path })
-    return omitFileText(await ws.write('aiditor.project.json', JSON.stringify(descriptor, null, 2), { baseHash: file.hash }))
+    return omitFileText(await ws.writeText('aiditor.project.json', JSON.stringify(descriptor, null, 2), { baseHash: file.hash }))
   }
 
   async function readJsonOrNull(ws, path) {
     try {
-      const file = await ws.read(path)
+      const file = await ws.readText(path)
       return { file: file, json: JSON.parse(file.text) }
     } catch (_) {
       return null
@@ -885,11 +885,11 @@
       }
     }
     if (changed || !existing) {
-      await ws.write('aiditor.project.json', JSON.stringify(descriptor, null, 2), existing && existing.file ? { baseHash: existing.file.hash } : {})
+      await ws.writeText('aiditor.project.json', JSON.stringify(descriptor, null, 2), existing && existing.file ? { baseHash: existing.file.hash } : {})
     }
     const layout = await readJsonOrNull(ws, descriptor.layout)
     if (!layout) {
-      await ws.write(descriptor.layout, JSON.stringify({ root: inlineRoot || defaultLayoutRoot() }, null, 2))
+      await ws.writeText(descriptor.layout, JSON.stringify({ root: inlineRoot || defaultLayoutRoot() }, null, 2))
     }
     return descriptor
   }
@@ -943,7 +943,7 @@
     const dock = input.dock || input.dockId || 'main'
     const layoutPath = input.layoutPath || runtime.descriptor.layout || ''
     if (!layoutPath) throw new Error('demo.project.addPanel: layoutPath is required')
-    const current = await ws.read(layoutPath)
+    const current = await ws.readText(layoutPath)
     const parsed = JSON.parse(current.text)
     const root = parsed.root || parsed
     const id = safeId(input.id || input.panelId || componentId.split(/[/.]/).pop())
@@ -962,19 +962,19 @@
     if (!state.found) throw new Error('demo.project.addPanel: dock not found: ' + dock)
     const nextLayout = parsed.root ? Object.assign({}, parsed, { root: nextRoot }) : nextRoot
     const entryPath = input.entryPath || input.path || ''
-    const descriptorBefore = entryPath ? await ws.read('aiditor.project.json') : null
-    const layout = omitFileText(await ws.write(layoutPath, JSON.stringify(nextLayout, null, 2), { baseHash: current.hash }))
+    const descriptorBefore = entryPath ? await ws.readText('aiditor.project.json') : null
+    const layout = omitFileText(await ws.writeText(layoutPath, JSON.stringify(nextLayout, null, 2), { baseHash: current.hash }))
     let descriptor = null
     let reloaded = null
     try {
       descriptor = await ensureDescriptorEntry(runtime, entryPath)
       if (input.reload !== false) reloaded = await reload(runtime.id)
     } catch (err) {
-      const currentLayout = await ws.read(layoutPath)
-      await ws.write(layoutPath, current.text, { baseHash: currentLayout.hash })
+      const currentLayout = await ws.readText(layoutPath)
+      await ws.writeText(layoutPath, current.text, { baseHash: currentLayout.hash })
       if (descriptor) {
-        const currentDescriptor = await ws.read('aiditor.project.json')
-        await ws.write('aiditor.project.json', descriptorBefore.text, { baseHash: currentDescriptor.hash })
+        const currentDescriptor = await ws.readText('aiditor.project.json')
+        await ws.writeText('aiditor.project.json', descriptorBefore.text, { baseHash: currentDescriptor.hash })
       }
       throw err
     }
@@ -998,7 +998,7 @@
     if (projection === 'search') {
       return { path: path, projection: projection, matches: await ws.search(o.query || '', { path: path, limit: o.limit || 20 }) }
     }
-    const file = await ws.read(path)
+    const file = await ws.readText(path)
     const lines = file.text.split(/\r?\n/)
     if (projection === 'range') {
       const start = Math.max(1, o.startLine || o.page && o.page.startLine || 1)
@@ -1132,7 +1132,7 @@
       exposeToModel: false,
       available: projectAvailable,
       run: async function (args) {
-        const file = await hostWorkspaceFor(projectForTool(args && args.projectId)).read(args.path)
+        const file = await hostWorkspaceFor(projectForTool(args && args.projectId)).readText(args.path)
         const lines = file.text.split(/\r?\n/)
         const start = Math.max(1, args.startLine || 1)
         const end = Math.min(lines.length, args.endLine || start)
@@ -1149,7 +1149,7 @@
     }, { owner: owner, layer: 'builtin' })
     aiditor.ai.tools.register('demo.project.writeFile', {
       title: 'Write Project File',
-      description: 'Write one complete project file. JS/JSON writes are validated before commit; broad rewrites are high risk, prefer workspace.editFile for existing source files.',
+      description: 'Write one complete project file. JS/JSON writes are validated before commit; broad rewrites are high risk, prefer workspace.editText for existing source files.',
       schema: { type: 'object', required: ['path', 'text'], properties: { projectId: { type: 'string' }, path: { type: 'string' }, text: { type: 'string' }, baseHash: { type: 'string' }, validate: { type: 'string', enum: ['auto', 'none', 'javascript', 'json'] } } },
       permissions: ['tool.call', 'tool.apply'],
       exposeToModel: false,

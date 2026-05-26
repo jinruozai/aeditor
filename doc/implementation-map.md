@@ -20,7 +20,7 @@ preserved or deliberately replaced.
 | `src/core/settings.js` | [core.md](./core.md) | Settings sections, schemas, pages, persistence, owner cleanup, and dotted-prefix helpers. |
 | `src/core/commands.js` | [core.md](./core.md) | Commands, menus, owner cleanup, and dotted-prefix helpers. |
 | `src/core/shortcuts.js` | [core.md](./core.md) | Shortcut infrastructure. |
-| `src/core/workspace.js` | [workspace.md](./workspace.md), [workspace-precise-editing.md](./workspace-precise-editing.md) | Workspace adapters, path safety, text/blob IO, path operations, URL leases, snapshots, search, and exact text edit helpers. |
+| `src/core/workspace.js` | [workspace.md](./workspace.md), [workspace-v2.md](./workspace-v2.md), [workspace-precise-editing.md](./workspace-precise-editing.md), [host-file-workflow.md](./host-file-workflow.md) | Workspace adapters, path safety, text/blob IO, path operations, operation review target, URL leases, snapshots, search, and exact text edit helpers. Host FileIndex/reference/journal policy stays above this file. |
 
 ## UI
 
@@ -60,7 +60,7 @@ preserved or deliberately replaced.
 | `src/ai/target.js` | [ai-registries.md](./ai-registries.md) | Add-to-chat targets, drag/drop, file targets. |
 | `src/ai/rich-prompt.js` | [ai-registries.md](./ai-registries.md) | Inline references in prompt text. |
 | `src/ai/change-set.js` | [ai-registries.md](./ai-registries.md) | Grouped review and apply/reject. |
-| `src/ai/workdir.js` | [workspace.md](./workspace.md), [workspace-precise-editing.md](./workspace-precise-editing.md), [agent-workspace-editing.md](./agent-workspace-editing.md) | Workspace module tool contributions and preview/apply file writes/edits. |
+| `src/ai/workdir.js` | [workspace.md](./workspace.md), [workspace-v2.md](./workspace-v2.md), [workspace-precise-editing.md](./workspace-precise-editing.md), [agent-workspace-editing.md](./agent-workspace-editing.md) | Workspace module tool contributions; mutating tools should consume Core operation preview/apply instead of defining separate file semantics. |
 
 ## Outside Framework Bundle
 

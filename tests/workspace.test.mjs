@@ -19,11 +19,11 @@ const ws = aiditor.workspace.memory({
 assert.throws(function () { aiditor.workspace.normalizePath('../secret') }, /escapes root/)
 assert.equal(aiditor.workspace.normalizePath('src\\./panel.js'), 'src/panel.js')
 
-const read = await ws.read('src/panel.js')
+const read = await ws.readText('src/panel.js')
 assert.equal(read.text, 'one\ntwo\nthree\n')
 assert.equal(read.hash, aiditor.workspace.hashText(read.text))
 
-const patched = await ws.patch('src/panel.js', read.hash, [
+const patched = await ws.patchText('src/panel.js', read.hash, [
   { startLine: 2, endLine: 2, replacement: 'TWO' },
 ])
 assert.equal(patched.text, 'one\nTWO\nthree\n')
@@ -52,12 +52,16 @@ assert.throws(function () {
   ])
 }, /matched more than once/)
 
-await ws.write('src/new.js', 'hello')
+await ws.writeText('src/new.js', 'hello')
+await assert.rejects(async function () { return ws.writeText('src/new.js', 'replace') }, /existing target/)
+const newHash = (await ws.stat('src/new.js')).hash
+await ws.writeText('src/new.js', 'replace', { baseHash: newHash })
+assert.equal((await ws.readText('src/new.js')).text, 'replace')
 assert.equal((await ws.stat('src/new.js')).kind, 'file')
 assert.equal((await ws.list('src')).some(function (item) { return item.path === 'src/new.js' }), true)
 
 await ws.delete('src/new.js')
-await assert.rejects(async function () { return ws.read('src/new.js') }, /file not found/)
+await assert.rejects(async function () { return ws.readText('src/new.js') }, /file not found/)
 
 await ws.mkdir('assets/images')
 await ws.writeBlob('assets/images/logo.bin', new Blob([new Uint8Array([1, 2, 3])], { type: 'application/octet-stream' }))
@@ -66,6 +70,7 @@ assert.equal(blobRead.size, 3)
 assert.equal(blobRead.mime, 'application/octet-stream')
 assert.equal((await ws.stat('assets/images/logo.bin')).hash, blobRead.hash)
 await ws.copy('assets/images/logo.bin', 'assets/images/copy.bin')
+await assert.rejects(async function () { return ws.copy('assets/images/logo.bin', 'assets/images/copy.bin') }, /existing target/)
 assert.equal((await ws.stat('assets/images/copy.bin')).kind, 'file')
 await ws.move('assets/images/copy.bin', 'assets/images/moved.bin')
 await assert.rejects(async function () { return ws.stat('assets/images/copy.bin') }, /path not found/)
@@ -74,12 +79,30 @@ await assert.rejects(async function () { return ws.delete('assets') }, /director
 await ws.delete('assets', { recursive: true })
 await assert.rejects(async function () { return ws.stat('assets/images/moved.bin') }, /path not found/)
 
-await ws.write('undo.txt', 'before')
+await ws.writeText('undo.txt', 'before')
 const snapshot = await ws.snapshot('undo.txt')
-await ws.write('undo.txt', 'after')
-await ws.restoreSnapshot(snapshot, { currentHash: aiditor.workspace.hashText('after') })
-assert.equal((await ws.read('undo.txt')).text, 'before')
+await ws.writeText('undo.txt', 'after', { baseHash: aiditor.workspace.hashText('before') })
+await ws.restoreSnapshot(snapshot, { baseHash: aiditor.workspace.hashText('after') })
+assert.equal((await ws.readText('undo.txt')).text, 'before')
 assert.equal((await ws.capabilities()).mkdir, true)
+
+const createPreview = await ws.previewOperation({ op: 'writeText', path: 'preview/create.txt', text: 'one' })
+await ws.writeText('preview/create.txt', 'raced')
+await assert.rejects(async function () { return ws.applyOperation(createPreview) }, /target appeared/)
+const updateBase = await ws.readText('preview/create.txt')
+const updatePreview = await ws.previewOperation({ op: 'writeText', path: 'preview/create.txt', text: 'two', baseHash: updateBase.hash })
+await ws.writeText('preview/create.txt', 'three', { baseHash: updateBase.hash })
+await assert.rejects(async function () { return ws.applyOperation(updatePreview) }, /hash changed/)
+const overwritePreview = await ws.previewOperation({ op: 'writeText', path: 'preview/create.txt', text: 'forced', overwrite: true })
+await assert.rejects(async function () { return ws.applyOperation(overwritePreview, { confirmWarnings: true }) }, /confirmOverwrite/)
+await ws.applyOperation(overwritePreview, { confirmWarnings: true, confirmOverwrite: true })
+assert.equal((await ws.readText('preview/create.txt')).text, 'forced')
+await ws.mkdir('tree')
+await ws.writeText('tree/a.txt', 'a')
+const deletePreview = await ws.previewOperation({ op: 'delete', path: 'tree', recursive: true })
+await ws.writeText('tree/b.txt', 'b')
+await assert.rejects(async function () { return ws.applyOperation(deletePreview, { confirmWarnings: true }) }, /directory contents changed/)
+await assert.rejects(async function () { return ws.snapshot('tree', { recursive: true, maxMemoryBytes: 1 }) }, /maxMemoryBytes/)
 
 class FakeFileHandle {
   constructor(name, parent, text) {
@@ -136,6 +159,6 @@ const fsa = aiditor.workspace.fromHandle(root)
 assert.equal((await fsa.search('beta', { path: 'src', limit: 10 })).length, 1)
 assert.equal((await fsa.search('beta', { path: 'src/panel.js', limit: 10 }))[0].path, 'src/panel.js')
 await fsa.delete('src/panel.js')
-await assert.rejects(async function () { return fsa.read('src/panel.js') }, /file not found/)
+await assert.rejects(async function () { return fsa.readText('src/panel.js') }, /file not found/)
 
 console.log('workspace tests ok')

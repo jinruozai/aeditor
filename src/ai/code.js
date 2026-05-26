@@ -133,7 +133,7 @@
 
   async function outline(args) {
     args = args || {}
-    const file = await requireWorkspace().read(args.path)
+    const file = await requireWorkspace().readText(args.path)
     return outlineText(file.path, file.text, args)
   }
 
@@ -145,7 +145,7 @@
     const truncated = await walk(ws, args.path || '', paths, maxFiles + 1)
     const files = []
     for (let i = 0; i < paths.length && files.length < maxFiles; i++) {
-      const file = await ws.read(paths[i])
+      const file = await ws.readText(paths[i])
       files.push(outlineText(file.path, file.text, {
         maxSymbols: args.maxSymbols || 24,
         maxCalls: args.maxCalls || 40,

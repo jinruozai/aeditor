@@ -413,7 +413,7 @@
           : null
       ].filter(Boolean),
       tools: project
-        ? ['aiditor.readReference', 'aiditor.getCapabilities', 'workspace.fileSummary', 'workspace.searchFiles', 'workspace.readFile', 'workspace.readFileRange', 'workspace.editFile', 'workspace.patchFile', 'workspace.writeFile', 'code.map', 'code.outline', 'aiditor.inspectDocks', 'aiditor.addPanelToDock', 'aiditor.replacePanel', 'demo.project.readDescriptor', 'demo.project.readSource', 'demo.project.inspectPanel', 'demo.project.runCheck']
+        ? ['aiditor.readReference', 'aiditor.getCapabilities', 'workspace.fileSummary', 'workspace.searchFiles', 'workspace.readText', 'workspace.readTextRange', 'workspace.editText', 'workspace.patchText', 'workspace.writeText', 'code.map', 'code.outline', 'aiditor.inspectDocks', 'aiditor.addPanelToDock', 'aiditor.replacePanel', 'demo.project.readDescriptor', 'demo.project.readSource', 'demo.project.inspectPanel', 'demo.project.runCheck']
         : ['aiditor.readReference', 'aiditor.getCapabilities'],
     }
   }

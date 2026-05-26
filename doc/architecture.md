@@ -48,7 +48,8 @@ These invariants are the design spine:
 UI identity          -> registered Component
 AI public model      -> Agent / Tool / Context Reference / Operation / ChangeSet
 file boundary        -> workspace
-reviewed mutation    -> Operation preview/apply or ChangeSet
+file mutation review -> workspace preview/apply
+AI/domain review     -> Operation preview/apply or ChangeSet
 lifecycle owner      -> owner metadata
 distribution unit    -> kernel / ui / ai / core / full bundles
 mutable consistency  -> ResourceVersion + CAS apply
@@ -57,7 +58,9 @@ privileged boundary  -> Host Adapter
 ```
 
 If a feature cannot fit this list, reshape the feature before adding a new
-top-level concept.
+top-level concept. Workspace preview/apply is the Core file-system review
+primitive; AI/domain operations may wrap it, but they must not create a second
+file conflict model.
 
 ## 1. Core
 
@@ -197,9 +200,9 @@ different callers and must remain separate.
 Dotted names are the grouping and lifecycle mechanism:
 
 ```text
-workspace.readFile
-workspace.editFile
-workspace.patchFile
+workspace.readText
+workspace.editText
+workspace.patchText
 theme.setMode
 ui.setProp
 gde.table.patchRows
@@ -232,7 +235,7 @@ Do not add parallel concepts that mean almost the same thing.
 Bad:
 
 ```text
-workspace.readFile
+workspace.readText
 files.readFile
 project.readFile
 ```
@@ -240,7 +243,7 @@ project.readFile
 Good:
 
 ```text
-workspace.readFile
+workspace.readText
 gde.table.readRows
 ```
 

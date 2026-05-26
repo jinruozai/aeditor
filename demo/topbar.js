@@ -92,7 +92,7 @@
 
   async function readFileOrNull(ws, path) {
     try {
-      return await ws.read(path)
+      return await ws.readText(path)
     } catch (err) {
       if (isMissingWorkspaceFile(err)) return null
       throw err
@@ -129,7 +129,7 @@
 
   async function writeTextFile(ws, path, text) {
     const previous = await readFileOrNull(ws, path)
-    return ws.write(path, text, previous ? { baseHash: previous.hash } : {})
+    return ws.writeText(path, text, previous ? { baseHash: previous.hash } : {})
   }
 
   function isStandaloneAssetPath(path) {
@@ -196,7 +196,7 @@
   }
 
   async function loadWorkspaceScript(ws, path) {
-    const file = await ws.read(path)
+    const file = await ws.readText(path)
     if (!aiditor.runtime || !aiditor.runtime.loadScript) throw new Error('aiditor.runtime.loadScript is not available')
     await aiditor.runtime.loadScript({
       id: path,
@@ -442,7 +442,7 @@
     const o = opts || {}
     const layoutPath = String(o.path || o.layoutPath || currentWorkspaceLayoutPath()).trim() || 'aiditor.layout.json'
     const previous = await readFileOrNull(ws, layoutPath)
-    const saved = await ws.write(
+    const saved = await ws.writeText(
       layoutPath,
       JSON.stringify({ root: layout.tree() }, null, 2),
       previous ? { baseHash: previous.hash } : {}

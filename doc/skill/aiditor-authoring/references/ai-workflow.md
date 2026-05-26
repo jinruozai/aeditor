@@ -55,10 +55,10 @@ Layout persistence is a separate host/save concern.
 Use dotted names for public grouping:
 
 ```js
-aiditor.ai.tools.register('workspace.readFile', tool)
+aiditor.ai.tools.register('workspace.readText', tool)
 aiditor.ai.context.register('workspace.summary', provider)
 aiditor.ai.references.register('file', provider)
-aiditor.ai.operations.register('workspace.editFile', operation)
+aiditor.ai.operations.register('workspace.editText', operation)
 aiditor.ai.skills.register('domain.authoring', skill)
 ```
 

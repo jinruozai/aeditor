@@ -72,8 +72,8 @@ workspace id / label / kind
 recommended flow:
   fileSummary / code.map
   searchFiles
-  readFileRange
-  editFile or writeFile
+  readTextRange
+  editText or writeText
   verify.run when available
 ```
 
@@ -117,6 +117,6 @@ attachment.
 2. Context assembly never bypasses permissions.
 3. Current runtime state overrides older transcript claims.
 4. Whole files and large tool outputs are not injected by default.
-5. Workspace precision still comes from `searchFiles`, `readFileRange`, and
-   `editFile`.
+5. Workspace precision still comes from `searchFiles`, `readTextRange`, and
+   `editText`.
 6. Old history is summarized only at safe scheduler points.

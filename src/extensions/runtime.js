@@ -341,7 +341,7 @@
       const matches = []
       function readNext(index) {
         if (index >= paths.length) return Promise.resolve({ matches: matches })
-        return ws.read(paths[index]).then(function (file) {
+        return ws.readText(paths[index]).then(function (file) {
           if (pattern.test(file.text)) matches.push({ path: paths[index], file: file })
           return readNext(index + 1)
         }, function () {
@@ -360,7 +360,7 @@
     const ws = currentWorkspace()
     if (!ws) return Promise.reject(new Error('aiditor.addPanelToDock: current workspace is required to load ' + path))
     if (!aiditor.runtime || !aiditor.runtime.loadScript) return Promise.reject(new Error('aiditor.runtime.loadScript is not available'))
-    return ws.read(path).then(function (file) {
+    return ws.readText(path).then(function (file) {
       if (preview && preview.hash && file.hash !== preview.hash) throw new Error('aiditor.addPanelToDock: script changed since preview')
       return aiditor.runtime.loadScript({
         id: input.id || path,
@@ -379,7 +379,7 @@
     const ws = currentWorkspace()
     if (!ws) return Promise.reject(new Error('aiditor.reloadPanel: current workspace is required to load ' + path))
     if (!aiditor.runtime || !aiditor.runtime.loadScript) return Promise.reject(new Error('aiditor.runtime.loadScript is not available'))
-    return ws.read(path).then(function (file) {
+    return ws.readText(path).then(function (file) {
       if (preview && preview.hash && file.hash !== preview.hash) throw new Error('aiditor.reloadPanel: script changed since preview')
       return aiditor.runtime.loadScript({
         id: input.id || path,
@@ -1126,7 +1126,7 @@
       errors.push({ path: 'path', message: 'Current workspace is required to load script: ' + path })
       return previewAddPanelObject(input, errors, dockName, component, path, null)
     }
-    return ws.read(path).then(function (file) {
+    return ws.readText(path).then(function (file) {
       return previewAddPanelObject(input, errors, dockName, component, path, file)
     }, function (err) {
       errors.push({ path: 'path', message: String(err && err.message || err) })
@@ -1218,7 +1218,7 @@
       errors.push({ path: 'path', message: 'Current workspace is required to load script: ' + path })
       return previewReplacePanelObject(input, errors, panelId, target, component, path, null)
     }
-    return ws.read(path).then(function (file) {
+    return ws.readText(path).then(function (file) {
       return previewReplacePanelObject(input, errors, panelId, target, component, path, file)
     }, function (err) {
       errors.push({ path: 'path', message: String(err && err.message || err) })
@@ -1345,7 +1345,7 @@
       errors.push({ path: 'path', message: 'Current workspace is required to load script: ' + path })
       return previewReloadPanelObject(input, errors, panelId, target, component, path, null)
     }
-    return ws.read(path).then(function (file) {
+    return ws.readText(path).then(function (file) {
       return previewReloadPanelObject(input, errors, panelId, target, component, path, file)
     }, function (err) {
       errors.push({ path: 'path', message: String(err && err.message || err) })

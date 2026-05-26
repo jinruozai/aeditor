@@ -49,7 +49,7 @@ ai.setWorkspace(workspace, { id: 'memory:code', label: 'Code Workspace', kind: '
 
 const outline = await ai.tools.get('code.outline').run({ path: 'src/app.js' })
 assert.equal(outline.path, 'src/app.js')
-assert.equal(outline.hash, aiditor.workspace.hashText((await workspace.read('src/app.js')).text))
+assert.equal(outline.hash, aiditor.workspace.hashText((await workspace.readText('src/app.js')).text))
 assert.ok(outline.symbols.some(function (item) { return item.name === 'root' }))
 assert.ok(outline.calls.some(function (item) { return item.name === 'aiditor.registerComponent' }))
 assert.ok(outline.events.some(function (item) { return item.text.indexOf('addEventListener') >= 0 }))

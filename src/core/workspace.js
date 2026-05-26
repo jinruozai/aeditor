@@ -72,9 +72,9 @@
     return i < 0 ? path : path.slice(i + 1)
   }
 
-  function textResult(path, text) {
+  function textResult(path, text, mtime) {
     text = String(text == null ? '' : text)
-    return { path: path, text: text, hash: hashText(text), size: text.length }
+    return { path: path, text: text, hash: hashText(text), size: text.length, mtime: mtime || null, mime: 'text/plain' }
   }
 
   async function blobResult(path, blob, hash) {
@@ -83,7 +83,7 @@
       blob: blob,
       hash: hash || await hashBlob(blob),
       size: blob.size,
-      mime: blob.type || '',
+      mime: blob.type || null,
     }
   }
 
@@ -162,7 +162,7 @@
   }
 
   function applyLinePatches(text, baseHash, patches) {
-    if (baseHash && hashText(text) !== baseHash) throw new Error('workspace.patch: baseHash mismatch')
+    if (baseHash && hashText(text) !== baseHash) throw new Error('workspace.patchText: baseHash mismatch')
     const lines = String(text || '').split(/\r?\n/)
     const list = (patches || []).slice().sort(function (a, b) {
       return (b.startLine || b.start || 1) - (a.startLine || a.start || 1)
@@ -307,15 +307,42 @@
 
   function capabilityValue(adapter, key) {
     if (key === 'objectUrl') return typeof URL !== 'undefined' && !!URL.createObjectURL && !!adapter.readBlob
-    if (key === 'recoverPermission') return !!adapter.recoverPermission
+    if (key === 'permissionRecovery') return !!adapter.recoverPermission
+    if (key === 'previewOperation' || key === 'applyOperation') return true
+    if (key === 'snapshot') return !!adapter.stat && !!adapter.readBlob && !!adapter.writeBlob
     return !!adapter[key]
   }
 
   function defaultCapabilities(adapter) {
-    const keys = ['list', 'search', 'read', 'write', 'readBlob', 'writeBlob', 'mkdir', 'move', 'copy', 'delete', 'stat', 'watch', 'resolveUrl', 'objectUrl', 'recoverPermission']
+    const keys = [
+      'list', 'readText', 'writeText', 'readBlob', 'writeBlob',
+      'mkdir', 'move', 'copy', 'delete', 'recursiveDelete', 'stat',
+      'objectUrl', 'snapshot', 'previewOperation', 'applyOperation',
+      'permissionRecovery', 'watch',
+    ]
     const out = {}
     keys.forEach(function (key) { out[key] = capabilityValue(adapter, key) })
+    out.recursiveDelete = !!adapter.delete
     return out
+  }
+
+  function stableStat(stat) {
+    return {
+      path: normalizePath(stat.path),
+      name: stat.name || fileName(normalizePath(stat.path)),
+      kind: stat.kind,
+      size: stat.size == null ? null : stat.size,
+      mtime: stat.mtime == null ? null : stat.mtime,
+      hash: stat.hash == null ? null : stat.hash,
+      mime: stat.mime == null ? null : stat.mime,
+    }
+  }
+
+  function versionMode(stat) {
+    if (!stat) return 'missing'
+    if (stat.hash != null) return 'strong'
+    if (stat.mtime != null) return 'weak'
+    return 'none'
   }
 
   function ownerCleanup(owner, fn) {
@@ -326,22 +353,23 @@
   function enhanceWorkspace(adapter) {
     const leases = []
     const snapshots = {}
+    const previews = {}
     const api = adapter
 
     if (!api.capabilities) api.capabilities = function () { return defaultCapabilities(api) }
 
-    if (!api.readBlob && api.read) {
+    if (!api.readBlob && api.readText) {
       api.readBlob = async function (path) {
-        const file = await api.read(path)
+        const file = await api.readText(path)
         const blob = makeBlob(file.text)
         return blobResult(file.path, blob, file.hash)
       }
     }
 
-    if (!api.writeBlob && api.write) {
+    if (!api.writeBlob && api.writeText) {
       api.writeBlob = async function (path, blob, opts) {
         const text = await blobText(makeBlob(blob))
-        const result = await api.write(path, text, opts || {})
+        const result = await api.writeText(path, text, opts || {})
         return blobResult(result.path, makeBlob(text, blob && blob.type), result.hash)
       }
     }
@@ -350,9 +378,10 @@
       api.copy = async function (from, to, opts) {
         from = normalizePath(from)
         to = normalizePath(to)
-        const stat = await api.stat(from)
+        const stat = stableStat(await api.stat(from))
         if (opts && opts.baseHash && stat.hash && stat.hash !== opts.baseHash) throw new Error('workspace.copy: baseHash mismatch')
         if (stat.kind === 'directory') {
+          if (!opts || !opts.recursive) throw new Error('workspace.copy: recursive directory copy requires recursive:true')
           await api.mkdir(to)
           const entries = await api.list(from)
           for (let i = 0; i < entries.length; i++) {
@@ -381,6 +410,185 @@
       api.rename = function (from, to, opts) { return api.move(from, to, opts || {}) }
     }
 
+    async function statOrNull(path) {
+      try { return stableStat(await api.stat(path)) } catch (_) { return null }
+    }
+
+    async function readTreeFingerprint(path) {
+      path = normalizePath(path || '')
+      const entries = await api.list(path)
+      const out = []
+      for (let i = 0; i < entries.length; i++) {
+        const entry = stableStat(await api.stat(entries[i].path))
+        out.push({
+          path: entry.path,
+          kind: entry.kind,
+          hash: entry.hash,
+          mtime: entry.mtime,
+        })
+        if (entry.kind === 'directory') out.push.apply(out, await readTreeFingerprint(entry.path))
+      }
+      out.sort(function (a, b) { return a.path.localeCompare(b.path) })
+      return out
+    }
+
+    function baseEntry(path, stat, exists, children) {
+      const entry = {
+        path: normalizePath(path),
+        exists: !!exists,
+        kind: stat ? stat.kind : null,
+        hash: stat ? stat.hash : null,
+        mtime: stat ? stat.mtime : null,
+        versioned: versionMode(stat),
+      }
+      if (children) entry.children = children
+      return entry
+    }
+
+    function addVersionWarnings(preview) {
+      for (let i = 0; i < preview.base.length; i++) {
+        const entry = preview.base[i]
+        if (!entry.exists) continue
+        if (entry.versioned === 'weak') preview.warnings.push({ path: entry.path, message: 'workspace.preview: weak version check uses mtime because hash is unavailable' })
+        if (entry.versioned === 'none') preview.warnings.push({ path: entry.path, message: 'workspace.preview: no stable version is available for this path' })
+      }
+    }
+
+    function targetNeedsIntent(target, input) {
+      if (!target || !target.exists) return false
+      return !input.baseHash && !input.targetBaseHash && !input.overwrite
+    }
+
+    async function makePreview(rawInput) {
+      const input = Object.assign({}, rawInput || {})
+      input.op = input.op || input.action
+      const op = input.op
+      const id = 'workspace-preview-' + Date.now() + '-' + Math.random().toString(16).slice(2)
+      const preview = {
+        id: id,
+        op: op,
+        input: Object.assign({}, input),
+        base: [],
+        effects: [],
+        summary: '',
+        warnings: [],
+        errors: [],
+      }
+
+      if (op === 'writeText' || op === 'writeBlob') {
+        input.path = normalizePath(input.path)
+        const stat = await statOrNull(input.path)
+        preview.base.push(baseEntry(input.path, stat, !!stat))
+        preview.effects.push({ path: input.path, action: stat ? 'update' : 'create' })
+        preview.summary = (stat ? 'Update ' : 'Create ') + input.path
+        if (targetNeedsIntent(preview.base[0], input)) preview.errors.push({ path: input.path, message: 'workspace.preview: existing target requires baseHash or overwrite:true' })
+        if (input.baseHash && stat && stat.hash && stat.hash !== input.baseHash) preview.errors.push({ path: input.path, message: 'workspace.preview: baseHash mismatch' })
+        if (input.overwrite && stat && !input.baseHash && !input.targetBaseHash) preview.warnings.push({ path: input.path, message: 'workspace.preview: overwrite requested without targetBaseHash' })
+      } else if (op === 'mkdir') {
+        input.path = normalizePath(input.path)
+        const stat = await statOrNull(input.path)
+        preview.base.push(baseEntry(input.path, stat, !!stat))
+        preview.effects.push({ path: input.path, action: 'create' })
+        preview.summary = 'Create directory ' + input.path
+        if (stat && !input.overwrite) preview.errors.push({ path: input.path, message: 'workspace.preview: target already exists' })
+      } else if (op === 'delete') {
+        input.path = normalizePath(input.path)
+        const stat = await statOrNull(input.path)
+        if (!stat) preview.errors.push({ path: input.path, message: 'workspace.preview: path not found' })
+        if (stat && stat.kind === 'directory' && !input.recursive) preview.errors.push({ path: input.path, message: 'workspace.preview: recursive directory delete requires recursive:true' })
+        const children = stat && stat.kind === 'directory' && input.recursive ? await readTreeFingerprint(input.path) : null
+        preview.base.push(baseEntry(input.path, stat, !!stat, children))
+        preview.effects.push({ path: input.path, action: 'delete' })
+        preview.summary = 'Delete ' + input.path
+        if (input.baseHash && stat && stat.hash && stat.hash !== input.baseHash) preview.errors.push({ path: input.path, message: 'workspace.preview: baseHash mismatch' })
+      } else if (op === 'copy' || op === 'move') {
+        input.from = normalizePath(input.from)
+        input.to = normalizePath(input.to)
+        const source = await statOrNull(input.from)
+        const target = await statOrNull(input.to)
+        const sourceChildren = source && source.kind === 'directory' ? await readTreeFingerprint(input.from) : null
+        const targetChildren = target && target.kind === 'directory' ? await readTreeFingerprint(input.to) : null
+        preview.base.push(baseEntry(input.from, source, !!source, sourceChildren))
+        preview.base.push(baseEntry(input.to, target, !!target, targetChildren))
+        preview.effects.push({ path: input.to, action: op, from: input.from, to: input.to })
+        if (op === 'move') preview.effects.push({ path: input.from, action: 'delete' })
+        preview.summary = op + ' ' + input.from + ' to ' + input.to
+        if (!source) preview.errors.push({ path: input.from, message: 'workspace.preview: source not found' })
+        if (source && source.kind === 'directory' && !input.recursive) preview.errors.push({ path: input.from, message: 'workspace.preview: recursive directory ' + op + ' requires recursive:true' })
+        if (targetNeedsIntent(preview.base[1], input)) preview.errors.push({ path: input.to, message: 'workspace.preview: existing target requires targetBaseHash or overwrite:true' })
+        if (input.baseHash && source && source.hash && source.hash !== input.baseHash) preview.errors.push({ path: input.from, message: 'workspace.preview: baseHash mismatch' })
+        if (input.targetBaseHash && target && target.hash && target.hash !== input.targetBaseHash) preview.errors.push({ path: input.to, message: 'workspace.preview: targetBaseHash mismatch' })
+        if (input.overwrite && target && !input.targetBaseHash) preview.warnings.push({ path: input.to, message: 'workspace.preview: overwrite requested without targetBaseHash' })
+      } else {
+        preview.errors.push({ message: 'workspace.preview: unsupported operation: ' + op })
+      }
+
+      addVersionWarnings(preview)
+      preview.ok = preview.errors.length === 0
+      preview.risk = op === 'delete' ? 'delete' : 'edit'
+      preview.title = preview.summary
+      preview.changes = preview.effects.map(function (effect) {
+        const base = preview.base.filter(function (entry) { return entry.path === effect.path || entry.path === effect.from })[0] || null
+        return {
+          type: 'workspacePath',
+          action: effect.action,
+          path: effect.path,
+          from: effect.from || null,
+          to: effect.to || null,
+          baseHash: base && base.hash || null,
+          baseVersion: base && (base.hash || base.mtime) || null,
+          kind: base && base.kind || null,
+        }
+      })
+      previews[id] = preview
+      return preview
+    }
+
+    async function assertBaseUnchanged(entry) {
+      const current = await statOrNull(entry.path)
+      if (!entry.exists && !current) return
+      if (!entry.exists && current) throw new Error('workspace.apply: target appeared after preview: ' + entry.path)
+      if (entry.exists && !current) throw new Error('workspace.apply: path disappeared after preview: ' + entry.path)
+      if (entry.hash != null && current.hash !== entry.hash) throw new Error('workspace.apply: hash changed after preview: ' + entry.path)
+      if (entry.hash == null && entry.mtime != null && current.mtime !== entry.mtime) throw new Error('workspace.apply: mtime changed after preview: ' + entry.path)
+      if (entry.children) {
+        const nextChildren = await readTreeFingerprint(entry.path)
+        if (JSON.stringify(nextChildren) !== JSON.stringify(entry.children)) throw new Error('workspace.apply: directory contents changed after preview: ' + entry.path)
+      }
+    }
+
+    async function executePreview(preview, opts) {
+      const o = opts || {}
+      if (preview.errors && preview.errors.length) throw new Error(preview.errors[0].message)
+      if (preview.warnings && preview.warnings.length && !o.confirmWarnings) throw new Error('workspace.apply: warnings require confirmWarnings:true')
+      const input = preview.input || {}
+      if ((input.overwrite || input.targetBaseHash) && !o.confirmOverwrite && (preview.op === 'copy' || preview.op === 'move' || preview.op === 'writeText' || preview.op === 'writeBlob')) {
+        throw new Error('workspace.apply: overwrite requires confirmOverwrite:true')
+      }
+      for (let i = 0; i < preview.base.length; i++) await assertBaseUnchanged(preview.base[i])
+      let result
+      if (preview.op === 'writeText') result = await api.writeText(input.path, input.text, { baseHash: input.baseHash || null, overwrite: !!input.overwrite })
+      else if (preview.op === 'writeBlob') result = await api.writeBlob(input.path, input.blob, { baseHash: input.baseHash || null, overwrite: !!input.overwrite })
+      else if (preview.op === 'mkdir') result = await api.mkdir(input.path, { recursive: !!input.recursive, overwrite: !!input.overwrite })
+      else if (preview.op === 'delete') result = await api.delete(input.path, { recursive: !!input.recursive, baseHash: input.baseHash || null })
+      else if (preview.op === 'copy') result = await api.copy(input.from, input.to, { recursive: !!input.recursive, baseHash: input.baseHash || null, targetBaseHash: input.targetBaseHash || null, overwrite: !!input.overwrite })
+      else if (preview.op === 'move') result = await api.move(input.from, input.to, { recursive: !!input.recursive, baseHash: input.baseHash || null, targetBaseHash: input.targetBaseHash || null, overwrite: !!input.overwrite })
+      const stats = []
+      for (let i = 0; i < preview.effects.length; i++) {
+        const effect = preview.effects[i]
+        const stat = await statOrNull(effect.path)
+        stats.push({ effect: effect, stat: stat })
+      }
+      return { applied: true, op: preview.op, effects: preview.effects, stats: stats, result: result }
+    }
+
+    api.previewOperation = function (input) { return makePreview(input) }
+    api.applyOperation = function (previewOrId, opts) {
+      const preview = typeof previewOrId === 'string' ? previews[previewOrId] : previewOrId
+      if (!preview) throw new Error('workspace.apply: preview not found')
+      return executePreview(preview, opts || {})
+    }
+
     api.createObjectUrl = async function (path, opts) {
       if (typeof URL === 'undefined' || !URL.createObjectURL) throw new Error('workspace.createObjectUrl: URL.createObjectURL is not available')
       const file = await api.readBlob(path)
@@ -391,7 +599,7 @@
         url: url,
         hash: file.hash,
         size: file.size,
-        mime: file.mime || '',
+        mime: file.mime || null,
         owner: opts && opts.owner || null,
         release: function () {
           if (released) return
@@ -404,6 +612,12 @@
       leases.push(lease)
       ownerCleanup(lease.owner, lease.release)
       return lease
+    }
+
+    api.revokeObjectUrl = function (url) {
+      leases.slice().forEach(function (lease) {
+        if (lease.url === url) lease.release()
+      })
     }
 
     api.createUrlBundle = async function (paths, opts) {
@@ -431,32 +645,62 @@
     api.snapshot = async function (path, opts) {
       path = normalizePath(path)
       const o = opts || {}
-      if (api.read && !o.binary) {
-        const file = await api.read(path)
-        const id = path + '@' + file.hash + '#' + Date.now()
-        snapshots[id] = { id: id, path: path, hash: file.hash, size: file.size, text: file.text, textSnapshot: true }
-        return { id: id, path: path, hash: file.hash, size: file.size, mime: 'text/plain' }
+      const maxMemoryBytes = o.maxMemoryBytes == null ? 16 * 1024 * 1024 : o.maxMemoryBytes
+      const stat = stableStat(await api.stat(path))
+      const id = path + '@' + (stat.hash || stat.mtime || 'unversioned') + '#' + Date.now()
+      if (stat.kind === 'directory') {
+        if (!o.recursive) throw new Error('workspace.snapshot: directory snapshot requires recursive:true')
+        const entries = await readTreeFingerprint(path)
+        let size = 0
+        const files = []
+        for (let i = 0; i < entries.length; i++) {
+          if (entries[i].kind !== 'file') continue
+          const file = await api.readBlob(entries[i].path)
+          size += file.size || 0
+          if (size > maxMemoryBytes) throw new Error('workspace.snapshot: maxMemoryBytes exceeded')
+          files.push({ path: entries[i].path, blob: file.blob, hash: file.hash, size: file.size, mime: file.mime || null })
+        }
+        snapshots[id] = { id: id, path: path, kind: 'directory', hash: stat.hash, mtime: stat.mtime, size: size, entries: entries, files: files }
+        return { id: id, path: path, kind: 'directory', hash: stat.hash, mtime: stat.mtime, size: size, storage: 'memory' }
       }
       const file = await api.readBlob(path)
-      const id = path + '@' + file.hash + '#' + Date.now()
-      snapshots[id] = { id: id, path: path, hash: file.hash, size: file.size, mime: file.mime || '', blob: file.blob }
-      return { id: id, path: path, hash: file.hash, size: file.size, mime: file.mime || '' }
+      if ((file.size || 0) > maxMemoryBytes) throw new Error('workspace.snapshot: maxMemoryBytes exceeded')
+      snapshots[id] = { id: id, path: path, kind: 'file', hash: file.hash, mtime: stat.mtime, size: file.size, mime: file.mime || null, blob: file.blob }
+      return { id: id, path: path, kind: 'file', hash: file.hash, mtime: stat.mtime, size: file.size, storage: 'memory' }
     }
 
-    api.compareSnapshot = async function (snapshot) {
+    api.compareSnapshot = async function (snapshot, path) {
       const ref = snapshots[snapshot && snapshot.id || snapshot]
       if (!ref) throw new Error('workspace.snapshot: snapshot not found')
-      const stat = await api.stat(ref.path)
-      return { path: ref.path, snapshotHash: ref.hash, currentHash: stat.hash || null, changed: stat.hash !== ref.hash }
+      const target = normalizePath(path || ref.path)
+      const stat = await statOrNull(target)
+      if (!stat) return { path: target, snapshotHash: ref.hash, currentHash: null, changed: true }
+      if (ref.kind === 'directory') {
+        const entries = await readTreeFingerprint(target)
+        return { path: target, snapshotHash: ref.hash, currentHash: stat.hash || null, changed: JSON.stringify(entries) !== JSON.stringify(ref.entries) }
+      }
+      return { path: target, snapshotHash: ref.hash, currentHash: stat.hash || null, changed: stat.hash !== ref.hash || stat.mtime !== ref.mtime }
     }
 
     api.restoreSnapshot = async function (snapshot, opts) {
       const ref = snapshots[snapshot && snapshot.id || snapshot]
       const o = opts || {}
       if (!ref) throw new Error('workspace.snapshot: snapshot not found')
-      const baseHash = o.force ? null : (o.currentHash || o.baseHash || null)
-      if (ref.textSnapshot && api.write) return api.write(ref.path, ref.text, { baseHash: baseHash })
-      return api.writeBlob(ref.path, ref.blob, { baseHash: baseHash })
+      const targetPath = normalizePath(o.targetPath || ref.path)
+      const baseHash = o.baseHash || null
+      if (ref.kind === 'directory') {
+        await api.mkdir(targetPath, { recursive: true, overwrite: !!o.overwrite })
+        const restored = []
+        for (let i = 0; i < ref.files.length; i++) {
+          const rel = ref.files[i].path === ref.path ? '' : ref.files[i].path.slice(ref.path.length + 1)
+          const target = targetPath ? targetPath + '/' + rel : rel
+          const parent = parentPath(target)
+          if (parent) await api.mkdir(parent, { recursive: true, overwrite: true })
+          restored.push(await api.writeBlob(target, ref.files[i].blob, { overwrite: !!o.overwrite }))
+        }
+        return { path: targetPath, restored: true, effects: restored }
+      }
+      return api.writeBlob(targetPath, ref.blob, { baseHash: baseHash, overwrite: !!o.overwrite })
     }
 
     return api
@@ -498,6 +742,21 @@
       })
     }
 
+    function assertTargetIntent(path, opts, action) {
+      const o = opts || {}
+      if ((isFile(path) || isDir(path)) && !o.baseHash && !o.targetBaseHash && !o.overwrite) {
+        throw new Error('workspace.' + action + ': existing target requires baseHash or overwrite:true')
+      }
+      return Promise.resolve()
+    }
+
+    async function assertTargetHash(path, opts, action) {
+      const expected = opts && opts.targetBaseHash
+      if (!expected || !isFile(path)) return
+      const hash = await fileHash(path)
+      if (hash !== expected) throw new Error('workspace.' + action + ': targetBaseHash mismatch')
+    }
+
     function hasChildren(path) {
       const prefix = path ? path + '/' : ''
       return Object.keys(data).some(function (p) { return p !== path && p.indexOf(prefix) === 0 })
@@ -516,10 +775,10 @@
       kind: function () { return 'memory' },
       capabilities: function () {
         return {
-          list: true, search: true, read: true, write: true, readBlob: true, writeBlob: true,
-          mkdir: true, move: true, rename: true, copy: true, delete: true, stat: true,
-          watch: true, resolveUrl: true, objectUrl: typeof URL !== 'undefined' && !!URL.createObjectURL,
-          recoverPermission: true,
+          list: true, readText: true, writeText: true, readBlob: true, writeBlob: true,
+          mkdir: true, move: true, copy: true, delete: true, recursiveDelete: true, stat: true,
+          objectUrl: typeof URL !== 'undefined' && !!URL.createObjectURL, snapshot: true,
+          previewOperation: true, applyOperation: true, permissionRecovery: true, watch: true,
         }
       },
       list: function (path) {
@@ -534,7 +793,7 @@
           const child = slash < 0 ? dir : prefix + rest.slice(0, slash)
           if (seen[child]) return
           seen[child] = true
-          out.push({ path: child, name: fileName(child), kind: 'directory', size: 0, mtime: mtimes[child] || null })
+          out.push({ path: child, name: fileName(child), kind: 'directory', size: null, mtime: mtimes[child] || null, hash: null, mime: null })
         })
         allPaths(path).forEach(function (item) {
           if (path && item === path) return
@@ -547,17 +806,19 @@
             path: child,
             name: fileName(child),
             kind: slash < 0 ? 'file' : 'directory',
-            size: slash < 0 ? fileBlob(child).size : 0,
+            size: slash < 0 ? fileBlob(child).size : null,
             mtime: mtimes[child] || null,
+            hash: null,
+            mime: slash < 0 && isBlob(data[child]) ? data[child].type || null : null,
           })
         })
         out.sort(function (a, b) { return a.path.localeCompare(b.path) })
         return Promise.resolve(out)
       },
-      read: function (path) {
+      readText: function (path) {
         path = normalizePath(path)
-        if (!isFile(path)) throw new Error('workspace.read: file not found: ' + path)
-        return fileText(path).then(function (text) { return textResult(path, text) })
+        if (!isFile(path)) throw new Error('workspace.readText: file not found: ' + path)
+        return fileText(path).then(function (text) { return textResult(path, text, mtimes[path] || null) })
       },
       readBlob: function (path) {
         path = normalizePath(path)
@@ -565,38 +826,43 @@
         if (isBlob(data[path])) return blobResult(path, data[path])
         return blobResult(path, fileBlob(path), hashText(String(data[path] == null ? '' : data[path])))
       },
-      write: function (path, text, opts) {
+      writeText: function (path, text, opts) {
         path = normalizePath(path)
-        return assertWriteHash(path, opts || {}, 'write').then(function () {
+        return assertTargetIntent(path, opts || {}, 'writeText').then(function () {
+          return assertWriteHash(path, opts || {}, 'writeText')
+        }).then(function () {
           data[path] = String(text == null ? '' : text)
           touchParents(path)
           touch(path)
-          return textResult(path, data[path])
+          return textResult(path, data[path], mtimes[path] || null)
         })
       },
       writeBlob: function (path, blob, opts) {
         path = normalizePath(path)
-        return assertWriteHash(path, opts || {}, 'writeBlob').then(function () {
+        return assertTargetIntent(path, opts || {}, 'writeBlob').then(function () {
+          return assertWriteHash(path, opts || {}, 'writeBlob')
+        }).then(function () {
           data[path] = makeBlob(blob)
           touchParents(path)
           touch(path)
           return blobResult(path, data[path])
         })
       },
-      mkdir: function (path) {
+      mkdir: function (path, opts) {
         path = normalizePath(path)
+        if ((isFile(path) || isDir(path)) && !(opts && opts.overwrite)) throw new Error('workspace.mkdir: target already exists: ' + path)
         dirs[path] = true
         touchParents(path)
         touch(path)
-        return Promise.resolve({ path: path, created: true })
+        return Promise.resolve({ path: path, name: fileName(path), kind: 'directory', size: null, hash: null, mtime: mtimes[path] || null, mime: null })
       },
-      patch: function (path, baseHash, patches) {
+      patchText: function (path, baseHash, patches) {
         path = normalizePath(path)
-        if (!isFile(path)) throw new Error('workspace.patch: file not found: ' + path)
+        if (!isFile(path)) throw new Error('workspace.patchText: file not found: ' + path)
         return fileText(path).then(function (before) {
           data[path] = applyLinePatches(before, baseHash, patches || [])
           touch(path)
-          return textResult(path, data[path])
+          return textResult(path, data[path], mtimes[path] || null)
         })
       },
       delete: function (path, opts) {
@@ -620,6 +886,8 @@
       copy: async function (from, to, opts) {
         from = normalizePath(from)
         to = normalizePath(to)
+        await assertTargetIntent(to, opts || {}, 'copy')
+        await assertTargetHash(to, opts || {}, 'copy')
         if (isFile(from)) {
           await assertWriteHash(from, opts || {}, 'copy')
           data[to] = isBlob(data[from]) ? data[from].slice(0, data[from].size, data[from].type) : String(data[from] == null ? '' : data[from])
@@ -628,6 +896,7 @@
           return { from: from, to: to, copied: true, kind: 'file' }
         }
         if (!isDir(from)) throw new Error('workspace.copy: path not found: ' + from)
+        if (!opts || !opts.recursive) throw new Error('workspace.copy: recursive directory copy requires recursive:true')
         dirs[to] = true
         touchParents(to)
         touch(to)
@@ -680,14 +949,14 @@
         if (isFile(path)) {
           if (isBlob(data[path])) {
             return hashBlob(data[path]).then(function (hash) {
-              return { path: path, name: fileName(path), kind: 'file', size: data[path].size, hash: hash, mtime: mtimes[path] || null }
+              return { path: path, name: fileName(path), kind: 'file', size: data[path].size, hash: hash, mtime: mtimes[path] || null, mime: data[path].type || null }
             })
           }
           return fileText(path).then(function (text) {
-            return { path: path, name: fileName(path), kind: 'file', size: fileBlob(path).size, hash: hashText(text), mtime: mtimes[path] || null }
+            return { path: path, name: fileName(path), kind: 'file', size: fileBlob(path).size, hash: hashText(text), mtime: mtimes[path] || null, mime: 'text/plain' }
           })
         }
-        if (isDir(path)) return Promise.resolve({ path: path, name: fileName(path), kind: 'directory', mtime: mtimes[path] || null })
+        if (isDir(path)) return Promise.resolve({ path: path, name: fileName(path), kind: 'directory', size: null, hash: null, mtime: mtimes[path] || null, mime: null })
         throw new Error('workspace.stat: path not found: ' + path)
       },
       watch: function () { return function () {} },
@@ -807,6 +1076,18 @@
       }
     }
 
+    async function statOrMissing(path) {
+      try { return await api.stat(path) } catch (_) { return null }
+    }
+
+    async function assertWriteIntent(path, opts, action) {
+      const stat = await statOrMissing(path)
+      const o = opts || {}
+      if (stat && !o.baseHash && !o.targetBaseHash && !o.overwrite) throw new Error('workspace.' + action + ': existing target requires baseHash or overwrite:true')
+      if (stat && o.baseHash && stat.hash && stat.hash !== o.baseHash) throw new Error('workspace.' + action + ': baseHash mismatch')
+      if (stat && o.targetBaseHash && stat.hash && stat.hash !== o.targetBaseHash) throw new Error('workspace.' + action + ': targetBaseHash mismatch')
+    }
+
     async function walkAt(path, out) {
       path = normalizePath(path || '')
       const start = await handleFor(path)
@@ -830,10 +1111,11 @@
       kind: function () { return 'browser-fsa' },
       capabilities: function () {
         return {
-          list: true, search: true, read: true, write: true, readBlob: true, writeBlob: true,
-          mkdir: true, move: true, rename: true, copy: true, delete: true, stat: true,
-          watch: true, resolveUrl: true, objectUrl: typeof URL !== 'undefined' && !!URL.createObjectURL,
-          recoverPermission: !!rootHandle.requestPermission,
+          list: true, readText: true, writeText: true, readBlob: true, writeBlob: true,
+          mkdir: true, move: true, copy: true, delete: true, recursiveDelete: true, stat: true,
+          objectUrl: typeof URL !== 'undefined' && !!URL.createObjectURL, snapshot: true,
+          previewOperation: true, applyOperation: true, permissionRecovery: !!rootHandle.requestPermission,
+          watch: true,
         }
       },
       list: async function (path) {
@@ -843,11 +1125,11 @@
         for await (const entry of dir.values()) out.push({ path: path ? path + '/' + entry.name : entry.name, name: entry.name, kind: entry.kind })
         return out
       },
-      read: async function (path) {
+      readText: async function (path) {
         path = normalizePath(path)
         const h = await fileHandle(path, false)
         const file = await h.getFile()
-        return textResult(path, await file.text())
+        return textResult(path, await file.text(), file.lastModified || null)
       },
       readBlob: async function (path) {
         path = normalizePath(path)
@@ -855,13 +1137,10 @@
         const file = await h.getFile()
         return blobResult(path, file.arrayBuffer ? file : makeBlob(await file.text(), file.type || ''))
       },
-      write: async function (path, text, opts) {
+      writeText: async function (path, text, opts) {
         path = normalizePath(path)
+        await assertWriteIntent(path, opts || {}, 'writeText')
         const h = await fileHandle(path, true)
-        if (opts && opts.baseHash) {
-          const old = await h.getFile()
-          if (hashText(await old.text()) !== opts.baseHash) throw new Error('workspace.write: baseHash mismatch')
-        }
         const w = await h.createWritable()
         await w.write(String(text == null ? '' : text))
         await w.close()
@@ -869,21 +1148,21 @@
       },
       writeBlob: async function (path, blob, opts) {
         path = normalizePath(path)
+        await assertWriteIntent(path, opts || {}, 'writeBlob')
         const h = await fileHandle(path, true)
-        if (opts && opts.baseHash) {
-          const old = await h.getFile()
-          const oldBlob = old.arrayBuffer ? old : makeBlob(await old.text(), old.type || '')
-          if (await hashBlob(oldBlob) !== opts.baseHash) throw new Error('workspace.writeBlob: baseHash mismatch')
-        }
         const w = await h.createWritable()
         await w.write(makeBlob(blob))
         await w.close()
         return blobResult(path, makeBlob(blob))
       },
-      mkdir: async function (path) {
+      mkdir: async function (path, opts) {
         path = normalizePath(path)
+        if (await statOrMissing(path)) {
+          if (!(opts && opts.overwrite)) throw new Error('workspace.mkdir: target already exists: ' + path)
+          return this.stat(path)
+        }
         await dirHandle(path, true)
-        return { path: path, created: true }
+        return { path: path, name: fileName(path), kind: 'directory', size: null, hash: null, mtime: null, mime: null }
       },
       delete: async function (path, opts) {
         path = normalizePath(path)
@@ -895,9 +1174,11 @@
         from = normalizePath(from)
         to = normalizePath(to)
         const stat = await this.stat(from)
+        await assertWriteIntent(to, opts || {}, 'copy')
         if (opts && opts.baseHash && stat.hash && stat.hash !== opts.baseHash) throw new Error('workspace.copy: baseHash mismatch')
         if (stat.kind === 'directory') {
-          await this.mkdir(to)
+          if (!opts || !opts.recursive) throw new Error('workspace.copy: recursive directory copy requires recursive:true')
+          await this.mkdir(to, { overwrite: !!(opts && opts.overwrite) })
           const entries = await this.list(from)
           for (let i = 0; i < entries.length; i++) await this.copy(entries[i].path, to ? to + '/' + entries[i].name : entries[i].name, opts || {})
           return { from: from, to: to, copied: true, kind: 'directory' }
@@ -914,10 +1195,10 @@
         return Object.assign({ from: from, to: to, moved: true }, result)
       },
       rename: function (from, to, opts) { return this.move(from, to, opts || {}) },
-      patch: async function (path, baseHash, patches) {
-        const current = await this.read(path)
+      patchText: async function (path, baseHash, patches) {
+        const current = await this.readText(path)
         const next = applyLinePatches(current.text, baseHash, patches || [])
-        return this.write(path, next, { baseHash: baseHash })
+        return this.writeText(path, next, { baseHash: baseHash })
       },
       search: async function (query, opts) {
         const out = []
@@ -926,7 +1207,7 @@
         const limit = opts && opts.limit || 50
         for (let i = 0; i < entries.length && out.length < limit; i++) {
           if (entries[i].kind !== 'file' || !pathAllowed(entries[i].path, opts || {})) continue
-          const read = await this.read(entries[i].path)
+          const read = await this.readText(entries[i].path)
           const matches = searchText(entries[i].path, read.text, query, opts || {})
           for (let j = 0; j < matches.length && out.length < limit; j++) out.push(matches[j])
         }
@@ -935,10 +1216,10 @@
       stat: async function (path) {
         path = normalizePath(path)
         const h = await handleFor(path)
-        if (h.kind === 'directory') return { path: path, name: fileName(path), kind: 'directory' }
+        if (h.kind === 'directory') return { path: path, name: fileName(path), kind: 'directory', size: null, hash: null, mtime: null, mime: null }
         const file = await h.getFile()
         const blob = file.arrayBuffer ? file : makeBlob(await file.text(), file.type || '')
-        return { path: path, name: fileName(path), kind: 'file', size: blob.size, hash: await hashBlob(blob), mtime: file.lastModified || null }
+        return { path: path, name: fileName(path), kind: 'file', size: blob.size, hash: await hashBlob(blob), mtime: file.lastModified || null, mime: file.type || null }
       },
       watch: function () { return function () {} },
       resolveUrl: function (path) { return normalizePath(path) },

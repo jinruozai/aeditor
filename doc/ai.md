@@ -70,9 +70,9 @@ Examples:
 
 ```text
 workspace.searchFiles
-workspace.readFile
-workspace.editFile
-workspace.patchFile
+workspace.readText
+workspace.editText
+workspace.patchText
 workspace.mkdir
 workspace.copy
 workspace.move
@@ -100,9 +100,9 @@ The request builder sends only model-visible and currently available tools to
 the provider:
 
 ```js
-aiditor.ai.tools.register('workspace.readFile', {
+aiditor.ai.tools.register('workspace.readText', {
   available: function () { return !!aiditor.ai.currentWorkspace() },
-  run: readFile,
+  run: readText,
 })
 ```
 
@@ -164,15 +164,20 @@ aiditor.ai.operations.preview(name, input)
 aiditor.ai.operations.apply(preview)
 ```
 
-Operations are for changes that need validation, preview, review UI, undo
-integration, or resource-version checks.
+Operations are for changes that need validation, preview, review UI, host
+history integration, or resource-version checks.
 
 AI registries reject duplicate names by default. Use `{ replace: true }` in the
 registration metadata only when replacing an existing contribution is deliberate.
 
-`aiditor.previewOperation` and `aiditor.applyOperation` are low-level bridge
-tools for internal code and explicitly scoped agents. They should be hidden from
-normal model requests unless a host has a specific reason to expose them.
+Workspace file-system review is a Core workspace concern, not a second AI
+operation protocol. `workspace.previewOperation` and
+`workspace.applyOperation` define generic file mutation semantics. AI operations
+and tools may wrap those previews, but they must not redefine workspace conflict
+rules.
+
+Any low-level host bridge helpers should be hidden from normal model requests
+unless a host has a specific reason to expose them.
 
 ## ChangeSet
 

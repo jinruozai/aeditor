@@ -164,7 +164,8 @@ assert.equal(explicitRuntimePanelAdded.applied, true)
 assert.equal(aiditor.componentRegistration('runtime.panel').owner, 'workspace:memory:runtime-panel')
 assert.equal(aiditor.findPanel(tree, explicitRuntimePanelAdded.panelId).panel.component, 'runtime.panel')
 assert.equal(aiditor.findPanel(tree, explicitRuntimePanelAdded.panelId).panel.sourcePath, 'runtime-panel.js')
-await ai.currentWorkspace().write('runtime-panel.js', [
+const runtimePanelFile = await ai.currentWorkspace().readText('runtime-panel.js')
+await ai.currentWorkspace().writeText('runtime-panel.js', [
   ';(function (aiditor) {',
   "  'use strict'",
   "  aiditor.registerComponent('runtime.panel', {",
@@ -173,7 +174,7 @@ await ai.currentWorkspace().write('runtime-panel.js', [
   '  })',
   '})(window.aiditor = window.aiditor || {})',
   '',
-].join('\n'))
+].join('\n'), { baseHash: runtimePanelFile.hash })
 const reloadPreview = await ai.tools.get('aiditor.reloadPanel').preview({
   panelId: explicitRuntimePanelAdded.panelId,
   path: 'runtime-panel.js',

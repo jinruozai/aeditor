@@ -92,7 +92,7 @@ extension runtime, AI panels, or AI-specific styles.
    Runtime. Host apps sit outside the framework.
 
 2. Names are structure.
-   Dotted names such as `workspace.readFile`, `ui.setProp`, and
+   Dotted names such as `workspace.readText`, `ui.setProp`, and
    `gde.table.patchRows` are the public grouping shape for registries. Owner
    metadata is used when an installed extension needs exact lifecycle cleanup.
 
@@ -141,7 +141,9 @@ extension runtime, AI panels, or AI-specific styles.
 - [ai-context-compaction.md](./ai-context-compaction.md): context budgeting, semantic compaction, memory, and long-session request assembly.
 - [ai-registries.md](./ai-registries.md): concrete registry APIs and current implementation notes.
 - [provider.md](./provider.md): connection, auth, transport, model, streaming, and reliability contract.
-- [workspace.md](./workspace.md): bounded file access and workspace tool contribution.
+- [workspace.md](./workspace.md): current bounded file access and workspace tool contribution.
+- [workspace-v2.md](./workspace-v2.md): target design for workspace operation review, strict text/blob IO, snapshots, URL leases, and host/framework boundaries.
+- [host-file-workflow.md](./host-file-workflow.md): recommended host pattern for FileIndex, reference repair, FileOperationJournal, conflict UI, and domain validation on top of Workspace V2.
 - [workspace-precise-editing.md](./workspace-precise-editing.md): search/read/exact-edit workflow for safe code mutation.
 - [resource-versioning.md](./resource-versioning.md): versioned mutation contract, CAS apply, and conflict handling.
 - [agent-workspace-editing.md](./agent-workspace-editing.md): recommended file-first agent workflow for demo workspace code edits.

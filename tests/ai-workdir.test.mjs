@@ -54,7 +54,7 @@ assert.equal(workspaceRequest.messages[0].meta.contextLayer, 'runtime')
 assert.equal(workspaceRequest.messages[1].meta.contextLayer, 'workspace')
 assert.equal(workspaceRequest.messages[2].meta.contextLayer, 'task')
 assert.match(workspaceRequest.messages[1].content, /Current workspace context/)
-assert.match(workspaceRequest.messages[1].content, /workspace\.editFile/)
+assert.match(workspaceRequest.messages[1].content, /workspace\.editText/)
 assert.match(workspaceRequest.messages[2].content, /visibleToolPrefixes/)
 
 assert.deepEqual(dir, { id: 'memory:test', label: 'Test Workspace', kind: 'memory' })
@@ -78,7 +78,7 @@ const caps = await ai.tools.get('workspace.capabilities').run({}, ctx)
 assert.equal(caps.mkdir, true)
 await ai.tools.get('workspace.mkdir').run({ path: 'docs' }, ctx)
 await ai.tools.get('workspace.copy').run({ from: 'README.md', to: 'docs/README-copy.md' }, ctx)
-assert.equal((await ai.tools.get('workspace.readFile').run({ path: 'docs/README-copy.md' }, ctx)).text, 'hello workspace')
+assert.equal((await ai.tools.get('workspace.readText').run({ path: 'docs/README-copy.md' }, ctx)).text, 'hello workspace')
 const movePreview = await ai.tools.get('workspace.move').preview({ from: 'docs/README-copy.md', to: 'docs/README-moved.md' }, ctx)
 assert.equal(movePreview.ok, true)
 await ai.tools.get('workspace.move').apply(movePreview, ctx)
@@ -89,12 +89,12 @@ await assert.rejects(
   /path not found/
 )
 
-const read = await ai.tools.get('workspace.readFile').run({ path: 'src/app.js' }, ctx)
+const read = await ai.tools.get('workspace.readText').run({ path: 'src/app.js' }, ctx)
 assert.equal(read.hash, aiditor.workspace.hashText(read.text))
 assert.match(read.text, /const value/)
 assert.equal(read.truncated, false)
 
-const patched = await ai.tools.get('workspace.patchFile').run({
+const patched = await ai.tools.get('workspace.patchText').run({
   path: 'src/app.js',
   baseHash: read.hash,
   patches: [{ startLine: 1, endLine: 1, replacement: 'const value = 2' }],
@@ -103,22 +103,22 @@ assert.equal(patched.text, undefined)
 assert.equal(patched.textOmitted, true)
 assert.equal(patched.diff.changed, true)
 assert.equal(patched.diff.startLine, 1)
-const patchedRead = await ai.tools.get('workspace.readFile').run({ path: 'src/app.js' }, ctx)
+const patchedRead = await ai.tools.get('workspace.readText').run({ path: 'src/app.js' }, ctx)
 assert.equal(patched.hash, patchedRead.hash)
 assert.match(patchedRead.text, /value = 2/)
 
-const edited = await ai.tools.get('workspace.editFile').run({
+const edited = await ai.tools.get('workspace.editText').run({
   path: 'src/app.js',
   baseHash: patchedRead.hash,
   edits: [{ oldText: 'console.log(value)', newText: 'console.info(value)' }],
 }, ctx)
 assert.equal(edited.text, undefined)
 assert.equal(edited.textOmitted, true)
-const editedRead = await ai.tools.get('workspace.readFile').run({ path: 'src/app.js' }, ctx)
+const editedRead = await ai.tools.get('workspace.readText').run({ path: 'src/app.js' }, ctx)
 assert.equal(edited.hash, editedRead.hash)
 assert.match(editedRead.text, /console\.info/)
 
-const ambiguousPreview = await ai.tools.get('workspace.editFile').preview({
+const ambiguousPreview = await ai.tools.get('workspace.editText').preview({
   path: 'src/app.js',
   baseHash: editedRead.hash,
   edits: [{ oldText: 'value', newText: 'count' }],
@@ -126,7 +126,7 @@ const ambiguousPreview = await ai.tools.get('workspace.editFile').preview({
 assert.equal(ambiguousPreview.ok, false)
 assert.equal(ambiguousPreview.code, 'AMBIGUOUS_MATCH')
 
-const staleEditPreview = await ai.tools.get('workspace.editFile').preview({
+const staleEditPreview = await ai.tools.get('workspace.editText').preview({
   path: 'src/app.js',
   baseHash: patchedRead.hash,
   edits: [{ oldText: 'console.info(value)', newText: 'console.warn(value)' }],
@@ -134,19 +134,19 @@ const staleEditPreview = await ai.tools.get('workspace.editFile').preview({
 assert.equal(staleEditPreview.ok, false)
 assert.equal(staleEditPreview.code, 'STALE_FILE')
 
-await ai.tools.get('workspace.writeFile').run({ path: 'src/extra.js', text: 'export const ok = true\n' }, ctx)
+await ai.tools.get('workspace.writeText').run({ path: 'src/extra.js', text: 'export const ok = true\n' }, ctx)
 const matches = await ai.tools.get('workspace.searchFiles').run({ query: 'ok', path: 'src' }, ctx)
 assert.equal(matches[0].path, 'src/extra.js')
 assert.equal(typeof matches[0].fileHash, 'string')
-await ai.tools.get('workspace.writeFile').run({ path: 'src/long.txt', text: 'a'.repeat(64) }, ctx)
-const compactRead = await ai.tools.get('workspace.readFile').run({ path: 'src/long.txt', maxChars: 12 }, ctx)
+await ai.tools.get('workspace.writeText').run({ path: 'src/long.txt', text: 'a'.repeat(64) }, ctx)
+const compactRead = await ai.tools.get('workspace.readText').run({ path: 'src/long.txt', maxChars: 12 }, ctx)
 assert.equal(compactRead.text, 'aaaaaaaaaaaa')
 assert.equal(compactRead.truncated, true)
 assert.equal(compactRead.originalSize, 64)
 assert.equal(compactRead.text.includes('...[truncated]'), false)
 
 await assert.rejects(
-  ai.tools.get('workspace.writeFile').run({ path: 'src/broken.js', text: 'function broken() {\n  const value = "cut off\n' }, ctx),
+  ai.tools.get('workspace.writeText').run({ path: 'src/broken.js', text: 'function broken() {\n  const value = "cut off\n' }, ctx),
   /unterminated|string|invalid JavaScript|unclosed/
 )
 assert.throws(
@@ -154,27 +154,27 @@ assert.throws(
   /path not found|file not found/
 )
 
-const jsonBefore = await ai.tools.get('workspace.writeFile').run({ path: 'data/config.json', text: '{"ok":true}\n' }, ctx)
+const jsonBefore = await ai.tools.get('workspace.writeText').run({ path: 'data/config.json', text: '{"ok":true}\n' }, ctx)
 await assert.rejects(
-  ai.tools.get('workspace.writeFile').run({ path: 'data/config.json', text: '{"ok":\n', baseHash: jsonBefore.hash }, ctx),
+  ai.tools.get('workspace.writeText').run({ path: 'data/config.json', text: '{"ok":\n', baseHash: jsonBefore.hash }, ctx),
   /invalid JSON/
 )
-assert.equal((await ai.tools.get('workspace.readFile').run({ path: 'data/config.json', full: true }, ctx)).text, '{"ok":true}\n')
+assert.equal((await ai.tools.get('workspace.readText').run({ path: 'data/config.json', full: true }, ctx)).text, '{"ok":true}\n')
 
-const patchTarget = await ai.tools.get('workspace.writeFile').run({ path: 'src/patch-target.js', text: 'function ok() {\n  return 1\n}\n' }, ctx)
+const patchTarget = await ai.tools.get('workspace.writeText').run({ path: 'src/patch-target.js', text: 'function ok() {\n  return 1\n}\n' }, ctx)
 await assert.rejects(
-  ai.tools.get('workspace.patchFile').run({
+  ai.tools.get('workspace.patchText').run({
     path: 'src/patch-target.js',
     baseHash: patchTarget.hash,
     patches: [{ startLine: 2, endLine: 2, replacement: '  return "cut off' }],
   }, ctx),
   /unterminated|string|invalid JavaScript/
 )
-assert.match((await ai.tools.get('workspace.readFile').run({ path: 'src/patch-target.js', full: true }, ctx)).text, /return 1/)
-await ai.tools.get('workspace.writeFile').run({ path: 'src/regex.js', text: 'const re = /[{}]/g\nconsole.log(re.test(\"{\"))\n' }, ctx)
+assert.match((await ai.tools.get('workspace.readText').run({ path: 'src/patch-target.js', full: true }, ctx)).text, /return 1/)
+await ai.tools.get('workspace.writeText').run({ path: 'src/regex.js', text: 'const re = /[{}]/g\nconsole.log(re.test(\"{\"))\n' }, ctx)
 
 const writeCall = ai.createToolCall(agent.id, {
-  toolId: 'workspace.writeFile',
+  toolId: 'workspace.writeText',
   args: { path: 'src/via-apply.js', text: 'export const applied = true\n' },
 }, 'user')
 const writePreview = ai.previewToolCall(agent.id, writeCall.id, 'user')
@@ -184,29 +184,28 @@ assert.equal(ai.findToolCall(agent.id, writeCall.id).toolCall.preview.diff.chang
 const writeApply = ai.applyToolCall(agent.id, writeCall.id, 'user')
 await writeApply.promise
 assert.equal(ai.findToolCall(agent.id, writeCall.id).toolCall.status, 'applied')
-const appliedRead = await ai.tools.get('workspace.readFile').run({ path: 'src/via-apply.js' }, ctx)
+const appliedRead = await ai.tools.get('workspace.readText').run({ path: 'src/via-apply.js' }, ctx)
 assert.match(appliedRead.text, /applied/)
 
-const stalePreview = await ai.tools.get('workspace.writeFile').preview({ path: 'src/via-apply.js', text: 'export const stale = true\n' }, ctx)
-assert.equal(stalePreview.changes[0].baseHash, appliedRead.hash)
-await ai.tools.get('workspace.writeFile').run({ path: 'src/via-apply.js', text: 'export const newer = true\n', baseHash: appliedRead.hash }, ctx)
+const stalePreview = await ai.tools.get('workspace.writeText').preview({ path: 'src/via-apply.js', text: 'export const stale = true\n', baseHash: appliedRead.hash }, ctx)
+assert.equal(stalePreview.base[0].hash, appliedRead.hash)
+await ai.tools.get('workspace.writeText').run({ path: 'src/via-apply.js', text: 'export const newer = true\n', baseHash: appliedRead.hash }, ctx)
 await assert.rejects(
-  ai.tools.get('workspace.writeFile').apply(stalePreview, ctx),
-  /baseHash mismatch/
+  ai.tools.get('workspace.writeText').apply(stalePreview, ctx),
+  /hash changed|baseHash mismatch/
 )
-assert.match((await ai.tools.get('workspace.readFile').run({ path: 'src/via-apply.js', full: true }, ctx)).text, /newer/)
+assert.match((await ai.tools.get('workspace.readText').run({ path: 'src/via-apply.js', full: true }, ctx)).text, /newer/)
 
-const deleted = await ai.tools.get('workspace.deleteFile').run({ path: 'src/extra.js' }, ctx)
-assert.equal(deleted.path, 'src/extra.js')
-assert.equal(deleted.deleted, true)
-assert.equal(deleted.diff.afterSize, 0)
+const deleted = await ai.tools.get('workspace.delete').run({ path: 'src/extra.js' }, ctx)
+assert.equal(deleted.applied, true)
+assert.equal(deleted.effects[0].path, 'src/extra.js')
 
 ai.setPermissionResolver(function (perm, next) {
-  if (perm.toolId === 'workspace.deleteFile' && perm.phase === 'apply') return false
+  if (perm.toolId === 'workspace.delete' && perm.phase === 'apply') return false
   return next(perm)
 })
 const deleteCall = ai.createToolCall(agent.id, {
-  toolId: 'workspace.deleteFile',
+  toolId: 'workspace.delete',
   args: { path: 'src/via-apply.js' },
 }, 'user')
 const deletePreview = ai.previewToolCall(agent.id, deleteCall.id, 'user')

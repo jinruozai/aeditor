@@ -32,6 +32,18 @@ source hash; `copy`, `move`, and recursive delete carry the source file hash
 when the source is a file. Backends that can version directories may include a
 directory hash, but Core does not require one.
 
+Workspace V2 also records version strength:
+
+```text
+strong  hash is available
+weak    hash is unavailable but mtime is available
+none    neither hash nor mtime is available
+```
+
+Strong versions support normal compare-and-set. Weak versions can detect many
+external changes but are not collision-proof. Versionless resources must be
+surfaced as risky rather than treated as safely versioned.
+
 ## Preview / Apply Contract
 
 ```text
@@ -42,6 +54,11 @@ apply(proposal, currentVersion: versionC) -> stale, reject
 
 Apply should never silently merge stale state. A host may offer a rebase helper,
 but rebase creates a new preview with a new base version.
+
+File-system apply is not a cross-file atomic transaction. Workspace operations
+return per-effect results; a partial failure does not imply automatic rollback.
+Hosts that need recovery should combine workspace snapshots with their own
+journal and policy.
 
 ## Multi-Agent Rule
 
