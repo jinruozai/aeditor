@@ -16,6 +16,8 @@
     const levelSig = aiditor.signal(((propsSig.peek() || {}).level) || 'all')
     const querySig = aiditor.signal('')
     const expanded = new Set()
+    const selected = new Set()
+    let anchorId = null
 
     const bar = ui.h('div', 'aiditor-ui-errlog-bar')
     bar.appendChild(ui.select({ value: levelSig, options: LEVEL_OPTS }))
@@ -24,23 +26,33 @@
 
     const copyBtn = ui.button({ text: 'Copy', size: 'sm' })
     copyBtn.addEventListener('click', function () {
-      const visible = filteredEntries()
-      ui.copyText(visible.map(formatEntryLong).join('\n\n')).then(function () {
-        ui.toast({ kind: 'success', message: 'Copied ' + visible.length + ' log entries' })
+      const target = targetEntries(displayEntries())
+      ui.copyText(target.map(formatEntryLong).join('\n\n')).then(function () {
+        ui.toast({ kind: 'success', message: 'Copied ' + target.length + ' log entries' })
       })
     })
     bar.appendChild(copyBtn)
 
     const clearBtn = ui.button({ text: 'Clear', size: 'sm' })
     clearBtn.addEventListener('click', function () {
-      const visible = new Set(filteredEntries().map(function (e) { return e.id }))
-      if (!visible.size) return
-      aiditor.log.update(function (list) { return list.filter(function (e) { return !visible.has(e.id) }) })
+      const target = new Set(targetEntries(displayEntries()).map(function (e) { return e.id }))
+      if (!target.size) return
+      selected.clear()
+      anchorId = null
+      aiditor.log.update(function (list) { return list.filter(function (e) { return !target.has(e.id) }) })
     })
     bar.appendChild(clearBtn)
     root.appendChild(bar)
 
     const body = ui.view({ className: 'aiditor-ui-errlog-body' })
+    body.setAttribute('role', 'listbox')
+    body.setAttribute('aria-multiselectable', 'true')
+    body.addEventListener('click', function (ev) {
+      if (ev.target !== body) return
+      selected.clear()
+      anchorId = null
+      render()
+    })
     root.appendChild(body)
 
     function filteredEntries() {
@@ -54,17 +66,59 @@
       })
     }
 
+    function displayEntries() {
+      return filteredEntries().slice().reverse()
+    }
+
+    function targetEntries(visible) {
+      const picked = visible.filter(function (entry) { return selected.has(entry.id) })
+      return picked.length ? picked : visible
+    }
+
     function render() {
       const list = aiditor.log()
-      const visible = filteredEntries()
+      const visible = displayEntries()
+      syncSelection(visible)
       clearBody(body)
       if (!visible.length) {
         body.appendChild(ui.h('div', 'aiditor-ui-errlog-empty', { text: list.length ? 'No matching log entries' : 'No log entries' }))
         return
       }
-      for (let i = visible.length - 1; i >= 0; i--) {
-        body.appendChild(buildRow(visible[i], expanded, render))
+      for (let i = 0; i < visible.length; i++) {
+        body.appendChild(buildRow(visible[i], visible, expanded, selected, selectEntry, render))
       }
+    }
+
+    function syncSelection(visible) {
+      const ids = new Set(visible.map(function (entry) { return entry.id }))
+      selected.forEach(function (id) {
+        if (!ids.has(id)) selected.delete(id)
+      })
+      if (anchorId && !ids.has(anchorId)) anchorId = null
+    }
+
+    function selectEntry(entry, visible, ev) {
+      if (ev.shiftKey && anchorId) {
+        selectRange(anchorId, entry.id, visible, ev.metaKey || ev.ctrlKey)
+      } else if (ev.metaKey || ev.ctrlKey) {
+        if (selected.has(entry.id)) selected.delete(entry.id)
+        else selected.add(entry.id)
+      } else {
+        selected.clear()
+        selected.add(entry.id)
+      }
+      anchorId = entry.id
+      render()
+    }
+
+    function selectRange(fromId, toId, visible, additive) {
+      const from = visible.findIndex(function (entry) { return entry.id === fromId })
+      const to = visible.findIndex(function (entry) { return entry.id === toId })
+      if (from < 0 || to < 0) return
+      if (!additive) selected.clear()
+      const start = Math.min(from, to)
+      const end = Math.max(from, to)
+      for (let i = start; i <= end; i++) selected.add(visible[i].id)
     }
 
     ctx.onCleanup(aiditor.effect(render))
@@ -75,21 +129,40 @@
     while (el.firstChild) ui.dispose(el.firstChild)
   }
 
-  function buildRow(entry, expanded, rerender) {
+  function buildRow(entry, visible, expanded, selected, selectEntry, rerender) {
     const row = ui.h('div', 'aiditor-ui-errlog-row aiditor-ui-errlog-row-' + entry.level)
     if (expanded.has(entry.id)) row.classList.add('aiditor-ui-errlog-row-open')
+    if (selected.has(entry.id)) row.classList.add('aiditor-ui-errlog-row-selected')
+    row.tabIndex = 0
+    row.setAttribute('role', 'option')
+    row.setAttribute('aria-selected', selected.has(entry.id) ? 'true' : 'false')
+    row.addEventListener('mousedown', function (ev) {
+      if (ev.shiftKey) ev.preventDefault()
+    })
+    row.addEventListener('click', function (ev) { selectEntry(entry, visible, ev) })
+    row.addEventListener('keydown', function (ev) {
+      if (ev.key !== 'Enter' && ev.key !== ' ') return
+      ev.preventDefault()
+      selectEntry(entry, visible, ev)
+    })
 
-    const main = ui.h('button', 'aiditor-ui-errlog-main', { type: 'button' })
-    main.addEventListener('click', function () {
+    const main = ui.h('div', 'aiditor-ui-errlog-main')
+    const level = ui.h('button', 'aiditor-ui-errlog-level aiditor-ui-errlog-level-' + entry.level, {
+      type: 'button',
+      'aria-label': expanded.has(entry.id) ? 'Collapse log entry' : 'Expand log entry',
+      text: entry.level,
+    })
+    level.addEventListener('click', function (ev) {
+      ev.stopPropagation()
       if (expanded.has(entry.id)) expanded.delete(entry.id)
       else expanded.add(entry.id)
       rerender()
     })
-    main.appendChild(ui.h('span', 'aiditor-ui-errlog-caret', { text: expanded.has(entry.id) ? '▾' : '▸' }))
-    main.appendChild(ui.h('span', 'aiditor-ui-errlog-level aiditor-ui-errlog-level-' + entry.level, { text: entry.level }))
-    main.appendChild(ui.h('span', 'aiditor-ui-errlog-time', { text: formatTime(entry.time) }))
-    main.appendChild(ui.h('span', 'aiditor-ui-errlog-source', { text: shortSource(entry.source) }))
+    main.appendChild(level)
     main.appendChild(ui.h('span', 'aiditor-ui-errlog-msg', { text: entry.message }))
+    main.appendChild(ui.h('span', 'aiditor-ui-errlog-meta', {
+      text: shortSource(entry.source) + ' · ' + formatTime(entry.time),
+    }))
     row.appendChild(main)
 
     const dismiss = ui.iconButton({ icon: 'x', title: 'Dismiss', size: 'sm', kind: 'ghost' })
