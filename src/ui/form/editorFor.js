@@ -15,7 +15,7 @@
 // Each renderer receives { fieldDef, sig, write, ctx } and returns an
 // HTMLElement. Built-ins: input_string | textarea | input_int | input_float
 // | range | enum | toggle | color | date | img | snd | id | ref_id | struct
-// | array.
+// | array | array_editor.
 ;(function (aiditor) {
   'use strict'
   const ui = aiditor.ui = aiditor.ui || {}
@@ -205,6 +205,29 @@
     })
   })
 
+  ui.registerRenderer('array_editor', function (a) {
+    const agv      = a.fieldDef.type_agv || {}
+    const elemType = agv.elem_type || parseArrayElemType(a.fieldDef.type) || 'string'
+    const elemFd   = ui.resolveFieldDef({ type: elemType })
+    const hasKey   = typeof agv.getKey === 'function'
+    return ui.arrayEditor({
+      items:         a.sig,
+      onChange:      a.write,
+      getKey:        hasKey ? agv.getKey : null,
+      selectionMode: agv.selectionMode || (hasKey ? 'single' : 'none'),
+      indexMode:     agv.indexMode || 'number-handle',
+      density:       agv.density || 'compact',
+      actions:       agv.actions || 'end',
+      capabilities:  agv.capabilities || null,
+      createItem: function () { return cloneDefault(elemFd) },
+      duplicateItem: function (item) { return cloneItem(item) },
+      renderItem: function (_, __, rowCtx) {
+        return editorFor(elemFd, rowCtx.value, rowCtx.writeItem, a.ctx)
+      },
+      emptyText: agv.emptyText || 'No items',
+    })
+  })
+
   // ── helpers ──────────────────────────────────────────────────
   function normEnumOptions(opts) {
     if (!opts) return []
@@ -226,6 +249,17 @@
     if (typeof typeName !== 'string') return null
     const m = /^array\[(.+)\]$/.exec(typeName)
     return m ? m[1] : null
+  }
+
+  function cloneDefault(fieldDef) {
+    return fieldDef && fieldDef.default !== undefined
+      ? cloneItem(fieldDef.default)
+      : null
+  }
+
+  function cloneItem(item) {
+    if (item == null || typeof item !== 'object') return item
+    return JSON.parse(JSON.stringify(item))
   }
 
   // Accept two struct_def shapes for convenience:

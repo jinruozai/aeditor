@@ -326,9 +326,9 @@
   }
 
   function readFavorites() {
-    const raw = localStorage.getItem(FAVORITES_KEY)
-    if (!raw) return []
     try {
+      const raw = localStorage.getItem(FAVORITES_KEY)
+      if (!raw) return []
       const parsed = JSON.parse(raw)
       return Array.isArray(parsed) ? parsed.map(function (v) { return normalizeColor(v, 'hex') }).slice(0, 16) : []
     } catch (_) {
@@ -336,7 +336,7 @@
     }
   }
   function saveFavorites(list) {
-    localStorage.setItem(FAVORITES_KEY, JSON.stringify(list.slice(0, 16)))
+    try { localStorage.setItem(FAVORITES_KEY, JSON.stringify(list.slice(0, 16))) } catch (_) {}
   }
   function addFavorite(state) {
     const color = state.argb.toUpperCase()

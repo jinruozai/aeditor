@@ -95,6 +95,7 @@
     if (!owner) return removed
     if (aiditor.unregisterComponentOwner) removed.components = aiditor.unregisterComponentOwner(owner)
     if (aiditor.commands && aiditor.commands.unregisterOwner) removed.commands = aiditor.commands.unregisterOwner(owner)
+    if (aiditor.shortcuts && aiditor.shortcuts.unregisterOwner) removed.shortcuts = aiditor.shortcuts.unregisterOwner(owner)
     if (aiditor.settings && aiditor.settings.unregisterOwner) removed.settings = aiditor.settings.unregisterOwner(owner)
     for (let i = 0; i < ownerCleanups.length; i++) {
       const extra = ownerCleanups[i](owner) || {}

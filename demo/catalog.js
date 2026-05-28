@@ -573,6 +573,54 @@
     },
 
     {
+      id: 'arrayEditor', name: 'Array Editor', category: 'editor',
+      stageSize: 'lg',
+      description: 'Selection, active item, duplicate, delete, and key-based reorder.',
+      signals: function () { return {
+        value: aiditor.signal([
+          { id: 'track-a', label: 'Idle' },
+          { id: 'track-b', label: 'Run' },
+          { id: 'track-c', label: 'Jump' },
+        ]),
+        selected: aiditor.signal(['track-b']),
+        active: aiditor.signal('track-b'),
+        nextId: 4,
+      }},
+      mount: function (s) {
+        return ui.arrayEditor({
+          items: s.value,
+          selected: s.selected,
+          active: s.active,
+          getKey: function (item) { return item.id },
+          selectionMode: 'multi',
+          indexMode: 'number-handle',
+          capabilities: { add: true, delete: true, duplicate: true, reorder: true },
+          createItem: function () {
+            const n = s.nextId++
+            return { id: 'track-' + n, label: 'Track ' + n }
+          },
+          duplicateItem: function (item) {
+            const id = item.id + '-copy-' + s.nextId++
+            return { id: id, label: item.label + ' Copy' }
+          },
+          renderItem: function (_, __, ctx) {
+            const label = aiditor.derived(function () { return (ctx.value().label || '') })
+            const el = ui.input({
+              value: label,
+              onChange: function (value) {
+                const item = ctx.value.peek()
+                ctx.writeItem(Object.assign({}, item, { label: value }))
+              },
+            })
+            ui.collect(el, label.dispose)
+            return el
+          },
+        })
+      },
+      editFor: function () { return {} },
+    },
+
+    {
       id: 'structInput', name: 'Struct Input', category: 'editor',
       stageSize: 'lg',
       description: 'Fixed-shape object editor; caller supplies per-field renderer.',

@@ -128,6 +128,56 @@
         hl.scrollLeft = ta.scrollLeft
       }
     }
+    function lineRange(value, start, end) {
+      const first = value.lastIndexOf('\n', Math.max(0, start - 1)) + 1
+      const tail = end > start && value[end - 1] === '\n' ? end - 1 : end
+      const next = value.indexOf('\n', tail)
+      return { start: first, end: next < 0 ? value.length : next }
+    }
+    function applyTabIndent(outdent) {
+      const value = ta.value
+      const s = ta.selectionStart
+      const n = ta.selectionEnd
+      if (s === n && !outdent) {
+        ta.value = value.slice(0, s) + '  ' + value.slice(n)
+        ta.selectionStart = ta.selectionEnd = s + 2
+        doWrite(ta.value); refreshGutter(); refreshHighlight()
+        return
+      }
+      const range = lineRange(value, s, n)
+      const block = value.slice(range.start, range.end)
+      if (!outdent) {
+        const nextBlock = '  ' + block.replace(/\n/g, '\n  ')
+        const lines = (block.match(/\n/g) || []).length + 1
+        ta.value = value.slice(0, range.start) + nextBlock + value.slice(range.end)
+        ta.selectionStart = s === range.start ? s : s + 2
+        ta.selectionEnd = n + lines * 2
+        doWrite(ta.value); refreshGutter(); refreshHighlight()
+        return
+      }
+      let nextBlock = ''
+      let pos = range.start
+      let removedBeforeStart = 0
+      let removedBeforeEnd = 0
+      while (pos <= range.end) {
+        const nl = value.indexOf('\n', pos)
+        const lineEnd = nl < 0 || nl > range.end ? range.end : nl
+        const line = value.slice(pos, lineEnd)
+        const removed = line.indexOf('  ') === 0 ? 2 : (line[0] === '\t' || line[0] === ' ' ? 1 : 0)
+        if (removed) {
+          if (s > pos) removedBeforeStart += Math.min(removed, s - pos)
+          if (n > pos) removedBeforeEnd += Math.min(removed, n - pos)
+        }
+        nextBlock += line.slice(removed)
+        if (nl < 0 || nl >= range.end) break
+        nextBlock += '\n'
+        pos = nl + 1
+      }
+      ta.value = value.slice(0, range.start) + nextBlock + value.slice(range.end)
+      ta.selectionStart = Math.max(range.start, s - removedBeforeStart)
+      ta.selectionEnd = Math.max(ta.selectionStart, n - removedBeforeEnd)
+      doWrite(ta.value); refreshGutter(); refreshHighlight()
+    }
 
     ui.bind(el, sig, function (v) {
       if (document.activeElement !== ta) ta.value = v == null ? '' : String(v)
@@ -159,10 +209,8 @@
     ta.addEventListener('keydown', function (e) {
       if (e.key === 'Tab') {
         e.preventDefault()
-        const s = ta.selectionStart, n = ta.selectionEnd
-        ta.value = ta.value.slice(0, s) + '  ' + ta.value.slice(n)
-        ta.selectionStart = ta.selectionEnd = s + 2
-        doWrite(ta.value); refreshGutter(); refreshHighlight()
+        if (aiditor.shortcuts) aiditor.shortcuts.markHandled(e)
+        applyTabIndent(!!e.shiftKey)
       }
     })
     return el

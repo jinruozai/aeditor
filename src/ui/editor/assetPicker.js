@@ -40,6 +40,17 @@
     const doWrite     = ui.writer(sig, o.onChange, 'ui.assetPicker')
 
     const wrap = ui.h('div', 'aiditor-ui-asset-picker aiditor-ui-field')
+    let ownedUrl = null
+    function revokeOwnedUrl() {
+      if (ownedUrl) URL.revokeObjectURL(ownedUrl)
+      ownedUrl = null
+    }
+    function writeOwnedUrl(url) {
+      if (ownedUrl && ownedUrl !== url) revokeOwnedUrl()
+      ownedUrl = url
+      doWrite(url)
+    }
+    ui.collect(wrap, revokeOwnedUrl)
 
     // Preview thumbnail. Also the visible affordance for "click to browse".
     const thumb = ui.h('div', 'aiditor-ui-asset-preview')
@@ -83,6 +94,7 @@
     // signal ⇄ input bi-sync
     ui.bind(wrap, sig, function (v) {
       const s = v == null ? '' : String(v)
+      if (ownedUrl && s !== ownedUrl) revokeOwnedUrl()
       if (pathSig.peek() !== s) pathSig.set(s)
       wrap.classList.toggle('is-missing', !!s && typeof o.exists === 'function' && !o.exists(s))
       paintPreview(s)
@@ -107,6 +119,10 @@
           const res = o.onFile(d.files[0], sig.peek())
           if (res && typeof res.then === 'function') res.then(function (v) { if (v != null) doWrite(v) })
           else if (res != null) doWrite(res)
+          return
+        }
+        if (d.files && d.files[0]) {
+          writeOwnedUrl(URL.createObjectURL(d.files[0]))
           return
         }
         doWrite(ui.dnd.extractUrl(d))
@@ -147,6 +163,7 @@
         return
       }
       // Fallback: hidden native file input → object URL.
+      if (browseInput && browseInput.parentNode) browseInput.parentNode.removeChild(browseInput)
       const f = document.createElement('input')
       browseInput = f
       f.type = 'file'
@@ -164,7 +181,7 @@
           if (res && typeof res.then === 'function') res.then(function (v) { if (v != null) doWrite(v) })
           else if (res != null) doWrite(res)
         } else if (file) {
-          doWrite(URL.createObjectURL(file))
+          writeOwnedUrl(URL.createObjectURL(file))
         }
         cleanup()
       })

@@ -100,11 +100,11 @@
       }).join('|')
     }
 
-    function mountEmpty(text, hint) {
+    function mountEmpty(text, hint, bodyText) {
       clearBody()
       title.textContent = text
       subtitle.textContent = hint || ''
-      body.appendChild(ui.h('div', 'aiditor-inspector-empty', { text: hint || 'Select something to inspect.' }))
+      body.appendChild(ui.h('div', 'aiditor-inspector-empty', { text: bodyText || hint || 'Select something to inspect.' }))
       mode = 'empty'
     }
 
@@ -161,7 +161,7 @@
         currentInspection = null
         currentTargets = []
         setSubscription(null, targets)
-        mountEmpty('Inspector', 'Select something to inspect.')
+        mountEmpty('Inspector', '', 'Select something to inspect.')
         return
       }
       const inspection = aiditor.inspector.inspect(targets, { panel: ctx.panel, bus: ctx.bus })
@@ -169,7 +169,7 @@
         currentInspection = null
         currentTargets = targets
         setSubscription(null, targets)
-        mountEmpty('No Inspector', 'No provider for ' + (targetType(targets[0]) || 'selection') + '.')
+        mountEmpty('No Inspector', '', 'No provider for ' + (targetType(targets[0]) || 'selection') + '.')
         return
       }
       currentInspection = inspection

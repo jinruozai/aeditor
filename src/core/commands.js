@@ -151,6 +151,10 @@
         })
         return
       }
+      const explicitKbd = valueOf(item.kbd, ctx, item, cmd) || cmd && cmd.kbd || ''
+      const shortcutKbd = !explicitKbd && item.command && aiditor.shortcuts && aiditor.shortcuts.getShortcutForCommand
+        ? aiditor.shortcuts.getShortcutForCommand(item.command, ctx || {})
+        : ''
       out.push({
         id: id,
         target: item.target,
@@ -158,7 +162,7 @@
         childrenTarget: item.childrenTarget || null,
         label: valueOf(item.label, ctx, item, cmd) || valueOf(item.title, ctx, item, cmd) || (cmd && (cmd.title || cmd.label)) || id,
         icon: valueOf(item.icon, ctx, item, cmd) || cmd && cmd.icon || '',
-        kbd: valueOf(item.kbd, ctx, item, cmd) || cmd && cmd.kbd || '',
+        kbd: explicitKbd || shortcutKbd,
         danger: !!(valueOf(item.danger, ctx, item, cmd) || cmd && cmd.danger),
         disabled: !!valueOf(item.disabled, ctx, item, cmd) || item.command && !cmd,
         input: valueOf(item.input, ctx, item, cmd) || {},

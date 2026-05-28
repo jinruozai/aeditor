@@ -186,8 +186,18 @@ policy separate.
 
 ## Shortcuts
 
-`aiditor.shortcuts` exists as infrastructure, but framework code must not hard
-code domain-level shortcuts.
+`aiditor.shortcuts` is documented in [shortcuts.md](./shortcuts.md). It is a
+Core primitive because it only owns generic keyboard infrastructure: key
+normalization, context resolution, binding registration, diagnostics, user
+overrides, and command routing.
+
+Shortcut bindings point to command ids and execute through
+`aiditor.commands.run`. They must not mutate data directly and must not encode
+project, file, document, scene, image, engine, or asset semantics.
+
+Framework code may provide shortcut infrastructure and component-internal
+semantic keys, but it must not hard code application-level shortcut policy.
+Host apps register their own commands, scopes, bindings, and panel metadata.
 
 ## Theme And I18n
 

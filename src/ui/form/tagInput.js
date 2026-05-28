@@ -39,9 +39,13 @@
     inp.addEventListener('keydown', function (e) {
       if (disabled.peek()) return
       if (e.key === 'Enter' && inp.value.trim()) {
+        e.preventDefault()
+        if (aiditor.shortcuts) aiditor.shortcuts.markHandled(e)
         doWrite(sig.peek().concat(inp.value.trim()))
         inp.value = ''
       } else if (e.key === 'Backspace' && !inp.value && sig.peek().length) {
+        e.preventDefault()
+        if (aiditor.shortcuts) aiditor.shortcuts.markHandled(e)
         doWrite(sig.peek().slice(0, -1))
       }
     })

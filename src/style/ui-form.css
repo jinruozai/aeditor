@@ -109,6 +109,11 @@
 }
 .aiditor-ui-num:hover .aiditor-ui-num-body { border-color: var(--aiditor-border-strong); }
 .aiditor-ui-num:focus-within .aiditor-ui-num-body { border-color: var(--aiditor-accent); }
+.aiditor-ui-num-disabled { cursor: default; opacity: .58; }
+.aiditor-ui-num-disabled .aiditor-ui-num-body { border-color: var(--aiditor-border-input); }
+.aiditor-ui-num-disabled .aiditor-ui-num-text,
+.aiditor-ui-num-disabled .aiditor-ui-num-label,
+.aiditor-ui-num-disabled .aiditor-ui-num-suffix { cursor: default; }
 .aiditor-ui-num-label {
   display: inline-flex;
   align-items: center;
@@ -1367,7 +1372,8 @@
    wraps a top-level structInput) overrides those base styles below to get
    the wider "inspector" layout. */
 .aiditor-ui-struct-input,
-.aiditor-ui-array-input {
+.aiditor-ui-array-input,
+.aiditor-ui-array-editor {
   border: 1px solid var(--aiditor-border);
   border-radius: var(--aiditor-r-2);
   padding: var(--aiditor-space-1) var(--aiditor-space-2);
@@ -1407,6 +1413,120 @@
   margin-top: var(--aiditor-space-1);
   background: var(--aiditor-bg-2);
   border-color: var(--aiditor-border-input);
+}
+.aiditor-ui-array-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  outline: none;
+  user-select: none;
+}
+.aiditor-ui-array-editor-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  position: relative;
+}
+.aiditor-ui-array-editor-row {
+  display: grid;
+  grid-template-columns: 50px minmax(0, 1fr) auto;
+  gap: var(--aiditor-space-1);
+  align-items: center;
+  min-width: 0;
+  min-height: var(--aiditor-size-h-md);
+  padding: 2px;
+  border: 1px solid transparent;
+  border-radius: var(--aiditor-r-2);
+}
+.aiditor-ui-array-editor-compact .aiditor-ui-array-editor-row {
+  min-height: var(--aiditor-size-h-sm);
+  padding: 1px 2px;
+}
+.aiditor-ui-array-editor-comfortable .aiditor-ui-array-editor-row {
+  min-height: 34px;
+  padding: 4px;
+}
+.aiditor-ui-array-editor-row:hover {
+  background: var(--aiditor-hover);
+}
+.aiditor-ui-array-editor-row.is-selected {
+  border-color: color-mix(in srgb, var(--aiditor-accent) 46%, transparent);
+  background: var(--aiditor-accent-bg);
+}
+.aiditor-ui-array-editor-row.is-active {
+  box-shadow: inset 2px 0 0 var(--aiditor-accent);
+}
+.aiditor-ui-array-editor-row.is-dragging {
+  opacity: .55;
+}
+.aiditor-ui-array-editor-row.is-disabled {
+  opacity: .62;
+}
+.aiditor-ui-array-editor-index {
+  width: 50px;
+  min-width: 50px;
+  height: calc(var(--aiditor-size-h-sm) - 2px);
+  padding: 0 var(--aiditor-space-1);
+  overflow: hidden;
+  border: 0;
+  border-radius: var(--aiditor-r-1);
+  background: transparent;
+  color: var(--aiditor-fg-3);
+  font: var(--aiditor-fs-xs) var(--aiditor-font-mono);
+  text-align: right;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.aiditor-ui-array-editor-index:not(:disabled):hover {
+  background: var(--aiditor-hover);
+  color: var(--aiditor-fg-1);
+}
+.aiditor-ui-array-editor-handle {
+  cursor: grab;
+}
+.aiditor-ui-array-editor-handle:active {
+  cursor: grabbing;
+}
+.aiditor-ui-array-editor-cell {
+  min-width: 0;
+  user-select: text;
+}
+.aiditor-ui-array-editor-cell > * {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+.aiditor-ui-array-editor-actions {
+  display: inline-flex;
+  flex: 0 0 auto;
+  gap: 2px;
+  align-items: center;
+}
+.aiditor-ui-array-editor-empty {
+  padding: var(--aiditor-space-1) 0;
+  color: var(--aiditor-fg-3);
+  font: var(--aiditor-fs-sm) var(--aiditor-font-ui);
+}
+.aiditor-ui-array-editor-add {
+  align-self: stretch;
+  width: 100%;
+  margin-top: var(--aiditor-space-1);
+  background: var(--aiditor-bg-2);
+  border-color: var(--aiditor-border-input);
+}
+.aiditor-ui-array-editor-drop-line {
+  height: 2px;
+  flex: 0 0 2px;
+  margin: 1px 0;
+  border-radius: 999px;
+  background: var(--aiditor-accent);
+  box-shadow: 0 0 0 2px var(--aiditor-accent-bg);
+}
+.aiditor-ui-array-editor.is-drop-reject .aiditor-ui-array-editor-drop-line {
+  background: var(--aiditor-error);
+  box-shadow: 0 0 0 2px var(--aiditor-error-bg);
 }
 
 .aiditor-ui-property-form { display: flex; flex-direction: column; min-width: 0; }

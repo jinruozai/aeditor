@@ -148,6 +148,7 @@ const JS_ORDER = [
   // above; it dispatches to them. Keep at the end of the form layer.
   'ui/form/typeconfig.js',
   'ui/form/structInput.js',
+  'ui/form/arrayEditor.js',
   'ui/form/arrayInput.js',
   'ui/form/editorFor.js',
   'ui/form/propertyForm.js',

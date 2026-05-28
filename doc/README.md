@@ -34,14 +34,15 @@ explicitly references one.
 
 | Area | Responsibility | Does Not Own |
 | --- | --- | --- |
-| Kernel | Shared infrastructure: signals, log, bus, history, settings, commands, theme, i18n, workspace contracts, component registry, dock tree, and dock runtime. | Editor business rules, product project formats, or widget catalog breadth. |
+| Kernel | Shared infrastructure: signals, log, bus, history, settings, commands, shortcuts, theme, i18n, workspace contracts, component registry, dock tree, and dock runtime. | Editor business rules, product project formats, app shortcut policy, or widget catalog breadth. |
 | UI | `aiditor.ui.*` widgets, schema-driven `propertyForm`, generic Inspector selection/providers, settings UI, built-in tab/history/log/inspector panel components, and theme consumption. | AI execution or domain data semantics. |
 | AI Host | Agents, providers, streaming, permissions, tools, context references, operations, ChangeSet, compaction, and memory. | Product data models or hidden host privileges. |
 | Extension Runtime | Package, review, install, disable, and uninstall contributions through existing registries. | A second component/tool/context model. |
 | Host Adapters | File-system bridges, provider transports, git, verification, and other privileged integrations. | Framework policy bypasses. |
 
-Domain-specific editors, demos, project loaders, app menus, app shortcuts, and
-workflow decisions are host code. They use AIditor; they are not AIditor layers.
+Domain-specific editors, demos, project loaders, app menus, app shortcut
+bindings, and workflow decisions are host code. Generic shortcut routing is
+Core infrastructure; application shortcut policy is not.
 
 ## Distribution Contract
 

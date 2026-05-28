@@ -9,6 +9,8 @@
   ui.searchInput = function (opts) {
     const o = opts || {}
     const sig = ui.asSig(o.value != null ? o.value : '')
+    const local = aiditor.signal(sig.peek() == null ? '' : String(sig.peek()))
+    const doWrite = ui.writer(sig, o.onChange, 'ui.searchInput')
 
     const clear = ui.iconButton({
       icon: 'x',
@@ -16,17 +18,17 @@
       size: 'sm',
       kind: 'ghost',
       onClick: function () {
-        sig.set('')
-        if (typeof o.onChange === 'function') o.onChange('')
+        local.set('')
+        doWrite('')
       },
     })
     clear.classList.add('aiditor-ui-search-clear')
 
     const field = ui.input(Object.assign({}, o, {
-      value: sig,
+      value: local,
       onChange: function (v) {
-        sig.set(v)
-        if (typeof o.onChange === 'function') o.onChange(v)
+        local.set(v)
+        doWrite(v)
       },
       prefix: ui.icon({ name: 'search', size: 'sm' }),
       suffix: clear,
@@ -34,6 +36,10 @@
     field.classList.add('aiditor-ui-search-field')
 
     ui.bind(field, sig, function (v) {
+      const s = v == null ? '' : String(v)
+      if (local.peek() !== s) local.set(s)
+    })
+    ui.bind(field, local, function (v) {
       clear.hidden = !(v != null && String(v).length)
     })
 

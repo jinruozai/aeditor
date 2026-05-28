@@ -292,6 +292,38 @@ alias for existing asset-oriented hosts. Both names use the same storage-agnosti
 component; callers provide listing, preview URL, import, move, rename, and delete
 hooks.
 
+`aiditor.ui.arrayEditor` is the generic array-row interaction primitive. It owns
+selection, active item, key-based row identity, optional add/delete/duplicate,
+pointer reorder with insertion feedback, keyboard row actions, and controlled
+`items`/`selected`/`active` signals. Items are opaque values: callers provide
+`getKey`, `renderItem`, capability gates, and mutation callbacks or an
+`onChange`/writable signal. It does not own history, transactions, validation,
+asset semantics, tracks, vertices, or any project workflow.
+
+Selection and active state use item keys. Callers that need selection, active
+row behavior, keyboard row actions, or stable reorder should provide `getKey`.
+When `getKey` is omitted, `arrayEditor` uses index keys for simple lists,
+defaults selection to `none`, and leaves keyboard row actions off unless the
+caller opts in.
+
+`renderItem(item, index, ctx)` is called when a row is created, not on every
+array update. Row renderers should read current data from `ctx.value()` and
+write with `ctx.writeItem(next)`. The plain `ctx.selected`, `ctx.active`,
+`ctx.disabled`, and `ctx.dragging` fields are current snapshots; reactive row
+state is available through `ctx.state.selected`, `ctx.state.active`,
+`ctx.state.disabled`, and `ctx.state.dragging`.
+
+Mutation callbacks transfer ownership of the operation. If `onDelete`,
+`onDuplicate`, or `onReorder` is provided, the callback must update items and
+any selected/active state it wants to preserve. Without an operation callback,
+`arrayEditor` writes through `onChange` or a writable `items` signal and applies
+the generic selected/active maintenance it can safely infer.
+
+`aiditor.ui.arrayInput` remains the simple array value input facade used by
+existing property forms. It delegates to `arrayEditor` with selection disabled
+and reorder/duplicate off, preserving the old add/delete/edit behavior while
+keeping rich list interaction in one implementation.
+
 The settings panel under `src/ui/panel/` is only the generic settings shell.
 Concrete settings are registered by the owning module, for example theme
 settings from `src/style/theme-settings.js` and AI settings from
@@ -317,6 +349,12 @@ aiditor.ui.propertyForm(options)
 `typeconfig` provides built-in field aliases and render hints. Domain schemas
 can extend it, but property editing should remain a UI helper, not a separate
 data model.
+
+Array fields keep the classic `array` renderer by default. Hosts that need row
+selection, active item, duplicate, or reorder can opt into the `array_editor`
+renderer through `type_render: "array_editor"` and renderer args such as
+`elem_type`, `selectionMode`, `indexMode`, `density`, `actions`, and
+`capabilities`.
 
 The dock-level Inspector lives above this helper. It owns ordered selection and
 provider dispatch, then uses `propertyForm` for normal property rows. See

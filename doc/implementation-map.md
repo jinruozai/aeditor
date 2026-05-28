@@ -19,7 +19,7 @@ preserved or deliberately replaced.
 | `src/core/i18n.js` | [core.md](./core.md) | Language strings. |
 | `src/core/settings.js` | [core.md](./core.md) | Settings sections, schemas, pages, persistence, owner cleanup, and dotted-prefix helpers. |
 | `src/core/commands.js` | [core.md](./core.md) | Commands, menus, owner cleanup, and dotted-prefix helpers. |
-| `src/core/shortcuts.js` | [core.md](./core.md) | Shortcut infrastructure. |
+| `src/core/shortcuts.js` | [core.md](./core.md), [shortcuts.md](./shortcuts.md) | Shortcut runtime: key normalization, context resolution, command routing, diagnostics, user overrides, and panel surfaces. |
 | `src/core/workspace.js` | [workspace.md](./workspace.md), [workspace-v2.md](./workspace-v2.md), [workspace-precise-editing.md](./workspace-precise-editing.md), [host-file-workflow.md](./host-file-workflow.md) | Workspace adapters, path safety, text/blob IO, path operations, operation review target, URL leases, snapshots, search, and exact text edit helpers. Host FileIndex/reference/journal policy stays above this file. |
 
 ## UI
@@ -40,6 +40,8 @@ preserved or deliberately replaced.
 | `src/ui/panel/inspector.js` | [inspector.md](./inspector.md), [ui.md](./ui.md) | Built-in generic Inspector dock panel backed by `aiditor.inspector` and `aiditor.ui.propertyForm`. |
 | `src/ui/panel/history.js` | [core.md](./core.md), [ui.md](./ui.md) | Built-in generic History dock panel backed by an `aiditor.history` instance or named binding. |
 | `src/ui/form/propertyForm.js` | [ui.md](./ui.md), [inspector.md](./inspector.md) | Schema-driven single/multi-target property form helper. |
+| `src/ui/form/arrayEditor.js` | [ui.md](./ui.md) | Generic array-row interaction primitive: key-based selection, active item, add/delete/duplicate, reorder feedback, and controlled mutation callbacks. |
+| `src/ui/form/arrayInput.js` | [ui.md](./ui.md) | Compatibility facade over `arrayEditor` for simple property array editing. |
 | `src/ui/**` | [ui.md](./ui.md) | Generic UI component library and built-in generic panel components. |
 | `src/style/**` | [ui.md](./ui.md) | Theme, dock, UI, AI, and settings styles. |
 

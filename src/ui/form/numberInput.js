@@ -39,6 +39,7 @@
     const precS  = ui.asSig(o.precision != null ? o.precision : null)  // null = derive
     const label  = ui.asSig(o.label     != null ? o.label     : '')
     const suffix = ui.asSig(o.suffix    != null ? o.suffix    : '')
+    const disabled = ui.asSig(o.disabled != null ? o.disabled : false)
     const radix   = o.radix   || 'dec'              // construction-time, not reactive
     const percent = !!o.percent
     const doWrite = ui.writer(sig, o.onChange, 'ui.numberInput')
@@ -58,6 +59,10 @@
     ui.bind(el, label,  function (v) { lab.style.display = (v == null || v === '') ? 'none' : '' })
     ui.bindText(sfx, suffix)
     ui.bind(el, suffix, function (v) { sfx.style.display = (v == null || v === '') ? 'none' : '' })
+    ui.bindAttr(dec, disabled, 'disabled')
+    ui.bindAttr(inc, disabled, 'disabled')
+    ui.bindAttr(txt, disabled, 'disabled')
+    ui.bind(el, disabled, function (v) { el.classList.toggle('aiditor-ui-num-disabled', !!v) })
 
     function prec() {
       const p = precS.peek()
@@ -131,6 +136,7 @@
     ui.bind(el, precS, function ()  { if (!editing) txt.value = fmt(sig.peek()) })
 
     function enterEdit() {
+      if (disabled.peek()) return
       if (editing) return
       editing = true
       txt.readOnly = false
@@ -145,9 +151,16 @@
       txt.readOnly = true
       txt.value = fmt(sig.peek())
     }
+    ui.bind(el, disabled, function (v) { if (v) exitEdit(false) })
+
+    function handled(e) {
+      e.preventDefault()
+      if (aiditor.shortcuts) aiditor.shortcuts.markHandled(e)
+    }
 
     const SCRUB_THRESHOLD = 3
     el.addEventListener('pointerdown', function (e) {
+      if (disabled.peek()) return
       if (e.button !== 0) return
       if (editing) return
       if (e.target === dec || e.target === inc) return
@@ -184,6 +197,7 @@
     })
 
     el.addEventListener('dblclick', function (e) {
+      if (disabled.peek()) return
       if (e.target === dec || e.target === inc) return
       enterEdit()
     })
@@ -193,13 +207,14 @@
     // subsequent blur-driven exitEdit(true) a no-op, so Escape never writes.
     txt.addEventListener('blur', function () { exitEdit(true) })
     txt.addEventListener('keydown', function (e) {
-      if (e.key === 'Enter')           { txt.blur() }
-      else if (e.key === 'Escape')     { exitEdit(false); txt.blur() }
-      else if (e.key === 'ArrowUp')    { e.preventDefault(); commit(sig.peek() + stepS.peek()) }
-      else if (e.key === 'ArrowDown')  { e.preventDefault(); commit(sig.peek() - stepS.peek()) }
+      if (disabled.peek()) return
+      if (e.key === 'Enter')           { handled(e); txt.blur() }
+      else if (e.key === 'Escape')     { handled(e); exitEdit(false); txt.blur() }
+      else if (e.key === 'ArrowUp')    { handled(e); commit(sig.peek() + stepS.peek()) }
+      else if (e.key === 'ArrowDown')  { handled(e); commit(sig.peek() - stepS.peek()) }
     })
-    dec.addEventListener('click', function () { commit(sig.peek() - stepS.peek()) })
-    inc.addEventListener('click', function () { commit(sig.peek() + stepS.peek()) })
+    dec.addEventListener('click', function () { if (!disabled.peek()) commit(sig.peek() - stepS.peek()) })
+    inc.addEventListener('click', function () { if (!disabled.peek()) commit(sig.peek() + stepS.peek()) })
 
     return el
   }
