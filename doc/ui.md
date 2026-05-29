@@ -109,6 +109,11 @@ Implemented runtime abilities:
 Inactive panels should be detached from DOM, not hidden with CSS, so heavy
 panels do not keep layout and paint cost.
 
+Dock reconcile patches the dock/split frame skeleton in place. Local changes
+such as tab activation or panel promotion must not replace the whole layout
+container or temporarily disconnect unrelated docks. Active panel content is
+still attached/detached only by the dock runtime.
+
 The framework does not force an application menu model. `dockMenu: true` installs
 the built-in dock command/menu contribution and lets right-clicking the dock
 corner open it. The default is off; hosts may use the same command/menu registry

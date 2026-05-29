@@ -150,8 +150,10 @@
   }
 
   function updateDockRuntime(dockRuntime, dockData, layout) {
-    dockRuntime.dataSig.set(dockData)
+    const changed = dockRuntime.dataSig.peek() !== dockData
+    if (changed) dockRuntime.dataSig.set(dockData)
     syncDockToolbar(dockRuntime, dockData, layout)
+    if (!changed) return
     // Refresh runtime.data / dockRef for every existing PanelRuntime whose
     // PanelData is still in this dock. Panels that left this dock will be
     // re-homed by render.js when it visits their new dock.
@@ -159,8 +161,8 @@
       const pd = dockData.panels[i]
       const pr = dockRuntime.panelRuntimes.get(pd.id)
       if (pr) {
-        pr.data.set(pd)
-        pr.dockRef.set(dockRuntime.id)
+        if (pr.data.peek() !== pd) pr.data.set(pd)
+        if (pr.dockRef.peek() !== dockRuntime.id) pr.dockRef.set(dockRuntime.id)
       }
     }
   }

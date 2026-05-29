@@ -229,6 +229,7 @@ function key(el, name, extra) {
   const value = aiditor.signal('a')
   const el = ui.codeInput({ value })
   const ta = el.querySelector('textarea')
+  assert.equal(ta.wrap, 'off')
   ta.selectionStart = 1
   ta.selectionEnd = 1
   const ev = key(ta, 'Tab')

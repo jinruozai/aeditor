@@ -89,6 +89,7 @@
     const editor = ui.h('div', 'aiditor-ui-code-editor')
     const ta = ui.h('textarea', 'aiditor-ui-code-text', {
       spellcheck: 'false',
+      wrap: 'off',
       rows: String(o.rows || 12),
     })
     if (o.language) {

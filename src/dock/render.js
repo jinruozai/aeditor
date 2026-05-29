@@ -1,15 +1,10 @@
-// Dock renderer — keyed reconciliation by dock id.
+// Dock renderer — keyed in-place reconciliation.
 //
-// On every tree commit:
-//   • SPLIT frames are cheap structural divs, rebuilt every pass
-//   • DOCK elements are reused via layout.dockRuntimes (keyed by dockId).
-//     Dock DOM, content container, all PanelRuntimes, all panel contentEls,
-//     all static + dynamic toolbar item contentEls — all preserved.
-//
-// After the structural rebuild, every surviving dock runtime is synced:
-//   1. updateDockRuntime — fresh dataSig + refresh panel-runtime data signals
-//   2. syncActivePanel  — detach old / attach new active panel + dynamic toolbar
-//   3. syncDockClasses  — focused / collapsed visual classes
+// The renderer owns only the split/dock DOM skeleton. DockRuntime owns panel
+// content and toolbar component lifecycles. Reconcile therefore runs in two
+// phases: first patch structural frames in place, then sync active panels for
+// every surviving dock. This keeps unrelated active panel DOM connected across
+// local tree changes such as tab activation.
 ;(function (aiditor) {
   'use strict'
 
@@ -18,78 +13,212 @@
 
   function reconcile(layout, newTree) {
     const used = new Set()
-    const root = build(newTree, [], layout, used, newTree)
-    layout.container.replaceChildren(root)
+    layout.rootFrame = reconcileFrame(layout.rootFrame, newTree, [], layout, used, newTree)
+    mountRoot(layout, layout.rootFrame.el)
 
-    // GC dock runtimes whose dockId disappeared from the tree.
-    const toDelete = []
+    const staleDockIds = []
     layout.dockRuntimes.forEach(function (dr, id) {
-      if (!used.has(id)) toDelete.push(id)
+      if (!used.has(id)) staleDockIds.push(id)
     })
-    for (let i = 0; i < toDelete.length; i++) {
-      const dr = layout.dockRuntimes.get(toDelete[i])
-      RT.disposeDockRuntime(dr)
-      layout.dockRuntimes.delete(toDelete[i])
-    }
 
-    // Mount active panels + sync visual classes. Stale panel runtime GC runs
-    // after every dock has had a chance to re-home moved panel runtimes.
-    layout.dockRuntimes.forEach(function (dr) {
+    layout.dockRuntimes.forEach(function (dr, id) {
+      if (!used.has(id)) return
       const data = dr.dataSig.peek()
       RT.syncActivePanel(dr, data, layout)
       RT.syncDockClasses(dr, data)
     })
-    layout.dockRuntimes.forEach(function (dr) {
+    layout.dockRuntimes.forEach(function (dr, id) {
+      if (!used.has(id)) return
       const data = dr.dataSig.peek()
       RT.disposeStalePanelRuntimes(dr, data)
     })
-  }
-
-  function build(node, path, layout, used, tree) {
-    if (node.type === 'dock') {
-      used.add(node.id)
-      return getOrCreateDockEl(node, layout)
+    for (let i = 0; i < staleDockIds.length; i++) {
+      const dr = layout.dockRuntimes.get(staleDockIds[i])
+      RT.disposeDockRuntime(dr)
+      layout.dockRuntimes.delete(staleDockIds[i])
     }
-    return createSplit(node, path, layout, used, tree)
   }
 
-  function createSplit(node, path, layout, used, tree) {
-    const el = document.createElement('div')
-    el.className = 'aiditor-split aiditor-split-' + node.direction
+  function mountRoot(layout, el) {
+    if (layout.container.firstChild === el) {
+      while (el.nextSibling) layout.container.removeChild(el.nextSibling)
+      return
+    }
+    if (layout.container.firstChild) layout.container.replaceChild(el, layout.container.firstChild)
+    else layout.container.appendChild(el)
+    while (el.nextSibling) layout.container.removeChild(el.nextSibling)
+  }
+
+  function reconcileFrame(frame, node, path, layout, used, tree) {
+    return node.type === 'dock'
+      ? reconcileDockFrame(frame, node, layout, used)
+      : reconcileSplitFrame(frame, node, path, layout, used, tree)
+  }
+
+  function reconcileDockFrame(frame, dockData, layout, used) {
+    used.add(dockData.id)
+    const dockEl = getOrCreateDockEl(dockData, layout)
+    if (frame && frame.kind === 'dock' && frame.dockId === dockData.id) {
+      frame.node = dockData
+      frame.el = dockEl
+      frame.dockIds = [dockData.id]
+      return frame
+    }
+    return { kind: 'dock', node: dockData, dockId: dockData.id, dockIds: [dockData.id], el: dockEl }
+  }
+
+  function reconcileSplitFrame(frame, node, path, layout, used, tree) {
+    if (!frame || frame.kind !== 'split') frame = createSplitFrame()
+    if (frame.direction !== node.direction) {
+      frame.direction = node.direction
+      frame.el.className = 'aiditor-split aiditor-split-' + node.direction
+    }
+    const oldFrames = frame.childFrames
+    const oldWraps = frame.childWraps
+    const claimed = {}
+    const nextFrames = []
+    const nextWraps = []
 
     for (let i = 0; i < node.children.length; i++) {
       const child = node.children[i]
-      const wrap = document.createElement('div')
-      wrap.className = 'aiditor-split-child'
-      // Collapsed dock in a compatible parent split → its slot shrinks to
-      // the intrinsic size of the visible toolbar, and sibling grow factors
-      // (still their original ratios) absorb the freed space. Compatibility
-      // is decided once, purely from topology + toolbar direction, by
-      // canCollapseDock — that's the single source of truth for "does this
-      // collapse request get honored?".
-      //
-      // Sizes in the tree are normalized (sum ≈ 1). CSS Flex § 9.7.12.3:
-      // when the sum of grow factors is < 1, only `sum × freeSpace` gets
-      // distributed — the rest is wasted, leaving empty space. After a
-      // sibling collapses to `0 0 auto`, the remaining grows would sum to
-      // < 1 and waste the freed area. Multiplying every share by 100
-      // pushes the sum comfortably above 1 without changing relative
-      // proportions. The splitter-drag code uses the same ×100 so live
-      // resize stays consistent with the initial render.
-      const isCollapsed = child.type === 'dock' && child.collapsed &&
-                          aiditor.canCollapseDock(tree, child.id)
-      wrap.style.flex = isCollapsed ? '0 0 auto' : ((node.sizes[i] * 100) + ' 0 0')
-      wrap.appendChild(build(child, path.concat(i), layout, used, tree))
-      el.appendChild(wrap)
+      const oldIndex = findReusableChild(oldFrames, child, i, claimed)
+      const childPath = path.concat(i)
+      let childFrame = oldIndex >= 0 ? oldFrames[oldIndex] : null
+      const sameChild = childFrame && childFrame.node === child && (child.type === 'dock' || samePath(childFrame.path, childPath))
+      if (!sameChild) childFrame = reconcileFrame(childFrame, child, childPath, layout, used, tree)
+      else addFrameDockIds(childFrame, used)
 
-      if (i < node.children.length - 1) {
-        const sp = document.createElement('div')
-        sp.className = 'aiditor-splitter aiditor-splitter-' + node.direction
-        aiditor._dock.attachSplitterDrag(sp, el, node, path, i, layout)
-        el.appendChild(sp)
+      const wrap = oldIndex >= 0 ? oldWraps[oldIndex] : createChildWrap()
+      const flex = childFlex(child, node, i, tree)
+      if (wrap.style.flex !== flex) wrap.style.flex = flex
+      if (wrap.firstChild !== childFrame.el) {
+        if (wrap.firstChild) wrap.replaceChild(childFrame.el, wrap.firstChild)
+        else wrap.appendChild(childFrame.el)
+      }
+      childFrame.path = childPath
+      nextFrames.push(childFrame)
+      nextWraps.push(wrap)
+    }
+
+    removeOldSplitters(frame)
+    removeUnusedWraps(oldWraps, claimed)
+    frame.node = node
+    frame.path = path
+    frame.childFrames = nextFrames
+    frame.childWraps = nextWraps
+    frame.splitters = createSplitters(node, path, layout, frame.el)
+    frame.dockIds = collectDockIds(nextFrames)
+    syncSplitDom(frame)
+    return frame
+  }
+
+  function createSplitFrame() {
+    return {
+      kind: 'split',
+      node: null,
+      path: [],
+      direction: null,
+      el: document.createElement('div'),
+      childFrames: [],
+      childWraps: [],
+      splitters: [],
+      dockIds: [],
+    }
+  }
+
+  function createChildWrap() {
+    const wrap = document.createElement('div')
+    wrap.className = 'aiditor-split-child'
+    return wrap
+  }
+
+  function findReusableChild(frames, node, preferred, claimed) {
+    if (matchesFrame(frames[preferred], node, true) && !claimed[preferred]) {
+      claimed[preferred] = true
+      return preferred
+    }
+    for (let i = 0; i < frames.length; i++) {
+      if (claimed[i]) continue
+      if (matchesFrame(frames[i], node, false)) {
+        claimed[i] = true
+        return i
       }
     }
-    return el
+    return -1
+  }
+
+  function matchesFrame(frame, node, preferred) {
+    if (!frame || !node) return false
+    if (node.type === 'dock') return frame.kind === 'dock' && frame.dockId === node.id
+    return frame.kind === 'split' && (preferred || frame.node === node)
+  }
+
+  function collectDockIds(frames) {
+    const ids = []
+    for (let i = 0; i < frames.length; i++) {
+      const frame = frames[i]
+      if (frame.kind === 'dock') ids.push(frame.dockId)
+      else for (let j = 0; j < frame.dockIds.length; j++) ids.push(frame.dockIds[j])
+    }
+    return ids
+  }
+
+  function addFrameDockIds(frame, used) {
+    if (frame.kind === 'dock') {
+      used.add(frame.dockId)
+      return
+    }
+    for (let i = 0; i < frame.dockIds.length; i++) used.add(frame.dockIds[i])
+  }
+
+  function childFlex(child, parent, index, tree) {
+    const isCollapsed = child.type === 'dock' && child.collapsed &&
+                        aiditor.canCollapseDock(tree, child.id)
+    return isCollapsed ? '0 0 auto' : ((parent.sizes[index] * 100) + ' 0 0')
+  }
+
+  function removeOldSplitters(frame) {
+    for (let i = 0; i < frame.splitters.length; i++) {
+      if (frame.splitters[i].parentNode) frame.splitters[i].remove()
+    }
+  }
+
+  function removeUnusedWraps(wraps, claimed) {
+    for (let i = 0; i < wraps.length; i++) {
+      if (!claimed[i] && wraps[i].parentNode) wraps[i].remove()
+    }
+  }
+
+  function createSplitters(node, path, layout, splitEl) {
+    const out = []
+    for (let i = 0; i < node.children.length - 1; i++) {
+      const sp = document.createElement('div')
+      sp.className = 'aiditor-splitter aiditor-splitter-' + node.direction
+      aiditor._dock.attachSplitterDrag(sp, splitEl, node, path, i, layout)
+      out.push(sp)
+    }
+    return out
+  }
+
+  function syncSplitDom(frame) {
+    let cursor = 0
+    for (let i = 0; i < frame.childWraps.length; i++) {
+      cursor = placeChild(frame.el, frame.childWraps[i], cursor)
+      if (i < frame.splitters.length) cursor = placeChild(frame.el, frame.splitters[i], cursor)
+    }
+    while (frame.el.childNodes.length > cursor) frame.el.removeChild(frame.el.childNodes[cursor])
+  }
+
+  function placeChild(parent, child, index) {
+    const at = parent.childNodes[index] || null
+    if (at !== child) parent.insertBefore(child, at)
+    return index + 1
+  }
+
+  function samePath(a, b) {
+    if (!a || !b || a.length !== b.length) return false
+    for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return false
+    return true
   }
 
   function getOrCreateDockEl(dockData, layout) {
@@ -99,7 +228,6 @@
       return dr.dockEl
     }
 
-    // Fresh dock: build DOM + runtime + (optionally) toolbar components.
     const dockEl = document.createElement('div')
     dockEl.className = 'aiditor-dock'
     if (dockData.toolbar) {
@@ -142,8 +270,6 @@
     })
     layout.dockRuntimes.set(dockData.id, dr)
 
-    // Now that the runtime exists with toolbar element references, instantiate
-    // every static toolbar component. They live for the entire dock lifetime.
     if (dockData.toolbar) {
       RT.createStaticToolbarRuntimes(dr, dockData, layout)
     }
@@ -151,8 +277,6 @@
     return dockEl
   }
 
-  // 3×3 grid hover: only the corner whose grid cell the cursor is in becomes
-  // visible. Center / edge cells → no corner shown.
   function attachCornerHover(dockEl) {
     const CLS = ['aiditor-dock-c-tl', 'aiditor-dock-c-tr', 'aiditor-dock-c-bl', 'aiditor-dock-c-br']
     function clear() {

@@ -3149,6 +3149,8 @@ body.aiditor-dragging-vertical,   body.aiditor-dragging-vertical *   { cursor: n
   padding: var(--aiditor-space-2);
   font: var(--aiditor-fs-sm)/var(--aiditor-lh-base) var(--aiditor-font-mono);
   white-space: pre;
+  overflow-wrap: normal;
+  word-break: normal;
   overflow: auto;
   tab-size: 2;
 }
@@ -3176,6 +3178,8 @@ body.aiditor-dragging-vertical,   body.aiditor-dragging-vertical *   { cursor: n
   color: var(--aiditor-fg-0);
   background: transparent;
   white-space: pre;
+  overflow-wrap: normal;
+  word-break: normal;
   overflow: hidden;
   pointer-events: none;
   tab-size: 2;
