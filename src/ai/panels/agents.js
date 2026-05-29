@@ -185,7 +185,7 @@
 
     const toolbar = ui.h('div', 'aiditor-ai-toolbar')
     toolbar.appendChild(ui.button({
-      text: 'New Chat',
+      text: 'New Agent',
       kind: 'default',
       size: 'sm',
       onClick: function () {

@@ -129,17 +129,22 @@
     ['--aiditor-dur-slow', 'Slow', 0, 1000],
   ]
 
-  function renderThemeSettings() {
+  function renderThemeSettings(opts) {
+    opts = opts || {}
+    const panelMode = opts.panel === true
     const ui = aiditor.ui
-    const root = ui.view({ scroll: 'hidden', className: 'aiditor-settings-page aiditor-settings-theme-page' })
-    root.appendChild(pageHead('Theme', 'AIditor appearance and visual density.'))
+    const root = ui.view({
+      scroll: 'hidden',
+      className: panelMode ? 'aiditor-theme-config' : 'aiditor-settings-page aiditor-settings-theme-page',
+    })
+    if (!panelMode) root.appendChild(pageHead('Theme', 'AIditor appearance and visual density.'))
 
-    const bar = ui.h('div', 'aiditor-settings-theme-bar')
+    const bar = ui.h('div', panelMode ? 'aiditor-theme-config-head' : 'aiditor-settings-theme-bar')
     const tabSig = aiditor.signal('palette')
     const modeSig = aiditor.signal(aiditor.settings.get('theme.mode') || localStorage.getItem(THEME_MODE_KEY) || 'dark')
     const densitySig = aiditor.signal(aiditor.settings.get('theme.density') || localStorage.getItem(THEME_DENSITY_KEY) || 'default')
     const tabs = ui.segmented({ value: tabSig, options: THEME_TABS })
-    tabs.classList.add('aiditor-settings-theme-tabs')
+    tabs.classList.add(panelMode ? 'aiditor-theme-config-tabs' : 'aiditor-settings-theme-tabs')
     const mode = ui.select({
       value: modeSig,
       options: [
@@ -179,7 +184,7 @@
         if (ui.toast) ui.toast({ kind: 'info', title: 'CSS copied', message: text })
       },
     })
-    bar.appendChild(tabs)
+    if (!panelMode) bar.appendChild(tabs)
     bar.appendChild(mode)
     bar.appendChild(density)
     bar.appendChild(reset)
@@ -187,9 +192,17 @@
     root.appendChild(bar)
 
     const allSigs = []
-    const host = ui.h('div', 'aiditor-settings-theme-host')
-    const scroll = ui.view({ children: host, className: 'aiditor-settings-theme-scroll' })
+    const host = ui.h('div', panelMode ? 'aiditor-settings-theme-host aiditor-theme-config-host' : 'aiditor-settings-theme-host')
+    const scroll = ui.view({
+      children: host,
+      className: panelMode ? 'aiditor-settings-theme-scroll aiditor-theme-config-scroll' : 'aiditor-settings-theme-scroll',
+    })
     root.appendChild(scroll)
+    if (panelMode) {
+      const foot = ui.h('div', 'aiditor-theme-config-foot')
+      foot.appendChild(tabs)
+      root.appendChild(foot)
+    }
 
     function track(sig, name, parse, format) {
       allSigs.push({ sig: sig, name: name, parse: parse, format: format })
@@ -251,6 +264,14 @@
     }))
     return root
   }
+
+  aiditor.registerComponent('theme-config', {
+    category: 'panel',
+    label: 'Theme',
+    icon: 'palette',
+    defaults: function () { return { title: 'Theme', icon: 'palette', props: {} } },
+    factory: function () { return renderThemeSettings({ panel: true }) },
+  })
 
   function readThemeToken(name) {
     return getComputedStyle(document.documentElement).getPropertyValue(name).trim()

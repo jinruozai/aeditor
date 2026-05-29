@@ -315,6 +315,63 @@
   text-align: left;
 }
 
+.aiditor-theme-config {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  background: var(--aiditor-bg-1);
+}
+.aiditor-theme-config-head,
+.aiditor-theme-config-foot {
+  display: flex;
+  align-items: center;
+  gap: var(--aiditor-space-2);
+  padding: var(--aiditor-space-2) var(--aiditor-space-3);
+  flex: 0 0 auto;
+  min-width: 0;
+  box-sizing: border-box;
+}
+.aiditor-theme-config-head {
+  border-bottom: var(--aiditor-toolbar-border-w) solid var(--aiditor-toolbar-border);
+  background: var(--aiditor-toolbar-bg);
+}
+.aiditor-theme-config-foot {
+  border-top: var(--aiditor-toolbar-border-w) solid var(--aiditor-toolbar-border);
+  background: var(--aiditor-toolbar-bg);
+}
+.aiditor-theme-config-head .aiditor-ui-select {
+  flex: 1 1 0;
+  min-width: 0;
+}
+.aiditor-theme-config-head .aiditor-ui-btn {
+  flex: 0 0 auto;
+}
+.aiditor-theme-config-tabs {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+.aiditor-theme-config-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+.aiditor-theme-config-host {
+  padding: var(--aiditor-space-2) var(--aiditor-space-3);
+}
+.aiditor-theme-config-host.aiditor-settings-theme-host {
+  padding-right: var(--aiditor-space-3);
+}
+.aiditor-theme-config-host .aiditor-settings-theme-pane {
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+}
+.aiditor-theme-config-host .aiditor-settings-theme-pane .aiditor-ui-prop-row {
+  grid-template-columns: minmax(0, 96px) minmax(0, 1fr);
+}
+
 .aiditor-settings-ai-overview {
   display: flex;
   flex-direction: column;

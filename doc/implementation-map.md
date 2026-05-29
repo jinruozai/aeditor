@@ -15,7 +15,7 @@ preserved or deliberately replaced.
 | `src/core/bus.js` | [core.md](./core.md) | Pub/sub communication. |
 | `src/core/history.js` | [core.md](./core.md) | Generic history, transactions, undo/redo. |
 | `src/core/theme.js` | [core.md](./core.md), [ui.md](./ui.md) | Theme mode and tokens. |
-| `src/style/theme-settings.js` | [core.md](./core.md), [ui.md](./ui.md) | Theme module settings contribution. |
+| `src/style/theme-settings.js` | [core.md](./core.md), [ui.md](./ui.md) | Theme module settings contribution and built-in `theme-config` dock panel. |
 | `src/core/i18n.js` | [core.md](./core.md) | Language strings. |
 | `src/core/settings.js` | [core.md](./core.md) | Settings sections, schemas, pages, persistence, owner cleanup, and dotted-prefix helpers. |
 | `src/core/commands.js` | [core.md](./core.md) | Commands, menus, owner cleanup, and dotted-prefix helpers. |
@@ -39,6 +39,7 @@ preserved or deliberately replaced.
 | `src/ui/inspector.js` | [inspector.md](./inspector.md), [ui.md](./ui.md) | Ordered Inspector selection, provider registry, multi-target edit gates, and formula-ready change helpers. |
 | `src/ui/panel/inspector.js` | [inspector.md](./inspector.md), [ui.md](./ui.md) | Built-in generic Inspector dock panel backed by `aiditor.inspector` and `aiditor.ui.propertyForm`. |
 | `src/ui/panel/history.js` | [core.md](./core.md), [ui.md](./ui.md) | Built-in generic History dock panel backed by an `aiditor.history` instance or named binding. |
+| `src/ui/panel/panel-list.js` | [ui.md](./ui.md) | Built-in searchable panel palette for registered generic panel components. |
 | `src/ui/form/propertyForm.js` | [ui.md](./ui.md), [inspector.md](./inspector.md) | Schema-driven single/multi-target property form helper. |
 | `src/ui/form/arrayEditor.js` | [ui.md](./ui.md) | Generic array-row interaction primitive: key-based selection, active item, add/delete/duplicate, reorder feedback, and controlled mutation callbacks. |
 | `src/ui/form/arrayInput.js` | [ui.md](./ui.md) | Compatibility facade over `arrayEditor` for simple property array editing. |

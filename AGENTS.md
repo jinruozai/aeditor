@@ -183,15 +183,13 @@ aiditor/
       data/                        # list / tree / table / breadcrumbs / progressBar(全部虚拟化)
       overlay/                     # menu / modal / drawer / alert / toast
       panel/                       # 能被 registerComponent 注册的 "panel 级" 内置 component
-                                   # inspector / dock-tabs(tab-standard/compact/collapsible/sidebar 预设) / log
+                                   # panel-list / inspector / dock-tabs(tab-standard/compact/collapsible/sidebar 预设) / log
 
   demo/                            # ⚠ 上一个 Codex 做了一次重构:单文件 ui-showcase.js 拆成 4 份
     catalog.js                     # 全部组件的 catalog(signals / mount / editFor)数据
     state.js                       # window.Demo 命名空间(selected / select / openCategory / signal cache)
     components/
       ui-gallery.js                # 组件库浏览与预览,展示内置/项目组件
-      panel-list.js                # 可拖拽 panel 列表,用于把 panel 加到 dock
-      theme-config.js              # 实时改主题 token + 亮暗模式切换,localStorage 持久化
       demo.css                     # demo component 的额外样式
 ```
 
@@ -201,7 +199,7 @@ aiditor/
   - `src/ai/` = Optional AI Host(agent/provider/tool/context/reference/operation/ChangeSet/permission/runtime)
   - `src/extensions/` = Optional Extension Runtime,安装 contribution 到已有 registry,并通过 owner 精确卸载
   - `src/ui/` = `aiditor.ui.*` 通用 UI 元件库(50+ 个)
-  - `src/ui/panel/` = 内置 panel 级 component(dock-tabs / log),用 `registerComponent` 注册,能直接塞进 dock
+  - `src/ui/panel/` = 内置 panel 级 component(panel-list / dock-tabs / history / log 等),用 `registerComponent` 注册,能直接塞进 dock
   - `demo/` = 用户层 demo,catalog+state 负责数据,components/ 负责示例面板
 - 改完 `src/` 下任何文件**必须** `node tools/build.mjs` 重新生成 `dist/aiditor-core.*` / `dist/aiditor-full.*` / `dist/aiditor.*`,index.html 是直接引用 full dist 的,不重建就看不到改动
 - **`demo/` 下的文件不进 bundle** —— index.html 直接 `<script>` 加载 demo/*.js,改完 reload 即可
@@ -225,7 +223,7 @@ aiditor/
 - Blender 角拖 split + sibling merge + dirty 检查 + 3×3 hover(§ 4.1 / § 4.2)
 - Panel 跨 dock 拖放(detach contentEl → re-attach,零重建)(§ 4.14)
 - Pop out 独立窗口 + BroadcastChannel handshake + serialize/deserialize(§ 4.14)
-- 内置 component:`tab-standard` / `tab-compact` / `tab-collapsible` / `tab-sidebar` / `history` / `log`
+- 内置 component:`panel-list` / `theme-config` / `tab-standard` / `tab-compact` / `tab-collapsible` / `tab-sidebar` / `history` / `log`
 
 **UI 组件库(aiditor.ui.* 50 个组件)**:
 - 全部基于 caller-owned `value: signal<T>` 的"信号优先"设计 —— 组件不持有自己的 state
@@ -261,7 +259,7 @@ aiditor/
   - **dracula** —— 冷调深灰 + `#7b6ef6` 紫 accent,"raised 输入框"映射(`--aiditor-bg-2` 比 `--aiditor-bg-1` 亮) + 更强阴影
   - **light** —— 白面板 + 浅灰 inset 字段 + `#5b4ee0` 深紫 accent;显式锁定 bg/border 角色映射,不继承 :root 的"inset in dark"约定
 - 每个非默认主题块都**显式声明**自己的 bg/border 角色映射 + shadow 级别 —— 因为 :root 的 Godot"inset input"约定不是中性默认,被光亮 primitives 继承会反过来变成"raised in light"。三套各自独立锁定,零耦合
-- 用户 demo 的 theme-config component 编辑 v2 authoring tokens,通过 `aiditor.theme` / `documentElement.style.setProperty` 写入并用 localStorage 持久化
+- 内置 `theme-config` panel 复用 `src/style/theme-settings.js` 的主题设置实现,编辑 v2 authoring tokens,通过 `aiditor.theme` / `documentElement.style.setProperty` 写入并用 localStorage 持久化
 
 **UX 微交互(2026-04-15 那一轮专门打磨)**:
 - 按钮:hover 上抬 1px + 阴影,按下 `scale(0.985)` 内阴影,`::before` 伪元素 click flash,3px accent glow 替代实心 outline
@@ -280,8 +278,8 @@ aiditor/
 
 ### 3.3 已知坑(给下一个 Codex 的避雷指南)
 
-1. **`ui.bind(el, sig, fn)` 会同步触发一次 fn**。任何在 `fn` 里访问的变量必须在 `bind` 之前已经声明并初始化,否则 TDZ 报错。`demo/components/theme-config.js` 修过这个坑(`allSigs` / `refreshAll` 必须在 `ui.bind(modeSel, ...)` 之前定义)。
-2. **`aiditor.effect(() => ...)` 也是同步触发**。如果 effect 体里向 `documentElement.style` 写 inline CSS variable,初次挂载那一刻就会把当前 signal 值写成 inline 样式,**inline specificity 会覆盖 `[data-aiditor-theme="light"]` 之类的属性选择器,主题切换从此失效**。修复模板:在 effect 里读 `getComputedStyle` 的 effective value,和想写的 literal 比较,相同就 return 跳过写入 —— 初次挂载零污染,只有用户真的编辑才写 inline。详见 `demo/components/theme-config.js` 的 `bindWriter`。
+1. **`ui.bind(el, sig, fn)` 会同步触发一次 fn**。任何在 `fn` 里访问的变量必须在 `bind` 之前已经声明并初始化,否则 TDZ 报错。`src/style/theme-settings.js` 修过这个坑(`allSigs` / `refreshAll` 必须在绑定写入前定义好闭包关系)。
+2. **`aiditor.effect(() => ...)` 也是同步触发**。如果 effect 体里向 `documentElement.style` 写 inline CSS variable,初次挂载那一刻就会把当前 signal 值写成 inline 样式,**inline specificity 会覆盖 `[data-aiditor-theme="light"]` 之类的属性选择器,主题切换从此失效**。修复模板:在 effect 里读 `getComputedStyle` 的 effective value,和想写的 literal 比较,相同就 return 跳过写入 —— 初次挂载零污染,只有用户真的编辑才写 inline。详见 `src/style/theme-settings.js` 的 `bindWriter`。
 3. **不要在 component `factory(propsSig, ctx)` 里调 `ctx.panel.updateProps()` 高频化**(§ 4.9 已警告)。它写回 tree 触发 reconcile,keystroke 级别会卡。
 4. **改了 `src/` 没 rebuild = 看不到改动**。每次都跑 `node tools/build.mjs`(或 `--watch`)。**改 `demo/` 不用 rebuild**,demo 是 `<script>` 直挂的,reload 即可。
 5. **`registerComponent` 重名 throw**。同一个 component 不能注册两次,reload 时如果 demo component 文件被加载两次会炸。`index.html` 里 demo component 用 `<script>` 标签,默认不会重复。
@@ -426,7 +424,7 @@ aiditor.registerComponent(name, {
 - `aiditor.registerComponent(name, spec)` —— 注册,重名 throw,名字必须是合法 string
 - `aiditor.resolveComponent(name)` —— 查表返回 spec,未注册 throw
 - `aiditor.componentDefaults(name)` —— `resolveComponent(name).defaults?.() ?? {}`,调用点不用判空
-- 所有内置 component(`tab-standard` / `tab-compact` / `tab-collapsible` / `tab-sidebar` / `log`)本身也通过 `registerComponent` 注册,作为示范,不走后门
+- 所有内置 component(`panel-list` / `theme-config` / `tab-standard` / `tab-compact` / `tab-collapsible` / `tab-sidebar` / `history` / `log`)本身也通过 `registerComponent` 注册,作为示范,不走后门
 
 ### 4.9 数据模型(完整,唯一来源)
 本节是整个框架**所有数据结构的唯一定义处**。别的章节只讲行为,结构回这里查。

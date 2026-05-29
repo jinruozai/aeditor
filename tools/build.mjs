@@ -205,6 +205,7 @@ const JS_ORDER = [
   'ui/panel/settings.js',
   'ai/panels/settings-ai.js',
   'style/theme-settings.js',
+  'ui/panel/panel-list.js',
   'ui/panel/inspector.js',
   'ui/panel/dock-tabs.js',
   'ui/panel/history.js',

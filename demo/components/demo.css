@@ -1,7 +1,5 @@
 /* Demo-only panel styling. */
 
-.demo-theme,
-.demo-panel-list,
 .demo-ui-gallery {
   display: flex;
   flex-direction: column;
@@ -10,14 +8,6 @@
   min-height: 0;
 }
 
-.demo-panel-list {
-  gap: 3px;
-  padding: 3px;
-  box-sizing: border-box;
-}
-
-.demo-theme-head,
-.demo-theme-foot,
 .demo-ui-gallery-toolbar {
   display: flex;
   align-items: center;
@@ -25,88 +15,12 @@
   padding: var(--aiditor-space-2) var(--aiditor-space-3);
   flex-shrink: 0;
 }
-.demo-theme-head,
 .demo-ui-gallery-toolbar {
   border-bottom: var(--aiditor-toolbar-border-w) solid var(--aiditor-toolbar-border);
 }
-.demo-theme-foot {
-  border-top: var(--aiditor-toolbar-border-w) solid var(--aiditor-toolbar-border);
-}
-.demo-theme-tabbar {
-  flex: 1 1 auto;
-  min-width: 160px;
-  overflow-x: auto;
-  scrollbar-width: thin;
-}
-.demo-theme-head .aiditor-ui-select {
-  flex: 0 0 96px;
-  width: 96px;
-  min-width: 0;
-}
-.demo-theme > .aiditor-ui-view,
-.demo-panel-list > .aiditor-ui-list,
 .demo-ui-gallery > .aiditor-ui-view {
   flex: 1 1 auto;
   min-height: 0;
-}
-.demo-panel-list-toolbar {
-  display: flex;
-  align-items: center;
-  flex: 0 0 auto;
-  min-width: 0;
-}
-.demo-panel-list-toolbar .aiditor-ui-field {
-  width: 100%;
-}
-.demo-theme-host {
-  padding: var(--aiditor-space-2) var(--aiditor-space-3);
-}
-.demo-theme-pane {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: var(--aiditor-space-1) var(--aiditor-space-3);
-}
-.demo-theme-pane .aiditor-ui-prop-row {
-  grid-template-columns: minmax(0, 96px) minmax(0, 1fr);
-}
-.demo-theme-pane .aiditor-ui-prop-label {
-  text-align: left;
-}
-
-.demo-panel-list-row {
-  display: grid;
-  grid-template-columns: 18px minmax(0, 1fr);
-  align-items: center;
-  gap: var(--aiditor-space-2);
-  width: 100%;
-  min-height: 100%;
-  padding: 0 5px;
-  box-sizing: border-box;
-  color: inherit;
-  text-align: left;
-  cursor: grab;
-}
-.demo-panel-list-row:active {
-  cursor: grabbing;
-}
-.demo-panel-list-text {
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-}
-.demo-panel-list-name,
-.demo-panel-list-id {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.demo-panel-list-name {
-  font: var(--aiditor-fs-sm) var(--aiditor-font-ui);
-}
-.demo-panel-list-id {
-  color: var(--aiditor-fg-3);
-  font: var(--aiditor-fs-xs) var(--aiditor-font-mono);
 }
 
 .demo-ui-gallery-toolbar {

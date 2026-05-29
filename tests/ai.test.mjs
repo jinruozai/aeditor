@@ -474,7 +474,7 @@ function makeElement(tag) {
     },
     replaceChild: function (next, prev) {
       const index = this.children.indexOf(prev)
-      if (index < 0) return this.appendChild(next)
+      if (index < 0) throw new Error('NotFoundError')
       if (next.parentNode) next.parentNode.removeChild(next)
       this.children[index] = next
       next.parentNode = this
@@ -631,6 +631,13 @@ async function assertGdePatchPreviewRendering() {
   assert.equal(streamingRoot.querySelector('[data-message-payload]'), payload)
   assert.equal(streamingRoot.querySelector('.aiditor-ai-message-text'), firstTextPart)
   assert.match(collectText(streamingRoot), /world/)
+
+  const emptyAgent = ai.createAgent({ name: 'Empty Transcript', messages: [] })
+  ai.activeAgentId.set(emptyAgent.id)
+  const emptyRoot = components['ai-messages'].factory(null, {})
+  assert.match(collectText(emptyRoot), /No messages yet/)
+  await new Promise(function (resolve) { setTimeout(resolve, 140) })
+  assert.match(collectText(emptyRoot), /No messages yet/)
 }
 
 await assertGdePatchPreviewRendering()

@@ -258,6 +258,8 @@ history
 log
 settings
 inspector
+panel-list
+theme-config
 ai-agents-list
 ai-chatinput
 ai-messages
@@ -276,7 +278,7 @@ src/ui/editor/      editor-specific inputs such as code, curve, path, file
 src/ui/container/   layout and containers such as vbox, hbox, absolute, view, scrollArea
 src/ui/data/        list, tree, table, file/asset browser, change review
 src/ui/overlay/     menu, modal, drawer, toast, dialogs
-src/ui/panel/       generic dock panel components such as log/settings/tabs
+src/ui/panel/       generic dock panel components such as panel-list/log/settings/tabs
 src/ui/_internal/   implementation helpers used by the UI library
 ```
 
@@ -327,7 +329,9 @@ keeping rich list interaction in one implementation.
 The settings panel under `src/ui/panel/` is only the generic settings shell.
 Concrete settings are registered by the owning module, for example theme
 settings from `src/style/theme-settings.js` and AI settings from
-`src/ai/panels/settings-ai.js`.
+`src/ai/panels/settings-ai.js`. The built-in `theme-config` dock panel reuses
+the same theme settings implementation in a compact panel layout; it is not a
+second theme editor.
 
 ## Schema Editors
 

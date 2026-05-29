@@ -1,4 +1,4 @@
-// demo component: panel-list
+// Built-in panel list: searchable palette for registered panel components.
 ;(function (aiditor) {
   'use strict'
 
@@ -8,6 +8,12 @@
     if (!el) return
     while (el.firstChild) disposeTree(el.firstChild)
     ui.dispose(el)
+  }
+
+  function cloneData(value) {
+    if (value == null) return value
+    if (typeof structuredClone === 'function') return structuredClone(value)
+    return JSON.parse(JSON.stringify(value))
   }
 
   function titleOf(item) {
@@ -21,7 +27,7 @@
 
   function panelItems() {
     return aiditor.listComponents()
-      .filter(function (item) { return item.category === 'panel' })
+      .filter(function (item) { return item.category === 'panel' && item.palette !== false })
       .map(function (item) {
         const defaults = aiditor.componentDefaults(item.name)
         return {
@@ -43,46 +49,71 @@
       component: item.name,
       title: item.title || item.label,
       icon: item.icon,
-      props: structuredClone(item.props || {}),
+      props: cloneData(item.props || {}),
     }
-    if (item.toolbarItems) data.toolbarItems = structuredClone(item.toolbarItems)
+    if (item.toolbarItems) data.toolbarItems = cloneData(item.toolbarItems)
     return data
   }
 
-  function beginDrag(ev, item) {
-    if (!Demo.layout || !aiditor._dock || !aiditor._dock.beginExternalPanelDrag) return
-    aiditor._dock.beginExternalPanelDrag(ev, panelData(item), Demo.layout, { label: item.label })
+  function resolveDockId(layout, idOrName) {
+    if (!layout || !idOrName) return null
+    const tree = layout.treeSig ? layout.treeSig.peek() : null
+    let hit = null
+    function walk(node) {
+      if (!node || hit) return
+      if (node.type === 'dock') {
+        if (node.id === idOrName || node.name === idOrName) hit = node.id
+        return
+      }
+      for (let i = 0; node.children && i < node.children.length; i++) walk(node.children[i])
+    }
+    walk(tree)
+    return hit
   }
 
-  function factory() {
-    const root = ui.h('div', 'demo-panel-list')
+  function addPanel(item, targetDock, ctx) {
+    const partial = panelData(item)
+    const layout = ctx._layout
+    const targetId = resolveDockId(layout, targetDock)
+    if (targetId) return { panelId: layout.addPanel(targetId, partial) }
+    return ctx.dock.addPanel(partial)
+  }
+
+  function beginDrag(ev, item, ctx) {
+    const fn = aiditor._dock && aiditor._dock.beginExternalPanelDrag
+    if (fn) fn(ev, panelData(item), ctx._layout, { label: item.label })
+  }
+
+  function factory(propsSig, ctx) {
+    const props = propsSig.peek() || {}
+    const root = ui.h('div', 'aiditor-panel-list')
     const querySig = aiditor.signal('')
     const itemsSig = aiditor.signal(panelItems())
     const filteredSig = aiditor.signal(itemsSig.peek())
 
-    const toolbar = ui.h('div', 'demo-panel-list-toolbar')
+    const toolbar = ui.h('div', 'aiditor-panel-list-toolbar')
     toolbar.appendChild(ui.searchInput({
       value: querySig,
-      placeholder: 'Search panels...',
+      placeholder: props.placeholder || 'Search panels...',
     }))
     root.appendChild(toolbar)
 
     const list = ui.list({
       items: filteredSig,
-      rowHeight: 36,
+      rowHeight: props.rowHeight || 36,
       multi: false,
       render: function (item) {
-        const row = ui.h('div', 'demo-panel-list-row', { title: item.name })
+        const row = ui.h('div', 'aiditor-panel-list-row', { title: item.name })
         row.appendChild(ui.icon({ name: item.icon, size: 'sm' }))
-        const text = ui.h('span', 'demo-panel-list-text')
-        text.appendChild(ui.h('span', 'demo-panel-list-name', { text: item.label }))
-        text.appendChild(ui.h('span', 'demo-panel-list-id', { text: item.name }))
+        const text = ui.h('span', 'aiditor-panel-list-text')
+        text.appendChild(ui.h('span', 'aiditor-panel-list-name', { text: item.label }))
+        text.appendChild(ui.h('span', 'aiditor-panel-list-id', { text: item.name }))
         row.appendChild(text)
-        row.addEventListener('pointerdown', function (ev) { beginDrag(ev, item) })
+        row.addEventListener('pointerdown', function (ev) { beginDrag(ev, item, ctx) })
         return row
       },
       onActivate: function (item) {
-        if (Demo.layout) Demo.layout.addPanel('chat', panelData(item))
+        addPanel(item, props.targetDock, ctx)
       },
     })
     root.appendChild(list)

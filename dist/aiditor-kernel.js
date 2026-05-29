@@ -6542,6 +6542,7 @@
   function beginExternalPanelDrag(e, partial, layout, opts) {
     if (e.button !== 0) return
     e.preventDefault()
+    const dragLayout = runtimeLayout(layout)
     const panel = partial || {}
     const component = panel.component
     const label = (opts && opts.label) || panel.title || component
@@ -6581,10 +6582,10 @@
       drop = null
 
       const el = document.elementFromPoint(ev.clientX, ev.clientY)
-      const dockEl = dockForLayout(el, layout)
+      const dockEl = dockForLayout(el, dragLayout)
       if (!dockEl) return
       const dstId = dockEl.dataset.dockId
-      const dst = dstId && aiditor.findDock(layout.tree(), dstId)
+      const dst = dstId && aiditor.findDock(treeForLayout(dragLayout), dstId)
       if (!dst) return
 
       const a = dst.node.accept
@@ -6622,10 +6623,10 @@
       if (!cleanup() || !wasDragging || !resolvedDrop) return
       try {
         if (resolvedDrop.kind === 'center') {
-          layout.addPanel(resolvedDrop.dockId, clonePanelInput(panel))
+          dragLayout.addPanel(resolvedDrop.dockId, clonePanelInput(panel))
           return
         }
-        layout.addPanelToSplit(
+        dragLayout.addPanelToSplit(
           resolvedDrop.dockId,
           resolvedDrop.direction,
           resolvedDrop.side,
@@ -6645,6 +6646,14 @@
     window.addEventListener('pointercancel', onCancel)
     window.addEventListener('keydown', onKey)
     window.addEventListener('blur', onCancel)
+  }
+
+  function runtimeLayout(layout) {
+    return layout && layout._runtime ? layout._runtime : layout
+  }
+
+  function treeForLayout(layout) {
+    return layout.treeSig ? layout.treeSig.peek() : layout.tree()
   }
 
   // Find which gap between existing tabs the pointer falls into. Works for

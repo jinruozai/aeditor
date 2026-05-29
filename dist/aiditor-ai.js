@@ -11807,7 +11807,7 @@
 
     const toolbar = ui.h('div', 'aiditor-ai-toolbar')
     toolbar.appendChild(ui.button({
-      text: 'New Chat',
+      text: 'New Agent',
       kind: 'default',
       size: 'sm',
       onClick: function () {
@@ -14023,6 +14023,7 @@
         delete rows[id]
       })
       clearChildren(windowEl)
+      emptyEl = null
     }
 
     function removeEmpty() {
@@ -14037,11 +14038,7 @@
       setSpacerHeight(topSpacer, 0)
       setSpacerHeight(bottomSpacer, 0)
       const next = renderEmpty(item)
-      if (emptyEl && windowEl.replaceChild) windowEl.replaceChild(next, emptyEl)
-      else {
-        removeEmpty()
-        windowEl.appendChild(next)
-      }
+      windowEl.appendChild(next)
       emptyEl = next
     }
 

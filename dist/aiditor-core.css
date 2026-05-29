@@ -4338,6 +4338,69 @@ div.aiditor-ui-view {
   text-align: right;
 }
 
+/* ── panel list ─ */
+.aiditor-panel-list {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  padding: 3px;
+  background: var(--aiditor-bg-1);
+  box-sizing: border-box;
+}
+.aiditor-panel-list-toolbar {
+  display: flex;
+  align-items: center;
+  flex: 0 0 auto;
+  min-width: 0;
+}
+.aiditor-panel-list-toolbar .aiditor-ui-field {
+  width: 100%;
+}
+.aiditor-panel-list > .aiditor-ui-list {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+.aiditor-panel-list-row {
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr);
+  align-items: center;
+  gap: var(--aiditor-space-2);
+  width: 100%;
+  min-height: 100%;
+  padding: 0 5px;
+  box-sizing: border-box;
+  color: inherit;
+  text-align: left;
+  cursor: grab;
+}
+.aiditor-panel-list-row:active {
+  cursor: grabbing;
+}
+.aiditor-panel-list-text {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.aiditor-panel-list-name,
+.aiditor-panel-list-id {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.aiditor-panel-list-name {
+  color: var(--aiditor-fg-0);
+  font: var(--aiditor-fs-sm) var(--aiditor-font-ui);
+}
+.aiditor-panel-list-id {
+  color: var(--aiditor-fg-3);
+  font: var(--aiditor-fs-xs) var(--aiditor-font-mono);
+}
+
 /* ── asset browser ───────────────────────────────────── */
 .aiditor-ui-asset-browser {
   display: flex;
@@ -5385,6 +5448,63 @@ div.aiditor-ui-view {
 
 .aiditor-settings-theme-pane .aiditor-ui-prop-label {
   text-align: left;
+}
+
+.aiditor-theme-config {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  background: var(--aiditor-bg-1);
+}
+.aiditor-theme-config-head,
+.aiditor-theme-config-foot {
+  display: flex;
+  align-items: center;
+  gap: var(--aiditor-space-2);
+  padding: var(--aiditor-space-2) var(--aiditor-space-3);
+  flex: 0 0 auto;
+  min-width: 0;
+  box-sizing: border-box;
+}
+.aiditor-theme-config-head {
+  border-bottom: var(--aiditor-toolbar-border-w) solid var(--aiditor-toolbar-border);
+  background: var(--aiditor-toolbar-bg);
+}
+.aiditor-theme-config-foot {
+  border-top: var(--aiditor-toolbar-border-w) solid var(--aiditor-toolbar-border);
+  background: var(--aiditor-toolbar-bg);
+}
+.aiditor-theme-config-head .aiditor-ui-select {
+  flex: 1 1 0;
+  min-width: 0;
+}
+.aiditor-theme-config-head .aiditor-ui-btn {
+  flex: 0 0 auto;
+}
+.aiditor-theme-config-tabs {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+.aiditor-theme-config-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+.aiditor-theme-config-host {
+  padding: var(--aiditor-space-2) var(--aiditor-space-3);
+}
+.aiditor-theme-config-host.aiditor-settings-theme-host {
+  padding-right: var(--aiditor-space-3);
+}
+.aiditor-theme-config-host .aiditor-settings-theme-pane {
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+}
+.aiditor-theme-config-host .aiditor-settings-theme-pane .aiditor-ui-prop-row {
+  grid-template-columns: minmax(0, 96px) minmax(0, 1fr);
 }
 
 .aiditor-settings-ai-overview {
